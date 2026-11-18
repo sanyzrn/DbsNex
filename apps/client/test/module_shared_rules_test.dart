@@ -27,7 +27,6 @@ void main() {
   /// Modules without a `summarize` line per record yet.
   const summaryPending = {
     'converter',
-    'expenses',
     'gold',
     'habits',
     'lent_borrowed',

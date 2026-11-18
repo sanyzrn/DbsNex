@@ -4,21 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'controller.dart';
+import 'editor_draft.dart';
 import 'expenses_fields.dart';
 import 'expenses_undo.dart';
 import 'models.dart';
 import 'money.dart';
 import 'strings.dart';
-import 'editor_draft.dart';
 
 part 'expenses_template_editor.dart';
 
-/// Templates: a reusable entry the person confirms — a template fills
-/// the transaction editor; nothing is ever charged in the background.
+/// Templates: a reusable entry the person confirms — a template fills the
+/// transaction editor; nothing is ever charged in the background.
 ///
-/// From the screen's Templates action: the list, a Use action per row
-/// that opens the editor prefilled, deletion with Undo, and a New
-/// template editor of its own.
+/// A template with a day is a **recurring** payment. It is offered on that
+/// day on the home screen, one tap writes that month down, and it is never
+/// written by itself. From the screen's Templates action: the list, a Use
+/// action per row that opens the editor prefilled, deletion with Undo, and a
+/// New template editor of its own.
 Future<void> showExpensesTemplates(
   BuildContext context, {
   required ExpensesController controller,
@@ -119,14 +121,12 @@ class _TemplatesSheetState extends State<_TemplatesSheet> {
     }
   }
 
-  Future<void> _newTemplate() async {
-    await showExpensesTemplateEditor(context, controller: widget.controller);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final s = expenseStrings;
+    final persian = NexModuleStrings.persian(context);
+    final unit = widget.controller.unit;
     final templates = widget.controller.templates;
     return ListView(
       shrinkWrap: true,
@@ -154,11 +154,20 @@ class _TemplatesSheetState extends State<_TemplatesSheet> {
         for (final template in templates)
           ListTile(
             title: Text(template.label),
-            subtitle: Text(
-              '${template.type == 'income' ? '+' : ''}'
-              '${formatExpenseNumber(template.amount, expenseExponentOf(template.currency, null), persian: NexModuleStrings.persian(context))} ${template.currency}',
-              textDirection: TextDirection.ltr,
-              textAlign: TextAlign.start,
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${template.type == 'income' ? '+' : ''}'
+                  '${formatExpenseAmount(template.amountRial, unit, persian: persian)}',
+                ),
+                if (template.day case final day?)
+                  Text(
+                    '${s(context, 'templateRecurringBadge')} · '
+                    '${nexDigits('$day', persian: persian)}',
+                    style: theme.textTheme.bodySmall,
+                  ),
+              ],
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -180,7 +189,7 @@ class _TemplatesSheetState extends State<_TemplatesSheet> {
         const Divider(),
         OutlinedButton.icon(
           key: const ValueKey('expenses-new-template'),
-          onPressed: _busy ? null : () => unawaited(_newTemplate()),
+          onPressed: _busy ? null : () => unawaited(_newTemplate(context)),
           icon: const Icon(Icons.add),
           label: Text(s(context, 'newTemplate')),
           style: OutlinedButton.styleFrom(
@@ -189,5 +198,9 @@ class _TemplatesSheetState extends State<_TemplatesSheet> {
         ),
       ],
     );
+  }
+
+  Future<void> _newTemplate(BuildContext context) async {
+    await showExpensesTemplateEditor(context, controller: widget.controller);
   }
 }

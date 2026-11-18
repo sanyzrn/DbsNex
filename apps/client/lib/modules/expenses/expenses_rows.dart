@@ -6,33 +6,41 @@ import 'models.dart';
 import 'money.dart';
 import 'strings.dart';
 
-/// Budget rows, the category filter chips and the record rows — the
-/// parts of the Expenses screen that repeat once per thing.
+/// Budget rows, the recurring offers, the category filter chips and the
+/// record rows — the parts of the Expenses screen that repeat once per thing.
 
-/// One budget's standing, arithmetic on show: spent of budget, left or
-/// over by, and a calm bar that is never red — over is information
-/// here, not damage.
+/// One budget's standing, arithmetic on show: spent of budget, left or over
+/// by, and a calm bar that is never red — over is information here, not
+/// damage.
 class ExpensesBudgetsPanel extends StatelessWidget {
   const ExpensesBudgetsPanel({
     super.key,
     required this.statuses,
     required this.onEdit,
     required this.categoryName,
+    required this.unit,
+    this.hidden = false,
   });
 
   final List<ExpenseBudgetStatus> statuses;
   final ValueChanged<ExpenseBudgetStatus> onEdit;
   final String Function(String) categoryName;
+  final ExpenseUnit unit;
+  final bool hidden;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final persian = NexModuleStrings.persian(context);
+    final s = expenseStrings;
     final withinHue = NexHue.teal.of(theme.brightness);
     final overHue = NexHue.amber.of(theme.brightness);
+    String money(BigInt rials) => hidden
+        ? s(context, 'hiddenAmount')
+        : formatExpenseAmount(rials.toInt(), unit, persian: persian);
     return NexPanel(
-      title: expenseStrings(context, 'budgetsTitle'),
+      title: s(context, 'budgetsTitle'),
       icon: Icons.savings_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -46,23 +54,18 @@ class ExpensesBudgetsPanel extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          status.budget.categoryId == null
-                              ? expenseStrings(context, 'overallLimit')
-                              : categoryName(status.budget.categoryId!),
-                          style: theme.textTheme.bodyLarge,
-                        ),
-                        Text(
-                          '${formatExpenseNumber(status.spent, expenseExponentOf(status.budget.currency, null), persian: persian)} / ${formatExpenseNumber(status.budget.amount, expenseExponentOf(status.budget.currency, null), persian: persian)} ${status.budget.currency}',
-                          textDirection: TextDirection.ltr,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      status.budget.categoryId == null
+                          ? s(context, 'overallLimit')
+                          : categoryName(status.budget.categoryId!),
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                    Text(
+                      '${money(status.spent)} / ${money(BigInt.from(status.budget.amountRial))}',
+                      textDirection: TextDirection.ltr,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: NexSpacing.xs),
                     ExcludeSemantics(
@@ -84,7 +87,7 @@ class ExpensesBudgetsPanel extends StatelessWidget {
                     ),
                     const SizedBox(height: NexSpacing.xs),
                     Text(
-                      _line(context, status, persian),
+                      _line(context, status, money),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: status.isOver
                             ? overHue
@@ -98,7 +101,7 @@ class ExpensesBudgetsPanel extends StatelessWidget {
           ],
           const SizedBox(height: NexSpacing.xs),
           Text(
-            expenseStrings(context, 'budgetNote'),
+            s(context, 'budgetNote'),
             style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -108,24 +111,118 @@ class ExpensesBudgetsPanel extends StatelessWidget {
     );
   }
 
-  String _line(BuildContext context, ExpenseBudgetStatus status, bool persian) {
-    final exponent = expenseExponentOf(status.budget.currency, null);
-    final amount = formatExpenseNumber(
-      status.isOver ? status.overage : status.left,
-      exponent,
-      persian: persian,
+  String _line(
+    BuildContext context,
+    ExpenseBudgetStatus status,
+    String Function(BigInt) money,
+  ) => status.isOver
+      ? '${expenseStrings(context, 'budgetOver')} ${money(status.overage)}'
+      : '${expenseStrings(context, 'budgetLeft')} ${money(status.left)}';
+}
+
+/// One recurring payment that has come due this month and is not written
+/// down yet — with the one tap that writes it. Nothing is ever logged by
+/// itself, and the offer says so.
+class ExpensesDueOffer {
+  const ExpensesDueOffer({required this.template, required this.at});
+
+  final ExpenseTemplate template;
+  final DateTime at;
+}
+
+class ExpensesDuePanel extends StatelessWidget {
+  const ExpensesDuePanel({
+    super.key,
+    required this.offers,
+    required this.unit,
+    required this.onLog,
+    this.hidden = false,
+  });
+
+  final List<ExpensesDueOffer> offers;
+  final ExpenseUnit unit;
+  final ValueChanged<ExpensesDueOffer> onLog;
+  final bool hidden;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final persian = NexModuleStrings.persian(context);
+    final s = expenseStrings;
+    if (offers.isEmpty) return const SizedBox.shrink();
+    final today = DateTime.now();
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(bottom: NexSpacing.md),
+      child: NexPanel(
+        title: s(context, 'dueTitle'),
+        icon: Icons.event_repeat_outlined,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              s(context, 'dueHint'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: NexSpacing.sm),
+            for (final offer in offers) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          offer.template.label,
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                        Text(
+                          [
+                            offer.at.year == today.year &&
+                                    offer.at.month == today.month &&
+                                    offer.at.day == today.day
+                                ? s(context, 'dueToday')
+                                : s(context, 'dueOn', {
+                                    'date': nexModuleDateLabel(
+                                      context,
+                                      offer.at,
+                                    ),
+                                  }),
+                            hidden
+                                ? s(context, 'hiddenAmount')
+                                : formatExpenseAmount(
+                                    offer.template.amountRial,
+                                    unit,
+                                    persian: persian,
+                                  ),
+                          ].join(' · '),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: NexSpacing.sm),
+                  FilledButton.tonal(
+                    key: ValueKey('expenses-log-${offer.template.id}'),
+                    onPressed: () => onLog(offer),
+                    child: Text(s(context, 'logThisMonth')),
+                  ),
+                ],
+              ),
+              const SizedBox(height: NexSpacing.sm),
+            ],
+          ],
+        ),
+      ),
     );
-    if (status.isOver) {
-      return '${expenseStrings(context, 'budgetOver')} $amount '
-          '${status.budget.currency}';
-    }
-    return '${expenseStrings(context, 'budgetLeft')} $amount '
-        '${status.budget.currency}';
   }
 }
 
-/// Category filter chips: "All" plus every category with a record in
-/// the view, one selection, 48dp at the tap floor.
+/// Category filter chips: "All" plus every category with a record in the
+/// view, one selection, 48dp at the tap floor.
 class ExpensesFilterChips extends StatelessWidget {
   const ExpensesFilterChips({
     super.key,
@@ -187,9 +284,9 @@ class ExpensesFilterChips extends StatelessWidget {
   }
 }
 
-/// One record row: what it was, where, when — and the amount in its
-/// own currency. Income carries a plus sign; an incomplete record says
-/// so instead of pretending.
+/// One record row: what it was, where, when — and the amount in rials or
+/// tomans, hidden when the person asked. Income carries a plus sign; an
+/// incomplete record says so instead of pretending.
 class ExpensesTxRow extends StatelessWidget {
   const ExpensesTxRow({
     super.key,
@@ -197,28 +294,36 @@ class ExpensesTxRow extends StatelessWidget {
     required this.categoryName,
     required this.onTap,
     required this.now,
+    required this.unit,
+    this.label,
+    this.hidden = false,
   });
 
   final ExpenseTx tx;
   final String Function(String id) categoryName;
   final VoidCallback onTap;
   final DateTime now;
+  final ExpenseUnit unit;
+
+  /// The recurring template's name, when the payment came from one.
+  final String? label;
+  final bool hidden;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final persian = NexModuleStrings.persian(context);
-    final exponent = expenseExponentOf(tx.currency, null);
     final income = tx.isIncome;
     final hue = NexHue.teal.of(theme.brightness);
     final category = categoryName(tx.categoryId ?? 'cat-other');
     final title = tx.valid
-        ? (tx.note?.isNotEmpty == true
-              ? tx.note!
-              : tx.merchant?.isNotEmpty == true
-              ? tx.merchant!
-              : category)
+        ? (label ??
+              (tx.note?.isNotEmpty == true
+                  ? tx.note!
+                  : tx.merchant?.isNotEmpty == true
+                  ? tx.merchant!
+                  : category))
         : expenseStrings(context, 'incompleteRecord');
     final subtitle = tx.valid
         ? [
@@ -228,7 +333,10 @@ class ExpensesTxRow extends StatelessWidget {
           ].join(' · ')
         : expenseStrings(context, 'incompleteHint');
     final amount = tx.valid
-        ? '${income ? '+' : ''}${formatExpenseNumber(tx.amount, exponent, persian: persian)} ${tx.currency}'
+        ? (hidden
+              ? expenseStrings(context, 'hiddenAmount')
+              : '${income ? '+' : ''}'
+                    '${formatExpenseAmount(tx.amountRial, unit, persian: persian)}')
         : '—';
     final semantics = expenseStrings(context, 'txSemantics', {
       'type': income
@@ -278,9 +386,9 @@ class ExpensesTxRow extends StatelessWidget {
   }
 }
 
-/// "Today", "Yesterday", or the shared date label — calendar-relative
-/// when the words say it, the app's chosen calendar (Jalali included)
-/// through `nexModuleDateLabel` when it is an absolute day.
+/// "Today", "Yesterday", or the shared date label — calendar-relative when
+/// the words say it, the app's chosen calendar (Jalali included) through
+/// `nexModuleDateLabel` when it is an absolute day.
 String txDateLabel(BuildContext context, DateTime date, DateTime now) {
   final localDate = DateTime.utc(date.year, date.month, date.day);
   final localNow = DateTime.utc(now.year, now.month, now.day);

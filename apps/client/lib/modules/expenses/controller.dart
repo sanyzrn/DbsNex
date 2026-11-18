@@ -3,9 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'expenses_summary.dart';
+import 'local_writes.dart';
 import 'models.dart';
 import 'money.dart';
-import 'local_writes.dart';
 
 /// Fresh reads, serial recoverable writes and exact guarded Undo.
 class ExpensesController extends ChangeNotifier {
@@ -113,10 +114,12 @@ class ExpensesController extends ChangeNotifier {
       ]);
     }),
   );
+
   Future<void> _delete(String kind, String id) => _mutate(() async {
     final undo = await LocalWrites.delete(store, kind, id);
     _undos['$kind:$id'] = undo;
   });
+
   Future<void> restore(String kind, String id) => _mutate(() async {
     final undo = _undos['$kind:$id'];
     if (undo == null) throw StateError('Undo unavailable');
@@ -129,7 +132,7 @@ class ExpensesController extends ChangeNotifier {
         () => LocalWrites.serial(store, () async {
           final proposed = tx.toBody();
           if (!ExpenseTx.fromBody(tx.id, proposed).valid ||
-              !expenseAmountInRange(tx.amount)) {
+              !expenseAmountInRange(tx.amountRial)) {
             throw StateError('Invalid transaction');
           }
           final raw = await store.get('tx', tx.id);
@@ -145,7 +148,12 @@ class ExpensesController extends ChangeNotifier {
             'merchant',
             'account',
           }) {
-            if (old != null && LocalWrites.same(old[key], proposed[key])) {
+            // Only skip a field the stored body already holds: a 2.1.x
+            // record has no `amountRial` yet, and the migration has to
+            // write it even though the value is unchanged.
+            if (old != null &&
+                (raw?.containsKey(key) ?? false) &&
+                LocalWrites.same(old[key], proposed[key])) {
               continue;
             }
             if (proposed.containsKey(key)) {
@@ -154,8 +162,19 @@ class ExpensesController extends ChangeNotifier {
               body.remove(key);
             }
           }
-          body.addAll(expenseCurrencyMetadata(body['currency'] as String));
-          body['schema'] = 2;
+          // A record written by 2.1.x kept a currency's minor units; the
+          // amount now lives in `amountRial`, so the old keys go with it —
+          // the value itself is kept, converted once, and never rescaled.
+          for (final legacy in const [
+            'amount',
+            'currency',
+            'currency_code',
+            'currency_exponent',
+            'exponent',
+          ]) {
+            body.remove(legacy);
+          }
+          body['schema'] = 3;
           if (!ExpenseTx.fromBody(tx.id, body).valid) {
             throw StateError('The current transaction needs repair');
           }
@@ -165,8 +184,10 @@ class ExpensesController extends ChangeNotifier {
           ]);
         }),
       );
+
   Future<void> deleteTx(String id) => _delete('tx', id);
   Future<void> restoreTx(ExpenseTx tx) => restore('tx', tx.id);
+
   ExpenseTx? txById(String id) {
     for (final tx in txs) {
       if (tx.id == id) return tx;
@@ -184,6 +205,7 @@ class ExpensesController extends ChangeNotifier {
       _delete('cat', category.id);
   Future<void> restoreCategory(ExpenseCategory category) =>
       restore('cat', category.id);
+
   Future<void> saveBudget(
     ExpenseBudget budget, {
     ExpenseBudget? existing,
@@ -209,31 +231,24 @@ class ExpensesController extends ChangeNotifier {
       ]);
     }),
   );
-  Future<void> clearBudget(String month, String? categoryId, String currency) =>
-      _delete('budget', budgetId(month, categoryId, currency));
-  ExpenseBudget? budgetFor(String month, String? categoryId, String currency) {
+
+  Future<void> clearBudget(String start, String? categoryId) =>
+      _delete('budget', budgetId(start, categoryId));
+
+  ExpenseBudget? budgetFor(String start, String? categoryId) {
     for (final b in budgets) {
-      if (b.month == month &&
-          b.categoryId == categoryId &&
-          b.currency == currency) {
-        return b;
-      }
+      if (b.start == start && b.categoryId == categoryId) return b;
     }
     return null;
   }
 
-  Future<void> saveTemplate(
-    ExpenseTemplate template, {
-    String? id,
-    String? draftId,
-  }) {
-    if (ExpenseTemplate.fromBody(id ?? template.id, template.toBody()) ==
-        null) {
+  Future<void> saveTemplate(ExpenseTemplate template, {String? draftId}) {
+    if (ExpenseTemplate.fromBody(template.id, template.toBody()) == null) {
       return Future.error(StateError('Invalid template'));
     }
     return _put(
       'tpl',
-      id ?? (template.id.isNotEmpty ? template.id : 'tpl-${store.newId()}'),
+      template.id.isEmpty ? 'tpl-${store.newId()}' : template.id,
       template.toBody(),
       draftId: draftId,
     );
@@ -242,19 +257,49 @@ class ExpensesController extends ChangeNotifier {
   Future<void> deleteTemplate(String id) => _delete('tpl', id);
   Future<void> restoreTemplate(String id) => restore('tpl', id);
   String newTxId() => 'tx-${store.newId()}';
-  String get preferredCurrencyCode =>
-      expenseCurrencyOf(
-        settings['currency'] is String ? settings['currency'] as String : null,
-      )?.code ??
-      'IRR';
-  String get preferredIrrUnit =>
-      settings['irrUnit'] == 'toman' ? 'toman' : 'rial';
-  Future<void> rememberEditorDefaults({
-    required String currencyCode,
-    required String irrUnit,
-  }) => _put('settings', 'main', {
-    'currency': currencyCode,
-    'irrUnit': irrUnit,
-    'schema': 1,
-  });
+
+  /// Writes this month's occurrence of [template] down, once — the one-tap
+  /// "log this month's" the brief asks for. It returns the new payment's id,
+  /// or null when that month is already written down. Nothing is ever logged
+  /// without this call.
+  Future<String?> logTemplate(
+    ExpenseTemplate template, {
+    required DateTime dueDay,
+  }) async {
+    final month = NexModuleMonth.of(dueDay, solar: template.solar);
+    final period = monthStartIso(month);
+    final done = txs.any(
+      (tx) => tx.templateId == template.id && tx.period == period,
+    );
+    if (done) return null;
+    final tx = ExpenseTx(
+      id: newTxId(),
+      type: template.type,
+      amountRial: template.amountRial,
+      date: DateTime(dueDay.year, dueDay.month, dueDay.day, 12),
+      categoryId: template.categoryId,
+      note: template.note,
+      merchant: template.merchant,
+      templateId: template.id,
+      period: period,
+    );
+    await saveTx(tx);
+    return tx.id;
+  }
+
+  /// The settings a person chose: the unit amounts are said in, and whether
+  /// the amounts are hidden on screen.
+  ExpenseUnit get unit => ExpenseUnit.fromKey(settings['unit']);
+  bool get hideAmounts => settings['hideAmounts'] == true;
+
+  Future<void> rememberUnit(ExpenseUnit unit) =>
+      _put('settings', 'main', {'unit': unit.key, 'schema': 1});
+
+  Future<void> setHideAmounts(bool hidden) =>
+      _put('settings', 'main', {'hideAmounts': hidden, 'schema': 1});
+
+  /// Everything this module has falling due between [from] and [to] — the
+  /// one function the shared calendar and the home offers both use.
+  List<ModuleDue> duesBetween(DateTime from, DateTime to) =>
+      ExpenseSchedule(templates: templates, txs: txs).duesBetween(from, to);
 }

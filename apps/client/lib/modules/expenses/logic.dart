@@ -1,200 +1,254 @@
 /// The Expenses module's arithmetic: every total, breakdown, budget
-/// status and filter is computed here, in integers, from a list of
-/// records — no storage, no Flutter, fully unit-testable.
+/// standing and filter is computed here, in whole rials and integers, from a
+/// list of records — no storage, no Flutter, fully unit-testable.
 ///
 /// Two invariants hold throughout:
 ///
-/// * **Currencies are never combined.** Every total is per currency; a
-///   net figure exists only inside one currency. There is no exchange
-///   rate and none is implied.
-/// * **Invalid records never count.** A malformed body is still listed
-///   so the person can fix it, but it is excluded from totals.
+/// * **Only whole rials, one book.** Every figure is rial; there is no
+///   second currency and no exchange rate anywhere in this file.
+/// * **Invalid records never count.** A malformed body is still listed so
+///   the person can fix it, but it is excluded from totals.
 library;
+
+import 'package:nex_client/modules/module_api.dart' show NexModuleMonth;
 
 import 'models.dart';
 import 'money.dart';
 
-/// Totals for one currency: expense, income, net.
-class ExpenseCurrencyTotals {
-  ExpenseCurrencyTotals({
-    required this.currency,
-    required this.expense,
-    required this.income,
-  });
+/// What a month holds: spent, received, and what is left of the income.
+class ExpenseTotals {
+  const ExpenseTotals({required this.expense, required this.income});
 
-  final String currency;
+  /// Whole rials.
   final BigInt expense;
   final BigInt income;
 
   BigInt get net => income - expense;
+
+  /// What is left of the month's income after the month's spending. Only
+  /// meaningful when something was entered as income; the screen says so.
+  BigInt get left => net;
+
+  bool get hasIncome => income > BigInt.zero;
 }
 
-/// Totals per currency, ordered by first appearance of the currency in
-/// the records given. Empty when there is nothing to count.
-List<ExpenseCurrencyTotals> expenseTotals(Iterable<ExpenseTx> txs) {
-  final order = <String>[];
-  final expense = <String, BigInt>{};
-  final income = <String, BigInt>{};
+/// Totals over [txs] — valid records only.
+ExpenseTotals expenseTotals(Iterable<ExpenseTx> txs) {
+  var expense = BigInt.zero, income = BigInt.zero;
   for (final tx in txs) {
     if (!validExpenseTx(tx)) continue;
-    if (!order.contains(tx.currency)) order.add(tx.currency);
     if (tx.isIncome) {
-      income[tx.currency] =
-          (income[tx.currency] ?? BigInt.zero) + BigInt.from(tx.amount);
+      income += BigInt.from(tx.amountRial);
     } else {
-      expense[tx.currency] =
-          (expense[tx.currency] ?? BigInt.zero) + BigInt.from(tx.amount);
+      expense += BigInt.from(tx.amountRial);
     }
   }
-  return [
-    for (final currency in order)
-      ExpenseCurrencyTotals(
-        currency: currency,
-        expense: expense[currency] ?? BigInt.zero,
-        income: income[currency] ?? BigInt.zero,
-      ),
-  ];
+  return ExpenseTotals(expense: expense, income: income);
 }
 
-/// What was spent in [month] in one currency, against the month before it —
-/// the comparison people mean by «am I spending more?». Null when the month
-/// before has no spending in that currency: there is nothing honest to
-/// compare to, and a percentage of nothing is not a number.
-({BigInt previous, int? percent, int direction})? expenseMonthChange(
-  Iterable<ExpenseTx> txs,
-  String month, {
-  required String currency,
-}) {
-  final before = previousMonthKey(month);
-  if (before == null) return null;
-  BigInt spent(String key) {
-    var total = BigInt.zero;
-    for (final tx in txs) {
-      if (!validExpenseTx(tx) || tx.isIncome || tx.currency != currency) {
-        continue;
-      }
-      if (monthKeyOf(tx.date) == key) total += BigInt.from(tx.amount);
-    }
-    return total;
-  }
-
-  final previous = spent(before);
+/// How far apart two spending totals are, as a whole percent, rounded half
+/// up — or null when there is nothing honest to compare against.
+int? expensePercentChange(BigInt current, BigInt previous) {
   if (previous <= BigInt.zero) return null;
-  final current = spent(month);
   final diff = current - previous;
-  // Rounded to the nearest whole percent, away from zero on a half.
-  final percent =
-      ((diff.abs() * BigInt.from(200) + previous) ~/ (previous * BigInt.two))
-          .toInt();
-  return (
+  if (diff == BigInt.zero) return 0;
+  return ((diff.abs() * BigInt.from(200) + previous) ~/ (previous * BigInt.two))
+      .toInt();
+}
+
+/// `-1`, `0` or `1`: whether [current] is less than, equal to or more than
+/// [previous]. Only the words for it come from the module's strings.
+int expenseDirection(BigInt current, BigInt previous) =>
+    current == previous ? 0 : (current > previous ? 1 : -1);
+
+/// A month against the month before it, for the whole book.
+class ExpenseMonthChange {
+  const ExpenseMonthChange({
+    required this.previous,
+    required this.current,
+    required this.percent,
+    required this.direction,
+  });
+
+  final BigInt previous;
+  final BigInt current;
+
+  /// Null when the month before had no spending: a percentage of nothing is
+  /// not a number, and the screen then says nothing about it.
+  final int? percent;
+  final int direction;
+}
+
+/// Spending in [month] against the month before, in the same calendar.
+ExpenseMonthChange? expenseMonthChange(
+  Iterable<ExpenseTx> txs, {
+  required NexModuleMonth month,
+  required bool solar,
+}) {
+  final previousMonth = month.shift(-1);
+  final previous = expenseTotals(txsInMonth(txs, previousMonth, solar: solar))
+      .expense;
+  if (previous <= BigInt.zero) return null;
+  final current = expenseTotals(txsInMonth(txs, month, solar: solar)).expense;
+  return ExpenseMonthChange(
     previous: previous,
-    percent: percent,
-    direction: percent == 0 ? 0 : (diff.isNegative ? -1 : 1),
+    current: current,
+    percent: expensePercentChange(current, previous),
+    direction: expenseDirection(current, previous),
   );
 }
 
-/// One category's slice of a month's spending.
+/// One category's slice of a month's spending, with its own change against
+/// the month before — the «groceries +18%» the brief asks for.
 class ExpenseCategorySlice {
-  ExpenseCategorySlice({required this.categoryId, required this.total});
+  const ExpenseCategorySlice({
+    required this.categoryId,
+    required this.total,
+    required this.previous,
+    required this.percent,
+    required this.direction,
+  });
 
   final String categoryId;
   final BigInt total;
+  final BigInt previous;
+
+  /// Null when this category had no spending the month before.
+  final int? percent;
+  final int direction;
 }
 
-/// Spending per category, in one currency, largest first. Records with
-/// no category land in `cat-other`'s bucket by id — the screen maps a
-/// missing category to the default "Other" when it shows it.
+/// Spending per category in [month], largest first — with each category's
+/// own previous-month total. Records with no category land in `cat-other`.
 List<ExpenseCategorySlice> expenseCategoryBreakdown(
   Iterable<ExpenseTx> txs, {
-  required String currency,
+  required NexModuleMonth month,
+  required bool solar,
 }) {
-  final totals = <String, BigInt>{};
-  for (final tx in txs) {
-    if (!validExpenseTx(tx) || tx.isIncome || tx.currency != currency) continue;
-    final key = tx.categoryId ?? 'cat-other';
-    totals[key] = (totals[key] ?? BigInt.zero) + BigInt.from(tx.amount);
-  }
+  final current = _categoryTotals(txsInMonth(txs, month, solar: solar));
+  final previous = _categoryTotals(
+    txsInMonth(txs, month.shift(-1), solar: solar),
+  );
   final slices = [
-    for (final entry in totals.entries)
-      ExpenseCategorySlice(categoryId: entry.key, total: entry.value),
+    for (final entry in current.entries)
+      ExpenseCategorySlice(
+        categoryId: entry.key,
+        total: entry.value,
+        previous: previous[entry.key] ?? BigInt.zero,
+        percent: expensePercentChange(
+          entry.value,
+          previous[entry.key] ?? BigInt.zero,
+        ),
+        direction: expenseDirection(
+          entry.value,
+          previous[entry.key] ?? BigInt.zero,
+        ),
+      ),
   ];
-  slices.sort((a, b) => b.total.compareTo(a.total));
+  slices.sort((a, b) {
+    final byTotal = b.total.compareTo(a.total);
+    return byTotal != 0 ? byTotal : a.categoryId.compareTo(b.categoryId);
+  });
   return slices;
 }
 
-/// A budget's standing against the records of its own month and
-/// currency: the arithmetic is shown, never just the verdict.
+Map<String, BigInt> _categoryTotals(Iterable<ExpenseTx> txs) {
+  final totals = <String, BigInt>{};
+  for (final tx in txs) {
+    if (!validExpenseTx(tx) || tx.isIncome) continue;
+    final key = tx.categoryId ?? 'cat-other';
+    totals[key] = (totals[key] ?? BigInt.zero) + BigInt.from(tx.amountRial);
+  }
+  return totals;
+}
+
+/// A budget's standing against the payments of its own month: the
+/// arithmetic is shown, never just the verdict.
 class ExpenseBudgetStatus {
   ExpenseBudgetStatus({required this.budget, required this.spent});
 
   final ExpenseBudget budget;
 
-  /// Expenses of this budget's month, currency and category (all of
-  /// them when the budget is the overall limit).
+  /// Expenses of this budget's month and category (all of them when the
+  /// budget is the overall limit).
   final BigInt spent;
 
-  BigInt get left => BigInt.from(budget.amount) - spent;
+  BigInt get left => BigInt.from(budget.amountRial) - spent;
 
   /// Positive when over. "Over" is stated plainly, never alarmingly.
-  BigInt get overage => spent - BigInt.from(budget.amount);
+  BigInt get overage => spent - BigInt.from(budget.amountRial);
 
   bool get isOver => overage > BigInt.zero;
 
   /// 0–1 progress for the calm bar; 1 when there is no budget amount.
-  double get progress => expenseProgress(spent, budget.amount);
+  double get progress => expenseProgress(spent, budget.amountRial);
 }
 
-/// The status of every budget for [month], against [txs] — only records
-/// of the same month and currency are counted, so a dollar budget is
-/// never fed rial spending.
+/// The status of every budget belonging to [month], against [txs]. A budget
+/// is keyed by its month's first civil day, so the month a person reads is
+/// the month it counts.
 List<ExpenseBudgetStatus> expenseBudgetStatuses(
   Iterable<ExpenseBudget> budgets,
-  String month,
+  NexModuleMonth month,
   Iterable<ExpenseTx> txs,
 ) {
-  final byCurrencyCategory = <String, BigInt>{};
+  final start = monthStartIso(month);
+  final byCategory = <String, BigInt>{};
+  var all = BigInt.zero;
   for (final tx in txs) {
     if (!validExpenseTx(tx) || tx.isIncome) continue;
-    if (monthKeyOf(tx.date) != month) continue;
-    final key = '${tx.currency}|${tx.categoryId ?? 'cat-other'}';
-    byCurrencyCategory[key] =
-        (byCurrencyCategory[key] ?? BigInt.zero) + BigInt.from(tx.amount);
-    final overallKey = '${tx.currency}|all';
-    byCurrencyCategory[overallKey] =
-        (byCurrencyCategory[overallKey] ?? BigInt.zero) +
-        BigInt.from(tx.amount);
+    if (!_inMonth(tx.date, month)) continue;
+    final amount = BigInt.from(tx.amountRial);
+    final key = tx.categoryId ?? 'cat-other';
+    byCategory[key] = (byCategory[key] ?? BigInt.zero) + amount;
+    all += amount;
   }
   return [
-    for (final budget in budgets.where((b) => b.month == month))
+    for (final budget in budgets.where((b) => b.start == start))
       ExpenseBudgetStatus(
         budget: budget,
-        spent:
-            byCurrencyCategory['${budget.currency}|${budget.categoryId ?? 'all'}'] ??
-            BigInt.zero,
+        spent: budget.categoryId == null
+            ? all
+            : (byCategory[budget.categoryId!] ?? BigInt.zero),
       ),
   ]..sort((a, b) => a.budget.id.compareTo(b.budget.id));
 }
 
-/// Records in a month, or all of them when [month] is null.
-Iterable<ExpenseTx> txsInMonth(Iterable<ExpenseTx> txs, String? month) =>
-    month == null ? txs : txs.where((tx) => monthKeyOf(tx.date) == month);
-
-/// Text search across note, merchant, account and the category's own
-/// name. Case-insensitive for Latin; Persian matches as typed.
-Iterable<ExpenseTx> searchTxs(
+/// Payments in [month] (in the calendar [solar] picks), or all of them when
+/// [month] is null.
+Iterable<ExpenseTx> txsInMonth(
   Iterable<ExpenseTx> txs,
-  String query,
-  String Function(String categoryId) categoryName,
-) {
+  NexModuleMonth? month, {
+  required bool solar,
+}) => month == null ? txs : txs.where((tx) => _inMonth(tx.date, month));
+
+bool _inMonth(DateTime day, NexModuleMonth month) =>
+    !day.isBefore(month.first) && day.isBefore(month.shift(1).first);
+
+/// Text search across note, merchant, account and the category's own name,
+/// plus an optional category and amount range — the three ways the brief
+/// names for finding a payment.
+Iterable<ExpenseTx> filterTxs(
+  Iterable<ExpenseTx> txs, {
+  String query = '',
+  String? categoryId,
+  int? minRial,
+  int? maxRial,
+  required String Function(String categoryId) categoryName,
+}) {
   final q = query.trim().toLowerCase();
-  if (q.isEmpty) return txs;
   return txs.where((tx) {
+    if (categoryId != null && (tx.categoryId ?? 'cat-other') != categoryId) {
+      return false;
+    }
+    if (minRial != null && tx.amountRial < minRial) return false;
+    if (maxRial != null && tx.amountRial > maxRial) return false;
+    if (q.isEmpty) return true;
     final category = tx.categoryId == null ? '' : categoryName(tx.categoryId!);
     return tx.note?.toLowerCase().contains(q) == true ||
         tx.merchant?.toLowerCase().contains(q) == true ||
         tx.account?.toLowerCase().contains(q) == true ||
-        category.toLowerCase().contains(q) == true ||
-        tx.currency.toLowerCase().contains(q);
+        category.toLowerCase().contains(q) == true;
   });
 }
 
@@ -209,53 +263,11 @@ List<ExpenseTx> sortedByDate(Iterable<ExpenseTx> txs) {
   return list;
 }
 
-/// How a month stands relative to another (usually now) — the screen
-/// picks the words from the module's strings; this carries only the
-/// arithmetic.
-enum ExpenseMonthDistance { current, previous, earlier, later }
-
-/// Which bucket [key] falls into relative to [now], and how many
-/// months away it is when that number matters.
-({ExpenseMonthDistance distance, int months}) monthDistance(
-  String key,
-  DateTime now,
-) {
-  final current = monthKeyOf(now);
-  if (key == current) {
-    return (distance: ExpenseMonthDistance.current, months: 0);
-  }
-  final previous = previousMonthKey(current);
-  if (previous != null && key == previous) {
-    return (distance: ExpenseMonthDistance.previous, months: 1);
-  }
-  final a = monthStartOf(key), b = monthStartOf(current);
-  final difference = (b.year - a.year) * 12 + b.month - a.month;
-  return (
-    distance: difference > 0
-        ? ExpenseMonthDistance.earlier
-        : ExpenseMonthDistance.later,
-    months: difference.abs(),
-  );
-}
-
-/// The month number 1–12 of a month key — the strings own the names.
-int monthNumberOf(String key) => int.parse(key.split('-')[1]);
-
-/// The four-digit year of a month key, as it is written.
-String yearOf(String key) => key.split('-')[0];
-
-/// The month containing [now], as a key.
-String currentMonthKey(DateTime now) => monthKeyOf(now);
-
-/// Days in a month of [key] — February honours leap years.
-int daysInMonthOf(String key) {
-  final start = monthStartOf(key);
-  return DateTime.utc(start.year, start.month + 1, 0).day;
-}
-
+/// Whether [tx] may be counted: a readable record with a real type, an
+/// amount inside the module's bounds, and a date the store could read.
 bool validExpenseTx(ExpenseTx tx) =>
     tx.valid &&
     (tx.type == 'income' || tx.type == 'expense') &&
-    tx.amount >= 0 &&
-    tx.amount <= expenseAmountMax &&
-    expenseCurrencyOf(tx.currency) != null;
+    tx.amountRial >= 0 &&
+    tx.amountRial <= expenseAmountMax &&
+    tx.date.year > 1970;
