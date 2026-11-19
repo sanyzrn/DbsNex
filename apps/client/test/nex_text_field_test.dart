@@ -34,12 +34,9 @@ void main() {
         hybrid = args['hybrid'] == true;
         viewId = args['id']! as int;
         final params = args['params'] as Uint8List;
-        created =
-            (const StandardMessageCodec().decodeMessage(
-                      ByteData.sublistView(params),
-                    )
-                    as Map)
-                .cast<String, Object?>();
+        created = (const StandardMessageCodec().decodeMessage(
+          ByteData.sublistView(params),
+        ) as Map).cast<String, Object?>();
         messenger.setMockMethodCallHandler(
           MethodChannel('nex/edit_text/$viewId'),
           (call) async {
@@ -276,6 +273,58 @@ void main() {
 
     final view = find.byType(PlatformViewLink);
     expect(tester.getSize(view).height, 137);
+  });
+
+  testWidgets('native prompt input focuses from its visible outline padding', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    final focus = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focus.dispose);
+    await pump(
+      tester,
+      SizedBox(
+        width: 320,
+        child: NexTextField(
+          controller: controller,
+          focusNode: focus,
+          minLines: 1,
+          maxLines: 4,
+          tapPaddingToFocus: true,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'id',
+            counterText: 'حداکثر ۴۰۰۰',
+          ),
+        ),
+      ),
+    );
+    final nativeView = find.byType(PlatformViewLink);
+    final border = InputDecorator.containerOf(tester.element(nativeView))!;
+    final box = border.localToGlobal(Offset.zero) & border.size;
+    final native = tester.getRect(nativeView);
+    for (final point in [
+      Offset(box.left + 5, box.center.dy),
+      Offset(box.center.dx, box.top + 5),
+      Offset(box.right - 5, box.center.dy),
+      Offset(box.center.dx, box.bottom - 5),
+    ]) {
+      expect(box.contains(point), isTrue);
+      expect(native.contains(point), isFalse);
+      focus.unfocus();
+      await tester.pump();
+      toNative.clear();
+      await tester.tapAt(point);
+      await tester.pump();
+      expect(focus.hasFocus, isTrue);
+      expect(toNative.map((c) => c.method), contains('focus'));
+    }
+    focus.unfocus();
+    await tester.pump();
+    await tester.tap(find.text('حداکثر ۴۰۰۰'));
+    await tester.pump();
+    expect(focus.hasFocus, isFalse);
   });
 
   testWidgets('a format chosen on the native menu formats the selection', (
