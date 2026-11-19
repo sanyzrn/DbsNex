@@ -627,36 +627,6 @@ class TimelineScreenState extends State<TimelineScreen>
   /// call the protected method itself.
   void _rebuild(VoidCallback change) => setState(change);
 
-  /// Everything this screen shows, read again.
-  ///
-  /// The pull-down was meant to reveal the search field. It never did — the
-  /// field turned out to sit at the top permanently, so there was nothing to
-  /// pull in — and a gesture that does nothing is worse than no gesture. This
-  /// is what a downward pull on a list means everywhere else, and it is also
-  /// the manual escape hatch for anything that fails to refresh on its own.
-  ///
-  /// Syncing is part of it only when a server is configured, and its failure
-  /// is reported without taking the local reload down with it: the notes on
-  /// this device are the point, and they reloaded either way.
-  Future<void> _refresh() async {
-    final banner = NexBannerHost.of(context);
-    final l10n = AppLocalizations.of(context);
-    await Future.wait([
-      widget.services.refreshTimeline(),
-      _model.loadFilterTags(),
-    ]);
-    if (widget.preferences.syncBaseUrl == null) return;
-    try {
-      await widget.services.syncNow();
-    } catch (error) {
-      if (!mounted) return;
-      banner?.show(
-        message: '${l10n.syncFailed} (${NexServices.describeFailure(error)})',
-        kind: NexBannerKind.failed,
-      );
-    }
-  }
-
   /// Where the list was when it last buzzed.
   ///
   /// A tick every [_scrollTickDistance] of travel — the trick the Windscribe
