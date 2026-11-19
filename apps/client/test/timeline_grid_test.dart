@@ -65,7 +65,19 @@ void main() {
   }
 
   testWidgets('a day folds and opens with motion, not a cut', (tester) async {
+    final longNote = (await harness.services.captureText(
+      List.filled(7, 'Longer preview').join('\n'),
+    ))!;
+    await harness.services.refreshTimeline();
     await open(tester);
+    final longTile = find.byKey(ValueKey('grid-${longNote.id}'));
+    final briefTile = find.ancestor(
+      of: find.text('grid note 6'),
+      matching: find.byType(NexNoteGridCard),
+    );
+    final longHeight = tester.getSize(longTile).height;
+    final briefHeight = tester.getSize(briefTile).height;
+    expect(longHeight, greaterThan(briefHeight));
     final header = find.text('Today');
     await tester.tap(header);
     await tester.pump();
@@ -101,7 +113,8 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
     expect(folding, findsNothing, reason: 'back to the lazy grid');
-    expect(find.byType(NexNoteGridCard), findsWidgets);
+    expect(tester.getSize(longTile).height, longHeight);
+    expect(tester.getSize(briefTile).height, briefHeight);
   });
 
   testWidgets('the hold menu has no Show in full on a tile', (tester) async {
@@ -110,6 +123,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Copy'), findsOneWidget);
     expect(find.text('Show in full'), findsNothing);
+  });
+
+  testWidgets('a caption resizes its row and selecting keeps it in place', (
+    tester,
+  ) async {
+    await open(tester);
+    final tile = find.ancestor(
+      of: find.text('grid note 6'),
+      matching: find.byType(NexNoteGridCard),
+    );
+    final id = tester.widget<NexNoteGridCard>(tile).note.id;
+    final short = tester.getSize(tile).height;
+
+    await harness.services.setCaption(id, 'First line\nSecond line');
+    await harness.services.refreshTimeline();
+    await tester.pumpAndSettle();
+    final withCaption = tester.getRect(tile);
+    expect(withCaption.height, greaterThan(short));
+    expect(find.text('First line\nSecond line'), findsOneWidget);
+
+    await tester.tap(find.byKey(ValueKey('note-pick-$id')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<NexNoteGridCard>(tile).selected, isTrue);
+    expect(tester.getRect(tile), withCaption);
   });
 
   testWidgets(

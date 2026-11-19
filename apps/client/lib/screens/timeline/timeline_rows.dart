@@ -102,11 +102,13 @@ class _TimelineRowsCache {
   }) {
     final locale = Localizations.maybeLocaleOf(context)?.toString();
     final dayKey = nexDayKey(DateTime.now());
-    if (_notes != null &&
+    final sameGroups =
+        _notes != null &&
         identical(_notes, notes) &&
         _locale == locale &&
         _dayKey == dayKey &&
-        _arrange == arrange &&
+        _arrange == arrange;
+    if (sameGroups &&
         _sameKeyList(_collapsed, collapsed) &&
         _sameKeyList(_closing, closing)) {
       return (_groups!, _rows!);
@@ -117,7 +119,9 @@ class _TimelineRowsCache {
     _arrange = arrange;
     _collapsed = List.of(collapsed);
     _closing = List.of(closing);
-    final groups = arrange == null
+    final groups = sameGroups
+        ? _groups!
+        : arrange == null
         ? _groupNotes(notes, l10n)
         : _shelveNotes(notes, arrange, l10n);
     final rows = <_TimelineRow>[

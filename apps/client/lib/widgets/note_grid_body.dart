@@ -26,19 +26,12 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final titleStyle = theme.textTheme.titleSmall?.copyWith(
-      fontWeight: FontWeight.w700,
-      height: 1.3,
-    );
-    final bodyStyle = theme.textTheme.bodySmall?.copyWith(
-      color: muted,
-      height: 1.4,
-    );
+    final titleStyle = _gridTitleStyle(theme.textTheme);
+    final bodyStyle = _gridBodyStyle(theme.textTheme)?.copyWith(color: muted);
     final heading = title;
     final uri = note.mediaUri;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final scaler = MediaQuery.textScalerOf(context);
         final width = constraints.maxWidth;
         // Whole lines only: a line cut through the middle reads as a glitch.
         //
@@ -51,41 +44,31 @@ class _Body extends StatelessWidget {
         // With the Text widget's own inputs — the inherited style, the
         // locale that picks the fallback font, the height behaviour — so
         // the count is for the lines it will actually draw.
-        final inherited = DefaultTextStyle.of(context).style;
-        final locale = Localizations.maybeLocaleOf(context);
-        final heightBehavior = DefaultTextHeightBehavior.maybeOf(context);
-        List<double> measure(String text, TextStyle? style) {
-          final painter = TextPainter(
-            text: TextSpan(text: text, style: inherited.merge(style)),
-            textDirection: nexDirectionOf(text),
-            textScaler: scaler,
-            locale: locale,
-            textHeightBehavior: heightBehavior,
-            maxLines: 40,
-          )..layout(maxWidth: width);
-          final heights = [
-            for (final line in painter.computeLineMetrics()) line.height,
-          ];
-          painter.dispose();
-          return heights;
-        }
+        final textLayout = _gridTextLayoutOf(context);
 
         List<double> linesOf(String text, TextStyle? style) {
           // Remembered across builds (2.7.2): a tile scrolled back into view,
           // or rebuilt for a reason that is not its words, asks the same
           // question again, and laying the text out to answer it was a third
           // of what a tile cost to build on a scrolling grid.
-          final key = (text, width, style, scaler, locale);
+          final key = (text, width, style, textLayout);
           final known = _lineHeights[key];
           if (known != null) return known;
           if (_lineHeights.length > 600) _lineHeights.clear();
-          return _lineHeights[key] = measure(text, style);
+          return _lineHeights[key] = _gridLineHeights(
+            text,
+            style,
+            width,
+            textLayout,
+            maxLines: 40,
+          );
         }
 
         double lineOf(TextStyle? style) {
           final heights = linesOf('Ag آگ', style);
           return heights.isEmpty
-              ? scaler.scale(style?.fontSize ?? 14) * (style?.height ?? 1.3)
+              ? textLayout.scaler.scale(style?.fontSize ?? 14) *
+                    (style?.height ?? 1.3)
               : heights.first;
         }
 
@@ -224,14 +207,18 @@ class _Body extends StatelessWidget {
           );
         }
 
-        if (note.isAudioMedia && uri != null) {
+        if (note.isAudioMedia && uri != null && uri.isNotEmpty) {
           // The recording plays from the tile (2.8.2): its words above, as
           // many whole lines as fit, and the player at the foot.
-          const strip = 44.0;
-          final room = constraints.maxHeight - strip - NexSpacing.xs;
+          final room = constraints.maxHeight - _gridVoiceStrip - NexSpacing.xs;
           final words = heading.isNotEmpty ? heading : body;
           final style = heading.isNotEmpty ? titleStyle : bodyStyle;
           final lines = words.isEmpty ? 0 : fitting(words, style, room).$1;
+          final playerHeight =
+              lines == 0 && constraints.maxHeight >= _gridFullVoiceStrip
+              ? _gridFullVoiceStrip
+              : math.min(_gridVoiceStrip, constraints.maxHeight);
+          if (playerHeight < 12) return const SizedBox.shrink();
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -247,7 +234,7 @@ class _Body extends StatelessWidget {
               // tile, a little larger and in the middle of it.
               Spacer(flex: lines > 0 ? 1 : 2),
               SizedBox(
-                height: lines > 0 ? strip : strip + 12,
+                height: playerHeight,
                 child: NexCardVoice(
                   note: note,
                   tint: tint,
@@ -255,7 +242,7 @@ class _Body extends StatelessWidget {
                       strings.durationLabel ?? nexDefaultDurationLabel,
                   playLabel: strings.playLabel ?? 'Play',
                   pauseLabel: strings.pauseLabel ?? 'Pause',
-                  height: lines > 0 ? strip : strip + 12,
+                  height: playerHeight,
                 ),
               ),
               if (lines == 0) const Spacer(flex: 3),
@@ -299,10 +286,8 @@ class _Body extends StatelessWidget {
         // card — it used to be left off the tile altogether (2.7.2). Up to
         // two lines, and never so many that the note's own words lose their
         // first line to it.
-        final caption = note.type == NoteType.text
-            ? NexMarkdownText.preview(note.caption ?? '').trim()
-            : '';
-        const captionGap = NexSpacing.xs;
+        final caption = _gridCaption(note);
+        const captionGap = _gridCaptionGap;
         var captionLines = 0;
         var captionHeight = 0.0;
         if (caption.isNotEmpty) {
@@ -310,14 +295,13 @@ class _Body extends StatelessWidget {
               constraints.maxHeight -
               used -
               captionGap -
-              (rest.isEmpty ? 0 : lineOf(restStyle));
-          final fit = fitting(
-            caption,
-            bodyStyle,
-            math.min(room, lineOf(bodyStyle) * 2 + 1),
-          );
-          captionLines = fit.$1;
-          captionHeight = captionLines == 0 ? 0 : fit.$2 + captionGap;
+              (rest.isEmpty ? 0 : (linesOf(rest, restStyle).firstOrNull ?? 0));
+          for (final line in linesOf(caption, bodyStyle).take(2)) {
+            if (captionHeight + line > room + 0.5) break;
+            captionHeight += line;
+            captionLines++;
+          }
+          if (captionLines > 0) captionHeight += captionGap;
         }
         final restLines = rest.isEmpty
             ? 0

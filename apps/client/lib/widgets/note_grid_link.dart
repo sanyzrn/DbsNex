@@ -65,13 +65,18 @@ class _SiteCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final face = NexLinkFace.of(note.linkUrl ?? '');
     final icon = NexLinkArt.instance.of(note.id)?.icon;
-    const markSize = 34.0;
     final words = nexLinkHeadline(note, title, face);
     final kind = face.kind == NexLinkKind.page
         ? null
         : AppLocalizations.of(context).tileLinkKind(face.kind.name);
     final brand = face.brandColor != null;
-    var room = height - markSize - NexSpacing.sm;
+    final labelStyle = Theme.of(context).textTheme.labelSmall;
+    final siteHeight = math.max(
+      _gridSiteMark,
+      fitting('Ag آگ', bodyStyle, 1000).$2 +
+          (kind == null ? 0 : fitting('Ag آگ', labelStyle, 1000).$2),
+    );
+    var room = height - siteHeight - NexSpacing.sm;
     // A small screen for a video, when it leaves a line for the title.
     final lineHeight = fitting('M', titleStyle, 1000).$2;
     final screen = face.kind == NexLinkKind.video
@@ -88,7 +93,12 @@ class _SiteCard extends StatelessWidget {
       children: [
         Row(
           children: [
-            NexSiteMark(face: face, icon: icon, size: markSize, tint: tint),
+            NexSiteMark(
+              face: face,
+              icon: icon,
+              size: _gridSiteMark,
+              tint: tint,
+            ),
             const SizedBox(width: NexSpacing.sm),
             Expanded(
               child: Column(
@@ -117,8 +127,7 @@ class _SiteCard extends StatelessWidget {
                       kind,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelSmall
-                          ?.copyWith(color: muted),
+                      style: labelStyle?.copyWith(color: muted),
                     ),
                 ],
               ),
