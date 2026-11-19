@@ -28,7 +28,7 @@ extension _TimelineListCards on TimelineScreenState {
       expanded: expanded,
       selected: selected,
       previewOverride: playable
-          ? large && note.mediaUri!.isNotEmpty
+          ? (large || expanded) && note.mediaUri!.isNotEmpty
                 ? _ListVoicePreview(
                     note: note,
                     strings: strings,
@@ -74,6 +74,10 @@ class _ListVoicePreview extends StatelessWidget {
     final caption = NexMarkdownText.preview(note.caption ?? '').trim();
     final transcript = NexMarkdownText.preview(note.transcriptText ?? '')
         .trim();
+    final hasCaption = caption.isNotEmpty && caption != leading;
+    final hasTranscript =
+        transcript.isNotEmpty && transcript != caption && transcript != leading;
+    const captionShare = 4;
     final small = theme.textTheme.bodyMedium?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
@@ -84,12 +88,14 @@ class _ListVoicePreview extends StatelessWidget {
       children: [
         if (leading?.isNotEmpty == true)
           NexTextSurface.line(leading!, style: theme.textTheme.bodyLarge),
-        if (caption.isNotEmpty && caption != leading)
+        if (hasCaption)
           NexTextSurface(
             caption,
-            maxLines: expanded && transcript.isEmpty
-                ? nexCardExpandedMaxLines
-                : 2,
+            maxLines: !expanded
+                ? 2
+                : hasTranscript
+                ? captionShare
+                : nexCardExpandedMaxLines,
             style: small,
           ),
         SizedBox(
@@ -103,12 +109,12 @@ class _ListVoicePreview extends StatelessWidget {
             pauseLabel: strings.pauseLabel ?? 'Pause',
           ),
         ),
-        if (transcript.isNotEmpty &&
-            transcript != caption &&
-            transcript != leading)
+        if (hasTranscript)
           NexTextSurface(
             transcript,
-            maxLines: expanded ? nexCardExpandedMaxLines : 2,
+            maxLines: expanded
+                ? nexCardExpandedMaxLines - (hasCaption ? captionShare : 0)
+                : 2,
             style: small,
           ),
       ],

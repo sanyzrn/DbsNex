@@ -88,6 +88,14 @@ void main() {
     expect(find.byKey(const ValueKey('list-pdf-preview')), findsNothing);
     expect(find.byKey(ValueKey('card-play-${voice.id}')), findsOneWidget);
     expect(item(0), findsNothing);
+    expect(words(voiceCaption), findsNothing);
+    expect(words(transcript), findsNothing);
+    await h.preferences.setNoteExpanded(voice.id, true);
+    await tester.pumpAndSettle();
+    expect(words(voiceCaption), findsOneWidget);
+    expect(words(transcript), findsOneWidget);
+    await h.preferences.setNoteExpanded(voice.id, false);
+    await tester.pumpAndSettle();
 
     await h.preferences.setCardDensity(NexCardDensity.readable);
     await tester.pumpAndSettle();

@@ -151,9 +151,37 @@ bool nexNoteCanExpand(
     return note.checklistItems.length > density.lines ||
         (marked && note.checklistItems.length == density.lines);
   }
-  // Expansion moves the overlay below the site, caption or duration, exposing
-  // any secondary text it may mask even when the main body fits.
-  if (note.type == NoteType.link) return marked;
+  // The timeline's link preview shows the same site and excerpt in either
+  // state. Opening the note remains the way to see the full link.
+  if (note.type == NoteType.link) return !timelinePreview && marked;
+
+  final theme = Theme.of(context).textTheme;
+  final playable =
+      timelinePreview && note.isAudioMedia && note.mediaUri?.isNotEmpty == true;
+  if (playable) {
+    final caption = NexMarkdownText.preview(note.caption ?? '').trim();
+    final transcript = NexMarkdownText.preview(note.transcriptText ?? '')
+        .trim();
+    final title = note.title?.trim();
+    final leading = title?.isNotEmpty == true ? title : note.originalFilename;
+    final hasCaption = caption.isNotEmpty && caption != leading;
+    final hasTranscript =
+        transcript.isNotEmpty && transcript != caption && transcript != leading;
+    if (!large) return hasCaption || hasTranscript;
+    return hasCaption &&
+            _cardTextOverflows(context, caption, width, 2, theme.bodyMedium) ||
+        hasTranscript &&
+            _cardTextOverflows(context, transcript, width, 2, theme.bodyMedium);
+  }
+
+  final fileCaption = separateCaption ? _timelineFileCaption(note) : null;
+  if (separateCaption) {
+    final caption =
+        _timelineCaption(note) ?? NexMarkdownText.preview(fileCaption ?? '');
+    if (_cardTextOverflows(context, caption, width, 1, theme.labelSmall)) {
+      return true;
+    }
+  }
   if (!separateCaption &&
       marked &&
       (captioned ||
@@ -163,21 +191,15 @@ bool nexNoteCanExpand(
   final title = large || separateCaption && captioned
       ? _timelineTextTitle(note)
       : null;
-  final playable =
-      large && note.isAudioMedia && note.mediaUri?.isNotEmpty == true;
+  final filename = large || fileCaption != null ? note.originalFilename : null;
   final text = NexMarkdownText.preview(
-    playable
-        ? (note.transcriptText?.trim().isNotEmpty == true
-              ? note.transcriptText!
-              : note.displayText ?? '')
-        : title != null
+    title != null
         ? note.content ?? ''
+        : filename?.trim().isNotEmpty == true
+        ? filename!
         : note.displayText ?? '',
   );
-  if (text.trim().isEmpty) return false;
-  final budget = playable
-      ? 2
-      : large
+  final budget = large
       ? _timelineTextLines - (title == null ? 0 : 1)
       : note.type == NoteType.voice && (note.durationMs ?? 0) > 0
       ? 1
@@ -188,6 +210,25 @@ bool nexNoteCanExpand(
                         note.caption?.trim().isNotEmpty == true
                 ? 1
                 : 0);
+  return _cardTextOverflows(
+    context,
+    text,
+    width,
+    budget,
+    density.previewStyle(Theme.of(context)),
+    marked: marked && !separateCaption,
+  );
+}
+
+bool _cardTextOverflows(
+  BuildContext context,
+  String text,
+  double width,
+  int budget,
+  TextStyle? style, {
+  bool marked = false,
+}) {
+  if (text.trim().isEmpty) return false;
   final lines = text
       .split('\n')
       .where((line) => line.trim().isNotEmpty)
@@ -201,11 +242,7 @@ bool nexNoteCanExpand(
     final painter = TextPainter(
       text: TextSpan(
         text: paragraph,
-        style: DefaultTextStyle.of(context).style.merge(
-          playable
-              ? Theme.of(context).textTheme.bodyMedium
-              : density.previewStyle(Theme.of(context)),
-        ),
+        style: DefaultTextStyle.of(context).style.merge(style),
       ),
       textDirection: nexDirectionOf(paragraph) ?? Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
@@ -219,7 +256,7 @@ bool nexNoteCanExpand(
   }
   // A filled last row can be masked by the overlay. Expansion reveals it
   // without making the collapsed paragraph narrower or changing its wrapping.
-  return (marked && !separateCaption && left == 0) ||
+  return (marked && left == 0) ||
       (text.split('\n').length > lines.length && text.trim().contains('\n\n'));
 }
 

@@ -33,12 +33,14 @@ class _TimelineWords extends StatelessWidget {
     required this.strings,
     required this.maxLines,
     required this.caption,
+    required this.captionLines,
   });
 
   final Note note;
   final NexCardStrings strings;
   final int maxLines;
   final String? caption;
+  final int captionLines;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +81,7 @@ class _TimelineWords extends StatelessWidget {
         if (secondary != null) ...[
           if (title != null || text.isNotEmpty)
             const SizedBox(height: NexSpacing.xs),
-          _CardCaption(text: secondary),
+          _CardCaption(text: secondary, maxLines: captionLines),
         ],
       ],
     );

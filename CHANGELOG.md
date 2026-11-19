@@ -6,7 +6,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.8.8
 
-- **Richer large list cards.** See a bigger photo or the first page of a PDF, play recordings beside their captions and transcripts, and tick checklist items from the list. Standard cards now give captions their own space.
+- **Richer large list cards.** See a bigger photo or the first page of a PDF, play recordings beside their captions and transcripts, and tick checklist items from the list. Standard cards give captions their own space, and Show in full reveals longer captions and recording transcripts.
 - **Shorter rows in the standard grid.** Brief notes and recordings take up less space. Longer previews, captions and media have room when they need it.
 - **File types at a glance.** File cards use distinct icons for PDFs, Markdown, videos, archives, and other common formats.
 - **No jump when picking notes.** Cards and date headings stay in place when you start or stop selecting, and the fold arrow stays inside each heading.

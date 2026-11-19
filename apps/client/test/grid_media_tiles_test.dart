@@ -79,6 +79,29 @@ void main() {
       );
       expect(
         nexTileBackdropOf(
+          note('p', NoteType.file, uri: '/stored.bin', filename: 'scan.PDF'),
+        ),
+        NexTileBackdrop.pdf,
+      );
+      expect(
+        nexTileBackdropOf(
+          note(
+            'p',
+            NoteType.file,
+            uri: '/stored.bin',
+            mime: 'Application/PDF; charset=binary',
+          ),
+        ),
+        NexTileBackdrop.pdf,
+      );
+      expect(
+        nexTileBackdropOf(
+          note('v', NoteType.file, uri: '/stored.bin', filename: 'clip.mp4'),
+        ),
+        NexTileBackdrop.video,
+      );
+      expect(
+        nexTileBackdropOf(
           note('i', NoteType.file, uri: '/x.png', mime: 'image/png'),
         ),
         NexTileBackdrop.photo,
@@ -149,7 +172,7 @@ void main() {
           content: 'Body',
           caption: 'Caption',
         ),
-        note('plain', NoteType.text, content: 'Next'),
+        note('plain', NoteType.text, content: '۱۲۳۴', caption: '📌'),
         note(
           'captioned',
           NoteType.voice,
@@ -226,6 +249,8 @@ void main() {
       expect(bounds('last').height, short.height);
       expect(find.text('For work'), findsOneWidget);
       expect(find.text('Heading'), findsOneWidget);
+      expect(find.text('۱۲۳۴'), findsOneWidget);
+      expect(find.text('📌'), findsOneWidget);
       expect(find.text('Body'), findsOneWidget);
       expect(find.text('Caption'), findsOneWidget);
       expect(find.text('متن جلسه'), findsOneWidget);

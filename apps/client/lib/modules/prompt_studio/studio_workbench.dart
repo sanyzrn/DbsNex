@@ -62,7 +62,9 @@ class _StudioWorkbenchState extends State<StudioWorkbench> {
       return;
     }
     if (data != null) _draft.apply(data);
-    _draft.start();
+    // Focus and selection changes notify the controllers too. Store a new
+    // checkpoint only after the loaded values have actually changed.
+    _draft.resume(markCurrentAsClean: true);
     setState(() {
       _loading = false;
       _failed = false;

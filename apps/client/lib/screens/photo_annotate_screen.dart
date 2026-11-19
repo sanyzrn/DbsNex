@@ -74,11 +74,15 @@ class PhotoAnnotateScreen extends StatefulWidget {
     required this.image,
     this.drafts,
     this.draftKey = 'photo-new',
+    this.legacyCrop = false,
   });
 
   final Uint8List image;
   final EditorDrafts? drafts;
   final String draftKey;
+
+  /// Keeps the recovered crop byte-identical when its marks are saved again.
+  final bool legacyCrop;
 
   @override
   State<PhotoAnnotateScreen> createState() => _PhotoAnnotateScreenState();
@@ -98,6 +102,7 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
     final width = box.size.width;
     widget.drafts?.writeSoon(_draftKey, {
       'version': 2,
+      if (widget.legacyCrop) 'legacyCrop': true,
       'image': _imageHash,
       'marks': [
         for (final mark in _marks)

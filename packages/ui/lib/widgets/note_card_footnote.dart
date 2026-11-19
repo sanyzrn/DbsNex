@@ -17,6 +17,7 @@ extension on _CardBody {
           strings: strings,
           maxLines: expanded ? nexCardExpandedMaxLines : _timelineTextLines,
           caption: caption,
+          captionLines: expanded ? 4 : 1,
         );
       }
       return _Preview(
@@ -35,6 +36,7 @@ extension on _CardBody {
         strings: strings,
         maxLines: expanded ? nexCardExpandedMaxLines : density.lines,
         caption: caption,
+        captionLines: expanded ? 4 : 1,
       );
     }
     if (!expanded) {
@@ -63,15 +65,16 @@ extension on _CardBody {
 }
 
 class _CardCaption extends StatelessWidget {
-  const _CardCaption({required this.text});
+  const _CardCaption({required this.text, this.maxLines = 1});
 
   final String text;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) => NexTextSurface(
     text,
     key: const ValueKey('note-card-caption'),
-    maxLines: 1,
+    maxLines: maxLines,
     style: Theme.of(context).textTheme.labelSmall?.copyWith(
       color: Theme.of(context).colorScheme.onSurfaceVariant,
       fontWeight: FontWeight.w400,
