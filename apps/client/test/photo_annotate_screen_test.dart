@@ -127,6 +127,7 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.text('Done'));
+      await tester.pump();
       // `toImage` on the RepaintBoundary is itself async.
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 500)),

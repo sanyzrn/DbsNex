@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 
 import 'package:nex_client/l10n/app_localizations.dart';
+import 'package:nex_client/screens/photo_annotate_screen.dart';
 import 'package:nex_client/screens/photo_crop_screen.dart';
 
 /// A real, decodable 100x100 solid-color PNG. crop_your_image parses the
@@ -89,26 +90,33 @@ Future<Uint8List? Function()> _pushCropScreen(
   };
 }
 
-/// Waits for a `compute()`-backed operation to finish and settles the tree
-/// against it, all inside one `runAsync` zone — the pattern crop_your_image's
-/// own tests use. Doing the delay and the settle as two separate top-level
-/// awaits (delay in one `runAsync`, `pumpAndSettle` after it returns) works
-/// for a single pending isolate, but a chained second one — like the
-/// re-parse `_controller.image = ...` kicks off right after rotation's own
-/// `compute()` resolves — needs the settle to happen inside the same real
-/// zone to actually observe it.
-Future<void> _waitAndSettle(WidgetTester tester) async {
-  // One plain pump first: a rebuild that remounts `Crop` under a new key (as
-  // a rotation does) only actually happens on this next frame, and the
-  // isolate call inside its `didChangeDependencies` only starts once that
-  // remount does — waiting in real time before this pump would wait for
-  // nothing.
-  await tester.pump();
+/// The native codec, the raster thread and Crop's isolate complete outside
+/// fake time. Pump frames until the editor exposes the next action.
+Future<void> _waitFor(WidgetTester tester, bool Function() ready) async {
   await tester.runAsync(() async {
-    await Future<void>.delayed(const Duration(seconds: 3));
-    await tester.pumpAndSettle();
+    final timeout = Stopwatch()..start();
+    while (!ready() && timeout.elapsed < const Duration(seconds: 5)) {
+      await tester.pump(const Duration(milliseconds: 16));
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
   });
+  expect(ready(), isTrue, reason: 'the photo editor did not finish its work');
+  await tester.pumpAndSettle();
 }
+
+Future<void> _waitForCrop(WidgetTester tester) => _waitFor(tester, () {
+  final save = find.ancestor(
+    of: find.byIcon(Icons.check),
+    matching: find.byType(FilledButton),
+  );
+  return save.evaluate().isNotEmpty &&
+      tester.widget<FilledButton>(save).onPressed != null;
+});
+
+Future<void> _waitForResult(WidgetTester tester) => _waitFor(
+  tester,
+  () => find.byType(PhotoCropScreen, skipOffstage: false).evaluate().isEmpty,
+);
 
 void main() {
   for (final edge in EdgeAlignment.values) {
@@ -116,7 +124,7 @@ void main() {
       tester,
     ) async {
       await _pushCropScreen(tester);
-      await _waitAndSettle(tester);
+      await _waitForCrop(tester);
       final dot = find.byKey(ValueKey('crop-dot-${edge.name}'));
       final target = find.byKey(ValueKey('crop-target-${edge.name}'));
       final before = tester.getCenter(dot);
@@ -168,13 +176,10 @@ void main() {
   testWidgets('confirming the crop pops the cropped bytes', (tester) async {
     final getResult = await _pushCropScreen(tester);
 
-    // The parser and cropper both run through compute(), which spawns a real
-    // isolate — it never resolves inside flutter_test's fake-async pump, so
-    // both waits need runAsync the way crop_your_image's own tests do.
-    await _waitAndSettle(tester);
+    await _waitForCrop(tester);
 
     await tester.tap(find.byIcon(Icons.check));
-    await _waitAndSettle(tester);
+    await _waitForResult(tester);
 
     final result = getResult();
     expect(result, isNotNull);
@@ -188,13 +193,50 @@ void main() {
       img.encodeJpg(img.Image(width: 100, height: 100)),
     );
     final getResult = await _pushCropScreen(tester, image: jpeg);
-    await _waitAndSettle(tester);
+    await _waitForCrop(tester);
     await tester.tap(find.byIcon(Icons.check));
-    await _waitAndSettle(tester);
+    await _waitForResult(tester);
 
     final result = getResult();
     expect(result, isNotNull);
     expect(result!.sublist(0, 2), [0xff, 0xd8]);
+  });
+
+  testWidgets('drawing on a JPEG exports the mark directly as JPEG', (
+    tester,
+  ) async {
+    final jpeg = img.encodeJpg(img.Image(width: 640, height: 640));
+    final result = await _pushCropScreen(tester, image: jpeg);
+    await _waitForCrop(tester);
+    await tester.tap(find.byIcon(Icons.draw_outlined));
+    final canvas = find.byKey(const ValueKey('annotate-canvas'));
+    final done = find.widgetWithText(FilledButton, 'Done');
+    await _waitFor(
+      tester,
+      () =>
+          done.evaluate().isNotEmpty &&
+          tester.widget<FilledButton>(done).onPressed != null,
+    );
+    final center = tester.getCenter(canvas);
+    await tester.dragFrom(center - const Offset(50, 0), const Offset(100, 0));
+    await tester.pump();
+    expect(
+      tester
+          .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.undo))
+          .onPressed,
+      isNotNull,
+    );
+    await tester.tap(done);
+    await _waitForResult(tester);
+
+    final edited = img.decodeJpg(result()!)!;
+    final y = edited.height ~/ 2;
+    final centerStrip = [
+      for (var row = y - 3; row <= y + 3; row++)
+        for (var x = 0; x < edited.width; x++) edited.getPixel(x, row).r,
+    ];
+    expect(centerStrip, anyElement(greaterThan(96)));
+    expect(edited.getPixel(2, 2).r, lessThan(20));
   });
 
   testWidgets('rotating changes what gets cropped, not just a no-op tap', (
@@ -204,25 +246,20 @@ void main() {
 
     // Baseline: the same source, cropped without ever touching rotate.
     final baselineResult = await _pushCropScreen(tester, image: asymmetric);
-    await _waitAndSettle(tester);
+    await _waitForCrop(tester);
     await tester.tap(find.byIcon(Icons.check));
-    await _waitAndSettle(tester);
+    await _waitForResult(tester);
     final baseline = baselineResult();
     expect(baseline, isNotNull);
 
     // Same source again, this time rotated once before confirming.
     final rotatedResult = await _pushCropScreen(tester, image: asymmetric);
-    await _waitAndSettle(tester);
+    await _waitForCrop(tester);
     await tester.tap(find.byIcon(Icons.rotate_90_degrees_cw_outlined));
-    // Two separate real-time windows, not one: the first lets rotation's
-    // own `compute()` finish and the remount it triggers happen; only once
-    // that remount has actually built does the new `Crop` instance's own
-    // `didChangeDependencies` kick off *its* `compute()` re-parse, which
-    // needs a real-time window of its own to finish and be observed.
-    await _waitAndSettle(tester);
-    await _waitAndSettle(tester);
+    await tester.pump();
+    await _waitForCrop(tester);
     await tester.tap(find.byIcon(Icons.check));
-    await _waitAndSettle(tester);
+    await _waitForResult(tester);
     final rotated = rotatedResult();
     expect(rotated, isNotNull);
 
@@ -239,10 +276,13 @@ void main() {
 
       // The crop widget's own initial parse is async — the pencil action is
       // disabled until it finishes.
-      await _waitAndSettle(tester);
+      await _waitForCrop(tester);
 
       await tester.tap(find.byIcon(Icons.draw_outlined));
-      await _waitAndSettle(tester);
+      await _waitFor(
+        tester,
+        () => find.byType(PhotoAnnotateScreen).evaluate().isNotEmpty,
+      );
 
       // Now on the annotate screen, having added nothing: Done pops it with
       // null, and the crop screen falls back to the crop it already made.
@@ -262,7 +302,7 @@ void main() {
     final getResult = await _pushCropScreen(tester);
     // Fully loaded and ready — the state that used to count "ready" as an
     // edit and ask "discard changes?" of somebody who had only waited.
-    await _waitAndSettle(tester);
+    await _waitForCrop(tester);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     // No discard question: nothing was changed, nothing is pending.

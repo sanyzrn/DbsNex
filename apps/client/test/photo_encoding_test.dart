@@ -1,45 +1,116 @@
-import 'dart:math';
 import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:nex_client/platform/photo_encoding.dart';
+import 'package:nex_client/screens/photo_crop_image.dart';
 
 void main() {
-  test(
-    'edited JPEG retains dimensions and uses smaller high quality encoding',
-    () {
-      final image = img.Image(width: 640, height: 480);
-      final random = Random(42);
-      for (final pixel in image) {
-        pixel.setRgb(
-          (pixel.x ~/ 3 + random.nextInt(32)).clamp(0, 255),
-          (pixel.y ~/ 2 + random.nextInt(32)).clamp(0, 255),
-          120 + random.nextInt(32),
-        );
-      }
-      final png = Uint8List.fromList(img.encodePng(image));
-      final output = encodeEditedPhoto((bytes: png, wasJpeg: true));
-      expect(output.length, lessThan(png.length));
-      expect(photoExtension(output), '.jpg');
-      final decoded = img.decodeImage(output)!;
-      expect((decoded.width, decoded.height), (640, 480));
-      expect(encodeEditedPhoto((bytes: png, wasJpeg: false)), same(png));
-    },
-  );
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('transparent edits never become opaque JPEG', () {
-    final image = img.Image(width: 400, height: 400, numChannels: 4);
-    final random = Random(8);
-    for (final pixel in image) {
-      pixel.setRgba(
-        random.nextInt(256),
-        random.nextInt(256),
-        random.nextInt(256),
-        128,
+  test('large previews stay bounded and exports use original pixels', () async {
+    final jpeg = img.encodeJpg(img.Image(width: 1800, height: 900));
+    final preview = await PhotoCropPreview.decode(jpeg);
+    addTearDown(preview.dispose);
+    expect((preview.image.width, preview.image.height), (1440, 720));
+    final rendered = img.decodePng(await preview.render(1, true))!;
+    expect((rendered.width, rendered.height), (720, 1440));
+    final geometry = preview.parser(1)(jpeg);
+    expect((geometry.width, geometry.height), (900, 1800));
+
+    final exported = cropPhoto(
+      jpeg,
+      turns: 1,
+      flip: true,
+      x: 0,
+      y: 200,
+      width: 900,
+      height: 1500,
+    );
+    expect(photoExtension(exported), '.jpg');
+    final decoded = img.decodeJpg(exported)!;
+    expect((decoded.width, decoded.height), (900, 1500));
+  });
+
+  test('preview and export agree on all EXIF orientations', () async {
+    for (var orientation = 1; orientation <= 8; orientation++) {
+      final source = img.Image(width: 32, height: 16);
+      img.fillRect(
+        source,
+        x1: 0,
+        y1: 0,
+        x2: 15,
+        y2: 7,
+        color: img.ColorRgb8(255, 0, 0),
       );
+      source.exif.imageIfd.orientation = orientation;
+      final jpeg = img.encodeJpg(source);
+      final preview = await PhotoCropPreview.decode(jpeg);
+      try {
+        final expected = img.decodePng(await preview.render(1, true))!;
+        final exported = img.decodeJpg(
+          cropPhoto(
+            jpeg,
+            turns: 1,
+            flip: true,
+            x: 0,
+            y: 0,
+            width: expected.width,
+            height: expected.height,
+          ),
+        )!;
+        expect(
+          (exported.width, exported.height),
+          (expected.width, expected.height),
+        );
+        for (final (x, y) in [
+          (2, 2),
+          (expected.width - 3, 2),
+          (2, expected.height - 3),
+          (expected.width - 3, expected.height - 3),
+        ]) {
+          expect(
+            exported.getPixel(x, y).r > 128,
+            expected.getPixel(x, y).r > 128,
+            reason: 'orientation $orientation at $x,$y',
+          );
+        }
+      } finally {
+        preview.dispose();
+      }
     }
-    final png = Uint8List.fromList(img.encodePng(image));
-    expect(encodeEditedPhoto((bytes: png, wasJpeg: true)), same(png));
+  });
+
+  test('a PNG crop keeps transparency and exact source pixels', () {
+    final source = img.Image(width: 8, height: 4, numChannels: 4);
+    source.setPixelRgba(1, 2, 255, 20, 50, 128);
+    final cropped = cropPhoto(
+      img.encodePng(source),
+      turns: 0,
+      flip: true,
+      x: 4,
+      y: 1,
+      width: 4,
+      height: 3,
+    );
+    expect(photoExtension(cropped), '.png');
+    final decoded = img.decodePng(cropped)!;
+    expect((decoded.width, decoded.height), (4, 3));
+    final marked = decoded.getPixel(2, 1);
+    expect((marked.r, marked.g, marked.b, marked.a), (255, 20, 50, 128));
+  });
+
+  test('an annotated JPEG is encoded directly at the rendered dimensions', () {
+    final rgba = Uint8List(8 * 8 * 4);
+    for (var i = 0; i < rgba.length; i += 4) {
+      rgba[i] = 245;
+      rgba[i + 3] = 255;
+    }
+    final bytes = encodeAnnotatedJpeg((rgba: rgba, width: 8, height: 8));
+    expect(photoExtension(bytes), '.jpg');
+    final decoded = img.decodeJpg(bytes)!;
+    expect((decoded.width, decoded.height), (8, 8));
+    expect(decoded.getPixel(3, 3).r, greaterThan(235));
   });
 
   // A camera photo is saved the way the sensor lay, with a tag saying how to

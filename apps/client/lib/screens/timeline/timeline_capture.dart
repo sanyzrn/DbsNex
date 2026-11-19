@@ -165,15 +165,6 @@ extension _TimelineCapture on TimelineScreenState {
           }
           return;
         }
-        final encoded = identical(cropped, original)
-            ? cropped
-            : await compute(encodeEditedPhoto, (
-                bytes: cropped,
-                wasJpeg:
-                    original.length > 2 &&
-                    original[0] == 0xff &&
-                    original[1] == 0xd8,
-              ));
         final isPng =
             cropped.length >= 8 &&
             cropped[0] == 0x89 &&
@@ -183,16 +174,15 @@ extension _TimelineCapture on TimelineScreenState {
         final dest = p.join(
           widget.services.mediaDir,
           'photo-${DateTime.now().microsecondsSinceEpoch}'
-          '${identical(cropped, original) ? (isPng ? '.png' : (picked == null ? '.jpg' : p.extension(picked.path))) : photoExtension(encoded)}',
+          '${identical(cropped, original) ? (isPng ? '.png' : (picked == null ? '.jpg' : p.extension(picked.path))) : photoExtension(cropped)}',
         );
-        await File(dest).writeAsBytes(encoded, flush: true);
+        final (_, hash) = await (
+          File(dest).writeAsBytes(cropped, flush: true),
+          compute(sha256OfBytes, cropped),
+        ).wait;
         note = await widget.services.capturePhoto(
           mediaUri: dest,
-          // The bytes are already in hand and a photo fits in memory, so hash
-          // them here rather than re-reading the file. The share path cannot:
-          // what arrives there is whatever was shared, up to a video.
-          // Off the UI isolate: megabytes of pure-Dart SHA-256 (PERF-07).
-          mediaHash: await compute(sha256OfBytes, encoded),
+          mediaHash: hash,
         );
       } else {
         // Straight from the picker to the library: the bytes need no

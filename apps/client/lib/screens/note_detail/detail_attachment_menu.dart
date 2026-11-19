@@ -281,17 +281,14 @@ extension _DetailAttachmentMenu on _NoteDetailSheetState {
         ),
       );
       if (edited == null || !mounted) return;
-      final encoded = await compute(encodeEditedPhoto, (
-        bytes: edited,
-        wasJpeg:
-            original.length > 2 && original[0] == 0xff && original[1] == 0xd8,
-      ));
-      if (!await widget.services.updateAttachmentImage(attachment, encoded)) {
+      if (!await widget.services.updateAttachmentImage(
+        attachment,
+        edited,
+        refresh: false,
+      )) {
         throw StateError('Attachment changed while editing');
       }
-      widget.preferences?.editorDrafts?.clear('$draftKey-crop');
-      widget.preferences?.editorDrafts?.clear('$draftKey-annotation');
-      await _reloadAttachments();
+      await _refreshSavedPhoto(draftKey, _reloadAttachments);
     } catch (_) {
       if (mounted) {
         nexShowBanner(

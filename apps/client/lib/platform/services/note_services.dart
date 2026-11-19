@@ -274,10 +274,12 @@ extension NexNoteServices on NexServices {
   Future<void> updateImageMedia(
     String id,
     String mediaUri,
-    String mediaHash,
-  ) async {
+    String mediaHash, {
+    bool refresh = true,
+  }) async {
     await worker.updateImageMedia(id, mediaUri, mediaHash);
     scheduleEnrichment(id);
+    if (!refresh) return;
     // The media change is already committed. A failed list refresh must never
     // be reported as a failed save: the caller would then delete the new file.
     try {

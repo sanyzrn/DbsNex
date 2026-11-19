@@ -7,6 +7,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 ## v2.8.8
 
 - **No jump when picking notes.** Cards and date headings stay in place when you start or stop selecting, and the fold arrow stays inside each heading.
+- **Faster photo editing.** Large photos open and respond faster when cropping, rotating or flipping. Saved edits appear sooner on the note.
 
 ## v2.8.7
 

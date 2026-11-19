@@ -5,17 +5,16 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:crop_your_image/crop_your_image.dart';
-import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/editor_drafts.dart';
-import '../platform/photo_encoding.dart';
 import '../widgets/draft_guard.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/photo_editor_theme.dart';
 import 'photo_annotate_screen.dart';
+import 'photo_crop_image.dart';
 
 // The crop package fixes its corner slots at 32dp. Scale only its bounded
 // viewport so each slot reaches 48dp; image fit and image-based crop areas
@@ -66,19 +65,18 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
       _cropping;
   final _controller = CropController();
 
-  /// The photo as it is to be seen — upright, see [uprightPhoto] — and what
-  /// every turn and flip starts from, so four turns are one re-encoding.
-  /// Null until it has been read.
-  Uint8List? _base;
+  late Uint8List _source = widget.image;
+  PhotoCropPreview? _preview;
+  Uint8List? _previewBytes;
+  ImageParser<Size>? _previewParser;
+  late final bool _legacyAnnotation;
 
-  /// What the cropper shows: [_base] turned and flipped.
-  Uint8List _current = Uint8List(0);
   int _turns = 0;
   bool _flipped = false;
   bool _cropping = false;
   bool _rotating = false;
   // False from the very first frame until `Crop`'s own async parse of
-  // `_current` finishes (again after every rotation) — calling
+  // the preview finishes (again after every rotation) — calling
   // `CropController.crop()` before that hits a package-internal assertion,
   // since there is nothing parsed yet to crop.
   bool _ready = false;
@@ -94,7 +92,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   Rect? _initialArea;
   bool _areaMoved = false;
   String get _key => '${widget.draftKey}-crop';
-  void _snapshot() => widget.drafts?.write(_key, {
+  void _snapshot() => widget.drafts?.writeSoon(_key, {
     'ratio': _aspectRatio,
     'turns': _turns,
     'flipped': _flipped,
@@ -109,6 +107,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
 
   @override
   void dispose() {
+    _preview?.dispose();
     _ratioScroll.dispose();
     super.dispose();
   }
@@ -122,29 +121,17 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
     _snapshot();
   }
 
-  void _reset() {
-    final base = _base;
-    if (_cropping || _rotating || base == null) return;
-    setState(() {
-      discardDraft();
-      _restoredArea = null;
-      _area = null;
-      _initialArea = null;
-      _areaMoved = false;
-      _turns = 0;
-      _flipped = false;
-      _current = base;
-      _aspectRatio = null;
-      _ready = false;
-    });
-  }
+  Future<void> _reset() => _transform(turns: 0, flip: false, reset: true);
 
   @override
   void initState() {
     super.initState();
     final draft = widget.drafts?.read(_key);
+    final annotation = widget.drafts?.read('${widget.draftKey}-annotation');
+    _legacyAnnotation =
+        annotation?['image'] != null && annotation?['version'] != 2;
     _aspectRatio = (draft?['ratio'] as num?)?.toDouble();
-    _turns = (draft?['turns'] as num?)?.toInt() ?? 0;
+    _turns = ((draft?['turns'] as num?)?.toInt() ?? 0) % 4;
     _flipped = draft?['flipped'] == true;
     final area = draft?['area'];
     if (area is List && area.length == 4) {
@@ -155,96 +142,81 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
         (area[3] as num).toDouble(),
       );
     }
-    unawaited(_prepare());
+    unawaited(_loadPreview(_source));
   }
 
-  /// Reads the photo upright, off the UI thread, and picks up a turned or
-  /// flipped draft where it was left.
-  Future<void> _prepare() async {
-    // Most photos are upright already, and their tag is in the header: the
-    // cropper opens at once for those, with no trip off the UI thread.
-    if (!photoNeedsUpright(widget.image) && _turns % 4 == 0 && !_flipped) {
-      _base = widget.image;
-      _current = widget.image;
-      return;
-    }
-    Uint8List base;
+  Future<void> _loadPreview(Uint8List source) async {
+    PhotoCropPreview? preview;
     try {
-      base = await compute(uprightPhoto, widget.image);
-    } catch (_) {
-      base = widget.image;
+      preview = await PhotoCropPreview.decode(source);
+      if (!mounted) return;
+      final bytes = await preview.render(_turns, _flipped);
+      if (!mounted) return;
+      final old = _preview;
+      setState(() {
+        _source = source;
+        _preview = preview;
+        _previewBytes = bytes;
+        _previewParser = _preview!.parser(_turns);
+        _ready = false;
+      });
+      preview = null;
+      old?.dispose();
+    } catch (error) {
+      _showEditFailure('photo.preview', error);
+    } finally {
+      preview?.dispose();
     }
-    var current = base;
-    if (_turns % 4 != 0 || _flipped) {
-      try {
-        current = await compute(transformPhoto, (
-          bytes: base,
-          turns: _turns,
-          flip: _flipped,
-        ));
-      } catch (_) {
-        _turns = 0;
-        _flipped = false;
-      }
-    }
-    if (!mounted) return;
-    setState(() {
-      _base = base;
-      _current = current;
-    });
   }
 
-  Future<void> _rotate() => _transform(turns: _turns + 1, flip: _flipped);
+  Future<void> _rotate() => _transform(turns: (_turns + 1) % 4, flip: _flipped);
 
   Future<void> _flip() => _transform(turns: _turns, flip: !_flipped);
 
-  Future<void> _transform({required int turns, required bool flip}) async {
-    final base = _base;
-    if (_rotating || _cropping || !_ready || base == null) return;
+  Future<void> _transform({
+    required int turns,
+    required bool flip,
+    bool reset = false,
+  }) async {
+    final preview = _preview;
+    if (_rotating || _cropping || !_ready || preview == null) return;
     setState(() => _rotating = true);
-    Uint8List rotated;
     try {
-      rotated = await compute(transformPhoto, (
-        bytes: base,
-        turns: turns,
-        flip: flip,
-      ));
-    } catch (error) {
-      unawaited(NexCrashLog.handled('photo.rotate', error));
+      final transformed = await preview.render(turns, flip);
       if (!mounted) return;
-      setState(() => _rotating = false);
-      nexShowBanner(
-        context,
-        kind: NexBannerKind.failed,
-        message: AppLocalizations.of(context).photoEditFailed,
-      );
-      return;
+      // Remount Crop within its bounded viewport. Updating its controller's
+      // image in place uses the full screen as the viewport.
+      setState(() {
+        _turns = turns;
+        _flipped = flip;
+        _restoredArea = null;
+        _area = null;
+        _initialArea = null;
+        _previewBytes = transformed;
+        _previewParser = preview.parser(turns);
+        _ready = false;
+        if (reset) {
+          discardDraft();
+          _areaMoved = false;
+          _aspectRatio = null;
+        }
+      });
+      if (!reset) _snapshot();
+    } catch (error) {
+      _showEditFailure('photo.rotate', error);
+    } finally {
+      if (mounted) setState(() => _rotating = false);
     }
+  }
+
+  void _showEditFailure(String stage, Object error) {
+    unawaited(NexCrashLog.handled(stage, error));
     if (!mounted) return;
-    setState(() {
-      // A fresh key rather than `CropController.image = rotated` — the
-      // in-place reset recomputes `Crop`'s internal viewport against
-      // `MediaQuery.of(context).size` (the whole screen) instead of the
-      // constraints its own body actually has, which left its gesture layer
-      // wide enough to swallow taps on the app bar's own buttons after a
-      // rotation. Remounting runs it through the exact same initial layout
-      // path as the first parse, which does not have that problem.
-      //
-      // The remount does mean `_ready` needs resetting by hand: unlike
-      // `CropController.image =`, a fresh `_CropEditorState` never announces
-      // `CropStatus.loading` on its own, so without this the stale `true`
-      // from the widget it is replacing would let a crop through before the
-      // new instance has parsed anything at all.
-      _turns = turns % 4;
-      _flipped = flip;
-      _restoredArea = null;
-      _area = null;
-      _initialArea = null;
-      _current = rotated;
-      _ready = false;
-      _rotating = false;
-    });
-    _snapshot();
+    nexShowBanner(
+      context,
+      kind: NexBannerKind.failed,
+      message: AppLocalizations.of(context).photoEditFailed,
+    );
   }
 
   void _startCrop({required bool annotate}) {
@@ -258,21 +230,16 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   Future<void> _onCropped(CropResult result) async {
     switch (result) {
       case CropSuccess(:final croppedImage):
-        // In the photo's own format: a JPEG crop stays a JPEG. It used to be
-        // turned into a PNG here — seconds of work on a camera photo, and a
-        // file several times the size — for the save step to turn back into
-        // a JPEG; the save names the file from its bytes.
-        final png = croppedImage;
         if (!mounted) return;
         if (!_pendingAnnotate) {
-          Navigator.of(context).pop(png);
+          Navigator.of(context).pop(croppedImage);
           return;
         }
         final annotated = await Navigator.of(context).push<Uint8List>(
           NexPageRoute(
             swipeBackEnabled: false,
             builder: (_) => PhotoAnnotateScreen(
-              image: png,
+              image: croppedImage,
               drafts: widget.drafts,
               draftKey: widget.draftKey,
             ),
@@ -283,29 +250,24 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
           setState(() {
             // Back from drawing: the crop stays made, and it is what turns
             // and flips start from now.
-            _base = png;
             _turns = 0;
             _flipped = false;
-            _current = png;
+            _restoredArea = null;
+            _area = null;
+            _initialArea = null;
+            _areaMoved = true;
+            _previewBytes = null;
             _cropping = false;
             _ready = false;
           });
+          unawaited(_loadPreview(croppedImage));
         } else {
           Navigator.of(context).pop(annotated);
         }
       case CropFailure(:final cause):
         if (!mounted) return;
         setState(() => _cropping = false);
-        // The cause is for the log — where someone who can read it will look
-        // — not for the banner: the banner says what happened in words that
-        // mean something, in the failure's own colours instead of the
-        // success it used to wear.
-        unawaited(NexCrashLog.handled('photo.crop', cause));
-        nexShowBanner(
-          context,
-          kind: NexBannerKind.failed,
-          message: AppLocalizations.of(context).photoEditFailed,
-        );
+        _showEditFailure('photo.crop', cause);
     }
   }
 
@@ -313,6 +275,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final busy = _cropping || _rotating || !_ready;
+    final preview = _previewBytes;
     return NexPhotoEditorTheme(
       child: guardDraft(
         Scaffold(
@@ -402,7 +365,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                       NexPhotoTool(
                         icon: Icons.restart_alt,
                         label: l10n.cropReset,
-                        onPressed: busy ? null : _reset,
+                        onPressed: busy ? null : () => unawaited(_reset()),
                       ),
                     ],
                   ),
@@ -441,17 +404,8 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                     .clamp(24.0, 80.0),
                 vertical: 12,
               ),
-              child: _base == null
-                  // Turning a camera photo upright takes a moment; the
-                  // cropper waits for the upright one rather than showing
-                  // it sideways first. The photo itself stands in, dimmed —
-                  // the system draws it upright already.
-                  ? Center(
-                      child: Opacity(
-                        opacity: 0.5,
-                        child: Image.memory(widget.image, fit: BoxFit.contain),
-                      ),
-                    )
+              child: preview == null
+                  ? const SizedBox.expand()
                   : LayoutBuilder(
                       builder: (context, constraints) => MediaQuery(
                         data: MediaQuery.of(context)
@@ -466,8 +420,16 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                                 height:
                                     constraints.maxHeight / _cropControlScale,
                                 child: Crop(
-                                  key: ValueKey(_current),
-                                  image: _current,
+                                  key: ValueKey(preview),
+                                  image: preview,
+                                  imageParser: _previewParser,
+                                  imageCropper: OriginalPhotoCropper(
+                                    _source,
+                                    _turns,
+                                    _flipped,
+                                    _legacyAnnotation &&
+                                        identical(_source, widget.image),
+                                  ),
                                   aspectRatio: _aspectRatio,
                                   controller: _controller,
                                   initialRectBuilder: _restoredArea == null
@@ -476,6 +438,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                                           _restoredArea!,
                                         ),
                                   onMoved: (_, area) {
+                                    if (_area == area) return;
                                     _area = area;
                                     // The first report after a (re)mount is
                                     // the initial rect itself — layout, not a
@@ -486,8 +449,8 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                                       _initialArea = area;
                                     } else if (area != initial) {
                                       _areaMoved = true;
+                                      _snapshot();
                                     }
-                                    _snapshot();
                                   },
                                   onCropped: (result) =>
                                       unawaited(_onCropped(result)),
