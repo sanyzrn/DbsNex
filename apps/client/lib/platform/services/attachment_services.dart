@@ -129,14 +129,17 @@ extension NexAttachmentServices on NexServices {
 
   Future<bool> updateAttachmentImage(
     NoteAttachment attachment,
-    Uint8List bytes,
-  ) async {
+    Uint8List bytes, {
+    bool refresh = true,
+  }) async {
     final dest = p.join(
       mediaDir,
       'edited-attach-${DateTime.now().microsecondsSinceEpoch}${photoExtension(bytes)}',
     );
-    await File(dest).writeAsBytes(bytes, flush: true);
-    final hash = await compute(sha256OfBytes, bytes);
+    final (_, hash) = await (
+      File(dest).writeAsBytes(bytes, flush: true),
+      compute(sha256OfBytes, bytes),
+    ).wait;
     final updated = await worker.attachmentUpdateImage(
       attachment.id,
       dest,
@@ -145,7 +148,7 @@ extension NexAttachmentServices on NexServices {
     );
     // A failed reply can follow a committed write. Cleanup must stay
     // reference-aware, so never eagerly remove a potentially referenced file.
-    if (!updated) return false;
+    if (!updated || !refresh) return updated;
     // Saving is already durable; a failed list refresh is not a failed edit.
     try {
       await refreshTimeline();

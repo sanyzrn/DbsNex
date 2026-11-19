@@ -1,25 +1,58 @@
 import 'dart:typed_data';
-import 'package:image/image.dart' as img;
 
-/// Keep lossless sources lossless. Use high quality JPEG for edited JPEG
-/// photos only when smaller, without resizing or flattening transparency.
-Uint8List encodeEditedPhoto(({Uint8List bytes, bool wasJpeg}) input) {
-  if (!input.wasJpeg || input.bytes.length < 256 * 1024) return input.bytes;
-  final decoded = img.decodeImage(input.bytes);
-  if (decoded == null) throw const FormatException('Unsupported image');
-  if (decoded.hasAlpha &&
-      decoded.any((pixel) => pixel.a != pixel.maxChannelValue)) {
-    return input.bytes;
-  }
-  final jpeg = Uint8List.fromList(img.encodeJpg(decoded, quality: 95));
-  return jpeg.length < input.bytes.length * 0.8 ? jpeg : input.bytes;
-}
+import 'package:image/image.dart' as img;
 
 String photoExtension(Uint8List bytes) =>
     bytes.length > 2 && bytes[0] == 0xff && bytes[1] == 0xd8 ? '.jpg' : '.png';
 
 bool _isJpeg(Uint8List bytes) =>
     bytes.length > 2 && bytes[0] == 0xff && bytes[1] == 0xd8;
+
+/// Export directly from the original pixels. Only recovery of an annotation
+/// draft from before this editor needs the previous byte-for-byte JPEG path.
+Uint8List cropPhoto(
+  Uint8List bytes, {
+  required int turns,
+  required bool flip,
+  required int x,
+  required int y,
+  required int width,
+  required int height,
+  bool legacy = false,
+}) {
+  final jpeg = _isJpeg(bytes);
+  final source = legacy && jpeg
+      ? transformPhoto((bytes: uprightPhoto(bytes), turns: turns, flip: flip))
+      : bytes;
+  final decoded = img.decodeImage(source);
+  if (decoded == null) throw const FormatException('Unsupported image');
+  final orientation = decoded.exif.imageIfd.orientation;
+  var image = !legacy && orientation != null && orientation != 1
+      ? img.bakeOrientation(decoded)
+      : decoded;
+  if (!legacy || !jpeg) {
+    if (flip) image = img.flipHorizontal(image);
+    if (turns != 0) image = img.copyRotate(image, angle: 90 * turns);
+  }
+  final crop = img.copyCrop(image, x: x, y: y, width: width, height: height);
+  return jpeg
+      ? img.encodeJpg(crop, quality: legacy ? 100 : 95)
+      : img.encodePng(crop);
+}
+
+Uint8List encodeAnnotatedJpeg(
+  ({Uint8List rgba, int width, int height}) input,
+) => img.encodeJpg(
+  img.Image.fromBytes(
+    width: input.width,
+    height: input.height,
+    bytes: input.rgba.buffer,
+    bytesOffset: input.rgba.offsetInBytes,
+    numChannels: 4,
+    order: img.ChannelOrder.rgba,
+  ),
+  quality: 95,
+);
 
 /// Whether [bytes] is a JPEG whose tag says to turn or mirror it — read
 /// from the header alone, so it is cheap enough to ask on the UI thread.

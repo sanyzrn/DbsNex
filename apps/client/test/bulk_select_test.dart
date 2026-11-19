@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/widgets/nex_banner.dart';
 import 'package:nex_client/widgets/note_grid_card.dart';
 import 'package:nex_client/platform/nex_services.dart';
@@ -341,6 +342,65 @@ void main() {
     expect(tester.widget<NexNoteGridCard>(tiles.first).selected, isTrue);
     expect(bar(), findsOneWidget);
   });
+
+  for (final grid in [false, true]) {
+    testWidgets('picking keeps the date heading and cards still in '
+        '${grid ? 'the Persian grid' : 'the English list'}', (tester) async {
+      await harness.preferences.setTimelineGrid(grid);
+      if (grid) await harness.preferences.setLocale('fa');
+      await open(tester);
+
+      final heading = find.byWidgetPredicate(
+        (widget) => widget.runtimeType.toString() == '_GroupHeader',
+      );
+      final chevron = find.descendant(
+        of: heading,
+        matching: find.byIcon(Icons.expand_more),
+      );
+      final l10n = AppLocalizations.of(tester.element(heading));
+      final menu = find.byTooltip(l10n.groupActions);
+      final cards = find.byType(grid ? NexNoteGridCard : NoteCard);
+      final note = (await harness.services.timeline()).first;
+      final headingBefore = tester.getRect(heading);
+      final chevronBefore = tester.getRect(chevron);
+      final cardsBefore = cards.evaluate().map((card) {
+        return tester.getRect(find.byWidget(card.widget));
+      }).toList();
+      final scroll = tester.state<ScrollableState>(
+        find.byType(Scrollable).first,
+      );
+      final offsetBefore = scroll.position.pixels;
+      expect(menu.hitTestable(), findsOneWidget);
+
+      void expectStableLayout() {
+        expect(tester.getRect(heading), headingBefore);
+        expect(tester.getRect(chevron), chevronBefore);
+        for (var i = 0; i < cardsBefore.length; i++) {
+          expect(tester.getRect(cards.at(i)), cardsBefore[i]);
+        }
+        expect(scroll.position.pixels, offsetBefore);
+      }
+
+      await tester.tap(find.byKey(ValueKey('note-pick-${note.id}')));
+      await tester.pumpAndSettle();
+      expect(bar(), findsOneWidget);
+      expectStableLayout();
+      expect(menu.hitTestable(), findsNothing);
+
+      await tester.tap(chevron);
+      await tester.pumpAndSettle();
+      expect(cards, findsNothing);
+      await tester.tap(chevron);
+      await tester.pumpAndSettle();
+      expectStableLayout();
+
+      await tester.tap(find.byTooltip(l10n.selectionClose));
+      await tester.pumpAndSettle();
+      expect(bar(), findsNothing);
+      expectStableLayout();
+      expect(menu.hitTestable(), findsOneWidget);
+    });
+  }
 
   testWidgets('while picking, a hold picks too and the header is inert', (
     tester,

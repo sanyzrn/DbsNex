@@ -34,12 +34,9 @@ void main() {
         hybrid = args['hybrid'] == true;
         viewId = args['id']! as int;
         final params = args['params'] as Uint8List;
-        created =
-            (const StandardMessageCodec().decodeMessage(
-                      ByteData.sublistView(params),
-                    )
-                    as Map)
-                .cast<String, Object?>();
+        created = (const StandardMessageCodec().decodeMessage(
+          ByteData.sublistView(params),
+        ) as Map).cast<String, Object?>();
         messenger.setMockMethodCallHandler(
           MethodChannel('nex/edit_text/$viewId'),
           (call) async {
@@ -81,10 +78,14 @@ void main() {
     await tester.pump();
   }
 
-  Future<void> pump(WidgetTester tester, Widget field) async {
+  Future<void> pump(
+    WidgetTester tester,
+    Widget field, {
+    Locale locale = const Locale('fa'),
+  }) async {
     await tester.pumpWidget(
       MaterialApp(
-        locale: const Locale('fa'),
+        locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(body: Center(child: field)),
@@ -277,6 +278,198 @@ void main() {
     final view = find.byType(PlatformViewLink);
     expect(tester.getSize(view).height, 137);
   });
+
+  for (final (label, border, expands, locale)
+      in <(String, InputBorder, bool, Locale)>[
+        ('outlined RTL', const OutlineInputBorder(), false, const Locale('fa')),
+        (
+          'underlined LTR',
+          const UnderlineInputBorder(),
+          false,
+          const Locale('en'),
+        ),
+        ('borderless expanding', InputBorder.none, true, const Locale('en')),
+      ]) {
+    testWidgets('native $label fields focus from all four edges', (
+      tester,
+    ) async {
+      final controller = TextEditingController();
+      final focus = FocusNode();
+      addTearDown(controller.dispose);
+      addTearDown(focus.dispose);
+      await pump(
+        tester,
+        SizedBox(
+          width: 320,
+          height: expands ? 150 : null,
+          child: NexTextField(
+            controller: controller,
+            focusNode: focus,
+            minLines: 1,
+            maxLines: 4,
+            expands: expands,
+            decoration: InputDecoration(
+              border: border,
+              labelText: 'id',
+              counterText: 'Maximum 4000',
+              contentPadding: const EdgeInsets.all(16),
+            ),
+          ),
+        ),
+        locale: locale,
+      );
+      final nativeView = find.byType(PlatformViewLink);
+      final container = InputDecorator.containerOf(tester.element(nativeView))!;
+      final box = container.localToGlobal(Offset.zero) & container.size;
+      final native = tester.getRect(nativeView);
+      for (final point in [
+        Offset(box.left + 5, box.center.dy),
+        Offset(box.center.dx, box.top + 5),
+        Offset(box.right - 5, box.center.dy),
+        Offset(box.center.dx, box.bottom - 5),
+      ]) {
+        expect(box.contains(point), isTrue);
+        expect(native.contains(point), isFalse);
+        focus.unfocus();
+        await tester.pump();
+        toNative.clear();
+        await tester.tapAt(point);
+        await tester.pump();
+        expect(focus.hasFocus, isTrue);
+        expect(toNative.map((c) => c.method), contains('focus'));
+      }
+      focus.unfocus();
+      await tester.pump();
+      await tester.tap(find.text('Maximum 4000'));
+      await tester.pump();
+      expect(focus.hasFocus, isFalse);
+    });
+  }
+
+  testWidgets('padding does not steal a suffix tap or a scroll', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    final focus = FocusNode();
+    final scroll = ScrollController();
+    addTearDown(controller.dispose);
+    addTearDown(focus.dispose);
+    addTearDown(scroll.dispose);
+    var presses = 0;
+    await pump(
+      tester,
+      ListView(
+        controller: scroll,
+        padding: const EdgeInsets.all(16),
+        children: [
+          const SizedBox(height: 100),
+          NexTextField(
+            controller: controller,
+            focusNode: focus,
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.all(16),
+              suffixIcon: IconButton(
+                onPressed: () => presses++,
+                icon: const Icon(Icons.clear),
+              ),
+            ),
+          ),
+          const SizedBox(height: 1500),
+        ],
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.clear));
+    await tester.pump();
+    expect(presses, 1);
+    expect(focus.hasFocus, isFalse);
+
+    final container = InputDecorator.containerOf(
+      tester.element(find.byType(PlatformViewLink)),
+    )!;
+    final pad = container.localToGlobal(const Offset(5, 5));
+    await tester.dragFrom(pad, const Offset(0, -100));
+    await tester.pumpAndSettle();
+    expect(scroll.offset, greaterThan(0));
+    expect(focus.hasFocus, isFalse);
+  });
+
+  testWidgets('retapping padding keeps native focus and selection', (
+    tester,
+  ) async {
+    const selection = TextSelection(baseOffset: 1, extentOffset: 4);
+    final controller = TextEditingController.fromValue(
+      const TextEditingValue(text: 'سلام Nex', selection: selection),
+    );
+    final focus = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focus.dispose);
+    await pump(
+      tester,
+      NexTextField(
+        controller: controller,
+        focusNode: focus,
+        decoration: const InputDecoration(
+          border: OutlineInputBorder(),
+          contentPadding: EdgeInsets.all(16),
+        ),
+      ),
+    );
+    final surface = tester.element(find.byType(AndroidViewSurface));
+    final nativeFocus = Focus.of(surface)..requestFocus();
+    await tester.pump();
+    await fromNative(tester, 'focus', {'focused': true});
+    expect(nativeFocus.hasPrimaryFocus, isTrue);
+    final container = InputDecorator.containerOf(surface)!;
+    toNative.clear();
+    await tester.tapAt(container.localToGlobal(const Offset(5, 5)));
+    await tester.pump();
+    expect(nativeFocus.hasPrimaryFocus, isTrue);
+    expect(toNative.map((call) => call.method), ['focus']);
+    expect(controller.selection, selection);
+  });
+
+  for (final (label, enabled, readOnly) in [
+    ('disabled', false, false),
+    ('read-only', true, true),
+  ]) {
+    testWidgets('$label native field padding stays inactive', (tester) async {
+      final controller = TextEditingController();
+      final focus = FocusNode();
+      addTearDown(controller.dispose);
+      addTearDown(focus.dispose);
+      var editable = true;
+      late VoidCallback disableEditing;
+      await pump(
+        tester,
+        StatefulBuilder(
+          builder: (context, setState) {
+            disableEditing = () => setState(() => editable = false);
+            return NexTextField(
+              controller: controller,
+              focusNode: focus,
+              enabled: editable || enabled,
+              readOnly: !editable && readOnly,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.all(16),
+              ),
+            );
+          },
+        ),
+      );
+      disableEditing();
+      await tester.pump();
+      expect(createCount, 1);
+      final container = InputDecorator.containerOf(
+        tester.element(find.byType(PlatformViewLink)),
+      )!;
+      await tester.tapAt(container.localToGlobal(const Offset(5, 5)));
+      await tester.pump();
+      expect(focus.hasFocus, isFalse);
+      expect(toNative.map((c) => c.method), isNot(contains('focus')));
+    });
+  }
 
   testWidgets('a format chosen on the native menu formats the selection', (
     tester,

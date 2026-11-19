@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart' show nexDigits;
 import 'package:nex_ui/nex_ui.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/rendering.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/editor_drafts.dart';
+import '../platform/photo_encoding.dart';
 
 import 'package:crypto/crypto.dart';
 
@@ -18,6 +20,8 @@ import '../widgets/draft_guard.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/photo_editor_theme.dart';
+
+part 'photo_annotation_painter.dart';
 
 enum _Mode { draw, text }
 
@@ -62,9 +66,8 @@ const _defaultTextSize = 24.0;
 /// optionally from [PhotoCropScreen] after the crop is confirmed — cropping
 /// first means a stroke never ends up outside the frame a later crop removes.
 ///
-/// Returns the composited PNG bytes, or `null` if nothing was added (the
-/// caller then keeps the plain cropped photo — annotating is additive, never
-/// a second required confirmation).
+/// Returns the composited photo in JPEG for a JPEG crop and PNG otherwise.
+/// With no marks, returns the plain crop.
 class PhotoAnnotateScreen extends StatefulWidget {
   const PhotoAnnotateScreen({
     super.key,
@@ -93,7 +96,8 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
     final box = _boundaryKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || box.size.width <= 0) return;
     final width = box.size.width;
-    widget.drafts?.write(_draftKey, {
+    widget.drafts?.writeSoon(_draftKey, {
+      'version': 2,
       'image': _imageHash,
       'marks': [
         for (final mark in _marks)
@@ -356,6 +360,9 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
     setState(() => _saving = true);
     ui.Image? rendered;
     try {
+      // A fast tap after drawing can arrive before the last stroke is painted.
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
       final boundary =
           _boundaryKey.currentContext!.findRenderObject()
               as RenderRepaintBoundary;
@@ -368,9 +375,25 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
       // gave a photo one pixel wider than it went in.
       final pixelRatio = (_nativeWidth! - 0.01) / boundary.size.width;
       rendered = await boundary.toImage(pixelRatio: pixelRatio);
-      final bytes = await rendered.toByteData(format: ui.ImageByteFormat.png);
+      final jpeg = photoExtension(widget.image) == '.jpg';
+      final data = await rendered.toByteData(
+        format: jpeg
+            ? ui.ImageByteFormat.rawStraightRgba
+            : ui.ImageByteFormat.png,
+      );
+      final pixels = data!.buffer.asUint8List(
+        data.offsetInBytes,
+        data.lengthInBytes,
+      );
+      final bytes = jpeg
+          ? await compute(encodeAnnotatedJpeg, (
+              rgba: pixels,
+              width: rendered.width,
+              height: rendered.height,
+            ))
+          : pixels;
       if (!mounted) return;
-      Navigator.of(context).pop(bytes!.buffer.asUint8List());
+      Navigator.of(context).pop(bytes);
     } catch (error) {
       unawaited(NexCrashLog.handled('photo.annotate.save', error));
       if (mounted) {
@@ -438,7 +461,12 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            Image.memory(widget.image, fit: BoxFit.contain),
+                            RepaintBoundary(
+                              child: Image.memory(
+                                widget.image,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
                             GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onPanStart: drawing ? _onPanStart : null,
@@ -685,49 +713,6 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
       ),
     );
   }
-}
-
-class _StrokePainter extends CustomPainter {
-  _StrokePainter(this.strokes, {super.repaint});
-
-  final List<_Stroke> strokes;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (final stroke in strokes) {
-      final points = stroke.points;
-      if (points.isEmpty) continue;
-      final paint = Paint()
-        ..color = stroke.color
-        ..strokeWidth = stroke.width
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..style = PaintingStyle.stroke;
-      if (points.length == 1) {
-        canvas.drawCircle(
-          points.first,
-          stroke.width / 2,
-          paint..style = PaintingStyle.fill,
-        );
-        continue;
-      }
-      // Through the midpoints, with each sampled point as the curve's
-      // control: a line that bends where the finger did, rather than a chain
-      // of straight segments that shows its corners on a fast stroke.
-      final path = Path()..moveTo(points.first.dx, points.first.dy);
-      for (var i = 1; i < points.length - 1; i++) {
-        final mid = (points[i] + points[i + 1]) / 2;
-        path.quadraticBezierTo(points[i].dx, points[i].dy, mid.dx, mid.dy);
-      }
-      path.lineTo(points.last.dx, points.last.dy);
-      canvas.drawPath(path, paint);
-    }
-  }
-
-  // The strokes grow in place as a finger moves, and [repaint] says when;
-  // a new list means marks were added or taken away.
-  @override
-  bool shouldRepaint(_StrokePainter oldDelegate) => true;
 }
 
 class _AnnotationTextDialog extends StatefulWidget {

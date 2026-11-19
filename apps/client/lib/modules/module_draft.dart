@@ -83,24 +83,26 @@ class NexModuleFormDraft {
     if (_closed || !_started) {
       return;
     }
-    _touched = true;
-    final snapshot = <String, Object?>{
-      'v': 1,
-      'base': jsonEncode(base),
-      'fields': {
-        for (final entry in controllers.entries) entry.key: entry.value.text,
-        ...extra(),
-      },
-    };
+    final snapshot = _snapshot();
     final encoded = jsonEncode(snapshot);
     if (encoded == _lastSnapshot) {
       return;
     }
+    _touched = true;
     _lastSnapshot = encoded;
     _pending = snapshot;
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 250), _drain);
   }
+
+  Map<String, Object?> _snapshot() => {
+    'v': 1,
+    'base': jsonEncode(base),
+    'fields': {
+      for (final entry in controllers.entries) entry.key: entry.value.text,
+      ...extra(),
+    },
+  };
 
   void _drain() {
     _debounce?.cancel();
@@ -147,6 +149,8 @@ class NexModuleFormDraft {
     _debounce = null;
     _pending = null;
     await _tail;
+    // A write that was already in flight may have requeued itself on failure.
+    _pending = null;
     try {
       await store.delete('draft', id);
       return true;
@@ -177,9 +181,13 @@ class NexModuleFormDraft {
     return _pending == null;
   }
 
-  void resume() {
+  /// [markCurrentAsClean] starts a new checkpoint after a successful action
+  /// while leaving the completed values visible. Moving the caret is not a
+  /// new draft, and closing without a change writes nothing.
+  void resume({bool markCurrentAsClean = false}) {
     _closed = false;
-    _lastSnapshot = null;
+    _lastSnapshot = markCurrentAsClean ? jsonEncode(_snapshot()) : null;
+    if (markCurrentAsClean) _touched = false;
     start();
   }
 

@@ -174,14 +174,16 @@ void main() {
     },
   );
   testWidgets(
-    'fill previews/copies literal values and keeps source and fill draft separate',
+    'successful copy uses literal values and clears the draft for the next visit',
     (t) async {
       final original = body();
       await store.put('entry', 'p', original);
       String? copied;
+      var failCopy = true;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(SystemChannels.platform, (call) async {
             if (call.method == 'Clipboard.setData') {
+              if (failCopy) throw PlatformException(code: 'clipboard');
               copied = (call.arguments as Map)['text'] as String;
             }
             return null;
@@ -210,19 +212,34 @@ void main() {
       expect(preview.data, r'Hello $1 {{another}} / $1 {{another}}');
       await t.tap(find.byKey(const ValueKey('studio-copy')));
       await settleStudio(t);
+      expect(copied, isNull);
+      expect((await store.get('draft', 'fill:p'))?['fields'], {
+        'name': r'$1 {{another}}',
+      });
+      failCopy = false;
+      await t.tap(find.byKey(const ValueKey('studio-copy')));
+      await settleStudio(t);
       expect(copied, preview.data);
       expect(await store.get('entry', 'p'), original);
+      expect(await store.get('draft', 'fill:p'), isNull);
+      final field = find.byKey(const ValueKey('fill-name'));
+      final controller = t.widget<NexTextField>(field).controller;
+      expect(controller.text, r'$1 {{another}}');
+      controller.selection = const TextSelection.collapsed(offset: 1);
+      await t.pump(const Duration(milliseconds: 300));
       await t.binding.handlePopRoute();
       await settleStudio(t);
       await t.tap(find.text('My prompt'));
       await settleStudio(t);
-      expect(
-        t
-            .widget<NexTextField>(find.byKey(const ValueKey('fill-name')))
-            .controller
-            .text,
-        r'$1 {{another}}',
-      );
+      expect(t.widget<NexTextField>(field).controller.text, isEmpty);
+      expect(await store.get('draft', 'fill:p'), isNull);
+
+      await t.enterText(field, 'Unfinished');
+      await t.binding.handlePopRoute();
+      await settleStudio(t);
+      await t.tap(find.text('My prompt'));
+      await settleStudio(t);
+      expect(t.widget<NexTextField>(field).controller.text, 'Unfinished');
     },
   );
   testWidgets('block insertion replaces the editor selection as a snapshot', (

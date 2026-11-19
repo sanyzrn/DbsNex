@@ -6,6 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/editor_drafts.dart';
 import '../widgets/photo_action_bar.dart';
+import 'photo_crop_image.dart';
 import 'photo_crop_screen.dart';
 
 /// What you see straight after taking or picking a photo.
@@ -57,7 +58,17 @@ class PhotoPreviewScreen extends StatelessWidget {
         children: [
           // Contained, not covered: a crop that happens without being asked
           // for is the thing this screen was added to stop.
-          Center(child: Image.memory(image, fit: BoxFit.contain)),
+          Center(
+            child: Image(
+              image: ResizeImage(
+                MemoryImage(image),
+                width: PhotoCropPreview.maxSide,
+                height: PhotoCropPreview.maxSide,
+                policy: ResizeImagePolicy.fit,
+              ),
+              fit: BoxFit.contain,
+            ),
+          ),
           Align(
             alignment: Alignment.bottomCenter,
             child: NexPhotoActionBar(

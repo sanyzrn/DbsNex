@@ -345,6 +345,25 @@ class _NativeFieldState extends State<_NativeField> {
     }
   }
 
+  void _focusFromPadding(TapUpDetails tap) {
+    final view = _viewKey.currentContext;
+    if (view == null) return;
+    final box = InputDecorator.containerOf(view);
+    if (box == null ||
+        !(Offset.zero & box.size).contains(
+          box.globalToLocal(tap.globalPosition),
+        )) {
+      return;
+    }
+    // The embedded EditText still receives its own taps and long presses.
+    // This covers the outline's space outside that platform view only.
+    if (_focus.hasFocus) {
+      unawaited(_channel?.invokeMethod<void>('focus'));
+    } else {
+      _focus.requestFocus();
+    }
+  }
+
   Future<dynamic> _onNative(MethodCall call) async {
     final args = (call.arguments as Map?)?.cast<String, Object?>() ?? const {};
     switch (call.method) {
@@ -615,18 +634,29 @@ class _NativeFieldState extends State<_NativeField> {
         );
     // In Flutter's text-field tap group, as every TextField is: a touch on
     // it is a touch on a field (see NexKeyboardGuard).
+    final editable = field.enabled && !field.readOnly;
     return TextFieldTapRegion(
       child: Focus(
         focusNode: _focus,
         skipTraversal: true,
-        child: InputDecorator(
-          decoration: decoration,
-          isFocused: _focused,
-          isEmpty: _controller.text.isEmpty,
-          expands: field.expands,
-          child: field.expands
-              ? view
-              : SizedBox(height: math.max(_height ?? fallback, 1), child: view),
+        child: GestureDetector(
+          behavior: editable
+              ? HitTestBehavior.opaque
+              : HitTestBehavior.deferToChild,
+          excludeFromSemantics: true,
+          onTapUp: editable ? _focusFromPadding : null,
+          child: InputDecorator(
+            decoration: decoration,
+            isFocused: _focused,
+            isEmpty: _controller.text.isEmpty,
+            expands: field.expands,
+            child: field.expands
+                ? view
+                : SizedBox(
+                    height: math.max(_height ?? fallback, 1),
+                    child: view,
+                  ),
+          ),
         ),
       ),
     );

@@ -114,32 +114,25 @@ extension _DetailActions on _NoteDetailSheetState {
         ),
       );
       if (edited == null || !mounted) return;
-      final encoded = await compute(encodeEditedPhoto, (
-        bytes: edited,
-        wasJpeg:
-            original.length > 2 && original[0] == 0xff && original[1] == 0xd8,
-      ));
       // Never overwrite the original. A failed database write must not leave
       // the note pointing at bytes that changed underneath it.
       final dest = p.join(
         widget.services.mediaDir,
-        'edited-${DateTime.now().microsecondsSinceEpoch}${photoExtension(encoded)}',
+        'edited-${DateTime.now().microsecondsSinceEpoch}${photoExtension(edited)}',
       );
-      final file = File(dest);
-      await file.writeAsBytes(encoded, flush: true);
+      final (_, hash) = await (
+        File(dest).writeAsBytes(edited, flush: true),
+        compute(sha256OfBytes, edited),
+      ).wait;
       // An exception can follow a committed write (lost worker response or
       // failed refresh). Leave cleanup to reference-aware media maintenance.
       await widget.services.updateImageMedia(
         note.id,
         dest,
-        // Off the UI isolate: megabytes of pure-Dart SHA-256 (PERF-07). The
-        // attachment-edit path already hashed this way; this one, the note's
-        // own photo, was the last full-size hash still run between frames.
-        await compute(sha256OfBytes, encoded),
+        hash,
+        refresh: false,
       );
-      widget.preferences?.editorDrafts?.clear('photo-${note.id}-crop');
-      widget.preferences?.editorDrafts?.clear('photo-${note.id}-annotation');
-      await _reload();
+      await _refreshSavedPhoto('photo-${note.id}', _reload);
     } catch (_) {
       if (mounted) {
         nexShowBanner(
@@ -148,6 +141,32 @@ extension _DetailActions on _NoteDetailSheetState {
           kind: NexBannerKind.failed,
         );
       }
+    }
+  }
+
+  Future<void> _refreshSavedPhoto(
+    String key,
+    Future<void> Function() reload,
+  ) async {
+    final services = widget.services;
+    final drafts = widget.preferences?.editorDrafts;
+    try {
+      // Read the affected detail first so it can show the durable edit while
+      // the timeline updates independently.
+      if (mounted) await reload();
+    } catch (error) {
+      unawaited(NexCrashLog.handled('photo.refresh', error));
+    }
+    unawaited(
+      services.refreshTimeline().catchError((Object error) {
+        unawaited(NexCrashLog.handled('photo.refreshTimeline', error));
+      }),
+    );
+    try {
+      drafts?.clear('$key-crop');
+      drafts?.clear('$key-annotation');
+    } catch (error) {
+      unawaited(NexCrashLog.handled('photo.clearDraft', error));
     }
   }
 

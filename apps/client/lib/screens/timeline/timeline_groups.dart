@@ -240,6 +240,7 @@ class _GroupHeader extends StatelessWidget {
     required this.onToggle,
     required this.onAsk,
     required this.onDelete,
+    this.picking = false,
     this.compact = false,
     this.leading,
     this.alwaysCount = false,
@@ -266,6 +267,7 @@ class _GroupHeader extends StatelessWidget {
   final String label;
   final int count;
   final bool collapsed;
+  final bool picking;
   final VoidCallback onToggle;
 
   /// Null when there is no provider to answer — a menu entry that can only
@@ -281,6 +283,11 @@ class _GroupHeader extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final persian = Localizations.localeOf(context).languageCode == 'fa';
+    final hasMenu =
+        onAsk != null ||
+        onDelete != null ||
+        onMoveUp != null ||
+        onMoveDown != null;
     return Row(
       children: [
         Expanded(
@@ -309,13 +316,10 @@ class _GroupHeader extends StatelessWidget {
                 // between two runs rather than opening one.
                 padding: compact
                     ? const EdgeInsetsDirectional.fromSTEB(0, 12, 0, 8)
-                    : const EdgeInsetsDirectional.fromSTEB(
+                    : EdgeInsetsDirectional.fromSTEB(
                         NexSpacing.md,
                         _headerSpace * 0.6,
-                        // Nothing on the trailing side: the menu button beside
-                        // this carries its own, and the chevron sits just
-                        // inside it rather than out at the screen edge.
-                        0,
+                        hasMenu ? 0 : NexSpacing.md,
                         _headerSpace * 0.4,
                       ),
                 child: Row(
@@ -392,10 +396,7 @@ class _GroupHeader extends StatelessWidget {
             ),
           ),
         ),
-        if (onAsk != null ||
-            onDelete != null ||
-            onMoveUp != null ||
-            onMoveDown != null)
+        if (hasMenu)
           Padding(
             // The same vertical padding the heading carries, so the two glyphs
             // sit on one line. Without it the menu centred itself in the row's
@@ -410,54 +411,62 @@ class _GroupHeader extends StatelessWidget {
                     NexSpacing.md,
                     _headerSpace * 0.4,
                   ),
-            child: NexPopupMenuButton<_GroupAction>(
-              tooltip: l10n.groupActions,
-              // Horizontal. A vertical ellipsis beside a chevron is two marks
-              // running in two directions; laid flat it reads as a row of
-              // controls rather than one control and a stray column of dots.
-              icon: Icon(
-                Icons.more_horiz,
-                size: 20,
-                color: theme.colorScheme.onSurfaceVariant,
+            // The menu and its tap target set the heading's size. Keep that
+            // space when picking so the heading and chevron stay in place.
+            child: Visibility(
+              visible: !picking,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: NexPopupMenuButton<_GroupAction>(
+                tooltip: l10n.groupActions,
+                // Horizontal. A vertical ellipsis beside a chevron is two marks
+                // running in two directions; laid flat it reads as a row of
+                // controls rather than one control and a stray column of dots.
+                icon: Icon(
+                  Icons.more_horiz,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                // Padding around the icon, not around the menu. The default is
+                // large enough to set the height of every date heading in the
+                // list; this keeps a tap target the thumb can find without the
+                // button deciding how tall the row is.
+                padding: const EdgeInsets.all(NexSpacing.sm),
+                onSelected: (action) => switch (action) {
+                  _GroupAction.ask => onAsk?.call(),
+                  _GroupAction.delete => onDelete?.call(),
+                  _GroupAction.moveUp => onMoveUp?.call(),
+                  _GroupAction.moveDown => onMoveDown?.call(),
+                },
+                itemBuilder: (context) => [
+                  if (onMoveUp != null)
+                    nexMenuItem(
+                      value: _GroupAction.moveUp,
+                      icon: Icons.arrow_upward_rounded,
+                      label: l10n.groupMoveUp,
+                    ),
+                  if (onMoveDown != null)
+                    nexMenuItem(
+                      value: _GroupAction.moveDown,
+                      icon: Icons.arrow_downward_rounded,
+                      label: l10n.groupMoveDown,
+                    ),
+                  if (onAsk != null)
+                    nexMenuItem(
+                      value: _GroupAction.ask,
+                      icon: Icons.auto_awesome_outlined,
+                      label: l10n.groupAsk,
+                    ),
+                  if (onDelete != null)
+                    nexMenuItem(
+                      value: _GroupAction.delete,
+                      icon: Icons.delete_outline,
+                      label: l10n.groupDelete,
+                      destructive: true,
+                    ),
+                ],
               ),
-              // Padding around the icon, not around the menu. The default is
-              // large enough to set the height of every date heading in the
-              // list; this keeps a tap target the thumb can find without the
-              // button deciding how tall the row is.
-              padding: const EdgeInsets.all(NexSpacing.sm),
-              onSelected: (action) => switch (action) {
-                _GroupAction.ask => onAsk?.call(),
-                _GroupAction.delete => onDelete?.call(),
-                _GroupAction.moveUp => onMoveUp?.call(),
-                _GroupAction.moveDown => onMoveDown?.call(),
-              },
-              itemBuilder: (context) => [
-                if (onMoveUp != null)
-                  nexMenuItem(
-                    value: _GroupAction.moveUp,
-                    icon: Icons.arrow_upward_rounded,
-                    label: l10n.groupMoveUp,
-                  ),
-                if (onMoveDown != null)
-                  nexMenuItem(
-                    value: _GroupAction.moveDown,
-                    icon: Icons.arrow_downward_rounded,
-                    label: l10n.groupMoveDown,
-                  ),
-                if (onAsk != null)
-                  nexMenuItem(
-                    value: _GroupAction.ask,
-                    icon: Icons.auto_awesome_outlined,
-                    label: l10n.groupAsk,
-                  ),
-                if (onDelete != null)
-                  nexMenuItem(
-                    value: _GroupAction.delete,
-                    icon: Icons.delete_outline,
-                    label: l10n.groupDelete,
-                    destructive: true,
-                  ),
-              ],
             ),
           ),
       ],

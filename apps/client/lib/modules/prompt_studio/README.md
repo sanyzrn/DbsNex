@@ -19,8 +19,9 @@ fresh edits. Invalid records remain visible for repair or confirmed deletion.
 An edit plus its prior version is one record write, not a multi-write transaction.
 
 Kind `draft`: shared `NexModuleFormDraft` v1 envelope. `entry:<creation-key>:new` / `entry:<id>`
-checkpoint editors separately for prompts, blocks, each starter and each duplicate source; `fill:<entry-id>` checkpoints values independently of the
-saved prompt. Baseline fingerprints reject stale checkpoints. Back waits for
+checkpoint editors separately for prompts, blocks, each starter and each duplicate source; `fill:<entry-id>` checkpoints unfinished values independently of the
+saved prompt. Copying successfully clears that checkpoint for the next visit.
+Baseline fingerprints reject stale checkpoints. Back waits for
 writes; saved input is cleared only after successful final save. Failed reads
 block editing and offer Retry. Drafts travel through existing local backups.
 

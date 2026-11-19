@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
@@ -79,19 +80,27 @@ class _StudioWorkbenchState extends State<StudioWorkbench> {
   }
 
   Future<void> _copy() async {
+    final values = _values;
     if (_busy ||
         _loading ||
         _failed ||
         _template.slots.length > 24 ||
-        _template.missing(_values).isNotEmpty) {
+        _template.missing(values).isNotEmpty) {
       return;
     }
     setState(() => _busy = true);
     try {
-      await nexModuleCopyText(_template.fill(_values));
-      if (mounted) {
-        nexShowBanner(context, message: studioStrings(context, 'copied'));
-      }
+      await nexModuleCopyText(_template.fill(values));
+      final cleared = await _draft.clear();
+      if (!mounted) return;
+      final changedWhileCopying = !mapEquals(values, _values);
+      _draft.resume(markCurrentAsClean: cleared && !changedWhileCopying);
+      if (changedWhileCopying) _draft.changed();
+      nexShowBanner(
+        context,
+        message: studioStrings(context, cleared ? 'copied' : 'copyClearError'),
+        kind: cleared ? NexBannerKind.done : NexBannerKind.failed,
+      );
     } catch (_) {
       if (mounted) {
         nexShowBanner(
