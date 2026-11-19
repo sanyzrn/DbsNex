@@ -23,6 +23,9 @@ void main() {
     String? uri,
     String? mime,
     String? filename,
+    String? title,
+    String? caption,
+    String? transcript,
     int attachments = 0,
     int? durationMs,
   }) => Note(
@@ -30,6 +33,9 @@ void main() {
     type: type,
     // A file note's name is its content.
     content: content ?? filename,
+    title: title,
+    caption: caption,
+    transcriptText: transcript,
     mediaUri: uri,
     mimeType: mime,
     attachmentCount: attachments,
@@ -119,6 +125,134 @@ void main() {
     img.fill(im, color: img.ColorRgb8(30, 120, 200));
     return File('${dir.path}/$name')..writeAsBytesSync(img.encodePng(im));
   }
+
+  testWidgets(
+    'adaptive rows fit captions, recordings and media in their original order',
+    (tester) async {
+      final dir = Directory.systemTemp.createTempSync('nex_grid_rows_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(400, 1000);
+      addTearDown(tester.view.reset);
+      final notes = [
+        note(
+          'short',
+          NoteType.text,
+          content: 'Coffee run',
+          caption: 'For work',
+        ),
+        note('voice', NoteType.voice, uri: '/silence.m4a', durationMs: 5000),
+        note(
+          'named',
+          NoteType.text,
+          title: 'Heading',
+          content: 'Body',
+          caption: 'Caption',
+        ),
+        note('plain', NoteType.text, content: 'Next'),
+        note(
+          'captioned',
+          NoteType.voice,
+          uri: '/captioned.m4a',
+          caption: 'متن جلسه',
+          transcript: 'Hidden transcript',
+        ),
+        note(
+          'transcribed',
+          NoteType.voice,
+          uri: '/transcribed.m4a',
+          transcript: 'Voice text',
+        ),
+        note('paired', NoteType.text, content: 'Print'),
+        note('photo', NoteType.photo, uri: picture(dir, 'photo.png').path),
+        note('last', NoteType.text, content: 'آخرین کارت'),
+      ];
+      const strings = NexCardStrings.fallback;
+      final scroll = ScrollController();
+      addTearDown(scroll.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('fa'),
+          theme: nexSoftLightTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                final metrics = NexGridMetrics.of(context);
+                return CustomScrollView(
+                  controller: scroll,
+                  slivers: [
+                    SliverGrid.builder(
+                      gridDelegate: NexGridColumnsDelegate(
+                        metrics: metrics,
+                        mainAxisExtent: metrics.heightFor(context),
+                        rows: NexGridRows(
+                          notes,
+                          NexGridRowSizing.of(context, strings),
+                        ),
+                      ),
+                      itemCount: notes.length,
+                      itemBuilder: (context, index) => NexNoteGridCard(
+                        key: ValueKey(notes[index].id),
+                        note: notes[index],
+                        strings: strings,
+                        onTap: () {},
+                        onLeadingTap: () {},
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      Rect bounds(String id) => tester.getRect(find.byKey(ValueKey(id)));
+      final short = bounds('short');
+      final medium = bounds('named');
+      final tall = bounds('paired');
+      expect(short.height, lessThan(medium.height));
+      expect(medium.height, lessThan(tall.height));
+      expect(short.height, bounds('voice').height);
+      expect(bounds('voice').top, short.top);
+      expect(short.left, greaterThan(bounds('voice').left));
+      expect(bounds('plain').height, medium.height);
+      expect(bounds('captioned').height, medium.height);
+      expect(bounds('transcribed').height, medium.height);
+      expect(bounds('photo').height, tall.height);
+      expect(bounds('last').height, short.height);
+      expect(find.text('For work'), findsOneWidget);
+      expect(find.text('Heading'), findsOneWidget);
+      expect(find.text('Body'), findsOneWidget);
+      expect(find.text('Caption'), findsOneWidget);
+      expect(find.text('متن جلسه'), findsOneWidget);
+      expect(find.text('Voice text'), findsOneWidget);
+      expect(find.text('Hidden transcript'), findsNothing);
+      final play = find.byKey(const ValueKey('card-play-voice'));
+      expect(tester.getSize(play).height, 44);
+      expect(bounds('voice').contains(tester.getCenter(play)), isTrue);
+
+      // Moving to the end uses the real row heights, including a partial row.
+      final bottom = bounds('last').bottom;
+      tester.view.physicalSize = const Size(400, 450);
+      await tester.pump();
+      expect(scroll.position.maxScrollExtent, closeTo(bottom - 450, 0.1));
+      scroll.jumpTo(scroll.position.maxScrollExtent);
+      await tester.pump();
+      expect(bounds('last').bottom, closeTo(450, 0.1));
+
+      // The same sentence and caption wrap on a narrow screen and need more
+      // room. A character count alone would leave them in the short row.
+      scroll.jumpTo(0);
+      tester.view.physicalSize = const Size(280, 1000);
+      await tester.pump();
+      expect(bounds('short').height, greaterThan(short.height));
+      expect(find.text('For work'), findsOneWidget);
+    },
+  );
 
   testWidgets('a photo fills its tile and drifts by painting, rebuilding '
       'nothing as the list scrolls', (tester) async {

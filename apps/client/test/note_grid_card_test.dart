@@ -9,6 +9,47 @@ import 'package:nex_ui/nex_ui.dart';
 /// A grid tile keeps one height in its row at any text size: the words give
 /// way rather than overflow (2.6.27).
 void main() {
+  testWidgets('text tiles omit the visible type label at every density', (
+    tester,
+  ) async {
+    const preview = 'Note preview';
+    final note = Note(
+      id: 'n',
+      type: NoteType.text,
+      content: preview,
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
+      deviceId: 'd',
+      rev: 1,
+      syncState: SyncState.pending,
+    );
+
+    for (final density in NexCardDensity.values) {
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: NexCardDensityScope(
+            density: density,
+            child: Center(
+              child: SizedBox(
+                width: 220,
+                child: NexNoteGridCard(
+                  note: note,
+                  strings: NexCardStrings.fallback,
+                  onTap: () {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(find.text('Text'), findsNothing, reason: density.name);
+      expect(find.text(preview), findsOneWidget, reason: density.name);
+    }
+  });
+
   Note fileNote(String filename, {String? mimeType, String? path}) => Note(
     id: 'file',
     type: NoteType.file,

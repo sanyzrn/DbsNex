@@ -233,41 +233,50 @@ class NexCardVoice extends StatelessWidget {
                           1.0,
                         );
                   final left = mine && at > Duration.zero ? total - at : total;
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: AudioWaveform(
-                          path: uri,
-                          progress: progress,
-                          height: math.min(
-                            compact ? 22 : room * 0.66,
-                            room - 6,
-                          ),
-                          played: tint,
-                          // Only the recording already playing or paused
-                          // moves under a touch: until then the card opens
-                          // its note wherever it is touched but Play.
-                          onSeek: mine
-                              ? (fraction) =>
-                                    unawaited(audio.seek(note, fraction))
-                              : null,
-                        ),
-                      ),
-                      if (left.inMilliseconds > 0) ...[
-                        const SizedBox(width: NexSpacing.xs + 2),
-                        Text(
-                          durationLabel(left.inMilliseconds),
-                          textDirection: TextDirection.ltr,
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                                fontWeight: mine ? FontWeight.w700 : null,
+                  final wave = AudioWaveform(
+                    path: uri,
+                    progress: progress,
+                    height: math.min(compact ? 22 : room * 0.66, room - 6),
+                    played: tint,
+                    // The waveform seeks only once this recording is playing
+                    // or paused. Before that, tapping there opens the note.
+                    onSeek: mine
+                        ? (fraction) => unawaited(audio.seek(note, fraction))
+                        : null,
+                  );
+                  if (left.inMilliseconds <= 0) return wave;
+                  const gap = NexSpacing.xs + 2;
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      // A narrow tile or large text can otherwise leave the
+                      // waveform with zero width and push the time out.
+                      final timeWidth =
+                          constraints.maxWidth - gap - NexSpacing.md;
+                      if (timeWidth < NexSpacing.lg) return wave;
+                      return Row(
+                        children: [
+                          Expanded(child: wave),
+                          const SizedBox(width: gap),
+                          ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: timeWidth),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                durationLabel(left.inMilliseconds),
+                                textDirection: TextDirection.ltr,
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(
+                                      fontFeatures: const [
+                                        FontFeature.tabularFigures(),
+                                      ],
+                                      fontWeight: mine ? FontWeight.w700 : null,
+                                    ),
                               ),
-                        ),
-                      ],
-                    ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   );
                 },
               ),

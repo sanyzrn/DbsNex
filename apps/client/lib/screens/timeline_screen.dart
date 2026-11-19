@@ -186,6 +186,8 @@ class TimelineScreenState extends State<TimelineScreen>
   /// The timeline's flattened rows, assembled only when the notes, the
   /// folds or the day actually move — see `_TimelineRowsCache`.
   final _rowsCache = _TimelineRowsCache();
+  final _gridRowLayouts = Expando<NexGridRows>();
+  NexGridRowSizing? _gridRowSizing;
 
   /// How many times the rows have been assembled — a test handle only.
   @visibleForTesting

@@ -23,14 +23,26 @@ extension _TimelineGrid on TimelineScreenState {
     final metrics = NexGridMetrics.of(context);
     final width = MediaQuery.sizeOf(context).width - 2 * NexSpacing.md;
     final columns = metrics.columnsFor(width);
-    final row = metrics.heightFor(context) + NexSpacing.sm;
+    final row = metrics.minimumHeightFor(context) + NexSpacing.sm;
     return (index ~/ columns) * row;
+  }
+
+  NexGridRows _adaptiveGridRows(_NoteGroup group, NexGridRowSizing sizing) {
+    final known = _gridRowLayouts[group.notes];
+    if (known != null && known.matches(sizing)) return known;
+    return _gridRowLayouts[group.notes] = NexGridRows(group.notes, sizing);
   }
 
   List<Widget> _gridSlivers(List<_NoteGroup> groups, AppLocalizations l10n) {
     final strings = nexCardStrings(context);
     final metrics = NexGridMetrics.of(context);
     final height = metrics.heightFor(context);
+    final sizing = metrics.hasAdaptiveRows
+        ? NexGridRowSizing.of(context, strings, previous: _gridRowSizing)
+        : null;
+    _gridRowSizing = sizing;
+    NexGridRows? adaptiveRows(_NoteGroup group) =>
+        sizing == null ? null : _adaptiveGridRows(group, sizing);
     const padding = EdgeInsets.fromLTRB(
       NexSpacing.md,
       NexSpacing.xs,
@@ -58,6 +70,9 @@ extension _TimelineGrid on TimelineScreenState {
                         _gridFoldRows,
                         (group.notes.length / columns).ceil(),
                       );
+                      final adaptive = adaptiveRows(group);
+                      final rtl =
+                          Directionality.of(context) == TextDirection.rtl;
                       return Column(
                         children: [
                           for (var r = 0; r < rows; r++)
@@ -71,7 +86,13 @@ extension _TimelineGrid on TimelineScreenState {
                                   bottom: r == rows - 1 ? 0 : NexSpacing.sm,
                                 ),
                                 child: SizedBox(
-                                  height: height,
+                                  height:
+                                      adaptive?.heightAt(
+                                        r,
+                                        constraints.maxWidth,
+                                        reverseCrossAxis: rtl,
+                                      ) ??
+                                      height,
                                   child: Row(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
@@ -114,9 +135,9 @@ extension _TimelineGrid on TimelineScreenState {
                 // the list's work (2.7.2).
                 sliver: SliverGrid.builder(
                   gridDelegate: NexGridColumnsDelegate(
-                    columnsFor: metrics.columnsFor,
                     metrics: metrics,
                     mainAxisExtent: height,
+                    rows: adaptiveRows(group),
                   ),
                   itemCount: group.notes.length,
                   itemBuilder: (context, i) =>

@@ -19,6 +19,13 @@ import '../l10n/app_localizations.dart';
 part 'note_grid_body.dart';
 part 'note_grid_media.dart';
 part 'note_grid_link.dart';
+part 'note_grid_rows.dart';
+
+const _gridBorderReserve = 2.0;
+const _gridPickTarget = 40.0;
+const _gridVoiceStrip = 44.0;
+const _gridFullVoiceStrip = 56.0;
+const _gridSiteMark = 34.0;
 
 /// How a grid tile is laid out at each card size (Settings → Appearance →
 /// Card size): how many fit across, how tall a row is, and how large the
@@ -47,6 +54,8 @@ class NexGridMetrics {
   /// Whether the kind's name sits beside the mark. A third of a phone is
   /// too narrow for it; the mark alone says it there.
   final bool showKind;
+
+  bool get hasAdaptiveRows => identical(this, _standard);
 
   static const _compact = NexGridMetrics._(
     minColumns: 3,
@@ -87,9 +96,12 @@ class NexGridMetrics {
   /// The row height at the reader's text size, so larger text gets taller
   /// tiles rather than fewer words.
   double heightFor(BuildContext context) =>
-      MediaQuery.textScalerOf(context)
-          .scale(height)
-          .clamp(height, height * 1.7);
+      _scaleHeight(height, MediaQuery.textScalerOf(context));
+
+  double minimumHeightFor(BuildContext context) => _scaleHeight(
+    hasAdaptiveRows ? _shortGridHeight : height,
+    MediaQuery.textScalerOf(context),
+  );
 }
 
 /// A note as a tile in the timeline's grid view (2.6.27, reworked in 2.6.28).
@@ -159,8 +171,9 @@ class NexNoteGridCard extends StatelessWidget {
     final wash = nexNoteWash(note.type.wireName, scheme, picked: picked);
     final (:tint, :from, :to, :muted, :outline) = wash;
     final ink = nexReadableOn(tint, from);
-    final content = nexSplitNoteText(note, strings);
+    final content = _gridWords(note, strings);
     final kind = AppLocalizations.of(context).noteType(note.type.wireName);
+    final showKind = metrics.showKind && note.type != NoteType.text;
     final highContrast = MediaQuery.highContrastOf(context);
     // The edge sits inside the tile, and a border inside insets what it
     // holds by its width — so the picked edge (2 px) used to move every line
@@ -172,7 +185,6 @@ class NexNoteGridCard extends StatelessWidget {
         : highContrast
         ? BorderSide(color: scheme.outline, width: 1.5)
         : BorderSide(color: tint.withValues(alpha: dark ? 0.16 : 0.10));
-    const widestEdge = 2.0;
     final art = note.type == NoteType.link
         ? NexLinkArt.instance.of(note.id)
         : null;
@@ -211,13 +223,15 @@ class NexNoteGridCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(NexRadius.xl),
           ),
           child: Padding(
-            padding: EdgeInsets.all(metrics.padding + widestEdge - edge.width),
+            padding: EdgeInsets.all(
+              metrics.padding + _gridBorderReserve - edge.width,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _Top(
                   note: note,
-                  kind: metrics.showKind ? kind : null,
+                  kind: showKind ? kind : null,
                   tint: tint,
                   ink: ink,
                   muted: muted,
@@ -589,7 +603,7 @@ class _Mark extends StatelessWidget {
     final tap = onTap;
     if (tap == null) return disc;
     // A touch target of at least 40 even where the disc is smaller.
-    final target = size < 40 ? 40.0 : size;
+    final target = math.max(_gridPickTarget, size);
     return Semantics(
       button: true,
       selected: picked,
@@ -608,24 +622,26 @@ class _Mark extends StatelessWidget {
   }
 }
 
-/// A fixed-height grid whose column count follows the width it is laid out
-/// in — [NexGridMetrics.columnsFor] — decided at layout, so a scroll rebuilds
-/// nothing.
+/// Grid columns follow the actual sliver width without rebuilding on scroll.
 class NexGridColumnsDelegate extends SliverGridDelegate {
   const NexGridColumnsDelegate({
-    required this.columnsFor,
     required this.metrics,
     required this.mainAxisExtent,
+    this.rows,
   });
 
-  final int Function(double width) columnsFor;
   final NexGridMetrics metrics;
   final double mainAxisExtent;
+  final NexGridRows? rows;
 
   @override
   SliverGridLayout getLayout(SliverConstraints constraints) =>
+      rows?._layoutFor(
+        constraints.crossAxisExtent,
+        axisDirectionIsReversed(constraints.crossAxisDirection),
+      ) ??
       SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: columnsFor(constraints.crossAxisExtent),
+        crossAxisCount: metrics.columnsFor(constraints.crossAxisExtent),
         mainAxisExtent: mainAxisExtent,
         crossAxisSpacing: NexSpacing.sm,
         mainAxisSpacing: NexSpacing.sm,
@@ -634,5 +650,6 @@ class NexGridColumnsDelegate extends SliverGridDelegate {
   @override
   bool shouldRelayout(NexGridColumnsDelegate oldDelegate) =>
       !identical(oldDelegate.metrics, metrics) ||
-      oldDelegate.mainAxisExtent != mainAxisExtent;
+      oldDelegate.mainAxisExtent != mainAxisExtent ||
+      !identical(oldDelegate.rows, rows);
 }
