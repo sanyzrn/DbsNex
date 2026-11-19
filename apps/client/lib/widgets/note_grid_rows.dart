@@ -33,6 +33,7 @@ typedef _GridTextLayout = ({
   TextStyle inherited,
   TextScaler scaler,
   Locale? locale,
+  TextDirection direction,
   TextHeightBehavior? heightBehavior,
 });
 
@@ -43,6 +44,7 @@ _GridTextLayout _gridTextLayoutOf(
   inherited: inherited ?? DefaultTextStyle.of(context).style,
   scaler: MediaQuery.textScalerOf(context),
   locale: Localizations.maybeLocaleOf(context),
+  direction: Directionality.of(context),
   heightBehavior: DefaultTextHeightBehavior.maybeOf(context),
 );
 
@@ -56,7 +58,7 @@ List<double> _gridLineHeights(
   if (text.isEmpty) return const [];
   final painter = TextPainter(
     text: TextSpan(text: text, style: layout.inherited.merge(style)),
-    textDirection: nexDirectionOf(text),
+    textDirection: nexDirectionOf(text) ?? layout.direction,
     textScaler: layout.scaler,
     locale: layout.locale,
     textHeightBehavior: layout.heightBehavior,

@@ -234,6 +234,11 @@ void main() {
       expect(t.widget<NexTextField>(field).controller.text, isEmpty);
       expect(await store.get('draft', 'fill:p'), isNull);
 
+      t.widget<NexTextField>(field).controller.selection =
+          const TextSelection.collapsed(offset: 0);
+      await t.pump(const Duration(milliseconds: 300));
+      expect(await store.get('draft', 'fill:p'), isNull);
+
       await t.enterText(field, 'Unfinished');
       await t.binding.handlePopRoute();
       await settleStudio(t);

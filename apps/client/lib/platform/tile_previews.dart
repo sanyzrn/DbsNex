@@ -23,8 +23,15 @@ NexTileBackdrop nexTileBackdropOf(Note note, {bool collages = true}) {
         : NexTileBackdrop.photo;
   }
   if (note.type != NoteType.file) return NexTileBackdrop.none;
-  if (nexIsPdf(uri, note.mimeType)) return NexTileBackdrop.pdf;
-  return switch (NexFileKinds.of(path: uri, mimeType: note.mimeType)) {
+  final original = note.originalFilename;
+  if (nexIsPdf(uri, note.mimeType) ||
+      (original != null && nexIsPdf(original))) {
+    return NexTileBackdrop.pdf;
+  }
+  final kind = NexFileKinds.of(path: original, mimeType: note.mimeType);
+  return switch (kind == NexFileKind.other
+      ? NexFileKinds.of(path: uri, mimeType: note.mimeType)
+      : kind) {
     NexFileKind.image => NexTileBackdrop.photo,
     NexFileKind.video => NexTileBackdrop.video,
     _ => NexTileBackdrop.none,
@@ -32,8 +39,9 @@ NexTileBackdrop nexTileBackdropOf(Note note, {bool collages = true}) {
 }
 
 /// Whether [path] (or its [mimeType]) is a PDF.
-bool nexIsPdf(String path, String? mimeType) =>
-    mimeType == 'application/pdf' || path.toLowerCase().endsWith('.pdf');
+bool nexIsPdf(String path, [String? mimeType]) =>
+    mimeType?.split(';').first.trim().toLowerCase() == 'application/pdf' ||
+    NexFileKinds.extensionOf(path) == 'pdf';
 
 /// A PDF's first page as a tile shows it, and how many pages it has.
 typedef NexTilePage = ({Uint8List bytes, int pages});
