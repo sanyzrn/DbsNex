@@ -63,7 +63,6 @@ class NexTextField extends StatefulWidget {
     this.enableIMEPersonalizedLearning = true,
     this.formatting = false,
     this.onCopy,
-    this.tapPaddingToFocus = false,
   });
 
   final TextEditingController controller;
@@ -103,9 +102,6 @@ class NexTextField extends StatefulWidget {
   /// native selection menu, so what is copied privately cannot leave the
   /// app by the side door.
   final Future<void> Function(String text)? onCopy;
-
-  /// Lets a tap on the decorated Android field's padding focus its editor.
-  final bool tapPaddingToFocus;
 
   /// Whether the native editor is used. True on Android; tests that drive
   /// the native protocol set it, and must put it back.
@@ -361,7 +357,7 @@ class _NativeFieldState extends State<_NativeField> {
     }
     // The embedded EditText still receives its own taps and long presses.
     // This covers the outline's space outside that platform view only.
-    if (_focus.hasPrimaryFocus) {
+    if (_focus.hasFocus) {
       unawaited(_channel?.invokeMethod<void>('focus'));
     } else {
       _focus.requestFocus();
@@ -638,27 +634,30 @@ class _NativeFieldState extends State<_NativeField> {
         );
     // In Flutter's text-field tap group, as every TextField is: a touch on
     // it is a touch on a field (see NexKeyboardGuard).
-    final decorated = InputDecorator(
-      decoration: decoration,
-      isFocused: _focused,
-      isEmpty: _controller.text.isEmpty,
-      expands: field.expands,
-      child: field.expands
-          ? view
-          : SizedBox(height: math.max(_height ?? fallback, 1), child: view),
-    );
+    final editable = field.enabled && !field.readOnly;
     return TextFieldTapRegion(
       child: Focus(
         focusNode: _focus,
         skipTraversal: true,
-        child: field.tapPaddingToFocus && field.enabled && !field.readOnly
-            ? GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                excludeFromSemantics: true,
-                onTapUp: _focusFromPadding,
-                child: decorated,
-              )
-            : decorated,
+        child: GestureDetector(
+          behavior: editable
+              ? HitTestBehavior.opaque
+              : HitTestBehavior.deferToChild,
+          excludeFromSemantics: true,
+          onTapUp: editable ? _focusFromPadding : null,
+          child: InputDecorator(
+            decoration: decoration,
+            isFocused: _focused,
+            isEmpty: _controller.text.isEmpty,
+            expands: field.expands,
+            child: field.expands
+                ? view
+                : SizedBox(
+                    height: math.max(_height ?? fallback, 1),
+                    child: view,
+                  ),
+          ),
+        ),
       ),
     );
   }

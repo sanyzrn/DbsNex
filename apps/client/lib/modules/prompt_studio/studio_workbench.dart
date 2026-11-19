@@ -237,7 +237,6 @@ class _StudioWorkbenchState extends State<StudioWorkbench> {
                           minLines: 1,
                           maxLines: 4,
                           maxLength: 4000,
-                          tapPaddingToFocus: true,
                           enableIMEPersonalizedLearning: false,
                           decoration: InputDecoration(
                             labelText: e.key,
