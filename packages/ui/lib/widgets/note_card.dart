@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 
+import '../tokens/nex_note_card_icon.dart';
 import '../tokens/nex_relative_time.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
@@ -893,6 +894,7 @@ class _Leading extends StatelessWidget {
         ),
       );
     }
+    if (note.type == NoteType.file) return _IconBox.file(note);
     return _IconBox(
       nexNoteTypeIcon(note.type.wireName),
       type: note.type.wireName,
@@ -1147,8 +1149,11 @@ class _PickMark extends StatelessWidget {
 /// glyph on a tinted ground is the colour doing the work, and that mode is
 /// for when colour is not enough.
 class _IconBox extends StatelessWidget {
-  const _IconBox(this.icon, {required this.type});
-  final IconData icon;
+  const _IconBox(this.icon, {required this.type}) : file = null;
+  const _IconBox.file(Note this.file) : type = 'file', icon = null;
+
+  final IconData? icon;
+  final Note? file;
 
   /// The note type's wire name.
   final String type;
@@ -1157,6 +1162,8 @@ class _IconBox extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final side = NexCardDensity.of(context).leading;
     final plain = MediaQuery.highContrastOf(context);
+    final ink = plain ? scheme.onSurface : nexNoteTypeTint(type, scheme);
+    final note = file;
     return Container(
       width: side,
       height: side,
@@ -1166,10 +1173,9 @@ class _IconBox extends StatelessWidget {
             : nexNoteTypeWash(type, scheme),
         shape: BoxShape.circle,
       ),
-      child: Icon(
-        icon,
-        color: plain ? scheme.onSurface : nexNoteTypeTint(type, scheme),
-      ),
+      child: note == null
+          ? Icon(icon, color: ink)
+          : NexNoteCardGlyph(note, color: ink),
     );
   }
 }
