@@ -161,6 +161,7 @@ class NexNoteGridCard extends StatelessWidget {
     final ink = nexReadableOn(tint, from);
     final content = nexSplitNoteText(note, strings);
     final kind = AppLocalizations.of(context).noteType(note.type.wireName);
+    final showKind = metrics.showKind && note.type != NoteType.text;
     final highContrast = MediaQuery.highContrastOf(context);
     // The edge sits inside the tile, and a border inside insets what it
     // holds by its width — so the picked edge (2 px) used to move every line
@@ -217,7 +218,7 @@ class NexNoteGridCard extends StatelessWidget {
               children: [
                 _Top(
                   note: note,
-                  kind: metrics.showKind ? kind : null,
+                  kind: showKind ? kind : null,
                   tint: tint,
                   ink: ink,
                   muted: muted,
