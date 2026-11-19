@@ -14,6 +14,7 @@ import '../tokens/nex_note_wash.dart';
 part 'note_card_bell.dart';
 part 'note_card_footnote.dart';
 part 'note_card_collapsed.dart';
+part 'note_card_timeline.dart';
 
 /// The words a screen reader needs, in the language the user chose.
 ///
@@ -129,8 +130,11 @@ bool nexNoteCanExpand(
   Note note, {
   required double cardWidth,
   NexCardStrings strings = NexCardStrings.fallback,
+  bool timelinePreview = false,
 }) {
   final density = NexCardDensity.of(context);
+  final large = timelinePreview && density == NexCardDensity.readable;
+  final separateCaption = timelinePreview && density != NexCardDensity.compact;
   final marked =
       note.dueAt != null || note.isUrgent || note.attachmentCount > 0;
   final captioned =
@@ -143,24 +147,45 @@ bool nexNoteCanExpand(
       NexSpacing.contentGap;
   if (width <= 0) return true;
   if (note.type == NoteType.checklist && note.checklistItems.isNotEmpty) {
+    if (large) return note.checklistItems.length > _timelineChecklistLines;
     return note.checklistItems.length > density.lines ||
         (marked && note.checklistItems.length == density.lines);
   }
   // Expansion moves the overlay below the site, caption or duration, exposing
   // any secondary text it may mask even when the main body fits.
   if (note.type == NoteType.link) return marked;
-  if (marked &&
+  if (!separateCaption &&
+      marked &&
       (captioned ||
           (note.type == NoteType.voice && (note.durationMs ?? 0) > 0))) {
     return true;
   }
-  final text = NexMarkdownText.preview(note.displayText ?? '');
+  final title = large || separateCaption && captioned
+      ? _timelineTextTitle(note)
+      : null;
+  final playable =
+      large && note.isAudioMedia && note.mediaUri?.isNotEmpty == true;
+  final text = NexMarkdownText.preview(
+    playable
+        ? (note.transcriptText?.trim().isNotEmpty == true
+              ? note.transcriptText!
+              : note.displayText ?? '')
+        : title != null
+        ? note.content ?? ''
+        : note.displayText ?? '',
+  );
   if (text.trim().isEmpty) return false;
-  final budget = note.type == NoteType.voice && (note.durationMs ?? 0) > 0
+  final budget = playable
+      ? 2
+      : large
+      ? _timelineTextLines - (title == null ? 0 : 1)
+      : note.type == NoteType.voice && (note.durationMs ?? 0) > 0
       ? 1
       : density.lines -
-            (note.type == NoteType.text &&
-                    note.caption?.trim().isNotEmpty == true
+            (title != null ||
+                    !separateCaption &&
+                        note.type == NoteType.text &&
+                        note.caption?.trim().isNotEmpty == true
                 ? 1
                 : 0);
   final lines = text
@@ -176,8 +201,11 @@ bool nexNoteCanExpand(
     final painter = TextPainter(
       text: TextSpan(
         text: paragraph,
-        style: DefaultTextStyle.of(context).style
-            .merge(density.previewStyle(Theme.of(context))),
+        style: DefaultTextStyle.of(context).style.merge(
+          playable
+              ? Theme.of(context).textTheme.bodyMedium
+              : density.previewStyle(Theme.of(context)),
+        ),
       ),
       textDirection: nexDirectionOf(paragraph) ?? Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
@@ -191,7 +219,7 @@ bool nexNoteCanExpand(
   }
   // A filled last row can be masked by the overlay. Expansion reveals it
   // without making the collapsed paragraph narrower or changing its wrapping.
-  return (marked && left == 0) ||
+  return (marked && !separateCaption && left == 0) ||
       (text.split('\n').length > lines.length && text.trim().contains('\n\n'));
 }
 
@@ -209,6 +237,9 @@ class NoteCard extends StatelessWidget {
     this.threadAbove = false,
     this.threadBelow = false,
     this.ringing = false,
+    this.timelinePreview = false,
+    this.mediaPreview,
+    this.onToggleChecklistItem,
   });
   final Note note;
   final VoidCallback? onTap;
@@ -263,6 +294,16 @@ class NoteCard extends StatelessWidget {
   /// a swinging bell takes the place of the type icon until it is opened.
   final bool ringing;
 
+  /// Enables the content-sized large preview and separate standard caption
+  /// on the phone timeline.
+  final bool timelinePreview;
+
+  /// A full-width photo or document preview on the large timeline card.
+  final Widget? mediaPreview;
+
+  /// Receives the checklist item's index as stored on the note.
+  final ValueChanged<int>? onToggleChecklistItem;
+
   @override
   Widget build(BuildContext context) {
     final insets = nexCardInsetsFor(context);
@@ -287,15 +328,19 @@ class NoteCard extends StatelessWidget {
   }
 
   Widget _card(BuildContext context, EdgeInsets insets) {
-    // A collapsed card's envelope depends only on density and text scaling.
-    // Captions and status marks spend space inside it, for every note kind.
-    final height = nexCardHeightFor(context);
+    final density = NexCardDensity.of(context);
+    final flexible =
+        timelinePreview &&
+        (density == NexCardDensity.readable ||
+            density == NexCardDensity.standard &&
+                (_timelineCaption(note) != null ||
+                    previewOverride == null &&
+                        _timelineFileCaption(note) != null));
+    final height = nexCardHeightFor(context, timelinePreview: timelinePreview);
     return Padding(
       padding: insets,
       child: ConstrainedBox(
-        // All collapsed previews share the envelope; only an explicitly
-        // expanded card can grow with its contents.
-        constraints: expanded
+        constraints: expanded || flexible
             ? BoxConstraints(minHeight: height)
             : BoxConstraints.tightFor(height: height),
         child: Semantics(
@@ -317,6 +362,9 @@ class NoteCard extends StatelessWidget {
             expanded: expanded,
             selected: selected,
             ringing: ringing,
+            timelinePreview: timelinePreview,
+            mediaPreview: mediaPreview,
+            onToggleChecklistItem: onToggleChecklistItem,
           ),
         ),
       ),
@@ -353,6 +401,9 @@ class _CardBody extends StatelessWidget {
     required this.expanded,
     required this.selected,
     this.ringing = false,
+    required this.timelinePreview,
+    required this.mediaPreview,
+    required this.onToggleChecklistItem,
   });
 
   final bool ringing;
@@ -364,6 +415,9 @@ class _CardBody extends StatelessWidget {
   final bool showDue;
   final bool expanded;
   final bool? selected;
+  final bool timelinePreview;
+  final Widget? mediaPreview;
+  final ValueChanged<int>? onToggleChecklistItem;
 
   @override
   Widget build(BuildContext context) {
@@ -379,6 +433,20 @@ class _CardBody extends StatelessWidget {
     // What sits right on the card — the halo round the badges and the tag
     // dots — matches the wash where it sits, at the starting corner.
     final surfaceColor = wash.from;
+    final density = NexCardDensity.of(context);
+    final detail = timelinePreview && density == NexCardDensity.readable
+        ? mediaPreview ?? _timelineChecklist()
+        : null;
+    final header = Row(
+      crossAxisAlignment: expanded
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.center,
+      children: [
+        _leading(context, surfaceColor),
+        const SizedBox(width: NexSpacing.contentGap),
+        Expanded(child: _withFootnote(context)),
+      ],
+    );
     final card = Material(
       // The card's own fill, not the page's. They used to be the same
       // colour, which left a 1.2:1 hairline as the only thing marking the
@@ -417,17 +485,18 @@ class _CardBody extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: EdgeInsets.all(NexCardDensity.of(context).inset),
-            child: Row(
-              crossAxisAlignment: expanded
-                  ? CrossAxisAlignment.start
-                  : CrossAxisAlignment.center,
-              children: [
-                _leading(context, surfaceColor),
-                const SizedBox(width: NexSpacing.contentGap),
-                Expanded(child: _withFootnote(context)),
-              ],
-            ),
+            padding: EdgeInsets.all(density.inset),
+            child: detail == null
+                ? header
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      header,
+                      const SizedBox(height: NexSpacing.xs),
+                      detail,
+                    ],
+                  ),
           ),
         ),
       ),
@@ -461,6 +530,7 @@ extension on _CardBody {
       ringing: ringing && selected == null,
       selected: selected,
       showDue: showDue,
+      showPhotoThumbnail: mediaPreview == null,
     );
     final pick = onLeadingTap;
     if (pick == null) return leading;
@@ -869,13 +939,14 @@ class _LinkPreview extends StatelessWidget {
 }
 
 class _Leading extends StatelessWidget {
-  const _Leading({required this.note});
+  const _Leading({required this.note, required this.showPhotoThumbnail});
   final Note note;
+  final bool showPhotoThumbnail;
   @override
   Widget build(BuildContext context) {
     final uri = note.mediaUri;
     final ratio = MediaQuery.devicePixelRatioOf(context);
-    if (note.type == NoteType.photo && uri != null) {
+    if (showPhotoThumbnail && note.type == NoteType.photo && uri != null) {
       return ClipRRect(
         // The photo shares the same circular outline as every note type.
         borderRadius: BorderRadius.circular(
@@ -918,6 +989,7 @@ class _LeadingWithPin extends StatefulWidget {
     this.ringing = false,
     this.selected,
     this.showDue = true,
+    required this.showPhotoThumbnail,
   });
   final Note note;
   final NexCardStrings strings;
@@ -925,6 +997,7 @@ class _LeadingWithPin extends StatefulWidget {
   final bool ringing;
   final bool? selected;
   final bool showDue;
+  final bool showPhotoThumbnail;
 
   @override
   State<_LeadingWithPin> createState() => _LeadingWithPinState();
@@ -985,6 +1058,7 @@ class _LeadingWithPinState extends State<_LeadingWithPin>
       ringing: widget.ringing,
       selected: widget.selected,
       showDue: widget.showDue,
+      showPhotoThumbnail: widget.showPhotoThumbnail,
     );
     final pulse = _pulse;
     if (pulse == null) return child;
@@ -1033,6 +1107,7 @@ class _LeadingMarkers extends StatelessWidget {
     this.ringing = false,
     this.selected,
     this.showDue = true,
+    required this.showPhotoThumbnail,
   });
 
   final Note note;
@@ -1041,6 +1116,7 @@ class _LeadingMarkers extends StatelessWidget {
   final bool ringing;
   final bool? selected;
   final bool showDue;
+  final bool showPhotoThumbnail;
 
   @override
   Widget build(BuildContext context) {
@@ -1050,10 +1126,11 @@ class _LeadingMarkers extends StatelessWidget {
             picked: selected!,
             note: note,
             backgroundColor: backgroundColor,
+            showPhotoThumbnail: showPhotoThumbnail,
           )
         : ringing
         ? const _RingingBell()
-        : _Leading(note: note);
+        : _Leading(note: note, showPhotoThumbnail: showPhotoThumbnail);
     final hasStatuses =
         (showDue && note.dueAt != null) ||
         note.attachmentCount > 0 ||
@@ -1100,11 +1177,13 @@ class _PickMark extends StatelessWidget {
     required this.picked,
     required this.note,
     required this.backgroundColor,
+    required this.showPhotoThumbnail,
   });
 
   final bool picked;
   final Note note;
   final Color backgroundColor;
+  final bool showPhotoThumbnail;
 
   @override
   Widget build(BuildContext context) {
@@ -1124,7 +1203,7 @@ class _PickMark extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        _Leading(note: note),
+        _Leading(note: note, showPhotoThumbnail: showPhotoThumbnail),
         PositionedDirectional(
           start: -6,
           top: (side - 18) / 2,

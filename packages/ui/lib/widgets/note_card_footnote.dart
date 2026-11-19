@@ -2,10 +2,41 @@ part of 'note_card.dart';
 
 extension on _CardBody {
   Widget _withFootnote(BuildContext context) {
-    final caption =
-        note.type == NoteType.text && note.caption?.trim().isNotEmpty == true
-        ? NexMarkdownText.preview(note.caption!.trim())
-        : null;
+    final caption = _timelineCaption(note);
+    final density = NexCardDensity.of(context);
+    if (timelinePreview && density == NexCardDensity.readable) {
+      if (previewOverride != null) return previewOverride!;
+      if (!expanded &&
+          note.type == NoteType.checklist &&
+          note.checklistItems.isNotEmpty) {
+        return _TimelineChecklistHeading(note: note, strings: strings);
+      }
+      if (note.type == NoteType.text || note.type == NoteType.file) {
+        return _TimelineWords(
+          note: note,
+          strings: strings,
+          maxLines: expanded ? nexCardExpandedMaxLines : _timelineTextLines,
+          caption: caption,
+        );
+      }
+      return _Preview(
+        note: note,
+        expanded: expanded,
+        strings: strings,
+        lines: _timelineTextLines,
+      );
+    }
+    if (timelinePreview &&
+        density == NexCardDensity.standard &&
+        previewOverride == null &&
+        (caption != null || _timelineFileCaption(note) != null)) {
+      return _TimelineWords(
+        note: note,
+        strings: strings,
+        maxLines: expanded ? nexCardExpandedMaxLines : density.lines,
+        caption: caption,
+      );
+    }
     if (!expanded) {
       return _CollapsedCardContent(
         note: note,
@@ -23,7 +54,7 @@ extension on _CardBody {
               note: note,
               expanded: true,
               strings: strings,
-              lines: NexCardDensity.of(context).lines,
+              lines: density.lines,
             ),
         if (caption != null) _CardCaption(text: caption),
       ],

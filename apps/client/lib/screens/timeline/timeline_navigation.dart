@@ -361,7 +361,8 @@ extension _TimelineNavigation on TimelineScreenState {
   Future<void> _revealSpotlight(String noteId) async {
     final l10n = AppLocalizations.of(context);
     final rowHeight =
-        nexCardHeightFor(context) + nexCardInsetsFor(context).vertical;
+        nexCardHeightFor(context, timelinePreview: true) +
+        nexCardInsetsFor(context).vertical;
     final reducedMotion = MediaQuery.disableAnimationsOf(context);
     final generation = ++_revealGeneration;
     bool current() =>

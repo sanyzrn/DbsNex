@@ -238,6 +238,7 @@ extension _TimelineNoteActions on TimelineScreenState {
                       note,
                       cardWidth: width,
                       strings: nexCardStrings(menuContext),
+                      timelinePreview: !NexDesktopScope.isDesktop(context),
                     )
             ? null
             : NoteMenuEntry(
