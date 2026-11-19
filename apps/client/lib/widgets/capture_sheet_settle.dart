@@ -57,6 +57,7 @@ extension _CaptureSettle on _CaptureSheetState {
               text,
             );
           case CaptureKind.note:
+          case CaptureKind.code:
           case CaptureKind.voice:
             return true;
         }
@@ -96,6 +97,7 @@ extension _CaptureSettle on _CaptureSheetState {
     noteId = null;
     draft = null;
     persisted = '';
+    _persistedWire = '';
     _latestText = '';
     try {
       widget.services.captureJournal.complete(_draftId);

@@ -6855,4 +6855,34 @@ class AppLocalizationsFa extends AppLocalizations {
   String moneyToman(String amount) {
     return '$amount تومان';
   }
+
+  @override
+  String get code => 'کد';
+
+  @override
+  String get codeHint => 'کد را بنویسید یا بچسبانید';
+
+  @override
+  String get codeLanguage => 'زبان';
+
+  @override
+  String get codeLanguagePlainText => 'متن ساده';
+
+  @override
+  String get codeLanguageDart => 'دارت';
+
+  @override
+  String get codeLanguageJavaScript => 'جاوااسکریپت';
+
+  @override
+  String get codeLanguagePython => 'پایتون';
+
+  @override
+  String get codeLanguageJson => 'جیسون';
+
+  @override
+  String get copyCode => 'کپی کد';
+
+  @override
+  String get editCode => 'ویرایش کد';
 }

@@ -44,6 +44,7 @@ export 'files/file_kind.dart';
 export 'files/file_names.dart';
 
 // The user's own writing, with formatting in it.
+export 'text/code_snippet.dart';
 export 'text/markdown_formatting.dart';
 
 // Identity and content hashing.

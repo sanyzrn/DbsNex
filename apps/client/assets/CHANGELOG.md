@@ -6,6 +6,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - **Shorter rows in the standard grid.** Brief notes and recordings take up less space. Longer previews, captions and media have room when they need it.
 - **File types at a glance.** File cards use distinct icons for PDFs, Markdown, videos, archives, and other common formats.
+- **Code in your notes.** Choose **Code** when capturing, paste or type the snippet and pick its language, and it stays exactly as written — fixed-width, left to right, highlighted, with one tap to copy the code itself. Reopen it from **Edit** to change the code or the language.
 
 ## v2.8.8
 

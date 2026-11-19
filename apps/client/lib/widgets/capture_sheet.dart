@@ -6,7 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:nex_core/nex_core.dart'
-    show Note, newUuidV7, normaliseUrl, parseChecklist, urlHost, writtenLink;
+    show
+        NexCodeLanguage,
+        NexCodeSnippet,
+        Note,
+        newUuidV7,
+        normaliseUrl,
+        parseChecklist,
+        urlHost,
+        writtenLink;
 import 'package:record/record.dart';
 
 import '../l10n/app_localizations.dart';
@@ -15,6 +23,7 @@ import '../platform/display_date.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/voice_spool.dart';
+import 'code_language_button.dart';
 import 'nex_banner.dart';
 import 'recording_sheet.dart' show NexLiveWaveform, NexRecordingDot;
 import 'reminder_picker.dart';
@@ -27,7 +36,7 @@ part 'capture_sheet_parts.dart';
 part 'capture_sheet_settle.dart';
 
 /// What the capture sheet is making.
-enum CaptureKind { note, checklist, voice, link }
+enum CaptureKind { note, code, checklist, voice, link }
 
 /// A unified capture sheet for text, checklist, voice and link entries.
 /// Edits are journaled as the user types so switching kinds or closing
@@ -88,6 +97,18 @@ class _CaptureSheetState extends State<CaptureSheet>
   String _latestText = '';
   String _draftId = newUuidV7();
   Future<void> _writes = Future.value();
+
+  /// The language a code box will save as, until the person chooses another.
+  NexCodeLanguage _codeLanguage = NexCodeLanguage.plainText;
+
+  /// The fenced Markdown last written for the current [persisted] words.
+  ///
+  /// [persisted] stays the raw code the box holds — that is what the person
+  /// typed — while the note always holds a fenced block. A language change
+  /// is a changed note even when the code did not change, so the write guard
+  /// compares this as well.
+  String _persistedWire = '';
+
   bool _allowClose = false;
   bool _closing = false;
 
@@ -148,6 +169,34 @@ class _CaptureSheetState extends State<CaptureSheet>
 
   /// What the switcher and the box show.
   CaptureKind get _shown => _voiceOn ? CaptureKind.voice : _kind;
+
+  /// The note's content for the words in the box.
+  ///
+  /// A snippet has to travel as Markdown — one fenced block with its
+  /// language on the opening fence — because that is what every other note
+  /// surface already reads, exports and searches. Everything that writes or
+  /// journals goes through here, so the database and the crash journal never
+  /// disagree about whether the fence is there.
+  String _wireContent(String text) {
+    if (_kind != CaptureKind.code || text.trim().isEmpty) return text;
+    return NexCodeSnippet(code: text, language: _codeLanguage).markdown;
+  }
+
+  void _selectLanguage(NexCodeLanguage language) {
+    if (_closing || language == _codeLanguage) return;
+    if (widget.preferences.haptics) unawaited(HapticFeedback.selectionClick());
+    setState(() => _codeLanguage = language);
+    // The journal is what a relaunch recovers from; it has to carry the
+    // language too, or a snippet recovered after a crash reopens in the
+    // language it had before the picker moved.
+    try {
+      widget.services.captureJournal.writeSoon(
+        _draftId,
+        _wireContent(controller.text),
+      );
+    } catch (_) {}
+    if (controller.text.trim().isNotEmpty) unawaited(flush());
+  }
 
   /// The write the first keystroke starts.
   ///
@@ -223,7 +272,7 @@ class _CaptureSheetState extends State<CaptureSheet>
     final beforeAny = _latestText.isNotEmpty;
     _latestText = value;
     try {
-      widget.services.captureJournal.writeSoon(_draftId, value);
+      widget.services.captureJournal.writeSoon(_draftId, _wireContent(value));
     } catch (_) {
       // The journal being down is a persistent condition and this fires
       // per keystroke: said once per sheet, not once per letter.
@@ -254,12 +303,14 @@ class _CaptureSheetState extends State<CaptureSheet>
   /// path without dropping frames.
   Future<void> _createFirstDraft(String value) async {
     var created = false;
+    final wire = _wireContent(value);
     try {
-      final note = await widget.services.captureDraft(_draftId, value);
+      final note = await widget.services.captureDraft(_draftId, wire);
       if (note == null) return;
       created = true;
       noteId = note.id;
       persisted = value;
+      _persistedWire = wire;
       if (mounted) widget.onCommitted?.call(note.id);
 
       // Everything typed while this write was in flight. [changed] returned
@@ -267,7 +318,9 @@ class _CaptureSheetState extends State<CaptureSheet>
       // was no id to flush to — so without this the note would keep whatever
       // the first keystroke said and the rest of the word would be lost the
       // moment the user stopped typing.
-      if (_latestText != persisted) await _flushCurrent();
+      if (_latestText != persisted || _wireContent(_latestText) != wire) {
+        await _flushCurrent();
+      }
     } catch (error) {
       unawaited(NexCrashLog.handled('capture.firstWrite', error));
       _fail();
@@ -291,7 +344,8 @@ class _CaptureSheetState extends State<CaptureSheet>
       await draft;
     }
     await _flushCurrent();
-    if (persisted == _latestText) {
+    if (persisted == _latestText &&
+        _wireContent(_latestText) == _persistedWire) {
       try {
         widget.services.captureJournal.complete(_draftId);
       } catch (_) {}
@@ -313,6 +367,7 @@ class _CaptureSheetState extends State<CaptureSheet>
           noteId = null;
           draft = null;
           persisted = '';
+          _persistedWire = '';
           hasReminder = false;
           widget.services.captureJournal.complete(_draftId);
           _draftId = newUuidV7();
@@ -328,7 +383,7 @@ class _CaptureSheetState extends State<CaptureSheet>
           unawaited(NexCrashLog.handled('capture.draftSwap', error));
           _fail();
         }
-      } else if (text != persisted) {
+      } else if (text != persisted || _wireContent(text) != _persistedWire) {
         await _write(id, text);
       }
     });
@@ -343,26 +398,29 @@ class _CaptureSheetState extends State<CaptureSheet>
   /// the pop and `dispose` — which all settle through this same path — from
   /// writing the same text twice.
   Future<void> _write(String id, String text) async {
+    final wire = _wireContent(text);
     try {
       // The light path: while the sheet is open, a keystroke flush must not
       // read the note back or re-read the whole timeline window (see
       // [NexServices.updateNoteContent]); the closing sheet refreshes once.
       await widget.services.updateNoteContent(
         id,
-        text,
+        wire,
         hasReminder: hasReminder,
       );
       // The worker runs writes in order, so a later one cannot land before
       // this; a newer flush is simply still on its way.
       persisted = text;
+      _persistedWire = wire;
     } on Object {
       _fail();
       // Still open: the next flush retries under the person's eyes. Gone:
       // one immediate retry — the services outlive the sheet.
       if (mounted) return;
       try {
-        await widget.services.updateNoteContent(id, text);
+        await widget.services.updateNoteContent(id, wire);
         persisted = text;
+        _persistedWire = wire;
       } on Object {
         // Twice in a row, with no screen left to say so on. The note keeps
         // the last text that did land.
@@ -421,7 +479,12 @@ class _CaptureSheetState extends State<CaptureSheet>
     try {
       await flush();
       final id = noteId;
-      if (id == null || persisted != _latestText || !mounted) return;
+      if (id == null ||
+          persisted != _latestText ||
+          _wireContent(_latestText) != _persistedWire ||
+          !mounted) {
+        return;
+      }
       final when = await nexPickScheduleTime(
         context: context,
         services: widget.services,
@@ -443,6 +506,7 @@ class _CaptureSheetState extends State<CaptureSheet>
       noteId = null;
       _latestText = '';
       persisted = '';
+      _persistedWire = '';
       draft = null;
       widget.services.captureJournal.complete(_draftId);
       nexShowBanner(
@@ -469,8 +533,16 @@ class _CaptureSheetState extends State<CaptureSheet>
     // While recording, the recorder's own two buttons decide what happens
     // to it — a tap on another kind is not a decision to keep or to lose it.
     if (_voiceOn || kind == _kind) return;
+    final wasCode = _kind == CaptureKind.code;
     if (widget.preferences.haptics) unawaited(HapticFeedback.selectionClick());
     setState(() => _kind = kind);
+    // Crossing into or out of Code changes what the note is, not just what
+    // the box calls itself: the same words are now wrapped in a fence, or no
+    // longer are. Walk the ordinary write path so the timeline shows the kind
+    // the box shows before the sheet closes.
+    if ((wasCode || kind == CaptureKind.code) && controller.text.isNotEmpty) {
+      changed(controller.text);
+    }
   }
 
   /// Leaves for the camera, the gallery or a file, with what was written
@@ -481,7 +553,9 @@ class _CaptureSheetState extends State<CaptureSheet>
     if (_voiceOn) await _stopVoice(keep: true);
     final settled = await _settle();
     if (!mounted) return;
-    if (!settled || persisted != _latestText) {
+    if (!settled ||
+        persisted != _latestText ||
+        _wireContent(_latestText) != _persistedWire) {
       _settling = null;
       setState(() => _closing = false);
       return;
@@ -636,6 +710,41 @@ class _CaptureSheetState extends State<CaptureSheet>
               kind: shown,
               text: controller.text,
               scheduleHint: showScheduleHint,
+            ),
+            AnimatedSize(
+              duration: NexMotion.of(context, NexMotion.morph),
+              curve: NexMotion.moveCurve,
+              alignment: Alignment.topCenter,
+              child: shown == CaptureKind.code
+                  ? Padding(
+                      padding: const EdgeInsetsDirectional.only(
+                        start: NexSpacing.sm,
+                        top: NexSpacing.xs,
+                      ),
+                      child: Wrap(
+                        spacing: NexSpacing.sm,
+                        runSpacing: NexSpacing.xs,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            l10n.codeLanguage,
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                          ),
+                          NexCodeLanguageButton(
+                            key: const ValueKey('capture-code-language'),
+                            language: _codeLanguage,
+                            enabled: !_closing,
+                            onSelected: _selectLanguage,
+                          ),
+                        ],
+                      ),
+                    )
+                  : const SizedBox(width: double.infinity),
             ),
             const SizedBox(height: NexSpacing.xs),
             // Everything below stays fully drawn while closing — the tools

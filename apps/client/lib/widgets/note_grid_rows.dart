@@ -19,6 +19,13 @@ String _gridCaption(Note note) => note.type == NoteType.text
 
 ({String title, String body}) _gridWords(Note note, NexCardStrings strings) {
   final title = note.title?.trim() ?? '';
+  // A snippet's fence is storage, not text: the tile shows the code alone,
+  // with its indentation, and leaves the `#` of a Python comment a comment
+  // rather than a heading.
+  if (note.type == NoteType.text) {
+    final snippet = NexCodeSnippet.previewOf(note.content ?? '');
+    if (snippet != null) return (title: title, body: snippet.code);
+  }
   // A named text note has its own body. displayText returns the name for it.
   if (note.type == NoteType.text && title.isNotEmpty) {
     return (
@@ -52,11 +59,12 @@ List<double> _gridLineHeights(
   double width,
   _GridTextLayout layout, {
   required int maxLines,
+  TextDirection? direction,
 }) {
   if (text.isEmpty) return const [];
   final painter = TextPainter(
     text: TextSpan(text: text, style: layout.inherited.merge(style)),
-    textDirection: nexDirectionOf(text),
+    textDirection: direction ?? nexDirectionOf(text),
     textScaler: layout.scaler,
     locale: layout.locale,
     textHeightBehavior: layout.heightBehavior,

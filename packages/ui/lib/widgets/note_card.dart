@@ -10,6 +10,7 @@ import '../tokens/nex_relative_time.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
 import '../tokens/nex_note_wash.dart';
+import 'nex_code_text.dart';
 
 part 'note_card_bell.dart';
 part 'note_card_footnote.dart';
@@ -597,6 +598,27 @@ class _Preview extends StatelessWidget {
     }
     if (note.type == NoteType.link) {
       return _LinkPreview(note: note, showSite: expanded || lines > 1);
+    }
+    if (note.type == NoteType.text) {
+      // Source on a card: fixed-width and left to right, but no highlighter.
+      // A card is built on every scroll, and colouring the whole of a long
+      // snippet to draw two lines of it would make the timeline pay for code
+      // nobody is reading. The cap is the card's two lines and then some.
+      final snippet = NexCodeSnippet.previewOf(
+        note.displayText ?? '',
+        maxChars: 320,
+      );
+      if (snippet != null) {
+        return NexCodeText(
+          snippet.code,
+          language: snippet.language,
+          style: NexCardDensity.of(context).previewStyle(Theme.of(context)),
+          maxLines: expanded ? nexCardExpandedMaxLines : lines,
+          overflow: TextOverflow.ellipsis,
+          softWrap: true,
+          highlight: false,
+        );
+      }
     }
 
     // The card is a picture of the note, not the note: a body someone made

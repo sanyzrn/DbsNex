@@ -1,4 +1,5 @@
 import '../files/file_kind.dart';
+import '../text/code_snippet.dart';
 import 'checklist.dart';
 import 'tag.dart';
 
@@ -356,13 +357,24 @@ class Note {
   /// voice or file note the caption the person wrote, ahead of what a model
   /// read out of it. The OCR or transcript is copied only when there is no
   /// caption; it keeps its own copy button in the note's details.
-  String? get copyText => switch (type) {
-    NoteType.text || NoteType.checklist => _firstNonEmpty([content]),
-    NoteType.voice => _firstNonEmpty([caption, transcriptText]),
-    NoteType.photo => _firstNonEmpty([caption, ocrText]),
-    NoteType.file => _firstNonEmpty([caption, content]),
-    NoteType.link => _firstNonEmpty([content, caption]),
-  };
+  String? get copyText {
+    // A snippet copies as code, not as the Markdown that stores it. The code
+    // is returned untouched — no trim — because its indentation and its
+    // trailing spaces are part of what the person wrote.
+    if (type == NoteType.text) {
+      final snippet = NexCodeSnippet.parse(content ?? '');
+      if (snippet != null) {
+        return snippet.code.trim().isEmpty ? null : snippet.code;
+      }
+    }
+    return switch (type) {
+      NoteType.text || NoteType.checklist => _firstNonEmpty([content]),
+      NoteType.voice => _firstNonEmpty([caption, transcriptText]),
+      NoteType.photo => _firstNonEmpty([caption, ocrText]),
+      NoteType.file => _firstNonEmpty([caption, content]),
+      NoteType.link => _firstNonEmpty([content, caption]),
+    };
+  }
 
   static String? _firstNonEmpty(List<String?> parts) {
     for (final part in parts) {

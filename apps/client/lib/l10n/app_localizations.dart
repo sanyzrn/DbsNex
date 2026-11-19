@@ -10597,6 +10597,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{amount} toman'**
   String moneyToman(String amount);
+
+  /// No description provided for @code.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get code;
+
+  /// No description provided for @codeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste or type code'**
+  String get codeHint;
+
+  /// No description provided for @codeLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get codeLanguage;
+
+  /// No description provided for @codeLanguagePlainText.
+  ///
+  /// In en, this message translates to:
+  /// **'Plain text'**
+  String get codeLanguagePlainText;
+
+  /// No description provided for @codeLanguageDart.
+  ///
+  /// In en, this message translates to:
+  /// **'Dart'**
+  String get codeLanguageDart;
+
+  /// No description provided for @codeLanguageJavaScript.
+  ///
+  /// In en, this message translates to:
+  /// **'JavaScript'**
+  String get codeLanguageJavaScript;
+
+  /// No description provided for @codeLanguagePython.
+  ///
+  /// In en, this message translates to:
+  /// **'Python'**
+  String get codeLanguagePython;
+
+  /// No description provided for @codeLanguageJson.
+  ///
+  /// In en, this message translates to:
+  /// **'JSON'**
+  String get codeLanguageJson;
+
+  /// No description provided for @copyCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy code'**
+  String get copyCode;
+
+  /// No description provided for @editCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit code'**
+  String get editCode;
 }
 
 class _AppLocalizationsDelegate

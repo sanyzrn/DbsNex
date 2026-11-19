@@ -120,8 +120,17 @@ class _NexDesktopNoteCardState extends State<NexDesktopNoteCard> {
   Note note,
   NexCardStrings strings,
 ) {
-  final text = NexMarkdownText.preview(note.displayText ?? '').trim();
   final named = note.title?.trim();
+  if (note.type == NoteType.text) {
+    // A snippet is source, not prose: its `#` is a comment, not a heading,
+    // and its indentation is the code. The fence stays in the note; the
+    // card shows only what is inside it.
+    final snippet = NexCodeSnippet.previewOf(note.content ?? '');
+    if (snippet != null) {
+      return (title: named ?? '', body: snippet.code);
+    }
+  }
+  final text = NexMarkdownText.preview(note.displayText ?? '').trim();
   switch (note.type) {
     case NoteType.text:
       if (named != null && named.isNotEmpty) return (title: named, body: text);
@@ -225,11 +234,20 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final style = theme.textTheme.bodySmall?.copyWith(
+    final snippet = note.type == NoteType.text
+        ? NexCodeSnippet.previewOf(note.content ?? '')
+        : null;
+    final baseStyle = theme.textTheme.bodySmall?.copyWith(
       fontSize: 12.5,
       height: 1.5,
       color: scheme.onSurfaceVariant,
     );
+    final style = snippet == null
+        ? baseStyle
+        : baseStyle?.copyWith(
+            fontFamily: 'monospace',
+            fontFamilyFallback: const ['Courier New', 'monospace'],
+          );
     if (note.type == NoteType.checklist) {
       final items = note.checklistItems;
       return ClipRect(
@@ -311,7 +329,9 @@ class _Body extends StatelessWidget {
       shown,
       maxLines: 5,
       overflow: TextOverflow.ellipsis,
-      textDirection: nexDirectionOf(shown),
+      textDirection: snippet == null
+          ? nexDirectionOf(shown)
+          : TextDirection.ltr,
       style: style,
     );
   }

@@ -19,12 +19,15 @@ extension _DetailTypeBody on _NoteDetailSheetState {
     else if (note.type == NoteType.link)
       _LinkBody(note: note, onOpen: _openLink)
     else if (note.type == NoteType.text)
-      FoldedNote(
-        text: note.content ?? '',
-        onTapLink: _openHref,
-        onHoldLink: (href, at) => unawaited(_showLinkMenu(context, href, at)),
-        onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
-      )
+      if (NexCodeSnippet.parse(note.content ?? '') case final snippet?)
+        _snippetBody(context, snippet, l10n)
+      else
+        FoldedNote(
+          text: note.content ?? '',
+          onTapLink: _openHref,
+          onHoldLink: (href, at) => unawaited(_showLinkMenu(context, href, at)),
+          onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
+        )
     else if (note.type == NoteType.voice) ...[
       const SizedBox(height: NexSpacing.sm),
       // There with the rest of the note, not a moment after it: the player

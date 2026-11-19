@@ -387,8 +387,31 @@ private class NexEditTextView(
 
     private fun configure(args: Map<*, *>) {
         magnifier.enabled = args["flutterMagnifier"] == true
-        edit.layoutDirection =
-            if (args["rtl"] == true) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
+        // A field may keep one direction whatever is typed into it — code is
+        // always left to right, even with Persian comments in it. Null keeps
+        // the platform's per-paragraph rule (ADR-037).
+        val forcedDirection = args["textDirection"] as? String
+        edit.textDirection = when (forcedDirection) {
+            "ltr" -> View.TEXT_DIRECTION_LTR
+            "rtl" -> View.TEXT_DIRECTION_RTL
+            else -> View.TEXT_DIRECTION_FIRST_STRONG
+        }
+        edit.textAlignment = if (forcedDirection == null) {
+            View.TEXT_ALIGNMENT_GRAVITY
+        } else {
+            View.TEXT_ALIGNMENT_VIEW_START
+        }
+        edit.typeface = if (args["monospace"] == true) {
+            Typeface.MONOSPACE
+        } else {
+            typeface(edit.context)
+        }
+        edit.layoutDirection = when {
+            forcedDirection == "ltr" -> View.LAYOUT_DIRECTION_LTR
+            forcedDirection == "rtl" -> View.LAYOUT_DIRECTION_RTL
+            args["rtl"] == true -> View.LAYOUT_DIRECTION_RTL
+            else -> View.LAYOUT_DIRECTION_LTR
+        }
         (args["fontSize"] as? Number)?.let {
             edit.setTextSize(TypedValue.COMPLEX_UNIT_DIP, it.toFloat())
         }

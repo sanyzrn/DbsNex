@@ -74,7 +74,7 @@ class _CapturePasteSlot extends StatelessWidget {
 
 /// The note type each kind is written as, for its colour and its glyph.
 String _wire(CaptureKind kind) => switch (kind) {
-  CaptureKind.note => 'text',
+  CaptureKind.note || CaptureKind.code => 'text',
   CaptureKind.checklist => 'checklist',
   CaptureKind.voice => 'voice',
   CaptureKind.link => 'link',
@@ -82,6 +82,7 @@ String _wire(CaptureKind kind) => switch (kind) {
 
 IconData _kindIcon(CaptureKind kind) => switch (kind) {
   CaptureKind.note => Icons.notes_outlined,
+  CaptureKind.code => Icons.code,
   CaptureKind.voice => Icons.mic_none,
   CaptureKind.checklist => Icons.checklist_rtl_outlined,
   CaptureKind.link => Icons.link_outlined,
@@ -89,6 +90,7 @@ IconData _kindIcon(CaptureKind kind) => switch (kind) {
 
 String _kindLabel(AppLocalizations l10n, CaptureKind kind) => switch (kind) {
   CaptureKind.note => l10n.captureKindNote,
+  CaptureKind.code => l10n.code,
   CaptureKind.voice => l10n.voice,
   CaptureKind.checklist => l10n.checklist,
   CaptureKind.link => l10n.link,
@@ -110,6 +112,7 @@ class _KindBar extends StatelessWidget {
 
   static const _order = [
     CaptureKind.note,
+    CaptureKind.code,
     CaptureKind.checklist,
     CaptureKind.link,
   ];

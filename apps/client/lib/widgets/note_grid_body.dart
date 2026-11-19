@@ -28,6 +28,10 @@ class _Body extends StatelessWidget {
     final scheme = theme.colorScheme;
     final titleStyle = _gridTitleStyle(theme.textTheme);
     final bodyStyle = _gridBodyStyle(theme.textTheme)?.copyWith(color: muted);
+    final snippet = note.type == NoteType.text
+        ? NexCodeSnippet.previewOf(note.content ?? '', maxChars: 400)
+        : null;
+    final codeDirection = snippet == null ? null : TextDirection.ltr;
     final heading = title;
     final uri = note.mediaUri;
     return LayoutBuilder(
@@ -46,12 +50,16 @@ class _Body extends StatelessWidget {
         // the count is for the lines it will actually draw.
         final textLayout = _gridTextLayoutOf(context);
 
-        List<double> linesOf(String text, TextStyle? style) {
+        List<double> linesOf(
+          String text,
+          TextStyle? style, {
+          TextDirection? direction,
+        }) {
           // Remembered across builds (2.7.2): a tile scrolled back into view,
           // or rebuilt for a reason that is not its words, asks the same
           // question again, and laying the text out to answer it was a third
           // of what a tile cost to build on a scrolling grid.
-          final key = (text, width, style, textLayout);
+          final key = (text, width, style, textLayout, direction);
           final known = _lineHeights[key];
           if (known != null) return known;
           if (_lineHeights.length > 600) _lineHeights.clear();
@@ -61,6 +69,7 @@ class _Body extends StatelessWidget {
             width,
             textLayout,
             maxLines: 40,
+            direction: direction,
           );
         }
 
@@ -73,10 +82,15 @@ class _Body extends StatelessWidget {
         }
 
         // How many of [text]'s lines fit [height], and the height they take.
-        (int, double) fitting(String text, TextStyle? style, double height) {
+        (int, double) fitting(
+          String text,
+          TextStyle? style,
+          double height, {
+          TextDirection? direction,
+        }) {
           var used = 0.0;
           var count = 0;
-          for (final line in linesOf(text, style)) {
+          for (final line in linesOf(text, style, direction: direction)) {
             if (used + line > height + 0.5) break;
             used += line;
             count++;
@@ -264,9 +278,17 @@ class _Body extends StatelessWidget {
         }
 
         final rest = body;
-        final restStyle = heading.isEmpty
+        final baseRest = heading.isEmpty
             ? bodyStyle?.copyWith(color: scheme.onSurface)
             : bodyStyle;
+        // A snippet is source on the tile too: fixed-width and left to
+        // right, so a Python comment does not turn its indentation around.
+        final restStyle = snippet == null
+            ? baseRest
+            : baseRest?.copyWith(
+                fontFamily: 'monospace',
+                fontFamilyFallback: const ['Courier New', 'monospace'],
+              );
         // The heading takes up to three lines; the words under it every
         // whole line that is left.
         var headLines = 0;
@@ -295,7 +317,14 @@ class _Body extends StatelessWidget {
               constraints.maxHeight -
               used -
               captionGap -
-              (rest.isEmpty ? 0 : (linesOf(rest, restStyle).firstOrNull ?? 0));
+              (rest.isEmpty
+                  ? 0
+                  : (linesOf(
+                          rest,
+                          restStyle,
+                          direction: codeDirection,
+                        ).firstOrNull ??
+                        0));
           for (final line in linesOf(caption, bodyStyle).take(2)) {
             if (captionHeight + line > room + 0.5) break;
             captionHeight += line;
@@ -309,6 +338,7 @@ class _Body extends StatelessWidget {
                 rest,
                 restStyle,
                 constraints.maxHeight - used - captionHeight,
+                direction: codeDirection,
               ).$1;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -320,7 +350,7 @@ class _Body extends StatelessWidget {
                   rest,
                   maxLines: restLines,
                   overflow: TextOverflow.ellipsis,
-                  textDirection: nexDirectionOf(rest),
+                  textDirection: codeDirection ?? nexDirectionOf(rest),
                   style: restStyle,
                 ),
               ),

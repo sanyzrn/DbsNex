@@ -20,6 +20,8 @@
 /// testing without pumping a frame.
 library;
 
+import 'code_snippet.dart';
+
 /// The inline formats the selection menu offers.
 ///
 /// Underline and spoiler are deliberately absent. CommonMark has no syntax for
@@ -302,6 +304,15 @@ abstract final class NexMarkdownText {
   /// widgets of one build that each want the preview of the same note — costs
   /// a lookup rather than the strip again.
   static String preview(String source) {
+    // A note that is one fenced code block is a snippet, and its code is the
+    // thing worth showing — not the fence, its language, and whatever the
+    // marker pass would make of the code's own backticks. The same rule the
+    // snippet's own surfaces use decides it, with the same preview cap.
+    final snippet = NexCodeSnippet.previewOf(
+      source,
+      maxChars: _previewScanLimit,
+    );
+    if (snippet != null) return snippet.code;
     if (source.length <= _previewScanLimit) {
       return nexLooksLikeMarkdown(source) ? plain(source) : source;
     }
