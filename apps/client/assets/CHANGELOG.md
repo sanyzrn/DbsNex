@@ -4,6 +4,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **File types at a glance.** File cards use distinct icons for PDFs, Markdown, videos, archives, and other common formats.
+
 ## v2.8.8
 
 - **No jump when picking notes.** Cards and date headings stay in place when you start or stop selecting, and the fold arrow stays inside each heading.

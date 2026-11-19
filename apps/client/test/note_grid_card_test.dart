@@ -9,6 +9,120 @@ import 'package:nex_ui/nex_ui.dart';
 /// A grid tile keeps one height in its row at any text size: the words give
 /// way rather than overflow (2.6.27).
 void main() {
+  Note fileNote(String filename, {String? mimeType, String? path}) => Note(
+    id: 'file',
+    type: NoteType.file,
+    content: filename,
+    mimeType: mimeType,
+    mediaUri: path,
+    createdAt: DateTime(2026),
+    updatedAt: DateTime(2026),
+    deviceId: 'd',
+    rev: 1,
+    syncState: SyncState.pending,
+  );
+
+  testWidgets(
+    'file marks use the original suffix, MIME and stored path in order',
+    (tester) async {
+      for (final (name, mime, path, icon) in [
+        (
+          'گزارش.PDF',
+          'application/octet-stream',
+          '/stored',
+          Icons.picture_as_pdf_outlined,
+        ),
+        ('video.MP4', null, null, Icons.smart_display_outlined),
+        ('backup.zip', null, null, Icons.folder_zip_outlined),
+        ('backup.RAR', null, null, Icons.folder_zip_outlined),
+        ('backup.tar.gz', null, null, Icons.folder_zip_outlined),
+        ('contract.docx', 'application/zip', null, Icons.description_outlined),
+        ('ledger.xlsx', null, null, Icons.table_chart_outlined),
+        ('data.csv', 'text/plain', null, Icons.table_chart_outlined),
+        ('slides.pptx', null, null, Icons.slideshow_outlined),
+        ('image.webp', null, null, Icons.image_outlined),
+        ('sample.flac', null, null, Icons.audio_file_outlined),
+        ('main.dart', 'text/plain', null, Icons.code_outlined),
+        ('notes.txt', null, null, Icons.article_outlined),
+        ('book.epub', null, null, Icons.menu_book_outlined),
+        (
+          'video',
+          'Video/WebM; codecs=vp9',
+          '/stored.pdf',
+          Icons.smart_display_outlined,
+        ),
+        ('document', null, '/stored.PDF', Icons.picture_as_pdf_outlined),
+        (
+          'unknown.xyz',
+          'application/octet-stream',
+          null,
+          Icons.insert_drive_file_outlined,
+        ),
+      ]) {
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: NexNoteCardGlyph(fileNote(name, mimeType: mime, path: path)),
+          ),
+        );
+        expect(find.byIcon(icon), findsOneWidget, reason: name);
+        expect(find.text('MD'), findsNothing, reason: name);
+      }
+    },
+  );
+
+  for (final grid in [false, true]) {
+    testWidgets(
+      'the ${grid ? 'grid' : 'list'} file card only swaps its glyph',
+      (tester) async {
+        const generic = Icons.insert_drive_file_outlined;
+        const pdf = Icons.picture_as_pdf_outlined;
+        Widget host(String filename) {
+          final note = fileNote(filename);
+          return MaterialApp(
+            theme: nexSoftDarkTheme(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 220,
+                  child: grid
+                      ? NexNoteGridCard(
+                          note: note,
+                          strings: NexCardStrings.fallback,
+                          onTap: () {},
+                        )
+                      : NoteCard(note: note),
+                ),
+              ),
+            ),
+          );
+        }
+
+        await tester.pumpWidget(host('report.xyz'));
+        final genericFinder = find.byIcon(generic);
+        final glyph = find.byType(NexNoteCardGlyph);
+        final bounds = tester.getRect(glyph);
+        final color = tester.widget<Icon>(genericFinder).color;
+        await tester.pumpWidget(host('report.pdf'));
+        await tester.pumpAndSettle();
+        final pdfFinder = find.byIcon(pdf);
+        expect(pdfFinder, findsOneWidget);
+        expect(genericFinder, findsNothing);
+        expect(tester.getRect(glyph), bounds);
+        expect(tester.widget<Icon>(pdfFinder).color, color);
+
+        await tester.pumpWidget(host('report.MD'));
+        await tester.pumpAndSettle();
+        expect(find.text('MD'), findsOneWidget);
+        expect(tester.getRect(glyph), bounds);
+        expect(tester.widget<Icon>(genericFinder).color, color);
+        expect(pdfFinder, findsNothing);
+      },
+    );
+  }
+
   for (final scale in [1.0, 1.3, 1.6, 2.0, 2.6, 3.2]) {
     testWidgets('a grid tile fits at text scale $scale', (tester) async {
       final note = Note(

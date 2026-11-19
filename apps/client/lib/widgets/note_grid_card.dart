@@ -564,7 +564,11 @@ class _Mark extends StatelessWidget {
         ? Icons.check_rounded
         : ringing
         ? Icons.notifications_active_rounded
+        : note.type == NoteType.file
+        ? null
         : nexNoteTypeIcon(note.type.wireName);
+    final ink = picked ? scheme.onPrimary : tint;
+    final glyphSize = size * 0.52;
     final disc = AnimatedContainer(
       duration: NexMotion.of(context, NexMotion.fast),
       width: size,
@@ -578,11 +582,9 @@ class _Mark extends StatelessWidget {
             ? Border.all(color: scheme.outline, width: 1.5)
             : null,
       ),
-      child: Icon(
-        icon,
-        size: size * 0.52,
-        color: picked ? scheme.onPrimary : tint,
-      ),
+      child: icon == null
+          ? NexNoteCardGlyph(note, size: glyphSize, color: ink)
+          : Icon(icon, size: glyphSize, color: ink),
     );
     final tap = onTap;
     if (tap == null) return disc;
