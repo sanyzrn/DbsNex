@@ -79,18 +79,15 @@ extension _TimelineShelves on TimelineScreenState {
           alwaysCount: shelf != null && shelf.kind != NexShelfKind.pinned,
           collapsed: _model.collapsedGroups.contains(group.key),
           onToggle: () => unawaited(_toggleGroup(group.key)),
-          // While notes are being picked a heading only folds: asking about
-          // a day, deleting it or moving a shelf is not part of the choice.
-          onAsk: !_selecting && AiChatSheet.availableFor(widget.preferences)
+          picking: _selecting,
+          onAsk: AiChatSheet.availableFor(widget.preferences)
               ? () => unawaited(_askAboutGroup(group))
               : null,
-          onDelete: !_selecting && group.complete
+          onDelete: group.complete
               ? () => unawaited(_deleteGroup(group, l10n))
               : null,
-          onMoveUp: !_selecting && at > 0
-              ? () => _moveShelf(group, movable, -1)
-              : null,
-          onMoveDown: !_selecting && at >= 0 && at < movable.length - 1
+          onMoveUp: at > 0 ? () => _moveShelf(group, movable, -1) : null,
+          onMoveDown: at >= 0 && at < movable.length - 1
               ? () => _moveShelf(group, movable, 1)
               : null,
         ),

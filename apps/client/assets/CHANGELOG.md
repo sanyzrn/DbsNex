@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.8
+
+- **No jump when picking notes.** Cards and date headings stay in place when you start or stop selecting, and the fold arrow stays inside each heading.
+
 ## v2.8.7
 
 - **The screen stays still while you pick notes.** The dates card and the tip no longer vanish when you start picking — they stay where they were, dimmed and untouchable like the rest, so the list no longer jumps.
