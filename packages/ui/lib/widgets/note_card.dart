@@ -282,7 +282,6 @@ class NoteCard extends StatelessWidget {
     this.threadBelow = false,
     this.ringing = false,
     this.timelinePreview = false,
-    this.mediaPreview,
     this.onToggleChecklistItem,
   });
   final Note note;
@@ -341,9 +340,6 @@ class NoteCard extends StatelessWidget {
   /// Enables the content-sized large preview and separate standard caption
   /// on the phone timeline.
   final bool timelinePreview;
-
-  /// A full-width photo or document preview on the large timeline card.
-  final Widget? mediaPreview;
 
   /// Receives the checklist item's index as stored on the note.
   final ValueChanged<int>? onToggleChecklistItem;
@@ -407,7 +403,6 @@ class NoteCard extends StatelessWidget {
             selected: selected,
             ringing: ringing,
             timelinePreview: timelinePreview,
-            mediaPreview: mediaPreview,
             onToggleChecklistItem: onToggleChecklistItem,
           ),
         ),
@@ -446,7 +441,6 @@ class _CardBody extends StatelessWidget {
     required this.selected,
     this.ringing = false,
     required this.timelinePreview,
-    required this.mediaPreview,
     required this.onToggleChecklistItem,
   });
 
@@ -460,7 +454,6 @@ class _CardBody extends StatelessWidget {
   final bool expanded;
   final bool? selected;
   final bool timelinePreview;
-  final Widget? mediaPreview;
   final ValueChanged<int>? onToggleChecklistItem;
 
   @override
@@ -479,7 +472,7 @@ class _CardBody extends StatelessWidget {
     final surfaceColor = wash.from;
     final density = NexCardDensity.of(context);
     final detail = timelinePreview && density == NexCardDensity.readable
-        ? mediaPreview ?? _timelineChecklist()
+        ? _timelineChecklist()
         : null;
     final header = Row(
       crossAxisAlignment: expanded
@@ -574,7 +567,6 @@ extension on _CardBody {
       ringing: ringing && selected == null,
       selected: selected,
       showDue: showDue,
-      showPhotoThumbnail: mediaPreview == null,
     );
     final pick = onLeadingTap;
     if (pick == null) return leading;
@@ -1001,14 +993,13 @@ class _LinkPreview extends StatelessWidget {
 }
 
 class _Leading extends StatelessWidget {
-  const _Leading({required this.note, required this.showPhotoThumbnail});
+  const _Leading({required this.note});
   final Note note;
-  final bool showPhotoThumbnail;
   @override
   Widget build(BuildContext context) {
     final uri = note.mediaUri;
     final ratio = MediaQuery.devicePixelRatioOf(context);
-    if (showPhotoThumbnail && note.type == NoteType.photo && uri != null) {
+    if (note.type == NoteType.photo && uri != null) {
       return ClipRRect(
         // The photo shares the same circular outline as every note type.
         borderRadius: BorderRadius.circular(
@@ -1051,7 +1042,6 @@ class _LeadingWithPin extends StatefulWidget {
     this.ringing = false,
     this.selected,
     this.showDue = true,
-    required this.showPhotoThumbnail,
   });
   final Note note;
   final NexCardStrings strings;
@@ -1059,7 +1049,6 @@ class _LeadingWithPin extends StatefulWidget {
   final bool ringing;
   final bool? selected;
   final bool showDue;
-  final bool showPhotoThumbnail;
 
   @override
   State<_LeadingWithPin> createState() => _LeadingWithPinState();
@@ -1120,7 +1109,6 @@ class _LeadingWithPinState extends State<_LeadingWithPin>
       ringing: widget.ringing,
       selected: widget.selected,
       showDue: widget.showDue,
-      showPhotoThumbnail: widget.showPhotoThumbnail,
     );
     final pulse = _pulse;
     if (pulse == null) return child;
@@ -1169,7 +1157,6 @@ class _LeadingMarkers extends StatelessWidget {
     this.ringing = false,
     this.selected,
     this.showDue = true,
-    required this.showPhotoThumbnail,
   });
 
   final Note note;
@@ -1178,7 +1165,6 @@ class _LeadingMarkers extends StatelessWidget {
   final bool ringing;
   final bool? selected;
   final bool showDue;
-  final bool showPhotoThumbnail;
 
   @override
   Widget build(BuildContext context) {
@@ -1188,11 +1174,10 @@ class _LeadingMarkers extends StatelessWidget {
             picked: selected!,
             note: note,
             backgroundColor: backgroundColor,
-            showPhotoThumbnail: showPhotoThumbnail,
           )
         : ringing
         ? const _RingingBell()
-        : _Leading(note: note, showPhotoThumbnail: showPhotoThumbnail);
+        : _Leading(note: note);
     final hasStatuses =
         (showDue && note.dueAt != null) ||
         note.attachmentCount > 0 ||
@@ -1239,13 +1224,11 @@ class _PickMark extends StatelessWidget {
     required this.picked,
     required this.note,
     required this.backgroundColor,
-    required this.showPhotoThumbnail,
   });
 
   final bool picked;
   final Note note;
   final Color backgroundColor;
-  final bool showPhotoThumbnail;
 
   @override
   Widget build(BuildContext context) {
@@ -1265,7 +1248,7 @@ class _PickMark extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        _Leading(note: note, showPhotoThumbnail: showPhotoThumbnail),
+        _Leading(note: note),
         PositionedDirectional(
           start: -6,
           top: (side - 18) / 2,
