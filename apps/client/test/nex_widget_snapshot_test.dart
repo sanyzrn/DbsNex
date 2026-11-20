@@ -62,6 +62,16 @@ void main() {
       ]);
     });
 
+    test('shows code notes without their Markdown fences', () {
+      final snapshot = NexWidgetSnapshot.build(
+        appLock: false,
+        now: now,
+        notes: [note('code', NoteType.text, '```dart\nfinal x = 1;\n```')],
+      );
+
+      expect(snapshot.notes.single.preview, 'final x = 1;');
+    });
+
     test('keeps the timeline order it was handed', () {
       final snapshot = NexWidgetSnapshot.build(
         appLock: false,

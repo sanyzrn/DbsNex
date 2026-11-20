@@ -34,6 +34,10 @@ void main() {
     'nudgeGreetingPlain',
     'remindRepeatingAt',
     'vaultCvv2',
+    // Keep standard language abbreviations in both locales.
+    'codeLanguageHtml',
+    'codeLanguageCss',
+    'codeLanguagePhp',
     // A layout template like `remindRepeatingAt`: a brief line's title and
     // when it is, both already in the reader's language.
     'briefLineAt',

@@ -397,6 +397,23 @@ Working convention:
   refuse anyway. New tests: `apps/client/test/attach_paths_test.dart`,
   `packages/core/test/enrichment_media_read_test.dart`.
 
+## v2.8.9
+
+- **Full-width cards in the large list.** Photos, video previews, PDF pages and link covers fill the card, with text and badges on top. Photos and cover images move with the scroll, just as in the grid.
+- **Code in your notes.** Choose **Code** when capturing, paste or type the snippet and pick its language, and it stays exactly as written — fixed-width, left to right, highlighted, with one tap to copy the code itself. Reopen it from **Edit** to change the code or the language. Highlighting includes HTML, CSS and PHP.
+- **HTML source previews.** The preview and expanded view show the code from the first line, including after conversion to Markdown.
+- A note consisting of one fenced code block opens as code. The home-screen widget shows a code preview, and sharing sends the source with its original whitespace.
+
+## v2.8.8
+
+- **Richer large list cards.** See a bigger photo or the first page of a PDF, play recordings beside their captions and transcripts, and tick checklist items from the list. Standard cards give captions their own space, and Show in full reveals longer captions and recording transcripts.
+- **Shorter rows in the standard grid.** Brief notes and recordings take up less space. Longer previews, captions and media have room when they need it.
+- **File types at a glance.** File cards use distinct icons for PDFs, Markdown, videos, archives, and other common formats.
+- **No jump when picking notes.** Cards and date headings stay in place when you start or stop selecting, and the fold arrow stays inside each heading.
+- **Faster photo editing.** Large photos open and respond faster when cropping, rotating or flipping. Saved edits appear sooner on the note.
+- **Easier typing on Android.** Tap anywhere inside a text field, including by its edges, to start typing.
+- **Fresh prompt fields after copying.** After a successful copy, the fields start empty the next time you open the prompt.
+
 ## v2.6.25
 
 - Restore the 14 theme palettes using designed surface ramps; preserve the 2.6.24 glass renderer and its optics. Custom accents meet the 4.5:1 text floor on every ramp surface. Update portable colour pins, palette goldens and the appearance guide. See [nex-theme-atelier.md](nex-theme-atelier.md).
