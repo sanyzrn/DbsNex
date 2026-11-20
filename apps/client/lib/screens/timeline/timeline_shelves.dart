@@ -36,7 +36,7 @@ extension _TimelineShelves on TimelineScreenState {
     final view = [
       widget.preferences.timelineArrangement.name,
       widget.preferences.timelineGrid,
-      _model.selectedType?.name,
+      _model.onlyCode ? 'code' : _model.selectedType?.name,
       (_model.selectedTagIds.toList()..sort()).join(','),
       _model.onlyUntagged,
       _model.onlyReminders,
@@ -113,6 +113,11 @@ extension _TimelineShelves on TimelineScreenState {
           size: 18,
           color: nexNoteTypeTint(shelf.type!.wireName, scheme),
         ),
+        NexShelfKind.code => Icon(
+          Icons.code_rounded,
+          size: 18,
+          color: nexNoteTypeTint('text', scheme),
+        ),
         NexShelfKind.tag => Container(
           width: 10,
           height: 10,
@@ -172,6 +177,8 @@ extension _TimelineShelves on TimelineScreenState {
     switch (shelf.kind) {
       case NexShelfKind.type:
         await _selectType(shelf.type);
+      case NexShelfKind.code:
+        await _selectType(NoteType.text, code: true);
       case NexShelfKind.tag:
         if (shelf.tag case final tag?) await _selectTags({tag.id});
       case NexShelfKind.untagged:
@@ -222,8 +229,8 @@ extension _TimelineShelves on TimelineScreenState {
       if (shelf.notes.any((n) => n.id == note.id)) return shelf.key;
     }
     if (arrange.by == NexTimelineArrangement.type) {
-      await _model.selectType(note.type);
-      return 'type:${note.type.wireName}';
+      await _model.selectType(note.type, code: note.snippetPreview != null);
+      return nexTypeShelfKey(note);
     }
     final known = {for (final tag in _model.filterTags) tag.id};
     final tag =

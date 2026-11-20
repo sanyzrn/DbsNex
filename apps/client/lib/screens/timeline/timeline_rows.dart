@@ -173,6 +173,7 @@ class _TimelineRowsCache {
           label: switch (shelf.kind) {
             NexShelfKind.pinned => l10n.timelineGroupPinned,
             NexShelfKind.type => l10n.timelineShelfType(shelf.type!.wireName),
+            NexShelfKind.code => l10n.code,
             // The tag row's own words for a tag — a built-in tag reads in the
             // reader's language there, and must read the same here.
             NexShelfKind.tag =>

@@ -107,8 +107,9 @@ sealed class _FilterChoice {
 }
 
 class _TypeChoice extends _FilterChoice {
-  const _TypeChoice(this.type);
+  const _TypeChoice(this.type, {this.code = false});
   final NoteType? type;
+  final bool code;
 }
 
 class _ReminderChoice extends _FilterChoice {

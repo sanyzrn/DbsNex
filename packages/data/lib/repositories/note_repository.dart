@@ -552,7 +552,7 @@ WHERE id = ? AND deleted_at IS NULL
         '(n.set_aside_at IS NULL OR '
         '(n.set_aside_until IS NOT NULL AND n.set_aside_until <= ?)) '
         'AND $_notWaiting';
-    return {
+    final counts = {
       for (final row in db.select(
         'SELECT n.type AS type, COUNT(*) AS c FROM notes n WHERE $live '
         'GROUP BY n.type',
@@ -575,6 +575,35 @@ WHERE id = ? AND deleted_at IS NULL
               ).first['c']
               as int,
     };
+    if (counts['type:text'] case final textCount?) {
+      // Fences may be preceded by up to three spaces. Only pass candidates
+      // to the parser so shelf counts don't transfer every note's content.
+      final candidates = db.select(
+        "SELECT n.content FROM notes n WHERE $live AND n.type = 'text' "
+        'AND (ltrim(substr(n.content, 1, 6)) GLOB ? '
+        'OR ltrim(substr(n.content, 1, 6)) GLOB ?)',
+        [now, now, '```*', '~~~*'],
+      );
+      final codeCount = candidates
+          .where(
+            (row) =>
+                NexCodeSnippet.previewOf(
+                  row['content'] as String,
+                  maxChars: 0,
+                ) !=
+                null,
+          )
+          .length;
+      if (codeCount > 0) {
+        counts['type:code'] = codeCount;
+        if (textCount == codeCount) {
+          counts.remove('type:text');
+        } else {
+          counts['type:text'] = textCount - codeCount;
+        }
+      }
+    }
+    return counts;
   }
 
   /// Exact live counts, including set-aside notes, without reading content.

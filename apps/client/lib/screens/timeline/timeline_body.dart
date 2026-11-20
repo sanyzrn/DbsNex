@@ -58,14 +58,24 @@ extension _TimelineBody on TimelineScreenState {
                 title: Text(
                   type == null ? l10n.all : l10n.noteType(type.wireName),
                 ),
-                trailing: _model.selectedType == type
+                trailing: !_model.onlyCode && _model.selectedType == type
                     ? const Icon(Icons.check)
                     : null,
-                selected: _model.selectedType == type,
+                selected: !_model.onlyCode && _model.selectedType == type,
                 // Wrapped, because popping a bare null cannot be told apart
                 // from the user dismissing the sheet.
                 onTap: () => Navigator.pop(ctx, _TypeChoice(type)),
               ),
+            ListTile(
+              leading: const Icon(Icons.code_rounded),
+              title: Text(l10n.code),
+              trailing: _model.onlyCode ? const Icon(Icons.check) : null,
+              selected: _model.onlyCode,
+              onTap: () => Navigator.pop(
+                ctx,
+                const _TypeChoice(NoteType.text, code: true),
+              ),
+            ),
             // The rows above answer "which kind of thing is it", and each of
             // them rules the others out. This one is not one of those: it is
             // a fact about a note rather than a kind of note, and it layers
@@ -91,8 +101,8 @@ extension _TimelineBody on TimelineScreenState {
     switch (chosen) {
       case null:
         return;
-      case _TypeChoice(:final type):
-        await _selectType(type);
+      case _TypeChoice(:final type, :final code):
+        await _selectType(type, code: code);
       case _ReminderChoice(:final only):
         await _selectOnlyReminders(only);
     }

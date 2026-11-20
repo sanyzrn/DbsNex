@@ -4,6 +4,7 @@ import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/timeline_shelves.dart';
 import 'package:nex_client/widgets/note_grid_card.dart';
 import 'package:nex_ui/nex_ui.dart';
+import 'package:nex_core/nex_core.dart';
 
 import 'support/nex_harness.dart';
 
@@ -73,6 +74,48 @@ void main() {
     expect(find.byKey(const ValueKey('shelf-more-type:text')), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'by kind: code gets its own shelf and See all keeps only snippets',
+    (tester) async {
+      await setUpLibrary();
+      for (var i = 0; i < 8; i++) {
+        await harness.services.captureText(
+          NexCodeSnippet(
+            code: 'print($i)',
+            language: NexCodeLanguage.dart,
+          ).markdown,
+        );
+      }
+      await harness.services.refreshTimeline();
+      await open(tester);
+
+      expect(heading('Writing'), findsOneWidget);
+      expect(heading('Code'), findsOneWidget);
+      final more = find.byKey(const ValueKey('shelf-more-type:code'));
+      expect(
+        find.descendant(of: more, matching: find.text('See all 8')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('shelf-more-type:text')),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(more);
+      await tester.tap(more);
+      await tester.pumpAndSettle();
+      expect(heading('Writing'), findsNothing);
+      expect(heading('Links'), findsNothing);
+      expect(heading('Code'), findsOneWidget);
+      expect(find.byType(NoteCard), findsNWidgets(8));
+      expect(
+        tester
+            .widgetList<NoteCard>(find.byType(NoteCard))
+            .every((card) => card.note.snippetPreview != null),
+        isTrue,
+      );
+    },
+  );
 
   testWidgets('by tag: a note with two tags sits on both shelves', (
     tester,
