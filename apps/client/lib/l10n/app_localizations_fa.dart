@@ -6881,6 +6881,15 @@ class AppLocalizationsFa extends AppLocalizations {
   String get codeLanguageJson => 'جیسون';
 
   @override
+  String get codeLanguageHtml => 'HTML';
+
+  @override
+  String get codeLanguageCss => 'CSS';
+
+  @override
+  String get codeLanguagePhp => 'PHP';
+
+  @override
   String get copyCode => 'کپی کد';
 
   @override

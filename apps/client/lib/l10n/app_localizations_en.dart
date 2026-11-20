@@ -6982,6 +6982,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get codeLanguageJson => 'JSON';
 
   @override
+  String get codeLanguageHtml => 'HTML';
+
+  @override
+  String get codeLanguageCss => 'CSS';
+
+  @override
+  String get codeLanguagePhp => 'PHP';
+
+  @override
   String get copyCode => 'Copy code';
 
   @override

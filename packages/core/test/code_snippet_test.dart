@@ -65,6 +65,9 @@ void main() {
       expect(NexCodeLanguage.fromId('js'), NexCodeLanguage.javascript);
       expect(NexCodeLanguage.fromId('JS'), NexCodeLanguage.javascript);
       expect(NexCodeLanguage.fromId('py'), NexCodeLanguage.python);
+      expect(NexCodeLanguage.fromId('HTM'), NexCodeLanguage.html);
+      expect(NexCodeLanguage.fromId('CSS'), NexCodeLanguage.css);
+      expect(NexCodeLanguage.fromId('phtml'), NexCodeLanguage.php);
       expect(NexCodeLanguage.fromId('plaintext'), NexCodeLanguage.plainText);
       expect(NexCodeLanguage.fromId('wat'), isNull);
     });

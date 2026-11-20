@@ -14,15 +14,17 @@ library;
 
 /// The languages a snippet can be written in, for now.
 ///
-/// Deliberately small: a language is a highlighting rule set and a menu row,
-/// and five of each is enough to start. [plainText] is the one that is never
-/// highlighted and never guesses.
+/// A language has a highlighting rule set and a menu row. [plainText] keeps
+/// source as written without applying syntax highlighting.
 enum NexCodeLanguage {
   plainText('text'),
   dart('dart'),
   javascript('javascript'),
   python('python'),
-  json('json');
+  json('json'),
+  html('html'),
+  css('css'),
+  php('php');
 
   const NexCodeLanguage(this.id);
 
@@ -31,7 +33,16 @@ enum NexCodeLanguage {
   final String id;
 
   /// The languages with a highlighter, in the order the picker shows them.
-  static const selectable = [plainText, dart, javascript, python, json];
+  static const selectable = [
+    plainText,
+    dart,
+    javascript,
+    python,
+    json,
+    html,
+    css,
+    php,
+  ];
 
   /// [id] as one of these, or null for a fence this build does not know.
   ///
@@ -46,6 +57,9 @@ enum NexCodeLanguage {
       'js' || 'javascript' || 'jsx' || 'mjs' || 'cjs' => javascript,
       'py' || 'python' || 'python3' => python,
       'json' || 'jsonc' => json,
+      'html' || 'htm' || 'html5' => html,
+      'css' => css,
+      'php' || 'php8' || 'phtml' => php,
       _ => null,
     };
   }

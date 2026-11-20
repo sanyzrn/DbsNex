@@ -4,6 +4,8 @@ import 'package:nex_core/nex_core.dart';
 import '../tokens/nex_contrast.dart';
 import 'nex_selection_menu.dart';
 
+part 'nex_code_web.dart';
+
 /// Code in the one shape source is read in: fixed-width, left to right, and
 /// coloured by what each part of it is.
 ///
@@ -92,8 +94,7 @@ List<TextSpan> nexHighlightCode(
   required TextStyle style,
   required ColorScheme scheme,
 }) {
-  final spec = _specFor(language);
-  if (spec == null || code.isEmpty) {
+  if (language == NexCodeLanguage.plainText || code.isEmpty) {
     return <TextSpan>[TextSpan(text: code)];
   }
   final ground = scheme.surfaceContainerHighest.withValues(alpha: 1);
@@ -113,6 +114,36 @@ List<TextSpan> nexHighlightCode(
   );
 
   final spans = <TextSpan>[];
+  if (language == NexCodeLanguage.html || language == NexCodeLanguage.css) {
+    final scan = language == NexCodeLanguage.html ? _scanHtml : _scanCss;
+    var cursor = 0;
+    scan(code, (start, end, kind) {
+      if (cursor < start) {
+        spans.add(TextSpan(text: code.substring(cursor, start)));
+      }
+      spans.add(
+        TextSpan(
+          text: code.substring(start, end),
+          style: switch (kind) {
+            _WebToken.comment => comment,
+            _WebToken.keyword => keyword,
+            _WebToken.name => number,
+            _WebToken.string => string,
+            _WebToken.number => number,
+            _WebToken.punctuation => punctuation,
+          },
+        ),
+      );
+      cursor = end;
+    });
+    if (cursor < code.length) {
+      spans.add(TextSpan(text: code.substring(cursor)));
+    }
+    return spans;
+  }
+
+  final spec = _specFor(language)!;
+  final php = language == NexCodeLanguage.php;
   final plain = StringBuffer();
   void flush() {
     if (plain.isEmpty) return;
@@ -130,6 +161,19 @@ List<TextSpan> nexHighlightCode(
   while (i < length) {
     final unit = code.codeUnitAt(i);
     final c = code[i];
+    if (php && (c == '<' || c == '?')) {
+      final tag = _phpTag.matchAsPrefix(code, i);
+      if (tag != null) {
+        token(tag[0]!, keyword);
+        i = tag.end;
+        continue;
+      }
+      if (_phpHeredocEnd(code, i) case final int end) {
+        token(code.substring(i, end), string);
+        i = end;
+        continue;
+      }
+    }
     if (spec.slashComments &&
         c == '/' &&
         i + 1 < length &&
@@ -149,7 +193,7 @@ List<TextSpan> nexHighlightCode(
       i = end;
       continue;
     }
-    if (spec.hashComments && c == '#') {
+    if (spec.hashComments && c == '#' && !(php && code.startsWith('#[', i))) {
       final end = _lineEnd(code, i);
       token(code.substring(i, end), comment);
       i = end;
@@ -177,12 +221,16 @@ List<TextSpan> nexHighlightCode(
         continue;
       }
     }
-    final identifier = _identifier.matchAsPrefix(code, i);
+    final identifier = (php ? _phpIdentifier : _identifier).matchAsPrefix(
+      code,
+      i,
+    );
     if (identifier != null) {
       final word = identifier[0]!;
-      final tokenStyle = spec.keywords.contains(word)
+      final name = php ? word.toLowerCase() : word;
+      final tokenStyle = spec.keywords.contains(name)
           ? keyword
-          : spec.types.contains(word)
+          : (php && word.startsWith(r'$')) || spec.types.contains(name)
           ? type
           : null;
       if (tokenStyle == null) {
@@ -205,7 +253,7 @@ List<TextSpan> nexHighlightCode(
     i++;
     while (i < length &&
         !_isSpace(code.codeUnitAt(i)) &&
-        !_couldStart(code, i, spec)) {
+        !_couldStart(code, i, spec, php: php)) {
       i++;
     }
     token(code.substring(start, i), punctuation);
@@ -222,6 +270,7 @@ final class _LanguageSpec {
     this.hashComments = false,
     this.blockComments = false,
     this.tripleQuotes = false,
+    this.multilineStrings = false,
     this.templateStrings = false,
     this.prefixes = false,
   });
@@ -232,6 +281,7 @@ final class _LanguageSpec {
   final bool hashComments;
   final bool blockComments;
   final bool tripleQuotes;
+  final bool multilineStrings;
   final bool templateStrings;
   final bool prefixes;
 }
@@ -440,7 +490,9 @@ const _pythonTypes = <String>{
 const _jsonKeywords = <String>{'false', 'null', 'true'};
 
 _LanguageSpec? _specFor(NexCodeLanguage language) => switch (language) {
-  NexCodeLanguage.plainText => null,
+  NexCodeLanguage.plainText ||
+  NexCodeLanguage.html ||
+  NexCodeLanguage.css => null,
   NexCodeLanguage.dart => const _LanguageSpec(
     keywords: _dartKeywords,
     types: _dartTypes,
@@ -464,6 +516,7 @@ _LanguageSpec? _specFor(NexCodeLanguage language) => switch (language) {
     prefixes: true,
   ),
   NexCodeLanguage.json => const _LanguageSpec(keywords: _jsonKeywords),
+  NexCodeLanguage.php => _phpSpec,
 };
 
 /// Where a string's prefix — Dart's `r`, Python's `f`/`b`/`rb` — ends and its
@@ -515,7 +568,9 @@ int _stringEnd(String code, int quote, _LanguageSpec spec) {
       continue;
     }
     if (code.startsWith(close, i)) return i + close.length;
-    if (!triple && (unit == 0x0A || unit == 0x0D)) return i;
+    if (!triple && !spec.multilineStrings && (unit == 0x0A || unit == 0x0D)) {
+      return i;
+    }
     i++;
   }
   return code.length;
@@ -526,10 +581,11 @@ int _lineEnd(String code, int start) {
   return end < 0 ? code.length : end;
 }
 
-bool _couldStart(String code, int i, _LanguageSpec spec) {
+bool _couldStart(String code, int i, _LanguageSpec spec, {required bool php}) {
   final unit = code.codeUnitAt(i);
   if (_isSpace(unit)) return true;
   final c = code[i];
+  if (php && (c == '<' || c == '?')) return true;
   if (c == "'" || c == '"' || (spec.templateStrings && c == '`')) return true;
   if (spec.slashComments &&
       c == '/' &&
@@ -549,7 +605,7 @@ bool _couldStart(String code, int i, _LanguageSpec spec) {
     return true;
   }
   if (spec.prefixes && _prefixQuote(code, i, spec) != null) return true;
-  return _isIdentifierStart(unit);
+  return _isIdentifierStart(unit) || (php && unit >= 0x80);
 }
 
 bool _isSpace(int unit) =>

@@ -10646,6 +10646,24 @@ abstract class AppLocalizations {
   /// **'JSON'**
   String get codeLanguageJson;
 
+  /// No description provided for @codeLanguageHtml.
+  ///
+  /// In en, this message translates to:
+  /// **'HTML'**
+  String get codeLanguageHtml;
+
+  /// No description provided for @codeLanguageCss.
+  ///
+  /// In en, this message translates to:
+  /// **'CSS'**
+  String get codeLanguageCss;
+
+  /// No description provided for @codeLanguagePhp.
+  ///
+  /// In en, this message translates to:
+  /// **'PHP'**
+  String get codeLanguagePhp;
+
   /// No description provided for @copyCode.
   ///
   /// In en, this message translates to:
