@@ -279,7 +279,7 @@ inspected. Host tests cover drafts, explicit zero making, mutable defaults,
 buyback/deductions, break-even, conversion, malformed input, legacy records,
 copy controls, store isolation, save/edit/delete/Undo and accessibility layouts.
 **Not verified:** an Android APK, real-device high-refresh scrolling, TalkBack
-and an external shop's invoice. The module remains **Soon** for owner testing.
+and an external shop's invoice.
 
 ## From a budget, making share, copy (2.1.13)
 

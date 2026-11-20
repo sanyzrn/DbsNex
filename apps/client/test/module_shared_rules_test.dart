@@ -18,7 +18,6 @@ void main() {
   /// Modules without a `summarize` line per record yet.
   const summaryPending = {
     'converter',
-    'gold',
     'prompt_studio',
     'security_tools',
     'smoke_free',

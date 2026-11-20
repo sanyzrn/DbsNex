@@ -306,4 +306,13 @@ const Map<String, String> goldStringsFa = {
   'glanceSaved': '{n} تخمین ذخیره‌شده',
   'glanceLatest': 'آخرین: {when}',
   'glanceUntitled': 'تخمین',
+  'convertedRateTooSmall':
+      'نرخ بیشتری وارد کنید. نرخ تبدیل‌شده به صفر گرد می‌شود.',
+  'grossBelowNet': 'وزن کل نباید از وزن خالص کمتر باشد.',
+  'extraLabelRequired': 'نام این قلم را وارد کنید.',
+  'positiveRequired': 'عددی بزرگ‌تر از صفر وارد کنید.',
+  'totalTooBig': 'جمع بیش از حد بزرگ است. وزن، نرخ و هزینه‌ها را بررسی کنید.',
+  'quoteDeleteFailed': 'تخمین حذف نشد.',
+  'quoteRestoreFailed': 'تخمین بازیابی نشد.',
+  'effectiveSaleRate': 'نرخ مؤثر بازخرید',
 };

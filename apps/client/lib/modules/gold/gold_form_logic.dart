@@ -29,6 +29,29 @@ mixin _GoldFormLogic on State<GoldForm> {
   bool _draftLoadFailed = false;
   bool _detailsOpen = false;
 
+  bool get _optionalFieldsNeedAttention {
+    final net = parseScaled(_weight.text, 3);
+    final gross = parseScaled(_gross.text, 3);
+    bool invalid(TextEditingController controller, int scale, int max) {
+      if (controller.text.trim().isEmpty) return false;
+      final (value, _) = parseScaledDetailed(controller.text, scale);
+      return value == null || value > max;
+    }
+
+    final maxAmount = GoldInput.maxAmountRial * 10;
+    return (net != null && gross != null && gross > 0 && gross < net) ||
+        invalid(_gross, 3, GoldInput.maxGrossMg) ||
+        invalid(_profit, 2, GoldInput.maxPercentBp) ||
+        invalid(_vat, 2, GoldInput.maxPercentBp) ||
+        invalid(_commission, 2, maxAmount) ||
+        invalid(_shopQuote, 2, maxAmount) ||
+        _extras.any(
+          (extra) =>
+              extra.label.text.trim().isEmpty ||
+              invalid(extra.amount, 2, maxAmount),
+        );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -152,7 +175,7 @@ mixin _GoldFormLogic on State<GoldForm> {
   }
 
   /// The input the form holds right now, or null while it is invalid.
-  GoldInput? buildInput({bool forBudget = false}) {
+  GoldInput? buildInput({bool forBudget = false, bool validate = true}) {
     if (_restoring || _draftLoadFailed) return null;
     int? read(
       TextEditingController c,
@@ -230,7 +253,7 @@ mixin _GoldFormLogic on State<GoldForm> {
       extras: extras,
       shopQuoteRial: _toRial(quote!),
     );
-    return input.problems().isEmpty ? input : null;
+    return !validate || input.problems().isEmpty ? input : null;
   }
 
   /// Puts a weight (milligrams) into the weight field, as if typed.

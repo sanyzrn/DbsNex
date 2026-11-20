@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
+
 import 'form_draft.dart';
 import 'gold_strings.dart';
 
@@ -9,11 +11,11 @@ import 'gold_strings.dart';
 class DraftGuard extends StatefulWidget {
   const DraftGuard({
     super.key,
-    required this.draft,
+    required this.drafts,
     required this.busy,
     required this.child,
   });
-  final FormDraft draft;
+  final Iterable<FormDraft> Function() drafts;
   final bool Function() busy;
   final Widget child;
   @override
@@ -26,10 +28,14 @@ class _DraftGuardState extends State<DraftGuard> {
     if (_closing || widget.busy()) return;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _closing = true);
-    final saved = await widget.draft.finish();
+    final drafts = widget.drafts().toList();
+    final saved = (await Future.wait(drafts.map((draft) => draft.finish())))
+        .every((result) => result);
     if (!mounted) return;
     if (!saved) {
-      widget.draft.resume();
+      for (final draft in drafts) {
+        draft.resume();
+      }
       setState(() => _closing = false);
       NexBannerHost.of(context)?.show(
         kind: NexBannerKind.failed,

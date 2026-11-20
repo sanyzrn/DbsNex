@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'draft_guard.dart';
 import 'form_draft.dart';
 import 'gold_fields.dart';
 import 'gold_details.dart';
@@ -62,7 +63,12 @@ class _GoldMarketPageState extends State<GoldMarketPage> {
           },
         ),
         const SizedBox(height: NexSpacing.md),
-        GoldMarketPanel(store: widget.store, mode: _mode, showRials: _rials),
+        GoldMarketPanel(
+          store: widget.store,
+          mode: _mode,
+          showRials: _rials,
+          guardExit: true,
+        ),
       ],
     ),
   );
@@ -80,15 +86,17 @@ class GoldMarketPanel extends StatefulWidget {
     required this.store,
     required this.mode,
     this.showRials = false,
+    this.guardExit = false,
   });
   final NexModuleStore store;
   final int mode;
   final bool showRials;
+  final bool guardExit;
   @override
-  State<GoldMarketPanel> createState() => _GoldMarketPanelState();
+  GoldMarketPanelState createState() => GoldMarketPanelState();
 }
 
-class _GoldMarketPanelState extends State<GoldMarketPanel> {
+class GoldMarketPanelState extends State<GoldMarketPanel> {
   int get _mode => widget.mode;
   bool get _rials => widget.showRials;
   bool _loading = true, _failed = false, _details = false;
@@ -108,6 +116,8 @@ class _GoldMarketPanelState extends State<GoldMarketPanel> {
       key: TextEditingController(),
   };
   late final FormDraft _draft;
+
+  FormDraft get draft => _draft;
 
   @override
   void initState() {
@@ -199,6 +209,7 @@ class _GoldMarketPanelState extends State<GoldMarketPanel> {
       scale: scale,
       maxScaled: max,
       allowEmpty: !required,
+      requirePositive: required,
     ),
   );
 
@@ -352,6 +363,7 @@ class _GoldMarketPanelState extends State<GoldMarketPanel> {
           ? GoldMarketMath.gramFromMithqal(rate, _fineness)
           : GoldMarketMath.rateAt(rate, 750, _fineness);
       // Converted rates must stay within the same per-gram range as purchases.
+      if (target < 1) return _empty('convertedRateTooSmall');
       if (target > GoldInput.maxRateCenti) return _empty('parse_tooBig');
       return GoldMarketResult.melt(
         weightMg: weight,
@@ -374,6 +386,13 @@ class _GoldMarketPanelState extends State<GoldMarketPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final body = _body(context);
+    return widget.guardExit
+        ? DraftGuard(drafts: () => [_draft], busy: () => _loading, child: body)
+        : body;
+  }
+
+  Widget _body(BuildContext context) {
     if (_loading) {
       return const Padding(
         padding: EdgeInsets.all(NexSpacing.xl),

@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.10
+
+- Gold Check keeps purchase inputs together, puts the estimate below the form, and points out invalid values beside their fields. Sell and melted-gold drafts are checked before you leave.
+
 ## v2.8.9
 
 - **Full-width cards in the large list.** Photos, video previews, PDF pages and link covers fill the card, with text and badges on top. Photos and cover images move with the scroll, just as in the grid.
