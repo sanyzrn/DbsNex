@@ -227,10 +227,10 @@ class NexWidgetSnapshot {
 
   static String _previewOf(Note note) {
     final raw = note.displayText ?? '';
-    final snippet = note.type == NoteType.text
-        ? NexCodeSnippet.previewOf(raw)
-        : null;
-    final preview = snippet?.code ?? raw;
+    var preview = raw;
+    if (note.type == NoteType.text) {
+      preview = NexCodeSnippet.previewOf(raw)?.code ?? raw;
+    }
     final collapsed = preview.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (collapsed.length <= maxPreviewLength) return collapsed;
     return collapsed.substring(0, maxPreviewLength);

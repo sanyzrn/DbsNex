@@ -62,11 +62,12 @@ void main() {
       ]);
     });
 
-    test('shows code notes without their Markdown fences', () {
+    test('previews code without fences', () {
+      const code = '```dart\nfinal x = 1;\n```';
       final snapshot = NexWidgetSnapshot.build(
         appLock: false,
         now: now,
-        notes: [note('code', NoteType.text, '```dart\nfinal x = 1;\n```')],
+        notes: [note('code', NoteType.text, code)],
       );
 
       expect(snapshot.notes.single.preview, 'final x = 1;');
