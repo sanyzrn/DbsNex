@@ -74,6 +74,33 @@ class _SnippetReader extends StatefulWidget {
 class _SnippetReaderState extends State<_SnippetReader> {
   final _starts = [0];
   bool _wrap = false;
+  bool _highlight = false;
+  Animation<double>? _entrance;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final animation = ModalRoute.of(context)?.animation;
+    if (animation == _entrance && animation != null) return;
+    _entrance?.removeStatusListener(_onEntrance);
+    _entrance = animation;
+    _highlight =
+        animation == null || animation.status == AnimationStatus.completed;
+    if (!_highlight) animation?.addStatusListener(_onEntrance);
+  }
+
+  void _onEntrance(AnimationStatus status) {
+    if (status != AnimationStatus.completed) return;
+    _entrance?.removeStatusListener(_onEntrance);
+    setState(() => _highlight = true);
+  }
+
+  @override
+  void dispose() {
+    _entrance?.removeStatusListener(_onEntrance);
+    super.dispose();
+  }
+
   @override
   void didUpdateWidget(_SnippetReader old) {
     super.didUpdateWidget(old);
@@ -113,6 +140,7 @@ class _SnippetReaderState extends State<_SnippetReader> {
       child: NexCodeText(
         source.substring(start, end),
         language: widget.snippet.language,
+        highlight: _highlight,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.55),
         softWrap: _wrap,
       ),

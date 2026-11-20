@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +9,9 @@ import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
+import 'package:nex_client/widgets/code_editing_controller.dart';
+import 'package:nex_client/widgets/nex_dialog.dart';
+import 'package:nex_client/widgets/nex_text_field.dart';
 import 'package:nex_client/widgets/snippet_editor_sheet.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -300,6 +305,127 @@ void main() {
       saved.content,
       NexCodeSnippet(code: edited, language: NexCodeLanguage.python).markdown,
     );
+  });
+
+  testWidgets(
+    'HTML opens with source and colours it after the sheet animation',
+    (tester) async {
+      const code = '<p class="note">سلام</p>';
+      final note = (await services.captureText(
+        const NexCodeSnippet(
+          code: code,
+          language: NexCodeLanguage.html,
+        ).markdown,
+      ))!;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => nexShowSheet<void>(
+                  context: context,
+                  builder: (_) => NoteDetailSheet(
+                    services: services,
+                    noteId: note.id,
+                    initialNote: note,
+                    preferences: preferences,
+                  ),
+                ),
+                child: const Text('Open snippet'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open snippet'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      final source = find.byType(NexCodeText);
+      final first = tester.widget<NexCodeText>(source);
+      expect(first.code, code);
+      expect(first.highlight, isFalse);
+      await tester.pumpAndSettle();
+      expect(tester.widget<NexCodeText>(source).highlight, isTrue);
+    },
+  );
+
+  testWidgets(
+    'editing HTML on the Android editor path shows syntax and preserves composing text',
+    (tester) async {
+      final native = NexTextField.native;
+      NexTextField.native = true;
+      addTearDown(() => NexTextField.native = native);
+      const source = '<p class="note">سلام</p>';
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: NexSnippetEditorSheet(
+              initial: const NexCodeSnippet(
+                code: source,
+                language: NexCodeLanguage.html,
+              ),
+              preferences: preferences,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final editable = find.byType(EditableText);
+      final controller = tester.widget<EditableText>(editable).controller;
+      controller.value = const TextEditingValue(
+        text: source,
+        selection: TextSelection.collapsed(offset: 21),
+        composing: TextRange(start: 16, end: 20),
+      );
+      await tester.pump();
+      final span = controller.buildTextSpan(
+        context: tester.element(editable),
+        style: const TextStyle(),
+        withComposing: true,
+      );
+      final children = span.children!.whereType<TextSpan>().toList();
+      expect(span.toPlainText(), source);
+      expect(children.first.style?.color, isNotNull);
+      expect(children.first.style?.color, isNot(children[2].style?.color));
+      expect(
+        children.any(
+          (piece) => piece.style?.decoration == TextDecoration.underline,
+        ),
+        isTrue,
+      );
+      expect(controller.selection.baseOffset, 21);
+    },
+  );
+
+  testWidgets('large HTML is coloured off the UI isolate', (tester) async {
+    final source = '<p class="note">سلام</p>\n' * 200;
+    final controller = NexCodeEditingController(
+      text: source,
+      language: NexCodeLanguage.html,
+    );
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    final context = tester.element(find.byType(SizedBox).last);
+    await tester.runAsync(() async {
+      final updated = Completer<void>();
+      controller.addListener(() => updated.complete());
+      final plain = controller.buildTextSpan(
+        context: context,
+        withComposing: false,
+      );
+      expect(plain.text, source);
+      await updated.future.timeout(const Duration(seconds: 10));
+      final coloured = controller.buildTextSpan(
+        context: context,
+        withComposing: false,
+      );
+      expect(coloured.children!.first.style?.color, isNotNull);
+      expect(coloured.toPlainText(), source);
+    });
   });
 
   testWidgets(

@@ -390,6 +390,18 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   /// `AlertDialog` with three lines in it, which is the shape a question has
   /// rather than the shape of somebody's writing.
   bool _convertingMarkdown = false;
+  String? _parsedSnippetSource;
+  NexCodeSnippet? _parsedSnippet;
+
+  NexCodeSnippet? _snippetFor(Note note) {
+    final source = note.content;
+    if (_parsedSnippetSource != source) {
+      _parsedSnippetSource = source;
+      _parsedSnippet = source == null ? null : NexCodeSnippet.parse(source);
+    }
+    return _parsedSnippet;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);

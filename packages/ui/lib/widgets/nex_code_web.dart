@@ -1,6 +1,35 @@
 part of 'nex_code_text.dart';
 
-enum _WebToken { comment, keyword, name, string, number, punctuation }
+enum _WebToken {
+  comment,
+  keyword,
+  name,
+  string,
+  bareValue,
+  number,
+  punctuation,
+}
+
+/// The default Notepad++ HTML hues, balanced for the active code surface.
+Map<_WebToken, TextStyle> _htmlStyles(ColorScheme scheme, Color ground) {
+  final dark = scheme.brightness == Brightness.dark;
+  Color readable(int light, int darkValue) =>
+      nexReadableOn(Color(dark ? darkValue : light), ground);
+  return {
+    _WebToken.keyword: TextStyle(
+      color: readable(0xff1538b6, 0xff91aaff),
+      fontWeight: FontWeight.w600,
+    ),
+    _WebToken.name: TextStyle(color: readable(0xffad272d, 0xffff9398)),
+    _WebToken.string: TextStyle(color: readable(0xff6e25a5, 0xffd9a3ff)),
+    _WebToken.bareValue: TextStyle(color: readable(0xff9a4a00, 0xffffbd78)),
+    _WebToken.comment: TextStyle(
+      color: readable(0xff287034, 0xff8bce90),
+      fontStyle: FontStyle.italic,
+    ),
+    _WebToken.number: TextStyle(color: nexReadableOn(scheme.onSurface, ground)),
+  };
+}
 
 typedef _WebHighlight = void Function(int start, int end, _WebToken token);
 
@@ -98,7 +127,7 @@ int _scanHtmlTag(String source, int start, _WebHighlight emit) {
       at++;
       continue;
     }
-    emit(at, word.end, expectingValue ? _WebToken.string : _WebToken.name);
+    emit(at, word.end, expectingValue ? _WebToken.bareValue : _WebToken.name);
     expectingValue = false;
     at = word.end;
   }

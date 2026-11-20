@@ -64,6 +64,7 @@ class NexTextField extends StatefulWidget {
     this.enableSuggestions = true,
     this.enableIMEPersonalizedLearning = true,
     this.formatting = false,
+    this.useNativeEditor = true,
     this.onCopy,
   });
 
@@ -112,6 +113,9 @@ class NexTextField extends StatefulWidget {
   /// `nexFormatContextMenuBuilder`.
   final bool formatting;
 
+  /// Code editing uses Flutter's styled spans, even on Android.
+  final bool useNativeEditor;
+
   /// Where Copy and Cut send the selected text instead of the clipboard —
   /// the vault's `PrivateClipboard`, which marks it sensitive and clears it.
   /// Null is the ordinary clipboard. With it set, Share is left off the
@@ -149,7 +153,9 @@ class _NexTextFieldState extends State<NexTextField> {
 
   @override
   Widget build(BuildContext context) =>
-      NexTextField.native ? _NativeField(field: widget) : _flutter(context);
+      NexTextField.native && widget.useNativeEditor
+      ? _NativeField(field: widget)
+      : _flutter(context);
 
   Widget _flutter(BuildContext context) {
     final monoStyle = widget.monospace
