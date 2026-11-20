@@ -230,7 +230,8 @@ class NexWidgetSnapshot {
     final snippet = note.type == NoteType.text
         ? NexCodeSnippet.previewOf(raw)
         : null;
-    final collapsed = (snippet?.code ?? raw).replaceAll(RegExp(r'\s+'), ' ').trim();
+    final preview = snippet?.code ?? raw;
+    final collapsed = preview.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (collapsed.length <= maxPreviewLength) return collapsed;
     return collapsed.substring(0, maxPreviewLength);
   }
