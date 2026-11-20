@@ -115,6 +115,59 @@ void main() {
       expect(find.textContaining('# سرتیتر'), findsNothing);
     });
 
+    testWidgets(
+      'HTML shows its opening before and after conversion to Markdown',
+      (tester) async {
+        final html =
+            '''<!DOCTYPE html>
+<html lang="fa">
+<head>
+<title>Nex Source</title>
+<style>
+/* Keep this source visible. */
+${List.generate(3500, (i) => '.row-$i { color: #112233; }').join('\n')}
+
+body { margin: 0; }
+</style>
+</head>
+<body>
+<p>Keep the HTML tags.</p>
+<script>
+const template = `sample`;
+</script>
+</body>
+</html>''';
+        final note = (await services.captureText(html))!;
+
+        for (final convert in [false, true]) {
+          if (convert) {
+            await tester.runAsync(() => services.convertMarkdown(note));
+            await tester.pumpWidget(const SizedBox());
+          }
+          final current = (await services.getById(note.id))!;
+          await openNote(tester, current);
+          final preview = find.byType(NexCodeText);
+          expect(
+            tester.widget<NexCodeText>(preview).code,
+            startsWith('<!DOCTYPE html>'),
+          );
+          expect(find.textContaining('const template'), findsNothing);
+
+          await tester.ensureVisible(find.text('More'));
+          await tester.tap(find.text('More'));
+          await tester.pumpAndSettle();
+          expect(tester.widget<NexCodeText>(preview).code, html);
+
+          if (convert) {
+            expect(current.type, NoteType.file);
+            expect(File(current.mediaUri!).readAsStringSync(), html);
+          } else {
+            expect(current.copyText, html);
+          }
+        }
+      },
+    );
+
     testWidgets('a .txt is shown as written, not read as Markdown', (
       tester,
     ) async {

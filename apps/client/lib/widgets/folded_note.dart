@@ -97,6 +97,7 @@ class _FoldedNoteState extends State<FoldedNote> {
   /// How the opened document renders, and which way it reads — both decided
   /// once, off the whole text, exactly as the one body that used to render
   /// it decided them.
+  bool _literalHtml = false;
   bool _sliceMarkdown = false;
   TextDirection? _sliceDirection;
 
@@ -142,6 +143,14 @@ class _FoldedNoteState extends State<FoldedNote> {
   /// never a boundary, so a fence stays whole inside one slice.
   static final RegExp _fence = RegExp(r'^ {0,3}(`{3,}|~{3,})');
 
+  // A pasted HTML document is source. The Markdown renderer consumes
+  // raw HTML blocks, including a doctype and the rest of their lines.
+  static final _htmlDocumentStart = RegExp(
+    r'^[\s\uFEFF]*(?:<!--[\s\S]*?-->[\s\uFEFF]*)*'
+    r'(?:<!doctype\s+html(?=[\s>])|<html(?=[\s>]))',
+    caseSensitive: false,
+  );
+
   void _prepare() {
     final text = widget.text;
     final markdown = widget.markdown;
@@ -159,10 +168,15 @@ class _FoldedNoteState extends State<FoldedNote> {
     _foldedText = _long
         ? '${firstPage.characters.take(_foldCharacters)}…'
         : text;
-    _sliceTexts = _splitSlices(text);
+    _literalHtml =
+        widget.contentBuilder == null && _htmlDocumentStart.hasMatch(text);
+    // Use one source body so both line breaks and selection across lines
+    // remain exact when the user expands the preview.
+    _sliceTexts = _literalHtml ? [text] : _splitSlices(text);
     _sliceWidgets.clear();
-    _sliceMarkdown = widget.markdown ?? nexLooksLikeMarkdown(text);
-    _sliceDirection = nexDirectionOf(text);
+    _sliceMarkdown =
+        !_literalHtml && (widget.markdown ?? nexLooksLikeMarkdown(text));
+    _sliceDirection = _literalHtml ? null : nexDirectionOf(text);
     // An edit that arrived while the page was open shows in full at once:
     // this page grew by hand once already.
     _revealed = expanded ? _sliceTexts.length : 0;
@@ -318,6 +332,7 @@ class _FoldedNoteState extends State<FoldedNote> {
         _ExpandedSlice(
           text: _sliceTexts[i],
           markdown: _sliceMarkdown,
+          literalHtml: _literalHtml,
           direction: _sliceDirection,
           onTapLink: widget.onTapLink,
           onHoldLink: widget.onHoldLink,
@@ -337,7 +352,9 @@ class _FoldedNoteState extends State<FoldedNote> {
     final style = Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.62);
     return NexSelectionArea(
       levelHighlight: true,
-      child: (widget.markdown ?? nexLooksLikeMarkdown(text))
+      child: _literalHtml
+          ? _htmlSource(text, style)
+          : (widget.markdown ?? nexLooksLikeMarkdown(text))
           ? NexMarkdown(
               text,
               selectable: false,
@@ -438,6 +455,7 @@ class _ExpandedSlice extends StatelessWidget {
   const _ExpandedSlice({
     required this.text,
     required this.markdown,
+    required this.literalHtml,
     required this.direction,
     this.onTapLink,
     this.onHoldLink,
@@ -446,6 +464,7 @@ class _ExpandedSlice extends StatelessWidget {
 
   final String text;
   final bool markdown;
+  final bool literalHtml;
   final TextDirection? direction;
   final void Function(String)? onTapLink;
   final NexLinkHold? onHoldLink;
@@ -455,7 +474,9 @@ class _ExpandedSlice extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.62);
     return RepaintBoundary(
-      child: markdown
+      child: literalHtml
+          ? _htmlSource(text, style)
+          : markdown
           ? NexMarkdown(
               text,
               selectable: false,
@@ -476,3 +497,6 @@ class _ExpandedSlice extends StatelessWidget {
     );
   }
 }
+
+Widget _htmlSource(String text, TextStyle? style) =>
+    NexCodeText(text, style: style, softWrap: true, highlight: false);
