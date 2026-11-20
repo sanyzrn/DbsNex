@@ -512,6 +512,7 @@ extension _TimelineBody on TimelineScreenState {
               return _groupHeading(group, groups, l10n);
             }
             final note = row.note!;
+            final wide = _usesWideListTile(note);
             return _DayMark(
               // Arranged, the line under the filters names the shelf being
               // read, as by day it names the day.
@@ -531,6 +532,7 @@ extension _TimelineBody on TimelineScreenState {
                       ? _spotlightAnchor
                       : null,
                   active: _spotlightId == note.id && _spotlightReady,
+                  radius: wide ? NexRadius.xl : NexRadius.lg,
                   onDone: () {
                     if (mounted && _spotlightId == note.id) {
                       _rebuild(() => _spotlightId = null);

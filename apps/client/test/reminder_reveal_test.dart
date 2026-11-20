@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/widgets/note_grid_card.dart';
 import 'package:nex_client/widgets/note_spotlight.dart';
-import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'package:nex_client/platform/nex_services.dart';
@@ -35,7 +34,9 @@ void main() {
       final card = find.descendant(
         of: active(),
         matching: find.byWidgetPredicate(
-          (w) => w is NoteCard && w.note.id == target.id,
+          (w) => density == NexCardDensity.readable
+              ? w is NexNoteGridCard && w.note.id == target.id
+              : w is NoteCard && w.note.id == target.id,
         ),
       );
       expect(card, findsOneWidget);
@@ -47,7 +48,10 @@ void main() {
           tester.view.physicalSize.height / tester.view.devicePixelRatio,
         ),
       );
-      expect(tester.widget<NoteCard>(card).note.type, NoteType.text);
+      expect(
+        find.descendant(of: card, matching: find.text(target.content!)),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
       // The tap left it ringing; a ringing bell never settles.
       expect(h.services.ringing.value, contains(target.id));

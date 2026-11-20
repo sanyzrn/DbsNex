@@ -125,16 +125,20 @@ class NexNoteGridCard extends StatelessWidget {
     this.selected,
     this.ringing = false,
     this.photos,
+    this.previewWidth,
     this.onToggleItem,
   });
 
   final Note note;
   final NexCardStrings strings;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   /// A photo note's other pictures, for a collage tile (2.8.2). Without it a
   /// photo note shows its first picture alone.
   final NexTilePhotos? photos;
+
+  /// The actual width of a full-width tile, for the media decode budget.
+  final double? previewWidth;
 
   /// Ticks or unticks a checklist's item, by its place in the list (2.8.2).
   /// Without it the items are only shown.
@@ -271,7 +275,7 @@ class NexNoteGridCard extends StatelessWidget {
       ),
     );
     return Semantics(
-      button: true,
+      button: onTap != null,
       selected: selected,
       label: label,
       explicitChildNodes: true,
@@ -285,6 +289,7 @@ class NexNoteGridCard extends StatelessWidget {
               tint: tint,
               edge: edge,
               metrics: metrics,
+              previewWidth: previewWidth,
               strings: strings,
               selected: selected,
               ringing: ringing,

@@ -24,6 +24,7 @@ class _MediaTile extends StatefulWidget {
     required this.tint,
     required this.edge,
     required this.metrics,
+    required this.previewWidth,
     required this.strings,
     required this.selected,
     required this.ringing,
@@ -39,10 +40,11 @@ class _MediaTile extends StatefulWidget {
   final Color tint;
   final BorderSide edge;
   final NexGridMetrics metrics;
+  final double? previewWidth;
   final NexCardStrings strings;
   final bool? selected;
   final bool ringing;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final VoidCallback? onLeadingTap;
   final NexTilePhotos? photos;
 
@@ -64,6 +66,13 @@ class _MediaTileState extends State<_MediaTile> {
 
   String get _path => widget.note.mediaUri ?? '';
 
+  int get _cacheWidth {
+    final width = widget.previewWidth ?? widget.metrics.tileWidth;
+    final pixels = (width * 1.6 * MediaQuery.devicePixelRatioOf(context))
+        .round();
+    return widget.previewWidth == null ? pixels : pixels.clamp(1, 1440);
+  }
+
   @override
   Widget build(BuildContext context) => switch (widget.backdrop) {
     NexTileBackdrop.video => _waitFor<Uint8List?>(
@@ -76,10 +85,7 @@ class _MediaTileState extends State<_MediaTile> {
         // rest is never decoded into memory.
         NexParallaxImage(
           image: ResizeImage.resizeIfNeeded(
-            (widget.metrics.tileWidth *
-                    1.6 *
-                    MediaQuery.devicePixelRatioOf(context))
-                .round(),
+            _cacheWidth,
             null,
             MemoryImage(bytes!),
           ),
@@ -92,14 +98,7 @@ class _MediaTileState extends State<_MediaTile> {
       isKnown: NexTilePreviews.knownPage(_path) != null,
       future: () => NexTilePreviews.page(_path),
       build: (page) => _tile(
-        _PdfPage(
-          bytes: page!.bytes,
-          cacheWidth:
-              (widget.metrics.tileWidth *
-                      1.6 *
-                      MediaQuery.devicePixelRatioOf(context))
-                  .round(),
-        ),
+        _PdfPage(bytes: page!.bytes, cacheWidth: _cacheWidth),
         badge: AppLocalizations.of(context).tilePdfPages(page.pages),
         lightPicture: true,
       ),
@@ -134,8 +133,7 @@ class _MediaTileState extends State<_MediaTile> {
 
   Widget _photo(String path, {bool drift = true}) {
     final image = ResizeImage.resizeIfNeeded(
-      (widget.metrics.tileWidth * 1.6 * MediaQuery.devicePixelRatioOf(context))
-          .round(),
+      _cacheWidth,
       null,
       FileImage(File(path)),
     );

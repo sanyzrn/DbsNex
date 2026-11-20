@@ -6,6 +6,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.8.9
 
+- **Full-width cards in the large list.** Photos, video previews, PDF pages and link covers fill the card, with text and badges on top. Photos and cover images move with the scroll, just as in the grid.
 - **Code in your notes.** Choose **Code** when capturing, paste or type the snippet and pick its language, and it stays exactly as written — fixed-width, left to right, highlighted, with one tap to copy the code itself. Reopen it from **Edit** to change the code or the language.
 - HTML source previews and expanded views show the code from the first line, including after conversion to Markdown.
 

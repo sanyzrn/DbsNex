@@ -171,14 +171,7 @@ extension on _MediaTileState {
         ? null
         : AppLocalizations.of(context).tileLinkKind(face.kind.name);
     final picture = NexParallaxImage(
-      image: ResizeImage.resizeIfNeeded(
-        (widget.metrics.tileWidth *
-                1.6 *
-                MediaQuery.devicePixelRatioOf(context))
-            .round(),
-        null,
-        FileImage(cover),
-      ),
+      image: ResizeImage.resizeIfNeeded(_cacheWidth, null, FileImage(cover)),
       errorBuilder: (context, error, stack) =>
           ColoredBox(color: widget.tint.withValues(alpha: 0.14)),
     );
