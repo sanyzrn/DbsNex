@@ -6,7 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:nex_core/nex_core.dart'
-    show Note, newUuidV7, normaliseUrl, parseChecklist, urlHost, writtenLink;
+    show
+        NexCodeLanguage,
+        NexCodeSnippet,
+        Note,
+        newUuidV7,
+        normaliseUrl,
+        parseChecklist,
+        urlHost,
+        writtenLink;
 import 'package:record/record.dart';
 
 import '../l10n/app_localizations.dart';
@@ -15,6 +23,7 @@ import '../platform/display_date.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/voice_spool.dart';
+import 'code_language_button.dart';
 import 'nex_banner.dart';
 import 'recording_sheet.dart' show NexLiveWaveform, NexRecordingDot;
 import 'reminder_picker.dart';
@@ -22,12 +31,13 @@ import 'schedule_picker.dart';
 import 'nex_text_field.dart';
 import 'keyboard_dismisser.dart';
 
+part 'capture_sheet_code.dart';
 part 'capture_sheet_modes.dart';
 part 'capture_sheet_parts.dart';
 part 'capture_sheet_settle.dart';
 
 /// What the capture sheet is making.
-enum CaptureKind { note, checklist, voice, link }
+enum CaptureKind { note, code, checklist, voice, link }
 
 /// A unified capture sheet for text, checklist, voice and link entries.
 /// Edits are journaled as the user types so switching kinds or closing
@@ -88,6 +98,18 @@ class _CaptureSheetState extends State<CaptureSheet>
   String _latestText = '';
   String _draftId = newUuidV7();
   Future<void> _writes = Future.value();
+
+  /// The language a code box will save as, until the person chooses another.
+  NexCodeLanguage _codeLanguage = NexCodeLanguage.plainText;
+
+  /// The fenced Markdown last written for the current [persisted] words.
+  ///
+  /// [persisted] stays the raw code the box holds — that is what the person
+  /// typed — while the note always holds a fenced block. A language change
+  /// is a changed note even when the code did not change, so the write guard
+  /// compares this as well.
+  String _persistedWire = '';
+
   bool _allowClose = false;
   bool _closing = false;
 
@@ -223,7 +245,7 @@ class _CaptureSheetState extends State<CaptureSheet>
     final beforeAny = _latestText.isNotEmpty;
     _latestText = value;
     try {
-      widget.services.captureJournal.writeSoon(_draftId, value);
+      widget.services.captureJournal.writeSoon(_draftId, _wireContent(value));
     } catch (_) {
       // The journal being down is a persistent condition and this fires
       // per keystroke: said once per sheet, not once per letter.
@@ -254,12 +276,14 @@ class _CaptureSheetState extends State<CaptureSheet>
   /// path without dropping frames.
   Future<void> _createFirstDraft(String value) async {
     var created = false;
+    final wire = _wireContent(value);
     try {
-      final note = await widget.services.captureDraft(_draftId, value);
+      final note = await widget.services.captureDraft(_draftId, wire);
       if (note == null) return;
       created = true;
       noteId = note.id;
       persisted = value;
+      _persistedWire = wire;
       if (mounted) widget.onCommitted?.call(note.id);
 
       // Everything typed while this write was in flight. [changed] returned
@@ -267,7 +291,9 @@ class _CaptureSheetState extends State<CaptureSheet>
       // was no id to flush to — so without this the note would keep whatever
       // the first keystroke said and the rest of the word would be lost the
       // moment the user stopped typing.
-      if (_latestText != persisted) await _flushCurrent();
+      if (_latestText != persisted || _wireContent(_latestText) != wire) {
+        await _flushCurrent();
+      }
     } catch (error) {
       unawaited(NexCrashLog.handled('capture.firstWrite', error));
       _fail();
@@ -291,7 +317,8 @@ class _CaptureSheetState extends State<CaptureSheet>
       await draft;
     }
     await _flushCurrent();
-    if (persisted == _latestText) {
+    if (persisted == _latestText &&
+        _wireContent(_latestText) == _persistedWire) {
       try {
         widget.services.captureJournal.complete(_draftId);
       } catch (_) {}
@@ -313,12 +340,16 @@ class _CaptureSheetState extends State<CaptureSheet>
           noteId = null;
           draft = null;
           persisted = '';
+          _persistedWire = '';
           hasReminder = false;
           widget.services.captureJournal.complete(_draftId);
           _draftId = newUuidV7();
           if (_latestText.isNotEmpty) {
             unawaited(
-              widget.services.captureJournal.write(_draftId, _latestText),
+              widget.services.captureJournal.write(
+                _draftId,
+                _wireContent(_latestText),
+              ),
             );
             // Let this serialized deletion finish before inserting the new
             // draft typed while its database request was in flight.
@@ -328,8 +359,11 @@ class _CaptureSheetState extends State<CaptureSheet>
           unawaited(NexCrashLog.handled('capture.draftSwap', error));
           _fail();
         }
-      } else if (text != persisted) {
-        await _write(id, text);
+      } else {
+        final wire = _wireContent(text);
+        if (text != persisted || wire != _persistedWire) {
+          await _write(id, text, wire);
+        }
       }
     });
     return _writes;
@@ -338,31 +372,31 @@ class _CaptureSheetState extends State<CaptureSheet>
   /// Persist before updating the saved snapshot; failures keep the previous
   /// snapshot available for retry while the editor stays open.
   ///
-  /// The text of the most recent update needs no second marker: [persisted]
-  /// and the ordered write chain ([_flushCurrent]) are what keep `close`,
-  /// the pop and `dispose` — which all settle through this same path — from
-  /// writing the same text twice.
-  Future<void> _write(String id, String text) async {
+  /// The raw and stored forms are tracked separately because the language
+  /// can change while the code itself stays the same.
+  Future<void> _write(String id, String text, String wire) async {
     try {
       // The light path: while the sheet is open, a keystroke flush must not
       // read the note back or re-read the whole timeline window (see
       // [NexServices.updateNoteContent]); the closing sheet refreshes once.
       await widget.services.updateNoteContent(
         id,
-        text,
+        wire,
         hasReminder: hasReminder,
       );
       // The worker runs writes in order, so a later one cannot land before
       // this; a newer flush is simply still on its way.
       persisted = text;
+      _persistedWire = wire;
     } on Object {
       _fail();
       // Still open: the next flush retries under the person's eyes. Gone:
       // one immediate retry — the services outlive the sheet.
       if (mounted) return;
       try {
-        await widget.services.updateNoteContent(id, text);
+        await widget.services.updateNoteContent(id, wire);
         persisted = text;
+        _persistedWire = wire;
       } on Object {
         // Twice in a row, with no screen left to say so on. The note keeps
         // the last text that did land.
@@ -421,7 +455,12 @@ class _CaptureSheetState extends State<CaptureSheet>
     try {
       await flush();
       final id = noteId;
-      if (id == null || persisted != _latestText || !mounted) return;
+      if (id == null ||
+          persisted != _latestText ||
+          _wireContent(_latestText) != _persistedWire ||
+          !mounted) {
+        return;
+      }
       final when = await nexPickScheduleTime(
         context: context,
         services: widget.services,
@@ -443,6 +482,7 @@ class _CaptureSheetState extends State<CaptureSheet>
       noteId = null;
       _latestText = '';
       persisted = '';
+      _persistedWire = '';
       draft = null;
       widget.services.captureJournal.complete(_draftId);
       nexShowBanner(
@@ -469,8 +509,16 @@ class _CaptureSheetState extends State<CaptureSheet>
     // While recording, the recorder's own two buttons decide what happens
     // to it — a tap on another kind is not a decision to keep or to lose it.
     if (_voiceOn || kind == _kind) return;
+    final wasCode = _kind == CaptureKind.code;
     if (widget.preferences.haptics) unawaited(HapticFeedback.selectionClick());
     setState(() => _kind = kind);
+    // Crossing into or out of Code changes what the note is, not just what
+    // the box calls itself: the same words are now wrapped in a fence, or no
+    // longer are. Walk the ordinary write path so the timeline shows the kind
+    // the box shows before the sheet closes.
+    if ((wasCode || kind == CaptureKind.code) && controller.text.isNotEmpty) {
+      changed(controller.text);
+    }
   }
 
   /// Leaves for the camera, the gallery or a file, with what was written
@@ -481,7 +529,9 @@ class _CaptureSheetState extends State<CaptureSheet>
     if (_voiceOn) await _stopVoice(keep: true);
     final settled = await _settle();
     if (!mounted) return;
-    if (!settled || persisted != _latestText) {
+    if (!settled ||
+        persisted != _latestText ||
+        _wireContent(_latestText) != _persistedWire) {
       _settling = null;
       setState(() => _closing = false);
       return;
@@ -637,6 +687,7 @@ class _CaptureSheetState extends State<CaptureSheet>
               text: controller.text,
               scheduleHint: showScheduleHint,
             ),
+            _languagePicker(context, l10n, shown),
             const SizedBox(height: NexSpacing.xs),
             // Everything below stays fully drawn while closing — the tools
             // keep their colour and the buttons their shape; the pointers are

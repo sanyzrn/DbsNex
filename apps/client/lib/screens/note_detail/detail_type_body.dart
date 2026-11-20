@@ -19,12 +19,15 @@ extension _DetailTypeBody on _NoteDetailSheetState {
     else if (note.type == NoteType.link)
       _LinkBody(note: note, onOpen: _openLink)
     else if (note.type == NoteType.text)
-      FoldedNote(
-        text: note.content ?? '',
-        onTapLink: _openHref,
-        onHoldLink: (href, at) => unawaited(_showLinkMenu(context, href, at)),
-        onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
-      )
+      if (NexCodeSnippet.parse(note.content ?? '') case final snippet?)
+        _snippetBody(context, snippet, l10n)
+      else
+        FoldedNote(
+          text: note.content ?? '',
+          onTapLink: _openHref,
+          onHoldLink: (href, at) => unawaited(_showLinkMenu(context, href, at)),
+          onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
+        )
     else if (note.type == NoteType.voice) ...[
       const SizedBox(height: NexSpacing.sm),
       // There with the rest of the note, not a moment after it: the player
@@ -38,9 +41,8 @@ extension _DetailTypeBody on _NoteDetailSheetState {
       if (_playerFailed)
         Text(
           l10n.mediaUnavailable,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.error,
-          ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.error),
         )
       else if (note.transcriptText == null)
         Text(
@@ -185,9 +187,8 @@ extension _DetailTypeBody on _NoteDetailSheetState {
       else
         Text(
           l10n.noCaption,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.secondary,
-          ),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: Theme.of(context).colorScheme.secondary),
         ),
       if (!note.isSetAside())
         Align(

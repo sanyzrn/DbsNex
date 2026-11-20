@@ -294,6 +294,43 @@ extension _DetailActions on _NoteDetailSheetState {
     final preferences = widget.preferences;
     if (note == null || note.type != NoteType.text) return;
     if (preferences == null) return;
+    final content = note.content ?? '';
+    final snippet = NexCodeSnippet.parse(content);
+    if (snippet != null) {
+      final draftKey = 'code-${note.id}';
+      final edited = await NexSnippetEditorSheet.show(
+        context,
+        initial: snippet,
+        preferences: preferences,
+        draftKey: draftKey,
+      );
+      if (edited == null || edited.code.trim().isEmpty) return;
+      // The code is stored in its fence exactly as it came back: the fence
+      // is the note's, and the code is the person's, trailing spaces and
+      // all. Nothing here trims.
+      if (edited.code == snippet.code &&
+          edited.language == snippet.language &&
+          edited.rawLanguage == snippet.rawLanguage) {
+        preferences.editorDrafts?.clear(draftKey);
+        return;
+      }
+      try {
+        await widget.services.updateNote(note.id, edited.markdown);
+      } catch (error) {
+        unawaited(NexCrashLog.handled('note.saveSnippet', error));
+        if (mounted) {
+          nexShowBanner(
+            context,
+            message: AppLocalizations.of(context).captureFailed,
+            kind: NexBannerKind.failed,
+          );
+        }
+        return;
+      }
+      preferences.editorDrafts?.clear(draftKey);
+      await _reload();
+      return;
+    }
     final value = await NoteEditorSheet.show(
       context,
       initial: note.content ?? '',

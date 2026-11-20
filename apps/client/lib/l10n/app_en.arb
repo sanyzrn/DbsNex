@@ -3679,5 +3679,15 @@
   "peekOpen": "Open {module}",
   "@peekOpen": {"placeholders": {"module": {"type": "String"}}},
   "moneyToman": "{amount} toman",
-  "@moneyToman": {"placeholders": {"amount": {"type": "String"}}}
+  "@moneyToman": {"placeholders": {"amount": {"type": "String"}}},
+  "code": "Code",
+  "codeHint": "Paste or type code",
+  "codeLanguage": "Language",
+  "codeLanguagePlainText": "Plain text",
+  "codeLanguageDart": "Dart",
+  "codeLanguageJavaScript": "JavaScript",
+  "codeLanguagePython": "Python",
+  "codeLanguageJson": "JSON",
+  "copyCode": "Copy code",
+  "editCode": "Edit code"
 }

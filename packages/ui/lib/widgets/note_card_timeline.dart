@@ -53,7 +53,11 @@ class _TimelineWords extends StatelessWidget {
         : title != null
         ? note.content
         : note.displayText;
-    final text = NexMarkdownText.preview(source ?? '').trim();
+    final snippet = note.type == NoteType.text
+        ? NexCodeSnippet.previewOf(source ?? '')
+        : null;
+    final text = snippet?.code ?? NexMarkdownText.preview(source ?? '').trim();
+    final bodyLines = maxLines - (title == null ? 0 : 1);
     final fileCaption = _timelineFileCaption(note);
     final secondary =
         caption ??
@@ -70,12 +74,17 @@ class _TimelineWords extends StatelessWidget {
             title,
             style: style?.copyWith(fontWeight: FontWeight.w600),
           ),
-        if (text.isNotEmpty)
-          NexTextSurface(
+        if (snippet != null)
+          NexCodeText(
             text,
-            maxLines: maxLines - (title == null ? 0 : 1),
+            maxLines: bodyLines,
             style: style,
+            overflow: TextOverflow.ellipsis,
+            softWrap: true,
+            highlight: false,
           )
+        else if (text.isNotEmpty)
+          NexTextSurface(text, maxLines: bodyLines, style: style)
         else if (title == null && secondary == null)
           NexTextSurface.line(strings.noteOfType(note.type.name), style: style),
         if (secondary != null) ...[

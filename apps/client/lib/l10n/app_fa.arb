@@ -2321,5 +2321,15 @@
   "peekNothing": "هنوز چیزی اینجا نیست؛ برای شروع بازش کنید.",
   "peekComing": "پیش رو",
   "peekOpen": "باز کردن «{module}»",
-  "moneyToman": "{amount} تومان"
+  "moneyToman": "{amount} تومان",
+  "code": "کد",
+  "codeHint": "کد را بنویسید یا بچسبانید",
+  "codeLanguage": "زبان",
+  "codeLanguagePlainText": "متن ساده",
+  "codeLanguageDart": "دارت",
+  "codeLanguageJavaScript": "جاوااسکریپت",
+  "codeLanguagePython": "پایتون",
+  "codeLanguageJson": "جیسون",
+  "copyCode": "کپی کد",
+  "editCode": "ویرایش کد"
 }

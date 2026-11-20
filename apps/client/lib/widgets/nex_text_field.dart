@@ -46,6 +46,8 @@ class NexTextField extends StatefulWidget {
     this.focusNode,
     this.decoration = const InputDecoration(),
     this.style,
+    this.textDirection,
+    this.monospace = false,
     this.minLines,
     this.maxLines,
     this.expands = false,
@@ -69,6 +71,20 @@ class NexTextField extends StatefulWidget {
   final FocusNode? focusNode;
   final InputDecoration decoration;
   final TextStyle? style;
+
+  /// A direction the field keeps regardless of what is typed into it.
+  ///
+  /// Null is the ordinary rule — each line follows its own first strong
+  /// letter, on Android by the platform's own editor and elsewhere through
+  /// [NexAutoDirection]. Code is the one field that is always left to right,
+  /// even in a Persian interface and even when its comments are Persian.
+  final TextDirection? textDirection;
+
+  /// Draw — and, on Android, really set — a fixed-width face. A [style]
+  /// alone cannot do it there: the platform editor is given its typeface
+  /// over the channel, not by Flutter's text style.
+  final bool monospace;
+
   final int? minLines;
 
   /// Null grows without limit.
@@ -135,13 +151,17 @@ class _NexTextFieldState extends State<NexTextField> {
   Widget build(BuildContext context) =>
       NexTextField.native ? _NativeField(field: widget) : _flutter(context);
 
-  Widget _flutter(BuildContext context) => NexAutoDirection(
-    controller: widget.controller,
-    builder: (context, direction) => TextField(
+  Widget _flutter(BuildContext context) {
+    final monoStyle = widget.monospace
+        ? NexCodeText.monospaceStyle(
+            widget.style ?? Theme.of(context).textTheme.bodyLarge,
+          )
+        : widget.style;
+    Widget field(TextDirection? direction) => TextField(
       controller: widget.controller,
       focusNode: widget.focusNode,
       decoration: widget.decoration,
-      style: widget.style,
+      style: monoStyle,
       minLines: widget.expands ? null : widget.minLines,
       maxLines: widget.expands ? null : widget.maxLines,
       expands: widget.expands,
@@ -155,7 +175,11 @@ class _NexTextFieldState extends State<NexTextField> {
       onSubmitted: widget.onSubmitted,
       maxLength: widget.maxLength,
       autocorrect: widget.autocorrect,
-      enableSuggestions: widget.enableSuggestions,
+      enableSuggestions: widget.monospace ? false : widget.enableSuggestions,
+      // Code is not prose: the keyboard must not turn two hyphens into a
+      // dash or straight quotes into curly ones while the person types.
+      smartDashesType: widget.monospace ? SmartDashesType.disabled : null,
+      smartQuotesType: widget.monospace ? SmartQuotesType.disabled : null,
       enableIMEPersonalizedLearning: widget.enableIMEPersonalizedLearning,
       textDirection: direction,
       textAlign: TextAlign.start,
@@ -168,8 +192,13 @@ class _NexTextFieldState extends State<NexTextField> {
           : widget.formatting
           ? _formatMenu
           : nexReadingMenu,
-    ),
-  );
+    );
+    return NexAutoDirection(
+      controller: widget.controller,
+      direction: widget.textDirection,
+      builder: (context, direction) => field(direction),
+    );
+  }
 
   /// The platform's menu with Copy and Cut sent through [NexTextField.onCopy].
   Widget _privateMenu(BuildContext context, EditableTextState state) =>
@@ -545,7 +574,7 @@ class _NativeFieldState extends State<_NativeField> {
       },
       'capitalization': field.textCapitalization.name,
       'autocorrect': field.autocorrect,
-      'suggestions': field.enableSuggestions,
+      'suggestions': field.monospace ? false : field.enableSuggestions,
       'incognito': !field.enableIMEPersonalizedLearning,
       'enabled': enabled,
       'readOnly': field.readOnly,
@@ -553,6 +582,8 @@ class _NativeFieldState extends State<_NativeField> {
       'autofocus': field.autofocus,
       'privateCopy': field.onCopy != null,
       'flutterMagnifier': NexTextField.flutterMagnifier,
+      'monospace': field.monospace,
+      'textDirection': field.textDirection?.name,
       'rtl': Directionality.of(context) == TextDirection.rtl,
       'formats': field.formatting ? _formats : const <Map<String, String>>[],
     };

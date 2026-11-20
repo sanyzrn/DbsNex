@@ -17,6 +17,10 @@ String _gridCaption(Note note) => note.type == NoteType.text
     ? NexMarkdownText.preview(note.caption ?? '').trim()
     : '';
 
+NexCodeSnippet? _gridCodePreview(Note note) => note.type == NoteType.text
+    ? NexCodeSnippet.previewOf(note.content ?? '', maxChars: 400)
+    : null;
+
 ({String title, String body}) _gridWords(Note note, NexCardStrings strings) {
   final title = note.title?.trim() ?? '';
   // A named text note has its own body. displayText returns the name for it.
@@ -54,11 +58,12 @@ List<double> _gridLineHeights(
   double width,
   _GridTextLayout layout, {
   required int maxLines,
+  TextDirection? direction,
 }) {
   if (text.isEmpty) return const [];
   final painter = TextPainter(
     text: TextSpan(text: text, style: layout.inherited.merge(style)),
-    textDirection: nexDirectionOf(text) ?? layout.direction,
+    textDirection: direction ?? nexDirectionOf(text) ?? layout.direction,
     textScaler: layout.scaler,
     locale: layout.locale,
     textHeightBehavior: layout.heightBehavior,
@@ -159,7 +164,10 @@ class NexGridRowSizing {
           : tall;
     }
 
-    final (:title, :body) = _gridWords(note, _strings);
+    final snippet = _gridCodePreview(note);
+    final (:title, :body) = snippet == null
+        ? _gridWords(note, _strings)
+        : (title: note.title?.trim() ?? '', body: snippet.code);
     if (note.type == NoteType.link) {
       // A cover fetched while scrolling can paint into the existing tile.
       // Let it take a tall row when a new layout is assembled.
@@ -198,7 +206,16 @@ class NexGridRowSizing {
     }
 
     final heading = lines(title, titleStyle, 3);
-    final preview = lines(body, bodyStyle, 5);
+    final preview = snippet == null
+        ? lines(body, bodyStyle, 5)
+        : _gridLineHeights(
+            body,
+            NexCodeText.monospaceStyle(bodyStyle),
+            bodyWidth,
+            _layout,
+            maxLines: 5,
+            direction: TextDirection.ltr,
+          );
     final caption = lines(_gridCaption(note), bodyStyle, 2);
     final lineCount = heading.length + preview.length + caption.length;
     final needed =

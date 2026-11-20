@@ -387,8 +387,26 @@ private class NexEditTextView(
 
     private fun configure(args: Map<*, *>) {
         magnifier.enabled = args["flutterMagnifier"] == true
-        edit.layoutDirection =
-            if (args["rtl"] == true) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
+        // A field may keep one direction whatever is typed into it — code is
+        // always left to right, even with Persian comments in it. Null keeps
+        // the platform's per-paragraph rule (ADR-037).
+        val forcedDirection = args["textDirection"] as? String
+        edit.textDirection = when (forcedDirection) {
+            "ltr" -> View.TEXT_DIRECTION_LTR
+            "rtl" -> View.TEXT_DIRECTION_RTL
+            else -> View.TEXT_DIRECTION_FIRST_STRONG
+        }
+        edit.textAlignment = if (forcedDirection == null) {
+            View.TEXT_ALIGNMENT_GRAVITY
+        } else {
+            View.TEXT_ALIGNMENT_VIEW_START
+        }
+        edit.layoutDirection = when {
+            forcedDirection == "ltr" -> View.LAYOUT_DIRECTION_LTR
+            forcedDirection == "rtl" -> View.LAYOUT_DIRECTION_RTL
+            args["rtl"] == true -> View.LAYOUT_DIRECTION_RTL
+            else -> View.LAYOUT_DIRECTION_LTR
+        }
         (args["fontSize"] as? Number)?.let {
             edit.setTextSize(TypedValue.COMPLEX_UNIT_DIP, it.toFloat())
         }
@@ -450,6 +468,11 @@ private class NexEditTextView(
             // Send becoming a new line — tells it to look again.
             keyboard()?.restartInput(edit)
         }
+
+        // Apply the typeface after changing the input type so the keyboard
+        // configuration cannot replace the font when a capture kind changes.
+        val face = if (args["monospace"] == true) Typeface.MONOSPACE else typeface(edit.context)
+        if (edit.typeface != face) edit.typeface = face
 
         expands = args["expands"] == true
         minLines = (args["minLines"] as? Number)?.toInt() ?: 1

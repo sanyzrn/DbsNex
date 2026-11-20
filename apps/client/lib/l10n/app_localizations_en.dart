@@ -6956,4 +6956,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String moneyToman(String amount) {
     return '$amount toman';
   }
+
+  @override
+  String get code => 'Code';
+
+  @override
+  String get codeHint => 'Paste or type code';
+
+  @override
+  String get codeLanguage => 'Language';
+
+  @override
+  String get codeLanguagePlainText => 'Plain text';
+
+  @override
+  String get codeLanguageDart => 'Dart';
+
+  @override
+  String get codeLanguageJavaScript => 'JavaScript';
+
+  @override
+  String get codeLanguagePython => 'Python';
+
+  @override
+  String get codeLanguageJson => 'JSON';
+
+  @override
+  String get copyCode => 'Copy code';
+
+  @override
+  String get editCode => 'Edit code';
 }

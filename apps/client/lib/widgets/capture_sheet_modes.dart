@@ -224,17 +224,19 @@ extension _CaptureModes on _CaptureSheetState {
     if (!_fieldFocus.hasFocus) _fieldFocus.requestFocus();
   }
 
-  /// The one field the three text kinds share — the same widget in the same
-  /// place, so switching kind changes its hint and its keyboard and never
-  /// takes the focus or the text away.
+  /// The one field the text kinds share — the same widget in the same place,
+  /// so switching kind changes its hint and its keyboard and never takes the
+  /// focus or the text away.
   Widget _field(BuildContext context, AppLocalizations l10n) {
     final kind = _kind;
     final enterSends = widget.preferences.enterSubmitsCapture;
     final link = kind == CaptureKind.link;
+    final code = kind == CaptureKind.code;
     final action = switch (kind) {
-      // A list is lines: Enter starts the next item, whatever the
-      // Enter-sends preference says.
-      CaptureKind.checklist => TextInputAction.newline,
+      // A list is lines, and so is code: Enter starts the next one, whatever
+      // the Enter-sends preference says. A snippet is never sent on Enter —
+      // the code editor's Return key is the most-used key in it.
+      CaptureKind.checklist || CaptureKind.code => TextInputAction.newline,
       CaptureKind.link => TextInputAction.done,
       _ => enterSends ? TextInputAction.send : TextInputAction.newline,
     };
@@ -254,7 +256,8 @@ extension _CaptureModes on _CaptureSheetState {
         // button, physical Enter still needs catching here. Shift+Enter is
         // the escape hatch to actually start a new line while this is on.
         onKeyEvent: (node, event) {
-          final submits = link || (kind == CaptureKind.note && enterSends);
+          final submits =
+              !code && (link || (kind == CaptureKind.note && enterSends));
           if (!submits || event is! KeyDownEvent) {
             return KeyEventResult.ignored;
           }
@@ -280,19 +283,26 @@ extension _CaptureModes on _CaptureSheetState {
           // Cut/Copy/Paste rather than replacing them — in a note, where
           // they mean something.
           formatting: kind == CaptureKind.note,
+          // Code is always left to right and fixed-width, even in a Persian
+          // interface and even with Persian comments in it. Markdown stays
+          // out of a code box: a fence is what the note is stored in, not
+          // something the person writing a snippet has to see or maintain.
+          textDirection: code ? TextDirection.ltr : null,
+          monospace: code,
           // The same keyboard for every kind. A URL keyboard has no
           // suggestion strip, so switching to Link and back made the keyboard
           // change height under the sheet each time — the jump that made the
           // switch look broken. Links paste far more often than they are
           // typed; no autocorrect is all a typed one needs.
           keyboardType: TextInputType.multiline,
-          textCapitalization: link
+          textCapitalization: link || code
               ? TextCapitalization.none
               : TextCapitalization.sentences,
-          autocorrect: !link,
+          autocorrect: !link && !code,
           decoration: InputDecoration(
             hintText: switch (kind) {
               CaptureKind.checklist => l10n.checklistHint,
+              CaptureKind.code => l10n.codeHint,
               CaptureKind.link => l10n.linkHint,
               _ => l10n.captureHint,
             },

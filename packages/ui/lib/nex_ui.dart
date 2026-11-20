@@ -22,6 +22,7 @@ export 'widgets/nex_desktop_scope.dart';
 export 'widgets/nex_empty_state.dart';
 export 'widgets/nex_navigation_dock.dart';
 export 'widgets/nex_markdown.dart';
+export 'widgets/nex_code_text.dart';
 export 'widgets/nex_link_text.dart';
 export 'widgets/nex_selection_menu.dart';
 export 'widgets/nex_selectable_lines.dart';

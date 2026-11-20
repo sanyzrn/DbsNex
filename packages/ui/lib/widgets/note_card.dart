@@ -10,6 +10,7 @@ import '../tokens/nex_relative_time.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
 import '../tokens/nex_note_wash.dart';
+import 'nex_code_text.dart';
 
 part 'note_card_bell.dart';
 part 'note_card_footnote.dart';
@@ -192,13 +193,15 @@ bool nexNoteCanExpand(
       ? _timelineTextTitle(note)
       : null;
   final filename = large || fileCaption != null ? note.originalFilename : null;
-  final text = NexMarkdownText.preview(
-    title != null
-        ? note.content ?? ''
-        : filename?.trim().isNotEmpty == true
-        ? filename!
-        : note.displayText ?? '',
-  );
+  final source = title != null
+      ? note.content ?? ''
+      : filename?.trim().isNotEmpty == true
+      ? filename!
+      : note.displayText ?? '';
+  final snippet = note.type == NoteType.text
+      ? NexCodeSnippet.previewOf(source)
+      : null;
+  final text = snippet?.code ?? NexMarkdownText.preview(source);
   final budget = large
       ? _timelineTextLines - (title == null ? 0 : 1)
       : note.type == NoteType.voice && (note.durationMs ?? 0) > 0
@@ -215,8 +218,11 @@ bool nexNoteCanExpand(
     text,
     width,
     budget,
-    density.previewStyle(Theme.of(context)),
+    snippet == null
+        ? density.previewStyle(Theme.of(context))
+        : NexCodeText.monospaceStyle(density.previewStyle(Theme.of(context))),
     marked: marked && !separateCaption,
+    direction: snippet == null ? null : TextDirection.ltr,
   );
 }
 
@@ -227,12 +233,12 @@ bool _cardTextOverflows(
   int budget,
   TextStyle? style, {
   bool marked = false,
+  TextDirection? direction,
 }) {
   if (text.trim().isEmpty) return false;
-  final lines = text
-      .split('\n')
-      .where((line) => line.trim().isNotEmpty)
-      .toList();
+  final lines = direction != null
+      ? [text]
+      : text.split('\n').where((line) => line.trim().isNotEmpty).toList();
   final directions = {for (final line in lines) nexDirectionOf(line)}
     ..remove(null);
   var left = budget;
@@ -244,7 +250,8 @@ bool _cardTextOverflows(
         text: paragraph,
         style: DefaultTextStyle.of(context).style.merge(style),
       ),
-      textDirection: nexDirectionOf(paragraph) ?? Directionality.of(context),
+      textDirection:
+          direction ?? nexDirectionOf(paragraph) ?? Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
       locale: Localizations.maybeLocaleOf(context),
       maxLines: left,
@@ -704,6 +711,24 @@ class _Preview extends StatelessWidget {
     }
     if (note.type == NoteType.link) {
       return _LinkPreview(note: note, showSite: expanded || lines > 1);
+    }
+    if (note.type == NoteType.text) {
+      // Source on a card: fixed-width and left to right, but no highlighter.
+      // A card is built on every scroll, and colouring the whole of a long
+      // snippet to draw two lines of it would make the timeline pay for code
+      // nobody is reading. The cap is the card's two lines and then some.
+      final snippet = NexCodeSnippet.previewOf(note.displayText ?? '');
+      if (snippet != null) {
+        return NexCodeText(
+          snippet.code,
+          language: snippet.language,
+          style: NexCardDensity.of(context).previewStyle(Theme.of(context)),
+          maxLines: expanded ? nexCardExpandedMaxLines : lines,
+          overflow: TextOverflow.ellipsis,
+          softWrap: true,
+          highlight: false,
+        );
+      }
     }
 
     // The card is a picture of the note, not the note: a body someone made
