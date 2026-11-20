@@ -424,3 +424,73 @@ class NexCardVoicePreview extends StatelessWidget {
     );
   }
 }
+
+/// A full-width recording with its caption, player and transcript in reading order.
+class NexListVoicePreview extends StatelessWidget {
+  const NexListVoicePreview({
+    super.key,
+    required this.note,
+    required this.strings,
+    this.expanded = false,
+  });
+
+  final bool expanded;
+
+  final Note note;
+  final NexCardStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final title = note.title?.trim();
+    final leading = title?.isNotEmpty == true ? title : note.originalFilename;
+    final caption = NexMarkdownText.preview(note.caption ?? '').trim();
+    final transcript = NexMarkdownText.preview(note.transcriptText ?? '')
+        .trim();
+    final hasCaption = caption.isNotEmpty && caption != leading;
+    final hasTranscript =
+        transcript.isNotEmpty && transcript != caption && transcript != leading;
+    const captionShare = 4;
+    final small = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    return Column(
+      key: const ValueKey('card-voice'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (leading?.isNotEmpty == true)
+          NexTextSurface.line(leading!, style: theme.textTheme.bodyLarge),
+        if (hasCaption)
+          NexTextSurface(
+            caption,
+            maxLines: !expanded
+                ? 2
+                : hasTranscript
+                ? captionShare
+                : nexCardExpandedMaxLines,
+            style: small,
+          ),
+        SizedBox(
+          height: nexMinTapTarget,
+          child: NexCardVoice(
+            note: note,
+            tint: nexNoteWash(note.type.wireName, theme.colorScheme).tint,
+            height: nexMinTapTarget,
+            durationLabel: strings.durationLabel ?? nexDefaultDurationLabel,
+            playLabel: strings.playLabel ?? 'Play',
+            pauseLabel: strings.pauseLabel ?? 'Pause',
+          ),
+        ),
+        if (hasTranscript)
+          NexTextSurface(
+            transcript,
+            maxLines: expanded
+                ? nexCardExpandedMaxLines - (hasCaption ? captionShare : 0)
+                : 2,
+            style: small,
+          ),
+      ],
+    );
+  }
+}

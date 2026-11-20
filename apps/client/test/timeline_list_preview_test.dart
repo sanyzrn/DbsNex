@@ -25,14 +25,16 @@ void main() {
     addTearDown(h.dispose);
     addTearDown(NexTilePreviews.clear);
     tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(400, 3100);
+    tester.view.physicalSize = const Size(400, 3800);
     addTearDown(tester.view.reset);
 
     final body = List.generate(16, (index) => 'Line ${index + 1}').join('\n');
     const caption = 'Keep this title small';
     const voiceCaption = 'Recording from the review';
     const transcript = 'Two cover options by Thursday';
-    final short = (await h.services.captureText('Coffee'))!;
+    final short = (await h.services.captureText(
+      'ایده منو more action دمو اپوس',
+    ))!;
     final long = (await h.services.captureText(body))!;
     await h.services.setCaption(long.id, caption);
 
@@ -86,6 +88,26 @@ void main() {
       originalFilename: 'archive.zip',
       mimeType: 'application/zip',
     );
+    final markdown = await h.services.captureFile(
+      mediaUri: '${h.mediaDir}/brief.md',
+      mediaHash: 'brief-md',
+      originalFilename: 'brief.md',
+      mimeType: 'text/markdown',
+    );
+    await h.services.setCaption(markdown.id, 'یادداشت جلسه');
+    final plainLink = (await h.services.captureLink(
+      'https://example.test/brief',
+    ))!;
+    final oneItem = (await h.services.captureChecklist([
+      const ChecklistItem(text: 'One item', done: false),
+    ]))!;
+    final unseenPdf = await h.services.captureFile(
+      mediaUri: '${h.mediaDir}/unreadable.pdf',
+      mediaHash: 'unreadable',
+      originalFilename: 'unreadable.pdf',
+      mimeType: 'application/pdf',
+    );
+    NexTilePreviews.debugRemember(unseenPdf.mediaUri!, none: true);
     await h.services.refreshTimeline();
     await h.preferences.setHoldMenuActions([NexHoldAction.expand]);
 
@@ -143,15 +165,50 @@ void main() {
       link,
       noCover,
       archive,
+      markdown,
+      plainLink,
+      oneItem,
     ]) {
       expect(wide(note), findsOneWidget);
       expect(card(note), findsNothing);
       expect(tester.getSize(wide(note)).width, 400 - nexCardInsets.horizontal);
-      expect(
-        tester.getSize(wide(note)).height,
-        NexNoteGridCard.heightFor(tester.element(wide(note))),
-      );
     }
+    double wideHeight(Note note) => tester.getSize(wide(note)).height;
+    final frame = NexNoteGridCard.heightFor(tester.element(wide(photo)));
+    for (final note in [photo, video, pdf, link]) {
+      expect(wideHeight(note), frame);
+    }
+    expect(wideHeight(short), lessThan(frame / 2));
+    expect(wideHeight(unseenPdf), lessThan(frame / 2));
+    final mark = inside(
+      wide(short),
+      find.byKey(ValueKey('note-pick-${short.id}')),
+    );
+    final line = inside(wide(short), find.text(short.content!));
+    expect(
+      tester.getRect(mark).center.dy,
+      closeTo(tester.getRect(line).center.dy, 1),
+    );
+
+    expect(wideHeight(markdown), lessThan(frame / 2));
+    expect(inside(wide(markdown), find.text('یادداشت جلسه')), findsOneWidget);
+    expect(wideHeight(long), greaterThan(wideHeight(short)));
+    expect(wideHeight(archive), lessThan(frame / 2));
+    expect(wideHeight(plainLink), lessThan(frame));
+    expect(wideHeight(voice), lessThan(frame));
+    expect(words(voiceCaption), findsOneWidget);
+    expect(words(transcript), findsOneWidget);
+    expect(wideHeight(oneItem), lessThan(wideHeight(checklist)));
+    expect(
+      tester.getSize(item(0)).height,
+      greaterThanOrEqualTo(nexMinTapTarget),
+    );
+    NexLinkArt.instance.debugRemember(plainLink.id, cover: File(imagePath));
+    await tester.pumpAndSettle();
+    expect(wideHeight(plainLink), frame);
+    NexLinkArt.instance.debugRemember(plainLink.id);
+    await tester.pumpAndSettle();
+    expect(wideHeight(plainLink), lessThan(frame));
     for (final note in [photo, video, link]) {
       final picture = inside(wide(note), find.byType(NexParallaxImage));
       expect(picture, findsOneWidget);
@@ -176,7 +233,7 @@ void main() {
     );
     expect(tileMedia(noCover), findsNothing);
     expect(
-      inside(wide(noCover), find.byKey(const ValueKey('grid-link-screen'))),
+      inside(wide(noCover), find.byIcon(Icons.play_circle_outline_rounded)),
       findsOneWidget,
     );
     expect(inside(wide(pdf), find.text('8 pages')), findsOneWidget);
@@ -187,22 +244,34 @@ void main() {
     expect(item(1), findsOneWidget);
     expect(item(2), findsOneWidget);
 
-    tester.view.physicalSize = const Size(400, 2450);
+    tester.view.physicalSize = const Size(400, 1750);
     await tester.pumpAndSettle();
     final photoCard = wide(photo);
     final photoImage = inside(photoCard, find.byType(Image));
     double imageOffset() =>
         tester.getTopLeft(photoImage).dy - tester.getTopLeft(photoCard).dy;
+    await tester.scrollUntilVisible(
+      photoCard,
+      350,
+      scrollable: find
+          .byWidgetPredicate(
+            (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+          )
+          .first,
+    );
+    await Scrollable.ensureVisible(tester.element(photoCard), alignment: 0.5);
+    await tester.pumpAndSettle();
     final beforeScroll = imageOffset();
     final scroll = Scrollable.of(
       tester.element(photoCard),
       axis: Axis.vertical,
     ).position;
-    scroll.jumpTo((scroll.pixels + 82).clamp(0.0, scroll.maxScrollExtent));
+    final delta = scroll.extentAfter >= 82 ? 82.0 : -82.0;
+    scroll.jumpTo(scroll.pixels + delta);
     await tester.pumpAndSettle();
     expect(imageOffset(), isNot(closeTo(beforeScroll, 0.5)));
     scroll.jumpTo(0);
-    tester.view.physicalSize = const Size(400, 3100);
+    tester.view.physicalSize = const Size(400, 3800);
     await tester.pumpAndSettle();
 
     await tester.longPress(wide(long));
@@ -256,6 +325,11 @@ void main() {
       Brightness.dark,
     );
     expect(tileMedia(pdf), findsOneWidget);
+    expect(wideHeight(short), lessThan(wideHeight(photo)));
+    expect(
+      tester.getRect(mark).center.dx,
+      greaterThan(tester.getRect(line).center.dx),
+    );
     expect(tester.takeException(), isNull);
   });
 }

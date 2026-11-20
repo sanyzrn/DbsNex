@@ -137,7 +137,8 @@ class NexNoteGridCard extends StatelessWidget {
   /// photo note shows its first picture alone.
   final NexTilePhotos? photos;
 
-  /// The actual width of a full-width tile, for the media decode budget.
+  /// Set by the full-width list. Words wrap to content, media keep a frame
+  /// and use this width for their decode budget.
   final double? previewWidth;
 
   /// Ticks or unticks a checklist's item, by its place in the list (2.8.2).
@@ -150,6 +151,8 @@ class NexNoteGridCard extends StatelessWidget {
   /// Null when nothing is being picked; otherwise whether this one is.
   final bool? selected;
   final bool ringing;
+
+  static const listChecklistRows = 3;
 
   /// The height every tile in a row shares, at the reader's text size.
   static double heightFor(BuildContext context) =>
@@ -205,6 +208,22 @@ class NexNoteGridCard extends StatelessWidget {
             '',
       strings.relativeTime(nexRelativeTimeOf(note.updatedAt)),
     ].where((part) => part.isNotEmpty).join('. ');
+    final flowing = previewWidth != null;
+    final inline =
+        flowing &&
+        (note.type == NoteType.text ||
+            note.type == NoteType.link ||
+            note.type == NoteType.file && !note.isAudioMedia);
+    final body = _Body(
+      note: note,
+      title: content.title,
+      body: content.body,
+      strings: strings,
+      tint: tint,
+      muted: muted,
+      outline: outline,
+      onToggleItem: onToggleItem,
+    );
     // The tile as words: every kind but a picture, and a file whose picture
     // could not be read.
     Widget words(BuildContext context) => Material(
@@ -244,22 +263,12 @@ class NexNoteGridCard extends StatelessWidget {
                   ringing: ringing,
                   label: strings.selectLabel,
                   onPick: onLeadingTap,
+                  preview: inline ? body : null,
                 ),
-                SizedBox(height: metrics.padding * 0.8),
-                Expanded(
-                  child: ClipRect(
-                    child: _Body(
-                      note: note,
-                      title: content.title,
-                      body: content.body,
-                      strings: strings,
-                      tint: tint,
-                      muted: muted,
-                      outline: outline,
-                      onToggleItem: onToggleItem,
-                    ),
-                  ),
-                ),
+                if (!inline) ...[
+                  SizedBox(height: metrics.padding * 0.8),
+                  if (flowing) body else Expanded(child: ClipRect(child: body)),
+                ],
                 const SizedBox(height: NexSpacing.xs),
                 _Foot(
                   note: note,
@@ -315,6 +324,7 @@ class _Top extends StatelessWidget {
     required this.ringing,
     required this.label,
     required this.onPick,
+    this.preview,
   });
 
   final Note note;
@@ -327,6 +337,7 @@ class _Top extends StatelessWidget {
   final bool ringing;
   final String label;
   final VoidCallback? onPick;
+  final Widget? preview;
 
   @override
   Widget build(BuildContext context) {
@@ -357,7 +368,10 @@ class _Top extends StatelessWidget {
           label: label,
           onTap: onPick,
         ),
-        if (kind case final kind?) ...[
+        if (preview case final content?) ...[
+          const SizedBox(width: NexSpacing.contentGap),
+          Expanded(child: content),
+        ] else if (kind case final kind?) ...[
           const SizedBox(width: NexSpacing.sm),
           Expanded(
             child: Text(

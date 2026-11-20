@@ -183,6 +183,28 @@ extension _TimelineNoteActions on TimelineScreenState {
     final l10n = AppLocalizations.of(context);
     final words = note.copyText ?? '';
     final expanded = prefs.isNoteExpanded(note.id);
+    bool canExpand() {
+      final desktop = NexDesktopScope.isDesktop(context);
+      if (prefs.timelineGrid) return false;
+      if (!desktop && NexCardDensity.of(context) == NexCardDensity.readable) {
+        if (_wideTileOnly(note)) return false;
+        if (!expanded && note.type == NoteType.checklist) {
+          return note.checklistItems
+              .where((item) => item.text.trim().isNotEmpty)
+              .skip(NexNoteGridCard.listChecklistRows)
+              .isNotEmpty;
+        }
+      }
+      return expanded ||
+          nexNoteCanExpand(
+            menuContext,
+            note,
+            cardWidth: width,
+            strings: nexCardStrings(menuContext),
+            timelinePreview: !desktop,
+          );
+    }
+
     NoteMenuEntry? entry(NexHoldAction action) => switch (action) {
       NexHoldAction.select => NoteMenuEntry(
         action,
@@ -229,18 +251,7 @@ extension _TimelineNoteActions on TimelineScreenState {
         () => unawaited(_addTagTo(note)),
       ),
       NexHoldAction.expand =>
-        prefs.timelineGrid ||
-                !NexDesktopScope.isDesktop(context) &&
-                    NexCardDensity.of(context) == NexCardDensity.readable &&
-                    _wideTileOnly(note) ||
-                !expanded &&
-                    !nexNoteCanExpand(
-                      menuContext,
-                      note,
-                      cardWidth: width,
-                      strings: nexCardStrings(menuContext),
-                      timelinePreview: !NexDesktopScope.isDesktop(context),
-                    )
+        !canExpand()
             ? null
             : NoteMenuEntry(
                 action,
