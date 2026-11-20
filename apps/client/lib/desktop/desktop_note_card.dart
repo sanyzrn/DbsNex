@@ -92,7 +92,7 @@ class _NexDesktopNoteCardState extends State<NexDesktopNoteCard> {
                             rawLanguage: snippet.rawLanguage,
                           )
                         : content.title,
-                    code: snippet != null,
+                    note: note,
                     pinned: note.pinnedAt != null,
                     ringing: widget.ringing,
                     selected: widget.selected,
@@ -182,14 +182,14 @@ class _NexDesktopNoteCardState extends State<NexDesktopNoteCard> {
 class _Title extends StatelessWidget {
   const _Title({
     required this.title,
-    required this.code,
+    required this.note,
     required this.pinned,
     required this.ringing,
     required this.selected,
   });
 
   final String title;
-  final bool code;
+  final Note note;
   final bool pinned;
   final bool ringing;
   final bool? selected;
@@ -202,10 +202,12 @@ class _Title extends StatelessWidget {
       height: 20,
       child: Row(
         children: [
-          if (code)
-            const Padding(
-              padding: EdgeInsetsDirectional.only(end: NexSpacing.xs),
-              child: Icon(Icons.code_rounded, size: 16),
+          if (note.type == NoteType.file ||
+              note.type == NoteType.link ||
+              note.snippetPreview != null)
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: NexSpacing.xs),
+              child: NexNoteCardGlyph(note, size: 16),
             ),
           if (pinned)
             Padding(

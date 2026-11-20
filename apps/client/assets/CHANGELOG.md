@@ -6,6 +6,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.8.10
 
+- File cards show more specific format marks, common sites have their own icons, and each code language has a distinct mark. Dragging inside a zoomed PDF now moves the page without scrolling or dismissing note details.
 - Code capture and editing share a language palette, optional language hints and indentation tools. Snippets have a code icon, long source can wrap or page, and you can ask the assistant about the code with its indentation intact.
 - The easier-to-read list fits each preview to its contents. Short notes and filenames sit beside their icons, while photos, videos and PDFs keep their full-size previews.
 - Gold Check keeps purchase inputs together, puts the estimate below the form, and points out invalid values beside their fields. Sell and melted-gold drafts are checked before you leave.

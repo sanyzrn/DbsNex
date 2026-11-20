@@ -113,7 +113,7 @@ class NexCodeToolbar extends StatelessWidget {
               child: TextButton.icon(
                 key: pickerKey,
                 onPressed: enabled ? () => _pick(context) : null,
-                icon: const Icon(Icons.unfold_more_rounded, size: 18),
+                icon: NexCodeLanguageGlyph(language, size: 18),
                 label: Text(
                   label,
                   semanticsLabel: '${l10n.codeLanguage}: $label',
@@ -235,7 +235,8 @@ class _LanguagePalette extends StatelessWidget {
                 for (final lang in NexCodeLanguage.selectable)
                   ChoiceChip(
                     label: Text(nexCodeLanguageLabel(context, lang)),
-                    showCheckmark: true,
+                    avatar: NexCodeLanguageGlyph(lang, size: 18),
+                    showCheckmark: false,
                     selected: rawLanguage == null && lang == language,
                     onSelected: (_) => Navigator.of(context).pop(lang),
                   ),

@@ -9,7 +9,6 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../desktop/desktop_note_card.dart' show nexSplitNoteText;
 import '../platform/link_art.dart';
-import '../platform/link_face.dart';
 import '../platform/tile_previews.dart';
 import 'card_audio.dart';
 import 'code_language_button.dart';

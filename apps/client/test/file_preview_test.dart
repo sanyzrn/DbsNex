@@ -14,6 +14,7 @@ import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_client/documents/docx_markdown.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
+import 'package:nex_client/widgets/nex_dialog.dart';
 
 import 'support/nex_harness.dart';
 
@@ -408,6 +409,115 @@ const template = `sample`;
       // A picture of the page, not a reader: nothing is parsed out of it.
       expect(find.byType(NexMarkdown), findsNothing);
     });
+
+    testWidgets(
+      'zoomed PDF pans inside its viewport without moving or closing the details sheet',
+      (tester) async {
+        final file = File(p.join(tmp.path, 'zoom.pdf'))
+          ..writeAsStringSync('%PDF-1.4');
+        final note = await services.captureFile(
+          mediaUri: file.path,
+          mediaHash: sha256OfBytes(file.readAsBytesSync()),
+          originalFilename: 'zoom.pdf',
+          mimeType: 'application/pdf',
+        );
+        final messenger =
+            TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+        const channel = MethodChannel('nex/os_capture');
+        messenger.setMockMethodCallHandler(
+          channel,
+          (call) async => call.method == 'pdfPage'
+              ? {'bytes': pngBytes, 'pageCount': 1}
+              : null,
+        );
+        addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+        tester.view.physicalSize = const Size(400, 680);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(disableAnimations: true),
+              child: child!,
+            ),
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => nexShowSheet<void>(
+                    context: context,
+                    builder: (_) => NoteDetailSheet(
+                      services: services,
+                      noteId: note.id,
+                      preferences: preferences,
+                    ),
+                  ),
+                  child: const Text('Open details'),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('Open details'));
+        final viewer = find.byType(InteractiveViewer);
+        for (
+          var attempt = 0;
+          attempt < 100 && viewer.evaluate().isEmpty;
+          attempt++
+        ) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 10)),
+          );
+          await tester.pump();
+        }
+        expect(viewer, findsOneWidget);
+        final viewport = find.byKey(const ValueKey('pdf-viewport'));
+        final sheetScroll = Scrollable.of(tester.element(viewport)).position;
+        final transform = tester
+            .widget<InteractiveViewer>(viewer)
+            .transformationController!;
+        final zoom = find.byIcon(Icons.zoom_in);
+        await tester.ensureVisible(zoom);
+        await tester.tap(zoom);
+        await tester.pumpAndSettle();
+        expect(transform.value.getMaxScaleOnAxis(), 2);
+
+        Future<void> dragPage(Offset step, int count) async {
+          final gesture = await tester.startGesture(tester.getCenter(viewport));
+          for (var i = 0; i < count; i++) {
+            await gesture.moveBy(step);
+            await tester.pump(const Duration(milliseconds: 16));
+          }
+          await gesture.up();
+          await tester.pumpAndSettle();
+        }
+
+        final original = tester.getRect(viewport);
+        final offset = sheetScroll.pixels;
+        final before = transform.value.getTranslation();
+        await dragPage(const Offset(4, -5), 12);
+        final after = transform.value.getTranslation();
+        expect(after.x, greaterThan(before.x));
+        expect(after.y, lessThan(before.y));
+        expect(sheetScroll.pixels, offset);
+        expect(tester.getRect(viewport), original);
+
+        // A long pull down (past the zoomed page's edge) still belongs to the PDF.
+        await dragPage(const Offset(0, 12), 34);
+        expect(find.byType(NoteDetailSheet), findsOneWidget);
+        expect(sheetScroll.pixels, offset);
+
+        final point = tester.getCenter(viewport);
+        await tester.tapAt(point);
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.tapAt(point);
+        await tester.pumpAndSettle();
+        expect(transform.value.getMaxScaleOnAxis(), 1);
+        await dragPage(const Offset(0, -8), 14);
+        expect(sheetScroll.pixels, greaterThan(offset));
+      },
+    );
 
     testWidgets('a video shows a frame of itself, drawn by the platform', (
       tester,

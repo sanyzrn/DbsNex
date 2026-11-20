@@ -83,3 +83,5 @@ export 'sync/field_aware_merger.dart';
 export 'models/calendar_date.dart';
 
 export 'models/portable_preferences.dart';
+
+export 'links/link_face.dart';

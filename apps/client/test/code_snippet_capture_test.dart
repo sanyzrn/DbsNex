@@ -164,7 +164,10 @@ void main() {
       final note = (await services.timeline(limit: 1)).single;
       expect(note.snippetPreview?.language, NexCodeLanguage.python);
       expect(note.copyText, source);
-      expect(find.byIcon(Icons.code_rounded), findsWidgets);
+      final glyph = tester.widget<NexCodeLanguageGlyph>(
+        find.byType(NexCodeLanguageGlyph).first,
+      );
+      expect(glyph.language, NexCodeLanguage.python);
     },
   );
 
