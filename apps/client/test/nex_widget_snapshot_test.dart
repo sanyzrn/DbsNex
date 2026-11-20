@@ -245,11 +245,11 @@ void main() {
       expect(photos.map((n) => n.id), ['b']);
 
       final both = NexWidgetSnapshot.filter(mixed, const {'text', 'checklist'});
-      expect(
-        both.map((n) => n.id),
-        ['a', 'c', 'd'],
-        reason: 'the widget shows the timeline, not a re-sorted copy of it',
-      );
+      expect(both.map((n) => n.id), [
+        'a',
+        'c',
+        'd',
+      ], reason: 'the widget shows the timeline, not a re-sorted copy of it');
     });
 
     test(
@@ -357,11 +357,8 @@ void main() {
       final newest = note('newest', NoteType.text, 'new', updatedAt: now);
 
       expect(
-        NexWidgetSnapshot.byRecency([
-          pinnedButOld,
-          newest,
-          middle,
-        ]).map((n) => n.id),
+        NexWidgetSnapshot.byRecency([pinnedButOld, newest, middle])
+            .map((n) => n.id),
         ['newest', 'middle', 'pinned'],
       );
     });

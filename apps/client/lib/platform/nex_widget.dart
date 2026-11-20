@@ -1,4 +1,5 @@
 import 'crash_reporter.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -10,7 +11,9 @@ import 'package:path_provider/path_provider.dart';
 
 import 'cycle_widget.dart';
 import 'nex_preferences.dart';
+
 import 'package:nex_ai/cloud.dart';
+
 import 'nex_services.dart';
 
 /// One row of the widget snapshot: what a home-screen glance may see of a
