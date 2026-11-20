@@ -2330,6 +2330,9 @@
   "codeLanguageJavaScript": "جاوااسکریپت",
   "codeLanguagePython": "پایتون",
   "codeLanguageJson": "جیسون",
+  "codeLanguageHtml": "HTML",
+  "codeLanguageCss": "CSS",
+  "codeLanguagePhp": "PHP",
   "copyCode": "کپی کد",
   "editCode": "ویرایش کد"
 }

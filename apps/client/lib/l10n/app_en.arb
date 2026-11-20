@@ -3688,6 +3688,9 @@
   "codeLanguageJavaScript": "JavaScript",
   "codeLanguagePython": "Python",
   "codeLanguageJson": "JSON",
+  "codeLanguageHtml": "HTML",
+  "codeLanguageCss": "CSS",
+  "codeLanguagePhp": "PHP",
   "copyCode": "Copy code",
   "editCode": "Edit code"
 }

@@ -360,9 +360,6 @@ extension _TimelineNavigation on TimelineScreenState {
 
   Future<void> _revealSpotlight(String noteId) async {
     final l10n = AppLocalizations.of(context);
-    final rowHeight =
-        nexCardHeightFor(context, timelinePreview: true) +
-        nexCardInsetsFor(context).vertical;
     final reducedMotion = MediaQuery.disableAnimationsOf(context);
     final generation = ++_revealGeneration;
     bool current() =>
@@ -388,7 +385,7 @@ extension _TimelineNavigation on TimelineScreenState {
     if (_spotlightAnchor.currentContext == null && index >= 0) {
       final estimate = widget.preferences.timelineGrid
           ? _gridOffsetEstimate(index)
-          : index * rowHeight;
+          : _listOffsetEstimate(index);
       _scroll.jumpTo(estimate.clamp(0.0, _scroll.position.maxScrollExtent));
       await WidgetsBinding.instance.endOfFrame;
     }

@@ -70,6 +70,29 @@ void main() {
     );
   }
 
+  test('shares code without fences and preserves whitespace', () async {
+    const snippet = NexCodeSnippet(
+      code: '  final x = 1;  \n',
+      language: NexCodeLanguage.dart,
+    );
+    final codeNote = Note(
+      id: 'code',
+      type: NoteType.text,
+      content: snippet.markdown,
+      createdAt: now,
+      updatedAt: now,
+      deviceId: 'test',
+      rev: 1,
+      syncState: SyncState.pending,
+    );
+
+    expect(await nexShareNote(codeNote), isTrue);
+    expect(shared['text'], snippet.code);
+
+    expect(await nexShareNotes([codeNote, codeNote]), isTrue);
+    expect(shared['text'], '${snippet.code}\n\n${snippet.code}');
+  });
+
   test(
     'multi-note sharing preserves the link address rather than just its title',
     () async {

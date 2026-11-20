@@ -228,10 +228,11 @@ extension _TimelineNoteActions on TimelineScreenState {
         action,
         () => unawaited(_addTagTo(note)),
       ),
-      // A grid tile has one height in its row, so "Show in full" has nothing
-      // to show there (2.6.28).
       NexHoldAction.expand =>
         prefs.timelineGrid ||
+                !NexDesktopScope.isDesktop(context) &&
+                    NexCardDensity.of(context) == NexCardDensity.readable &&
+                    _wideTileOnly(note) ||
                 !expanded &&
                     !nexNoteCanExpand(
                       menuContext,

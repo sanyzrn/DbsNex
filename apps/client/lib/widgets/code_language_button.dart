@@ -118,5 +118,8 @@ String nexCodeLanguageLabel(
     NexCodeLanguage.javascript => l10n.codeLanguageJavaScript,
     NexCodeLanguage.python => l10n.codeLanguagePython,
     NexCodeLanguage.json => l10n.codeLanguageJson,
+    NexCodeLanguage.html => l10n.codeLanguageHtml,
+    NexCodeLanguage.css => l10n.codeLanguageCss,
+    NexCodeLanguage.php => l10n.codeLanguagePhp,
   };
 }

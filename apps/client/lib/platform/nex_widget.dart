@@ -1,4 +1,5 @@
 import 'crash_reporter.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -10,7 +11,9 @@ import 'package:path_provider/path_provider.dart';
 
 import 'cycle_widget.dart';
 import 'nex_preferences.dart';
+
 import 'package:nex_ai/cloud.dart';
+
 import 'nex_services.dart';
 
 /// One row of the widget snapshot: what a home-screen glance may see of a
@@ -227,7 +230,11 @@ class NexWidgetSnapshot {
 
   static String _previewOf(Note note) {
     final raw = note.displayText ?? '';
-    final collapsed = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
+    var preview = raw;
+    if (note.type == NoteType.text) {
+      preview = NexCodeSnippet.previewOf(raw)?.code ?? raw;
+    }
+    final collapsed = preview.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (collapsed.length <= maxPreviewLength) return collapsed;
     return collapsed.substring(0, maxPreviewLength);
   }

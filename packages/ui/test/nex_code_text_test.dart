@@ -22,6 +22,32 @@ void main() {
     );
   }
 
+  const html = '''<!-- marker -->
+<section data-title="A > B">A &amp; B</section>
+<script>const example = "<div>";</script>
+''';
+  const css = '''/* marker */
+@media (max-width: 40rem) {
+  .card:hover { color: #aabbcc; content: "{"; padding: 1.25rem; }
+}
+''';
+  const php = r'''<?php
+#[Route('/')]
+FUNCTION greet(string $نام) {
+  # marker
+  $message = <<<'BODY'
+سلام
+BODY;
+  return $message;
+}
+?>
+''';
+
+  TextStyle? styleOf(TextSpan span, String token) => span.children!
+      .whereType<TextSpan>()
+      .firstWhere((piece) => piece.text == token)
+      .style;
+
   group('highlighting never changes the code', () {
     const samples = {
       NexCodeLanguage.dart: '// note\nfinal String name = r"a\\b";\nvoid main() {\n\tprint(name); // hi\n}\n',
@@ -29,6 +55,9 @@ void main() {
       NexCodeLanguage.python:
           '# note\nname = """a\nb"""\nprint(f"hello {name}")\n',
       NexCodeLanguage.json: '{"name": "nex", "count": 12, "ok": true}\n',
+      NexCodeLanguage.html: html,
+      NexCodeLanguage.css: css,
+      NexCodeLanguage.php: php,
       NexCodeLanguage.plainText: '```\nnot fenced here\n```\n',
     };
 
@@ -73,6 +102,44 @@ void main() {
       expect(spans.single.text, code);
       expect(spans.single.style, isNull);
     });
+  });
+
+  test('HTML highlights tags, attributes, values, entities and comments', () {
+    final span = spanOf(html, NexCodeLanguage.html);
+    expect(styleOf(span, '<section')?.fontWeight, FontWeight.w600);
+    expect(styleOf(span, 'data-title')?.color, isNotNull);
+    expect(
+      styleOf(span, 'data-title')?.color,
+      isNot(styleOf(span, '<section')?.color),
+    );
+    expect(styleOf(span, '"A > B"')?.color, isNotNull);
+    expect(styleOf(span, '&amp;')?.color, isNotNull);
+    expect(styleOf(span, '<!-- marker -->')?.fontStyle, FontStyle.italic);
+    expect(styleOf(span, 'const example = "<div>";'), isNull);
+  });
+
+  test('CSS highlights selectors, properties, values and at-rules', () {
+    final span = spanOf(css, NexCodeLanguage.css);
+    expect(styleOf(span, '@media')?.fontWeight, FontWeight.w600);
+    expect(styleOf(span, '.card')?.fontWeight, FontWeight.w600);
+    expect(styleOf(span, ':hover')?.fontWeight, FontWeight.w600);
+    expect(styleOf(span, 'color')?.color, isNotNull);
+    expect(styleOf(span, 'content'), styleOf(span, 'color'));
+    expect(styleOf(span, '#aabbcc'), styleOf(span, '1.25rem'));
+    expect(styleOf(span, '1.25rem')?.color, isNotNull);
+    expect(styleOf(span, '/* marker */')?.fontStyle, FontStyle.italic);
+  });
+
+  test('PHP highlights tags, keywords, variables and nowdocs', () {
+    final span = spanOf(php, NexCodeLanguage.php);
+    expect(styleOf(span, '<?php'), styleOf(span, '?>'));
+    expect(styleOf(span, 'FUNCTION')?.fontWeight, FontWeight.w600);
+    expect(styleOf(span, r'$نام')?.color, isNotNull);
+    expect(styleOf(span, r'$نام'), isNot(styleOf(span, 'FUNCTION')));
+    expect(styleOf(span, '#[')?.fontStyle, isNot(FontStyle.italic));
+    expect(styleOf(span, '# marker')?.fontStyle, FontStyle.italic);
+    expect(styleOf(span, "<<<'BODY'\nسلام\nBODY"), styleOf(span, "'/'"));
+    expect(styleOf(span, "<<<'BODY'\nسلام\nBODY")?.color, isNotNull);
   });
 
   group('code reads left to right in a Persian interface', () {

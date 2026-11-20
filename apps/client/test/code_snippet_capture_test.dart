@@ -137,6 +137,26 @@ void main() {
     expect(note.content, '```python\nprintln("hi")\n```');
   });
 
+  testWidgets('the web languages are selectable and the PHP source is kept', (
+    tester,
+  ) async {
+    await openComposer(tester);
+    const code = r'<?php echo $name;';
+    await tester.enterText(_field, code);
+    await tester.tap(find.byKey(const ValueKey('capture-code-language')));
+    await tester.pumpAndSettle();
+    expect(find.text('HTML'), findsOneWidget);
+    expect(find.text('CSS'), findsOneWidget);
+    await tester.tap(find.text('PHP'));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    final note = (await services.timeline(limit: 5)).single;
+    expect(note.content, '```php\n$code\n```');
+    expect(note.copyText, code);
+  });
+
   testWidgets('the detail sheet copies, shows and edits the code exactly', (
     tester,
   ) async {

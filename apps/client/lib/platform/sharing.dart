@@ -91,8 +91,7 @@ Future<bool> nexShareNote(
     final staged = <Directory>[];
     try {
       final words = switch (note.type) {
-        NoteType.text => note.displayText?.trim(),
-        NoteType.link => _linkShareText(note),
+        NoteType.text || NoteType.link => _noteShareText(note),
         _ => note.caption?.trim(),
       };
       await SharePlus.instance.share(
@@ -121,12 +120,18 @@ Future<bool> nexShareNote(
     }
     return true;
   }
-  final text = note.type == NoteType.link
-      ? _linkShareText(note)
-      : note.displayText?.trim() ?? '';
+  final text = _noteShareText(note);
   if (text.isEmpty) return false;
   await SharePlus.instance.share(ShareParams(text: text));
   return true;
+}
+
+String _noteShareText(Note note) {
+  if (note.type == NoteType.link) return _linkShareText(note);
+  final snippet = note.type == NoteType.text
+      ? NexCodeSnippet.parse(note.content ?? '')
+      : null;
+  return snippet?.code ?? note.displayText?.trim() ?? '';
 }
 
 // A link's display text may be its caption or page title. Sharing must keep
@@ -162,9 +167,7 @@ Future<bool> nexShareNotes(List<Note> notes) async {
       if (caption.isNotEmpty) words.add(caption);
       continue;
     }
-    final text = note.type == NoteType.link
-        ? _linkShareText(note)
-        : note.displayText?.trim() ?? '';
+    final text = _noteShareText(note);
     if (text.isNotEmpty) words.add(text);
   }
   if (files.isEmpty && words.isEmpty) return false;
