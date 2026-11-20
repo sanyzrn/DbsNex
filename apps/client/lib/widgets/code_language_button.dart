@@ -59,10 +59,14 @@ class NexCodeLanguageButton extends StatelessWidget {
             color: enabled ? scheme.onSurfaceVariant : scheme.outline,
           ),
           const SizedBox(width: NexSpacing.xs),
-          Text(
-            label,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: enabled ? scheme.onSurface : scheme.outline,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: enabled ? scheme.onSurface : scheme.outline,
+              ),
             ),
           ),
           Icon(

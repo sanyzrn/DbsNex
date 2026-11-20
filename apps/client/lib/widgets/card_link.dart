@@ -162,6 +162,7 @@ class NexCardLinkPreview extends StatelessWidget {
                   ),
                   const SizedBox(width: NexSpacing.xs + 2),
                   Flexible(
+                    flex: 2,
                     child: Text(
                       face.host.isEmpty ? (note.linkUrl ?? '') : face.name,
                       maxLines: 1,
@@ -172,7 +173,15 @@ class NexCardLinkPreview extends StatelessWidget {
                       style: small?.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
-                  if (kind != null) Text(' · $kind', maxLines: 1, style: small),
+                  if (kind != null)
+                    Flexible(
+                      child: Text(
+                        ' · $kind',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: small,
+                      ),
+                    ),
                 ],
               ),
             ),

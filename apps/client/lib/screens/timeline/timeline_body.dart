@@ -3,15 +3,35 @@ part of '../timeline_screen.dart';
 /// The list itself: the header, date groups, folding, pinch and
 /// pull-to-refresh, and the filter sheet.
 extension _TimelineBody on TimelineScreenState {
-  /// A recording's card plays it where it is (2.8.2), at the card sizes
-  /// with room for a player.
-  Widget? _cardPreview(Note note, NexCardStrings strings) =>
-      NexCardVoicePreview.fits(note, NexCardDensity.of(context))
-      ? NexCardVoicePreview(note: note, strings: strings)
-      // A link's card says what the page is and which site (2.8.3).
-      : NexCardLinkPreview.fits(note)
-      ? NexCardLinkPreview(note: note)
-      : null;
+  /// Everything this screen shows, read again.
+  ///
+  /// The pull-down was meant to reveal the search field. It never did — the
+  /// field turned out to sit at the top permanently, so there was nothing to
+  /// pull in — and a gesture that does nothing is worse than no gesture. This
+  /// is what a downward pull on a list means everywhere else, and it is also
+  /// the manual escape hatch for anything that fails to refresh on its own.
+  ///
+  /// Syncing is part of it only when a server is configured, and its failure
+  /// is reported without taking the local reload down with it: the notes on
+  /// this device are the point, and they reloaded either way.
+  Future<void> _refresh() async {
+    final banner = NexBannerHost.of(context);
+    final l10n = AppLocalizations.of(context);
+    await Future.wait([
+      widget.services.refreshTimeline(),
+      _model.loadFilterTags(),
+    ]);
+    if (widget.preferences.syncBaseUrl == null) return;
+    try {
+      await widget.services.syncNow();
+    } catch (error) {
+      if (!mounted) return;
+      banner?.show(
+        message: '${l10n.syncFailed} (${NexServices.describeFailure(error)})',
+        kind: NexBannerKind.failed,
+      );
+    }
+  }
 
   /// The content filter, behind the mockup's icon button.
   Future<void> _pickFilters() async {
@@ -473,12 +493,7 @@ extension _TimelineBody on TimelineScreenState {
                 onDelete: null,
               );
             }
-            return NoteCard(
-              note: row.note!,
-              strings: cardStrings,
-              expanded: widget.preferences.isNoteExpanded(row.note!.id),
-              previewOverride: _cardPreview(row.note!, cardStrings),
-            );
+            return _listCard(row.note!, cardStrings, interactive: false);
           },
           builder: (context, row, index) {
             if (row.moreOf case final group?) {
@@ -549,26 +564,7 @@ extension _TimelineBody on TimelineScreenState {
                         entriesBuilder: (menuContext, width) =>
                             _holdEntries(note, menuContext, width),
                         onHold: _selecting ? () => _pickNote(note) : null,
-                        child: _pickShield(
-                          note,
-                          NoteCard(
-                            note: note,
-                            strings: cardStrings,
-                            // A recording plays from its card (2.8.2).
-                            previewOverride: _cardPreview(note, cardStrings),
-                            onTap: () => _tapNote(note),
-                            onLeadingTap: () => _pickNote(note),
-                            selected: _selecting
-                                ? _selected.contains(note.id)
-                                : null,
-                            expanded: widget.preferences.isNoteExpanded(
-                              note.id,
-                            ),
-                            ringing: widget.services.ringing.value.contains(
-                              note.id,
-                            ),
-                          ),
-                        ),
+                        child: _pickShield(note, _listCard(note, cardStrings)),
                       ),
                     ),
                   ),

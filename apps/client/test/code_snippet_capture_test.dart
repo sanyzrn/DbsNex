@@ -88,6 +88,39 @@ void main() {
     expect(NexCodeSnippet.parse(note.content!)!.code, _code);
   });
 
+  testWidgets('switching between Code and Note keeps text and keyboard focus', (
+    tester,
+  ) async {
+    await openComposer(tester);
+    await tester.enterText(_field, '   سلام');
+    await tester.pumpAndSettle();
+    final l10n = AppLocalizations.of(tester.element(find.byType(CaptureSheet)));
+    final editable = find.descendant(
+      of: find.byType(CaptureSheet),
+      matching: find.byType(EditableText),
+    );
+    final editor = tester.state<EditableTextState>(editable);
+    expect(editor.widget.focusNode.hasFocus, isTrue);
+    expect(editor.widget.textDirection, TextDirection.ltr);
+    expect(
+      tester.widget<TextField>(_field).textInputAction,
+      TextInputAction.newline,
+    );
+
+    await tester.tap(find.text(l10n.captureKindNote));
+    await tester.pumpAndSettle();
+    expect(tester.state<EditableTextState>(editable), same(editor));
+    expect(editor.widget.focusNode.hasFocus, isTrue);
+    expect(editor.widget.textDirection, TextDirection.rtl);
+    expect(editor.widget.controller.text, '   سلام');
+
+    await tester.tap(find.text(l10n.code));
+    await tester.pumpAndSettle();
+    expect(tester.state<EditableTextState>(editable), same(editor));
+    expect(editor.widget.focusNode.hasFocus, isTrue);
+    expect(editor.widget.textDirection, TextDirection.ltr);
+  });
+
   testWidgets('the language button changes what is saved', (tester) async {
     await openComposer(tester);
     await tester.enterText(_field, 'println("hi")');
@@ -192,7 +225,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     final note = (await services.captureText(
       NexCodeSnippet(
-        code: '# کامنت فارسی\nprint("سلام");',
+        code: '# کامنت فارسی\nprint("سلام"); // ${'x' * 300}',
         language: NexCodeLanguage.python,
       ).markdown,
     ))!;
@@ -225,6 +258,21 @@ void main() {
       );
       expect(rich.textDirection, TextDirection.ltr);
       expect(rich.text.toPlainText(), contains('# کامنت فارسی'));
+      final horizontal = find.ancestor(
+        of: find.byType(NexCodeText),
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is SingleChildScrollView &&
+              w.scrollDirection == Axis.horizontal,
+        ),
+      );
+      final scrollable = find
+          .descendant(of: horizontal, matching: find.byType(Scrollable))
+          .first;
+      final position = tester.state<ScrollableState>(scrollable).position;
+      expect(position.maxScrollExtent, greaterThan(0));
+      expect(position.axisDirection, AxisDirection.right);
+      expect(position.pixels, 0);
       expect(tester.takeException(), isNull);
     }
   });

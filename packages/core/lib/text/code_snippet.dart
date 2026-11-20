@@ -1,6 +1,6 @@
 /// A code snippet kept as the Markdown note it already is.
 ///
-/// A note has no field for "this is code": [Note.content] is the whole note,
+/// A note has no field for "this is code": `Note.content` is the whole note,
 /// and every text note is Markdown. So a snippet is stored the way Markdown
 /// already stores one — a single fenced block whose info string names the
 /// language — and read back by [NexCodeSnippet.parse]. The language and the
@@ -86,18 +86,16 @@ final class NexCodeSnippet {
   /// The note this snippet is: one fenced block, in a fence long enough that
   /// no line of the code can close it early.
   String get markdown {
-    final fence = '`' * _fenceLength(code);
+    final marker = languageId.contains('`') ? '~' : '`';
+    final fence = marker * _fenceLength(code, marker.codeUnitAt(0));
     return '$fence$languageId\n$code\n$fence';
   }
 
   /// [source] as a snippet when the whole of it is one fenced block, or null.
   ///
   /// A note with prose in it — or a code fence among prose — is an ordinary
-  /// Markdown note and stays one. This is the whole test: the first line is
-  /// the fence, the last line closes it, and nothing sits outside them. That
-  /// keeps every existing Markdown note reading as it did, while a note that
-  /// was captured as code (or imported from a source file) becomes a snippet
-  /// with a language and a copy button.
+  /// Markdown note and stays one. The first matching closing fence must
+  /// also be the end of the note.
   static NexCodeSnippet? parse(String source) {
     final read = _read(source);
     if (read == null) return null;
@@ -124,36 +122,56 @@ final class NexCodeSnippet {
   }
 
   static _Read? _read(String source, {int? maxChars}) {
-    final openingEnd = source.indexOf('\n');
-    if (openingEnd <= 0) return null;
-    final opening = _opening.firstMatch(source.substring(0, openingEnd));
+    final opening = _opening.matchAsPrefix(source);
     if (opening == null) return null;
     final marker = opening.group(1)!;
-    final info = opening.group(2)!.trim();
-    // CommonMark: a backtick fence's info string may not contain a backtick.
-    if (marker.startsWith('`') && info.contains('`')) return null;
+    final openingEnd = source.indexOf('\n', opening.end);
+    if (openingEnd < 0) return null;
+    final crlf = source.codeUnitAt(openingEnd - 1) == 0x0D;
+    final info = source
+        .substring(opening.end, openingEnd - (crlf ? 1 : 0))
+        .trim();
+    final backtick = marker.startsWith('`');
+    if (info.contains('\r') || backtick && info.contains('`')) return null;
 
-    // The closing fence is the last line. One trailing newline — what an
-    // editor may leave after the fence — is allowed; anything else after it
-    // means this is a block inside a longer note, not a snippet.
-    var end = source.length;
-    if (source.codeUnitAt(end - 1) == 0x0A) end--;
-    if (end <= openingEnd) return null;
-    final closingStart = source.lastIndexOf('\n', end - 1) + 1;
-    if (closingStart <= openingEnd) return null;
-    final closing = _closing.firstMatch(source.substring(closingStart, end));
-    if (closing == null) return null;
-    final closingMarker = closing.group(1)!;
-    if (closingMarker[0] != marker[0] || closingMarker.length < marker.length) {
-      return null;
-    }
-
-    // [NexCodeSnippet.markdown] writes exactly one newline between the code
-    // and the closing fence. Removing exactly that one is what keeps a code
-    // that ends in blank lines, or in no newline at all, byte for byte.
     final codeStart = openingEnd + 1;
-    final codeEnd = closingStart - 1;
-    if (codeEnd < codeStart) return null;
+    final closer = backtick ? _backtickClose : _tildeClose;
+    // Find marker runs with the string search so large snippets do not
+    // run a regular expression over every line each time a card is built.
+    var searchFrom = codeStart;
+    while (true) {
+      final run = source.indexOf(marker, searchFrom);
+      if (run < 0) return null;
+      searchFrom = run + marker.length;
+      var lineStart = run;
+      while (lineStart > codeStart &&
+          run - lineStart < 3 &&
+          source.codeUnitAt(lineStart - 1) == 0x20) {
+        lineStart--;
+      }
+      if (source.codeUnitAt(lineStart - 1) != 0x0A) continue;
+      final closing = closer.matchAsPrefix(source, lineStart);
+      if (closing == null) continue;
+      // A closing fence followed by more Markdown ends the first block,
+      // even if a later line could also close the fence.
+      if (closing.end != source.length) return null;
+
+      var codeEnd = closing.start;
+      if (codeEnd > codeStart) {
+        codeEnd--;
+        if (crlf && source.codeUnitAt(codeEnd - 1) == 0x0D) codeEnd--;
+      }
+      return _readCode(source, info, codeStart, codeEnd, maxChars);
+    }
+  }
+
+  static _Read _readCode(
+    String source,
+    String info,
+    int codeStart,
+    int codeEnd,
+    int? maxChars,
+  ) {
     var previewEnd = codeEnd;
     if (maxChars != null && previewEnd - codeStart > maxChars) {
       previewEnd = codeStart + maxChars;
@@ -174,13 +192,12 @@ final class NexCodeSnippet {
     );
   }
 
-  /// A fence longer than the longest run of backticks in [code], so a
-  /// snippet about Markdown — fences included — cannot close its own block.
-  static int _fenceLength(String code) {
+  /// A fence longer than any run of its marker inside the code.
+  static int _fenceLength(String code, int marker) {
     var longest = 0;
     var run = 0;
     for (final unit in code.codeUnits) {
-      if (unit == 0x60) {
+      if (unit == marker) {
         run++;
         if (run > longest) longest = run;
       } else {
@@ -193,13 +210,9 @@ final class NexCodeSnippet {
 
   static bool _isHighSurrogate(int unit) => unit >= 0xD800 && unit <= 0xDBFF;
 
-  /// An opening fence: at most three spaces of indent, three or more of one
-  /// marker, and the rest of the line as the info string.
-  static final _opening = RegExp(r'^ {0,3}(`{3,}|~{3,})(.*)$');
-
-  /// A closing fence: the same marker, whitespace after it and nothing else.
-  /// Which marker, and how long, is checked against the opening fence.
-  static final _closing = RegExp(r'^ {0,3}(`{3,}|~{3,})[ \t]*$');
+  static final _opening = RegExp(r' {0,3}(`{3,}|~{3,})');
+  static final _backtickClose = RegExp(r' {0,3}`{3,}[ \t]*(?:\r?\n|$)');
+  static final _tildeClose = RegExp(r' {0,3}~{3,}[ \t]*(?:\r?\n|$)');
 }
 
 final class _Read {

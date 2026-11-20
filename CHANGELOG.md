@@ -4,12 +4,13 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
-- **Shorter rows in the standard grid.** Brief notes and recordings take up less space. Longer previews, captions and media have room when they need it.
-- **File types at a glance.** File cards use distinct icons for PDFs, Markdown, videos, archives, and other common formats.
 - **Code in your notes.** Choose **Code** when capturing, paste or type the snippet and pick its language, and it stays exactly as written — fixed-width, left to right, highlighted, with one tap to copy the code itself. Reopen it from **Edit** to change the code or the language.
 
 ## v2.8.8
 
+- **Richer large list cards.** See a bigger photo or the first page of a PDF, play recordings beside their captions and transcripts, and tick checklist items from the list. Standard cards give captions their own space, and Show in full reveals longer captions and recording transcripts.
+- **Shorter rows in the standard grid.** Brief notes and recordings take up less space. Longer previews, captions and media have room when they need it.
+- **File types at a glance.** File cards use distinct icons for PDFs, Markdown, videos, archives, and other common formats.
 - **No jump when picking notes.** Cards and date headings stay in place when you start or stop selecting, and the fold arrow stays inside each heading.
 - **Faster photo editing.** Large photos open and respond faster when cropping, rotating or flipping. Saved edits appear sooner on the note.
 - **Easier typing on Android.** Tap anywhere inside a text field, including by its edges, to start typing.

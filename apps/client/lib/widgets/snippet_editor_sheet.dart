@@ -132,14 +132,10 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
       _rawLanguage != widget.initial.rawLanguage;
 
   void _selectLanguage(NexCodeLanguage language) {
-    if (language == _language) return;
+    if (language == _language && _rawLanguage == null) return;
     setState(() {
       _language = language;
-      // Choosing one of the languages this build knows replaces a fence's
-      // foreign info string; choosing the original one again puts it back.
-      _rawLanguage = language == widget.initial.language
-          ? widget.initial.rawLanguage
-          : null;
+      _rawLanguage = null;
     });
     _writeDraft();
   }
@@ -148,7 +144,6 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
 
   void _save() {
     if (!_canSave) return;
-    discardDraft();
     nexDismissKeyboard(context);
     if (mounted) {
       Navigator.pop(

@@ -308,14 +308,26 @@ extension _DetailActions on _NoteDetailSheetState {
       // The code is stored in its fence exactly as it came back: the fence
       // is the note's, and the code is the person's, trailing spaces and
       // all. Nothing here trims.
-      final next = edited.markdown;
-      if (next == content) {
+      if (edited.code == snippet.code &&
+          edited.language == snippet.language &&
+          edited.rawLanguage == snippet.rawLanguage) {
         preferences.editorDrafts?.clear(draftKey);
         return;
       }
-      await widget.services.updateNote(note.id, next);
+      try {
+        await widget.services.updateNote(note.id, edited.markdown);
+      } catch (error) {
+        unawaited(NexCrashLog.handled('note.saveSnippet', error));
+        if (mounted) {
+          nexShowBanner(
+            context,
+            message: AppLocalizations.of(context).captureFailed,
+            kind: NexBannerKind.failed,
+          );
+        }
+        return;
+      }
       preferences.editorDrafts?.clear(draftKey);
-      await widget.services.refreshTimeline();
       await _reload();
       return;
     }

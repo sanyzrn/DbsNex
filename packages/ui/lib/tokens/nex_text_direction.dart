@@ -495,10 +495,14 @@ class NexAutoDirection extends StatefulWidget {
     super.key,
     required this.controller,
     required this.builder,
+    this.direction,
   });
 
   final TextEditingController controller;
   final Widget Function(BuildContext context, TextDirection? direction) builder;
+
+  /// Keeps a fixed direction while preserving the editable widget and focus.
+  final TextDirection? direction;
 
   @override
   State<NexAutoDirection> createState() => _NexAutoDirectionState();
@@ -510,17 +514,21 @@ class _NexAutoDirectionState extends State<NexAutoDirection> {
   @override
   void initState() {
     super.initState();
-    _direction = nexDirectionOf(widget.controller.text);
+    _direction = _resolveDirection();
     widget.controller.addListener(_reread);
   }
 
   @override
   void didUpdateWidget(NexAutoDirection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller == widget.controller) return;
-    oldWidget.controller.removeListener(_reread);
-    widget.controller.addListener(_reread);
-    _direction = nexDirectionOf(widget.controller.text);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_reread);
+      widget.controller.addListener(_reread);
+    }
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.direction != widget.direction) {
+      _direction = _resolveDirection();
+    }
   }
 
   @override
@@ -529,8 +537,11 @@ class _NexAutoDirectionState extends State<NexAutoDirection> {
     super.dispose();
   }
 
+  TextDirection? _resolveDirection() =>
+      widget.direction ?? nexDirectionOf(widget.controller.text);
+
   void _reread() {
-    final next = nexDirectionOf(widget.controller.text);
+    final next = _resolveDirection();
     if (next == _direction) return;
     setState(() => _direction = next);
   }

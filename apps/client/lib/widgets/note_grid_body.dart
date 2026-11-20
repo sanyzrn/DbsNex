@@ -28,9 +28,7 @@ class _Body extends StatelessWidget {
     final scheme = theme.colorScheme;
     final titleStyle = _gridTitleStyle(theme.textTheme);
     final bodyStyle = _gridBodyStyle(theme.textTheme)?.copyWith(color: muted);
-    final snippet = note.type == NoteType.text
-        ? NexCodeSnippet.previewOf(note.content ?? '', maxChars: 400)
-        : null;
+    final snippet = _gridCodePreview(note);
     final codeDirection = snippet == null ? null : TextDirection.ltr;
     final heading = title;
     final uri = note.mediaUri;
@@ -285,10 +283,7 @@ class _Body extends StatelessWidget {
         // right, so a Python comment does not turn its indentation around.
         final restStyle = snippet == null
             ? baseRest
-            : baseRest?.copyWith(
-                fontFamily: 'monospace',
-                fontFamilyFallback: const ['Courier New', 'monospace'],
-              );
+            : NexCodeText.monospaceStyle(baseRest);
         // The heading takes up to three lines; the words under it every
         // whole line that is left.
         var headLines = 0;

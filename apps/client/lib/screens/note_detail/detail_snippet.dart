@@ -27,6 +27,8 @@ extension _DetailSnippet on _NoteDetailSheetState {
                   snippet.language,
                   rawLanguage: snippet.rawLanguage,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -47,13 +49,15 @@ extension _DetailSnippet on _NoteDetailSheetState {
             color: scheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(NexRadius.md),
           ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: NexCodeText(
-              snippet.code,
-              language: snippet.language,
-              style: mono,
-              softWrap: false,
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: NexCodeText(
+                snippet.code,
+                language: snippet.language,
+                style: mono,
+              ),
             ),
           ),
         ),

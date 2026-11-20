@@ -77,6 +77,42 @@ void main() {
     },
   );
 
+  testWidgets('standard and large timeline cards keep code and captions', (
+    tester,
+  ) async {
+    const body = '  # سلام\n  print(1)';
+    final note = textNote('```python\n$body\n```').copyWith(caption: 'Caption');
+    for (final density in [NexCardDensity.standard, NexCardDensity.readable]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: nexLightTheme(),
+          home: Directionality(
+            textDirection: TextDirection.rtl,
+            child: NexCardDensityScope(
+              density: density,
+              child: Scaffold(
+                body: NoteCard(note: note, timelinePreview: true),
+              ),
+            ),
+          ),
+        ),
+      );
+      final code = tester.widget<NexCodeText>(find.byType(NexCodeText));
+      expect(code.code, body);
+      expect(code.highlight, isFalse);
+      expect(find.text('Caption'), findsOneWidget);
+      final rendered = tester.widget<RichText>(
+        find
+            .descendant(
+              of: find.byType(NexCodeText),
+              matching: find.byType(RichText),
+            )
+            .first,
+      );
+      expect(rendered.textDirection, TextDirection.ltr);
+    }
+  });
+
   testWidgets('a screen reader hears the words too', (tester) async {
     final handle = tester.ensureSemantics();
     await tester.pumpWidget(host(textNote('the **urgent** one')));

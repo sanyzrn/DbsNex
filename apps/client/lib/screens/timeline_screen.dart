@@ -24,6 +24,7 @@ import '../platform/note_copy.dart';
 import '../platform/file_opener.dart';
 import '../platform/hold_menu.dart';
 import '../widgets/card_audio.dart';
+import '../platform/tile_previews.dart';
 import '../widgets/card_link.dart';
 import '../widgets/nex_fold_pill.dart';
 import '../widgets/nex_pull_refresh.dart';
@@ -116,6 +117,7 @@ part 'timeline/timeline_grid.dart';
 part 'timeline/timeline_filter_widgets.dart';
 part 'timeline/timeline_groups.dart';
 part 'timeline/timeline_list.dart';
+part 'timeline/timeline_list_cards.dart';
 part 'timeline/timeline_ai_header.dart';
 part 'timeline/timeline_brief_sources.dart';
 part 'timeline/timeline_capture.dart';
@@ -624,36 +626,6 @@ class TimelineScreenState extends State<TimelineScreen>
   /// behaviour by topic (W4.2): an extension is not a subclass, so it cannot
   /// call the protected method itself.
   void _rebuild(VoidCallback change) => setState(change);
-
-  /// Everything this screen shows, read again.
-  ///
-  /// The pull-down was meant to reveal the search field. It never did — the
-  /// field turned out to sit at the top permanently, so there was nothing to
-  /// pull in — and a gesture that does nothing is worse than no gesture. This
-  /// is what a downward pull on a list means everywhere else, and it is also
-  /// the manual escape hatch for anything that fails to refresh on its own.
-  ///
-  /// Syncing is part of it only when a server is configured, and its failure
-  /// is reported without taking the local reload down with it: the notes on
-  /// this device are the point, and they reloaded either way.
-  Future<void> _refresh() async {
-    final banner = NexBannerHost.of(context);
-    final l10n = AppLocalizations.of(context);
-    await Future.wait([
-      widget.services.refreshTimeline(),
-      _model.loadFilterTags(),
-    ]);
-    if (widget.preferences.syncBaseUrl == null) return;
-    try {
-      await widget.services.syncNow();
-    } catch (error) {
-      if (!mounted) return;
-      banner?.show(
-        message: '${l10n.syncFailed} (${NexServices.describeFailure(error)})',
-        kind: NexBannerKind.failed,
-      );
-    }
-  }
 
   /// Where the list was when it last buzzed.
   ///

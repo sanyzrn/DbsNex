@@ -423,9 +423,18 @@ const nexCardHeight = nexCardLeadingSize + NexSpacing.cardInset * 2;
 /// the card follows them, because the alternative is a fixed box clipping the
 /// text of whoever turned the size up. The app's own UI-scale setting composes
 /// with the system's accessibility curve, so this follows the actual text size.
-double nexCardHeightFor(BuildContext context, {bool withFootnote = false}) {
+double nexCardHeightFor(
+  BuildContext context, {
+  bool withFootnote = false,
+  bool timelinePreview = false,
+}) {
   final density = NexCardDensity.of(context);
-  final lines = nexCardPreviewLineHeightFor(context) * density.lines;
+  // On the large timeline, this is the minimum for the leading icon. The
+  // preview itself decides whether the card needs any height beyond that.
+  final lineCount = timelinePreview && density == NexCardDensity.readable
+      ? 1
+      : density.lines;
+  final lines = nexCardPreviewLineHeightFor(context) * lineCount;
   final footnote = withFootnote ? nexCardFootnoteHeightFor(context) : 0.0;
   return math.max(density.leading, lines + footnote) + density.inset * 2;
 }

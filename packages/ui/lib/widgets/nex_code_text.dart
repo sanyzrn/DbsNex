@@ -39,18 +39,16 @@ class NexCodeText extends StatelessWidget {
   final bool highlight;
   final bool softWrap;
 
+  static TextStyle monospaceStyle(TextStyle? style) =>
+      (style ?? const TextStyle()).copyWith(
+        fontFamily: 'monospace',
+        fontFamilyFallback: const ['Courier New', 'monospace'],
+      );
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final base = (style ?? theme.textTheme.bodyLarge ?? const TextStyle())
-        .copyWith(
-          // By family name rather than a bundled font, for the same reason
-          // the Markdown renderer does it: the app ships one typeface for its
-          // own text, and the platform's mono is the right wrong font for
-          // source.
-          fontFamily: 'monospace',
-          fontFamilyFallback: const ['Courier New', 'monospace'],
-        );
+    final base = monospaceStyle(style ?? theme.textTheme.bodyLarge);
     final spans = highlight && language != NexCodeLanguage.plainText
         ? nexHighlightCode(
             code,

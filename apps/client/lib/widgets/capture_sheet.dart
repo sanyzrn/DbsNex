@@ -31,6 +31,7 @@ import 'schedule_picker.dart';
 import 'nex_text_field.dart';
 import 'keyboard_dismisser.dart';
 
+part 'capture_sheet_code.dart';
 part 'capture_sheet_modes.dart';
 part 'capture_sheet_parts.dart';
 part 'capture_sheet_settle.dart';
@@ -169,34 +170,6 @@ class _CaptureSheetState extends State<CaptureSheet>
 
   /// What the switcher and the box show.
   CaptureKind get _shown => _voiceOn ? CaptureKind.voice : _kind;
-
-  /// The note's content for the words in the box.
-  ///
-  /// A snippet has to travel as Markdown — one fenced block with its
-  /// language on the opening fence — because that is what every other note
-  /// surface already reads, exports and searches. Everything that writes or
-  /// journals goes through here, so the database and the crash journal never
-  /// disagree about whether the fence is there.
-  String _wireContent(String text) {
-    if (_kind != CaptureKind.code || text.trim().isEmpty) return text;
-    return NexCodeSnippet(code: text, language: _codeLanguage).markdown;
-  }
-
-  void _selectLanguage(NexCodeLanguage language) {
-    if (_closing || language == _codeLanguage) return;
-    if (widget.preferences.haptics) unawaited(HapticFeedback.selectionClick());
-    setState(() => _codeLanguage = language);
-    // The journal is what a relaunch recovers from; it has to carry the
-    // language too, or a snippet recovered after a crash reopens in the
-    // language it had before the picker moved.
-    try {
-      widget.services.captureJournal.writeSoon(
-        _draftId,
-        _wireContent(controller.text),
-      );
-    } catch (_) {}
-    if (controller.text.trim().isNotEmpty) unawaited(flush());
-  }
 
   /// The write the first keystroke starts.
   ///
@@ -373,7 +346,10 @@ class _CaptureSheetState extends State<CaptureSheet>
           _draftId = newUuidV7();
           if (_latestText.isNotEmpty) {
             unawaited(
-              widget.services.captureJournal.write(_draftId, _latestText),
+              widget.services.captureJournal.write(
+                _draftId,
+                _wireContent(_latestText),
+              ),
             );
             // Let this serialized deletion finish before inserting the new
             // draft typed while its database request was in flight.
@@ -383,8 +359,11 @@ class _CaptureSheetState extends State<CaptureSheet>
           unawaited(NexCrashLog.handled('capture.draftSwap', error));
           _fail();
         }
-      } else if (text != persisted || _wireContent(text) != _persistedWire) {
-        await _write(id, text);
+      } else {
+        final wire = _wireContent(text);
+        if (text != persisted || wire != _persistedWire) {
+          await _write(id, text, wire);
+        }
       }
     });
     return _writes;
@@ -393,12 +372,9 @@ class _CaptureSheetState extends State<CaptureSheet>
   /// Persist before updating the saved snapshot; failures keep the previous
   /// snapshot available for retry while the editor stays open.
   ///
-  /// The text of the most recent update needs no second marker: [persisted]
-  /// and the ordered write chain ([_flushCurrent]) are what keep `close`,
-  /// the pop and `dispose` — which all settle through this same path — from
-  /// writing the same text twice.
-  Future<void> _write(String id, String text) async {
-    final wire = _wireContent(text);
+  /// The raw and stored forms are tracked separately because the language
+  /// can change while the code itself stays the same.
+  Future<void> _write(String id, String text, String wire) async {
     try {
       // The light path: while the sheet is open, a keystroke flush must not
       // read the note back or re-read the whole timeline window (see
@@ -711,41 +687,7 @@ class _CaptureSheetState extends State<CaptureSheet>
               text: controller.text,
               scheduleHint: showScheduleHint,
             ),
-            AnimatedSize(
-              duration: NexMotion.of(context, NexMotion.morph),
-              curve: NexMotion.moveCurve,
-              alignment: Alignment.topCenter,
-              child: shown == CaptureKind.code
-                  ? Padding(
-                      padding: const EdgeInsetsDirectional.only(
-                        start: NexSpacing.sm,
-                        top: NexSpacing.xs,
-                      ),
-                      child: Wrap(
-                        spacing: NexSpacing.sm,
-                        runSpacing: NexSpacing.xs,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            l10n.codeLanguage,
-                            style: Theme.of(context).textTheme.labelMedium
-                                ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                          ),
-                          NexCodeLanguageButton(
-                            key: const ValueKey('capture-code-language'),
-                            language: _codeLanguage,
-                            enabled: !_closing,
-                            onSelected: _selectLanguage,
-                          ),
-                        ],
-                      ),
-                    )
-                  : const SizedBox(width: double.infinity),
-            ),
+            _languagePicker(context, l10n, shown),
             const SizedBox(height: NexSpacing.xs),
             // Everything below stays fully drawn while closing — the tools
             // keep their colour and the buttons their shape; the pointers are

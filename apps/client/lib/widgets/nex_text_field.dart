@@ -153,13 +153,9 @@ class _NexTextFieldState extends State<NexTextField> {
 
   Widget _flutter(BuildContext context) {
     final monoStyle = widget.monospace
-        ? (widget.style ??
-                  Theme.of(context).textTheme.bodyLarge ??
-                  const TextStyle())
-              .copyWith(
-                fontFamily: 'monospace',
-                fontFamilyFallback: const ['Courier New', 'monospace'],
-              )
+        ? NexCodeText.monospaceStyle(
+            widget.style ?? Theme.of(context).textTheme.bodyLarge,
+          )
         : widget.style;
     Widget field(TextDirection? direction) => TextField(
       controller: widget.controller,
@@ -185,7 +181,7 @@ class _NexTextFieldState extends State<NexTextField> {
       smartDashesType: widget.monospace ? SmartDashesType.disabled : null,
       smartQuotesType: widget.monospace ? SmartQuotesType.disabled : null,
       enableIMEPersonalizedLearning: widget.enableIMEPersonalizedLearning,
-      textDirection: widget.textDirection ?? direction,
+      textDirection: direction,
       textAlign: TextAlign.start,
       textAlignVertical: widget.expands ? TextAlignVertical.top : null,
       // The default paints a double-tapped word's highlight out to the end
@@ -197,12 +193,9 @@ class _NexTextFieldState extends State<NexTextField> {
           ? _formatMenu
           : nexReadingMenu,
     );
-    final forced = widget.textDirection;
-    if (forced != null) {
-      return Directionality(textDirection: forced, child: field(null));
-    }
     return NexAutoDirection(
       controller: widget.controller,
+      direction: widget.textDirection,
       builder: (context, direction) => field(direction),
     );
   }

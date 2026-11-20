@@ -401,11 +401,6 @@ private class NexEditTextView(
         } else {
             View.TEXT_ALIGNMENT_VIEW_START
         }
-        edit.typeface = if (args["monospace"] == true) {
-            Typeface.MONOSPACE
-        } else {
-            typeface(edit.context)
-        }
         edit.layoutDirection = when {
             forcedDirection == "ltr" -> View.LAYOUT_DIRECTION_LTR
             forcedDirection == "rtl" -> View.LAYOUT_DIRECTION_RTL
@@ -473,6 +468,11 @@ private class NexEditTextView(
             // Send becoming a new line — tells it to look again.
             keyboard()?.restartInput(edit)
         }
+
+        // Apply the typeface after changing the input type so the keyboard
+        // configuration cannot replace the font when a capture kind changes.
+        val face = if (args["monospace"] == true) Typeface.MONOSPACE else typeface(edit.context)
+        if (edit.typeface != face) edit.typeface = face
 
         expands = args["expands"] == true
         minLines = (args["minLines"] as? Number)?.toInt() ?: 1

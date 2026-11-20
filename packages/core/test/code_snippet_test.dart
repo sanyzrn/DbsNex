@@ -80,6 +80,36 @@ void main() {
       );
     });
 
+    test('two fenced blocks keep all of the original Markdown', () {
+      const first = '```dart\nprint(1);\n```';
+      const second = '```dart\nprint(2);\n```';
+      for (final between in ['\n', '\n\nExplanation.\n\n']) {
+        final source = '$first$between$second';
+        expect(NexCodeSnippet.parse(source), isNull);
+        expect(NexCodeSnippet.previewOf(source, maxChars: 3), isNull);
+      }
+    });
+
+    test('CRLF wrappers preserve the code and its internal line endings', () {
+      const code = '\tprint(1);  \r\nprint(2);\r\n';
+      final snippet = NexCodeSnippet.parse('```dart\r\n$code\r\n```\r\n');
+      expect(snippet?.language, NexCodeLanguage.dart);
+      expect(snippet?.code, code);
+      expect(NexCodeSnippet.parse(snippet!.markdown)?.code, code);
+      const bareCarriageReturn = NexCodeSnippet(code: 'text\r');
+      expect(
+        NexCodeSnippet.parse(bareCarriageReturn.markdown)?.code,
+        bareCarriageReturn.code,
+      );
+    });
+
+    test('an unknown language with a backtick keeps a valid tilde fence', () {
+      final snippet = NexCodeSnippet.parse('~~~custom`id\nline\n~~~')!;
+      final edited = snippet.withCode('first\n~~~\nlast');
+      expect(edited.markdown, '~~~~custom`id\nfirst\n~~~\nlast\n~~~~');
+      expect(NexCodeSnippet.parse(edited.markdown)?.code, edited.code);
+    });
+
     test('an unclosed or mismatched fence is not a snippet', () {
       expect(NexCodeSnippet.parse('```dart\nvar x = 1;'), isNull);
       expect(NexCodeSnippet.parse('```dart\nvar x = 1;\n~~~'), isNull);

@@ -69,7 +69,8 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   PhotoCropPreview? _preview;
   Uint8List? _previewBytes;
   ImageParser<Size>? _previewParser;
-  late final bool _legacyAnnotation;
+  late bool _legacyAnnotation;
+  bool get _legacyCrop => _legacyAnnotation && identical(_source, widget.image);
 
   int _turns = 0;
   bool _flipped = false;
@@ -129,7 +130,8 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
     final draft = widget.drafts?.read(_key);
     final annotation = widget.drafts?.read('${widget.draftKey}-annotation');
     _legacyAnnotation =
-        annotation?['image'] != null && annotation?['version'] != 2;
+        annotation?['image'] != null &&
+        (annotation?['version'] != 2 || annotation?['legacyCrop'] == true);
     _aspectRatio = (draft?['ratio'] as num?)?.toDouble();
     _turns = ((draft?['turns'] as num?)?.toInt() ?? 0) % 4;
     _flipped = draft?['flipped'] == true;
@@ -197,6 +199,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
         _ready = false;
         if (reset) {
           discardDraft();
+          _legacyAnnotation = false;
           _areaMoved = false;
           _aspectRatio = null;
         }
@@ -242,6 +245,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
               image: croppedImage,
               drafts: widget.drafts,
               draftKey: widget.draftKey,
+              legacyCrop: _legacyCrop,
             ),
           ),
         );
@@ -427,8 +431,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                                     _source,
                                     _turns,
                                     _flipped,
-                                    _legacyAnnotation &&
-                                        identical(_source, widget.image),
+                                    _legacyCrop,
                                   ),
                                   aspectRatio: _aspectRatio,
                                   controller: _controller,

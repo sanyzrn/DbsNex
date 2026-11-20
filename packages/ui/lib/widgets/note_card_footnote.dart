@@ -2,10 +2,43 @@ part of 'note_card.dart';
 
 extension on _CardBody {
   Widget _withFootnote(BuildContext context) {
-    final caption =
-        note.type == NoteType.text && note.caption?.trim().isNotEmpty == true
-        ? NexMarkdownText.preview(note.caption!.trim())
-        : null;
+    final caption = _timelineCaption(note);
+    final density = NexCardDensity.of(context);
+    if (timelinePreview && density == NexCardDensity.readable) {
+      if (previewOverride != null) return previewOverride!;
+      if (!expanded &&
+          note.type == NoteType.checklist &&
+          note.checklistItems.isNotEmpty) {
+        return _TimelineChecklistHeading(note: note, strings: strings);
+      }
+      if (note.type == NoteType.text || note.type == NoteType.file) {
+        return _TimelineWords(
+          note: note,
+          strings: strings,
+          maxLines: expanded ? nexCardExpandedMaxLines : _timelineTextLines,
+          caption: caption,
+          captionLines: expanded ? 4 : 1,
+        );
+      }
+      return _Preview(
+        note: note,
+        expanded: expanded,
+        strings: strings,
+        lines: _timelineTextLines,
+      );
+    }
+    if (timelinePreview &&
+        density == NexCardDensity.standard &&
+        previewOverride == null &&
+        (caption != null || _timelineFileCaption(note) != null)) {
+      return _TimelineWords(
+        note: note,
+        strings: strings,
+        maxLines: expanded ? nexCardExpandedMaxLines : density.lines,
+        caption: caption,
+        captionLines: expanded ? 4 : 1,
+      );
+    }
     if (!expanded) {
       return _CollapsedCardContent(
         note: note,
@@ -23,7 +56,7 @@ extension on _CardBody {
               note: note,
               expanded: true,
               strings: strings,
-              lines: NexCardDensity.of(context).lines,
+              lines: density.lines,
             ),
         if (caption != null) _CardCaption(text: caption),
       ],
@@ -32,15 +65,16 @@ extension on _CardBody {
 }
 
 class _CardCaption extends StatelessWidget {
-  const _CardCaption({required this.text});
+  const _CardCaption({required this.text, this.maxLines = 1});
 
   final String text;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) => NexTextSurface(
     text,
     key: const ValueKey('note-card-caption'),
-    maxLines: 1,
+    maxLines: maxLines,
     style: Theme.of(context).textTheme.labelSmall?.copyWith(
       color: Theme.of(context).colorScheme.onSurfaceVariant,
       fontWeight: FontWeight.w400,

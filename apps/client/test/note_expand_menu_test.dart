@@ -15,6 +15,30 @@ void main() {
   });
   tearDown(() => harness.dispose());
 
+  testWidgets('Show in full reveals a clipped caption in the list', (
+    tester,
+  ) async {
+    await harness.preferences.setCardDensity(NexCardDensity.standard);
+    final note = (await harness.services.captureText('Short note'))!;
+    await harness.services.setCaption(note.id, 'First line\nSecond line');
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    final caption = find.byWidgetPredicate(
+      (widget) =>
+          widget is NexTextSurface && widget.text == 'First line\nSecond line',
+    );
+    expect(tester.widget<NexTextSurface>(caption).maxLines, 1);
+    final card = find.byWidgetPredicate(
+      (widget) => widget is NoteCard && widget.note.id == note.id,
+    );
+    final l10n = AppLocalizations.of(tester.element(card));
+    await tester.longPress(card);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.expandCard));
+    await tester.pumpAndSettle();
+    expect(tester.widget<NexTextSurface>(caption).maxLines, 4);
+  });
+
   for (final long in [false, true]) {
     testWidgets(
       'Show in full only when extra content is visible (long=$long)',

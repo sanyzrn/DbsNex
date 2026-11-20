@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 
 import 'package:nex_client/l10n/app_localizations.dart';
+import 'package:nex_client/platform/editor_drafts.dart';
 import 'package:nex_client/screens/photo_annotate_screen.dart';
 import 'package:nex_client/screens/photo_crop_screen.dart';
 
@@ -51,6 +53,7 @@ Uint8List _asymmetricTestPng() {
 Future<Uint8List? Function()> _pushCropScreen(
   WidgetTester tester, {
   Uint8List? image,
+  EditorDrafts? drafts,
 }) async {
   // Pinned rather than left at the default. What `Crop` selects depends on
   // the shape of the box it is given, and that box is the screen minus the
@@ -72,7 +75,8 @@ Future<Uint8List? Function()> _pushCropScreen(
           onPressed: () async {
             result = await Navigator.of(context).push<Uint8List>(
               MaterialPageRoute(
-                builder: (_) => PhotoCropScreen(image: image ?? _testPng),
+                builder: (_) =>
+                    PhotoCropScreen(image: image ?? _testPng, drafts: drafts),
               ),
             );
             resultSet = true;
@@ -238,6 +242,59 @@ void main() {
     expect(centerStrip, anyElement(greaterThan(96)));
     expect(edited.getPixel(2, 2).r, lessThan(20));
   });
+
+  testWidgets(
+    'editing a legacy annotation preserves its crop on another recovery',
+    (tester) async {
+      final directory = Directory.systemTemp.createTempSync(
+        'nex_legacy_photo_',
+      );
+      addTearDown(() => directory.deleteSync(recursive: true));
+      final drafts = EditorDrafts(directory.path);
+      final jpeg = img.encodeJpg(img.Image(width: 320, height: 240));
+      const annotationKey = 'photo-new-annotation';
+      drafts.write(annotationKey, {
+        'image': 'legacy-draft',
+        'marks': <Object>[],
+      });
+
+      Future<void> openAnnotation() async {
+        await _pushCropScreen(tester, image: jpeg, drafts: drafts);
+        await _waitForCrop(tester);
+        await tester.tap(find.byIcon(Icons.draw_outlined));
+        final done = find.widgetWithText(FilledButton, 'Done');
+        await _waitFor(
+          tester,
+          () =>
+              done.evaluate().isNotEmpty &&
+              tester.widget<FilledButton>(done).onPressed != null,
+        );
+      }
+
+      await openAnnotation();
+      final first = tester.widget<PhotoAnnotateScreen>(
+        find.byType(PhotoAnnotateScreen),
+      );
+      await tester.tap(find.byKey(const ValueKey('annotate-canvas')));
+      await tester.pump();
+      drafts.flushPending();
+      expect(drafts.read(annotationKey)?['legacyCrop'], isTrue);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+
+      await openAnnotation();
+      final restored = tester.widget<PhotoAnnotateScreen>(
+        find.byType(PhotoAnnotateScreen),
+      );
+      expect(restored.image, orderedEquals(first.image));
+      expect(
+        tester
+            .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.undo))
+            .onPressed,
+        isNotNull,
+      );
+    },
+  );
 
   testWidgets('rotating changes what gets cropped, not just a no-op tap', (
     tester,
