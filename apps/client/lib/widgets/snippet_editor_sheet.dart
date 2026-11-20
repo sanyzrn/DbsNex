@@ -196,24 +196,13 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
                     ],
                   ),
                   const SizedBox(height: NexSpacing.xs),
-                  Wrap(
-                    spacing: NexSpacing.sm,
-                    runSpacing: NexSpacing.xs,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        l10n.language,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                      NexCodeLanguageButton(
-                        key: const ValueKey('snippet-code-language'),
-                        language: _language,
-                        rawLanguage: _rawLanguage,
-                        onSelected: _selectLanguage,
-                      ),
-                    ],
+                  NexCodeToolbar(
+                    pickerKey: const ValueKey('snippet-code-language'),
+                    language: _language,
+                    rawLanguage: _rawLanguage,
+                    controller: _code,
+                    focus: _focus,
+                    onSelected: _selectLanguage,
                   ),
                   const SizedBox(height: NexSpacing.sm),
                   Expanded(

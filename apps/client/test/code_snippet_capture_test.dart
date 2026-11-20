@@ -137,6 +137,69 @@ void main() {
     expect(note.content, '```python\nprintln("hi")\n```');
   });
 
+  testWidgets(
+    'language hints and multiline indentation preserve the selection and draft',
+    (tester) async {
+      await openComposer(tester);
+      const source = 'def draw():\n  return 1\n';
+      await tester.enterText(_field, source);
+      await tester.pumpAndSettle();
+      final input = tester.widget<TextField>(_field).controller!;
+      input.selection = const TextSelection(
+        baseOffset: 0,
+        extentOffset: source.length,
+      );
+      await tester.tap(find.byKey(const ValueKey('code-language-suggestion')));
+      await tester.pumpAndSettle();
+      final l10n = AppLocalizations.of(tester.element(_field));
+      await tester.tap(find.byTooltip(l10n.codeIndent));
+      await tester.pumpAndSettle();
+      expect(input.text, '  def draw():\n    return 1\n');
+      await tester.tap(find.byTooltip(l10n.codeOutdent));
+      await tester.pumpAndSettle();
+      expect(input.text, source);
+      expect(input.selection.extentOffset, source.length);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      final note = (await services.timeline(limit: 1)).single;
+      expect(note.snippetPreview?.language, NexCodeLanguage.python);
+      expect(note.copyText, source);
+      expect(find.byIcon(Icons.code_rounded), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'the Persian language palette fits above a phone keyboard and returns to the same caret',
+    (tester) async {
+      await preferences.setLocale('fa');
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(360, 780);
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await openComposer(tester);
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      await tester.enterText(_field, 'a + b');
+      final input = tester.widget<TextField>(_field).controller!;
+      input.selection = const TextSelection.collapsed(offset: 2);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('capture-code-language')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byType(ChoiceChip),
+        findsNWidgets(NexCodeLanguage.selectable.length),
+      );
+      final php = find.widgetWithText(ChoiceChip, 'PHP');
+      await tester.ensureVisible(php);
+      await tester.tap(php);
+      await tester.pumpAndSettle();
+      expect(input.selection.extentOffset, 2);
+      expect(input.text, 'a + b');
+      expect(tester.widget<TextField>(_field).focusNode!.hasFocus, isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('the web languages are selectable and the PHP source is kept', (
     tester,
   ) async {
@@ -235,6 +298,54 @@ void main() {
       NexCodeSnippet(code: edited, language: NexCodeLanguage.python).markdown,
     );
   });
+
+  testWidgets(
+    'long source pages reassemble exactly and wrap independently of copying',
+    (tester) async {
+      tester.view.physicalSize = const Size(600, 1100);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final code =
+          '${'a' * 3999}😀\r\n${List.generate(55, (i) => '  line $i').join('\n')}';
+      final note = (await services.captureText(
+        NexCodeSnippet(code: code).markdown,
+      ))!;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: NoteDetailSheet(
+              services: services,
+              preferences: preferences,
+              noteId: note.id,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final source = find.byType(NexCodeText);
+      final context = tester.element(source);
+      await tester.tap(find.byTooltip(AppLocalizations.of(context).codeWrap));
+      await tester.pumpAndSettle();
+      expect(tester.widget<NexCodeText>(source).softWrap, isTrue);
+      final nextLabel = MaterialLocalizations.of(tester.element(source))
+          .nextPageTooltip;
+      final next = find.byWidgetPredicate(
+        (w) => w is IconButton && w.tooltip == nextLabel,
+      );
+      final pages = <String>[];
+      while (true) {
+        pages.add(tester.widget<NexCodeText>(source).code);
+        if (tester.widget<IconButton>(next).onPressed == null) break;
+        await tester.tap(next);
+        await tester.pumpAndSettle();
+      }
+      expect(pages, hasLength(3));
+      expect(pages.join(), code);
+      expect(pages.first.length, 3999);
+    },
+  );
 
   testWidgets('a snippet reads LTR in a Persian detail sheet, in both themes', (
     tester,

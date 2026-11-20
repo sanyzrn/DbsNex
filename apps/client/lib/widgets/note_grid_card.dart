@@ -12,6 +12,7 @@ import '../platform/link_art.dart';
 import '../platform/link_face.dart';
 import '../platform/tile_previews.dart';
 import 'card_audio.dart';
+import 'code_language_button.dart';
 import 'card_link.dart';
 import 'parallax_image.dart';
 import '../l10n/app_localizations.dart';
@@ -179,8 +180,17 @@ class NexNoteGridCard extends StatelessWidget {
     final (:tint, :from, :to, :muted, :outline) = wash;
     final ink = nexReadableOn(tint, from);
     final content = _gridWords(note, strings);
-    final kind = AppLocalizations.of(context).noteType(note.type.wireName);
-    final showKind = metrics.showKind && note.type != NoteType.text;
+    final l10n = AppLocalizations.of(context);
+    final snippet = note.snippetPreview;
+    final kind = snippet == null
+        ? l10n.noteType(note.type.wireName)
+        : nexCodeLanguageLabel(
+            context,
+            snippet.language,
+            rawLanguage: snippet.rawLanguage,
+          );
+    final showKind =
+        metrics.showKind && (note.type != NoteType.text || snippet != null);
     final highContrast = MediaQuery.highContrastOf(context);
     // The edge sits inside the tile, and a border inside insets what it
     // holds by its width — so the picked edge (2 px) used to move every line
@@ -199,7 +209,9 @@ class NexNoteGridCard extends StatelessWidget {
         ? NexTileBackdrop.link
         : nexTileBackdropOf(note, collages: photos != null);
     final label = [
-      strings.noteOfType(note.type.name),
+      snippet == null
+          ? strings.noteOfType(note.type.name)
+          : '${l10n.code} · $kind',
       content.title.isNotEmpty ? content.title : content.body,
       if (note.isUrgent) strings.urgentLabel,
       if (note.dueAt case final due?)
@@ -263,7 +275,24 @@ class NexNoteGridCard extends StatelessWidget {
                   ringing: ringing,
                   label: strings.selectLabel,
                   onPick: onLeadingTap,
-                  preview: inline ? body : null,
+                  preview: !inline
+                      ? null
+                      : snippet == null
+                      ? body
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              kind,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: ink,
+                              ),
+                            ),
+                            body,
+                          ],
+                        ),
                 ),
                 if (!inline) ...[
                   SizedBox(height: metrics.padding * 0.8),
@@ -597,9 +626,7 @@ class _Mark extends StatelessWidget {
         ? Icons.check_rounded
         : ringing
         ? Icons.notifications_active_rounded
-        : note.type == NoteType.file
-        ? null
-        : nexNoteTypeIcon(note.type.wireName);
+        : null;
     final ink = picked ? scheme.onPrimary : tint;
     final glyphSize = size * 0.52;
     final disc = AnimatedContainer(

@@ -20,7 +20,10 @@ class NexNoteCardGlyph extends StatelessWidget {
         : null;
     if (glyph != _FileGlyph.markdown) {
       return Icon(
-        glyph?.icon ?? nexNoteTypeIcon(note.type.wireName),
+        glyph?.icon ??
+            (note.snippetPreview != null
+                ? Icons.code_rounded
+                : nexNoteTypeIcon(note.type.wireName)),
         size: size,
         color: color,
       );

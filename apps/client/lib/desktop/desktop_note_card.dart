@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
+import '../widgets/code_language_button.dart';
+
 /// A note as a card in the desktop grid (`docs/27-desktop.md`): a title, a few
 /// lines of what is in it, a tag and a time — mostly white space, one hairline.
 ///
@@ -53,6 +55,7 @@ class _NexDesktopNoteCardState extends State<NexDesktopNoteCard> {
         : tint == null
         ? (_hover ? scheme.outline : scheme.outlineVariant)
         : tint.withValues(alpha: _hover ? 0.6 : 0.32);
+    final snippet = note.snippetPreview;
     final content = nexSplitNoteText(note, widget.strings);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -76,12 +79,20 @@ class _NexDesktopNoteCardState extends State<NexDesktopNoteCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (content.title.isNotEmpty ||
+                if (snippet != null ||
+                    content.title.isNotEmpty ||
                     note.pinnedAt != null ||
                     widget.ringing ||
                     widget.selected != null) ...[
                   _Title(
-                    title: content.title,
+                    title: content.title.isEmpty && snippet != null
+                        ? nexCodeLanguageLabel(
+                            context,
+                            snippet.language,
+                            rawLanguage: snippet.rawLanguage,
+                          )
+                        : content.title,
+                    code: snippet != null,
                     pinned: note.pinnedAt != null,
                     ringing: widget.ringing,
                     selected: widget.selected,
@@ -125,7 +136,7 @@ class _NexDesktopNoteCardState extends State<NexDesktopNoteCard> {
     // A snippet is source, not prose: its `#` is a comment, not a heading,
     // and its indentation is the code. The fence stays in the note; the
     // card shows only what is inside it.
-    final snippet = NexCodeSnippet.previewOf(note.content ?? '');
+    final snippet = note.snippetPreview;
     if (snippet != null) {
       return (title: named ?? '', body: snippet.code);
     }
@@ -171,12 +182,14 @@ class _NexDesktopNoteCardState extends State<NexDesktopNoteCard> {
 class _Title extends StatelessWidget {
   const _Title({
     required this.title,
+    required this.code,
     required this.pinned,
     required this.ringing,
     required this.selected,
   });
 
   final String title;
+  final bool code;
   final bool pinned;
   final bool ringing;
   final bool? selected;
@@ -189,6 +202,11 @@ class _Title extends StatelessWidget {
       height: 20,
       child: Row(
         children: [
+          if (code)
+            const Padding(
+              padding: EdgeInsetsDirectional.only(end: NexSpacing.xs),
+              child: Icon(Icons.code_rounded, size: 16),
+            ),
           if (pinned)
             Padding(
               padding: const EdgeInsetsDirectional.only(end: 6),
@@ -234,9 +252,7 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final snippet = note.type == NoteType.text
-        ? NexCodeSnippet.previewOf(note.content ?? '')
-        : null;
+    final snippet = note.snippetPreview;
     final baseStyle = theme.textTheme.bodySmall?.copyWith(
       fontSize: 12.5,
       height: 1.5,

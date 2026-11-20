@@ -17,9 +17,7 @@ String _gridCaption(Note note) => note.type == NoteType.text
     ? NexMarkdownText.preview(note.caption ?? '').trim()
     : '';
 
-NexCodeSnippet? _gridCodePreview(Note note) => note.type == NoteType.text
-    ? NexCodeSnippet.previewOf(note.content ?? '', maxChars: 400)
-    : null;
+NexCodeSnippet? _gridCodePreview(Note note) => note.snippetPreview;
 
 ({String title, String body}) _gridWords(Note note, NexCardStrings strings) {
   final title = note.title?.trim() ?? '';
@@ -27,7 +25,9 @@ NexCodeSnippet? _gridCodePreview(Note note) => note.type == NoteType.text
   if (note.type == NoteType.text && title.isNotEmpty) {
     return (
       title: title,
-      body: NexMarkdownText.preview(note.content ?? '').trim(),
+      body:
+          note.snippetPreview?.code ??
+          NexMarkdownText.preview(note.content ?? '').trim(),
     );
   }
   return nexSplitNoteText(note, strings);

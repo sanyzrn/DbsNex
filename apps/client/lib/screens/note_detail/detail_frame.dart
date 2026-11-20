@@ -217,14 +217,16 @@ class _DetailHeading extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(nexNoteTypeIcon(type), size: 16, color: tint),
+                NexNoteCardGlyph(note, size: 16, color: tint),
                 const SizedBox(width: 6),
                 // The word in the page's ink; the colour is the glyph's and
                 // the wash's. The accent itself on its own wash is under
                 // 3:1 for text.
                 Flexible(
                   child: Text(
-                    l10n.noteType(type),
+                    note.snippetPreview != null
+                        ? l10n.code
+                        : l10n.noteType(type),
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: scheme.onSurface,
                     ),

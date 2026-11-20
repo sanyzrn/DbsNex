@@ -29,40 +29,14 @@ extension _CaptureCode on _CaptureSheetState {
     if (controller.text.trim().isNotEmpty) unawaited(flush());
   }
 
-  Widget _languagePicker(
-    BuildContext context,
-    AppLocalizations l10n,
-    CaptureKind shown,
-  ) => AnimatedSize(
-    duration: NexMotion.of(context, NexMotion.morph),
-    curve: NexMotion.moveCurve,
-    alignment: Alignment.topCenter,
-    child: shown == CaptureKind.code
-        ? Padding(
-            padding: const EdgeInsetsDirectional.only(
-              start: NexSpacing.sm,
-              top: NexSpacing.xs,
-            ),
-            child: Wrap(
-              spacing: NexSpacing.sm,
-              runSpacing: NexSpacing.xs,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  l10n.codeLanguage,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                NexCodeLanguageButton(
-                  key: const ValueKey('capture-code-language'),
-                  language: _codeLanguage,
-                  enabled: !_closing,
-                  onSelected: _selectLanguage,
-                ),
-              ],
-            ),
-          )
-        : const SizedBox(width: double.infinity),
+  Widget _codeToolbar() => NexCodeToolbar(
+    key: const ValueKey('capture-code-toolbar'),
+    pickerKey: const ValueKey('capture-code-language'),
+    language: _codeLanguage,
+    controller: controller,
+    focus: _fieldFocus,
+    enabled: !_closing,
+    onTextChanged: changed,
+    onSelected: _selectLanguage,
   );
 }

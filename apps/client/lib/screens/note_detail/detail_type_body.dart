@@ -20,7 +20,7 @@ extension _DetailTypeBody on _NoteDetailSheetState {
       _LinkBody(note: note, onOpen: _openLink)
     else if (note.type == NoteType.text)
       if (NexCodeSnippet.parse(note.content ?? '') case final snippet?)
-        _snippetBody(context, snippet, l10n)
+        _snippetBody(context, note, snippet, l10n)
       else
         FoldedNote(
           text: note.content ?? '',

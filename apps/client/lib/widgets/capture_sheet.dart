@@ -672,11 +672,19 @@ class _CaptureSheetState extends State<CaptureSheet>
                   : KeyedSubtree(
                       key: const ValueKey('capture-field'),
                       child: TextFieldTapRegion(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Expanded(child: _field(context, l10n)),
-                            _pasteSlot(context, shown),
+                            if (shown == CaptureKind.code) _codeToolbar(),
+                            Row(
+                              key: const ValueKey('capture-input-row'),
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: _field(context, l10n)),
+                                _pasteSlot(context, shown),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -687,7 +695,6 @@ class _CaptureSheetState extends State<CaptureSheet>
               text: controller.text,
               scheduleHint: showScheduleHint,
             ),
-            _languagePicker(context, l10n, shown),
             const SizedBox(height: NexSpacing.xs),
             // Everything below stays fully drawn while closing — the tools
             // keep their colour and the buttons their shape; the pointers are

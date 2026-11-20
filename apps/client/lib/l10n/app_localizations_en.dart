@@ -6961,6 +6961,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get code => 'Code';
 
   @override
+  String get codeIndent => 'Indent lines';
+
+  @override
+  String get codeOutdent => 'Outdent lines';
+
+  @override
+  String get askAboutCode => 'Ask about this code';
+
+  @override
+  String get chatCodeExplain => 'Explain what this code does';
+
+  @override
+  String get chatCodeReview => 'Review this code for mistakes';
+
+  @override
+  String get chatCodeTests => 'Suggest test cases for this code';
+
+  @override
+  String get codeSuggestedLanguage => 'Use suggested language';
+
+  @override
+  String get codeWrap => 'Wrap long lines';
+
+  @override
   String get codeHint => 'Paste or type code';
 
   @override

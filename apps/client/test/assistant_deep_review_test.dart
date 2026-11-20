@@ -120,6 +120,42 @@ void main() {
     });
   });
 
+  testWidgets(
+    'asking about a snippet sends its language and exact indentation only after a prompt',
+    (tester) async {
+      await harness.preferences.setAiProvider(
+        const AiProviderConfig(provider: AiProvider.openai, apiKey: 'test'),
+      );
+      const code = 'def paint():\n\tif ready:\n\t  draw("a  b")  ';
+      final source = NexCodeSnippet(
+        code: code,
+        language: NexCodeLanguage.python,
+      ).markdown;
+      final note = (await harness.db.captureText(source))!;
+      final requests = <String>[];
+      await openSheet(
+        tester,
+        focus: note,
+        client: MockClient((request) async {
+          requests.add(request.body);
+          return _reply('Done.');
+        }),
+      );
+      expect(requests, isEmpty);
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(AiChatSheet)),
+      );
+      await tester.tap(find.text(l10n.chatCodeExplain));
+      await tester.pumpAndSettle();
+      expect(requests, hasLength(1));
+      final body = jsonDecode(requests.single) as Map;
+      final messages = (body['messages'] as List)
+          .map((m) => m['content'])
+          .join('\n');
+      expect(messages, contains(source));
+    },
+  );
+
   group('a captioned note names itself by its caption', () {
     testWidgets('the About line and the citation chip both use it', (
       tester,

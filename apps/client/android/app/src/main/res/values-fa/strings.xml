@@ -34,6 +34,7 @@
     <string name="widget_a11y_capture_gallery">افزودن عکس از گالری</string>
     <string name="widget_a11y_capture_checklist">چک‌لیست تازه</string>
 
+    <string name="widget_type_code">کد</string>
     <string name="widget_type_text">متن</string>
     <string name="widget_type_voice">صدا</string>
     <string name="widget_type_photo">عکس</string>

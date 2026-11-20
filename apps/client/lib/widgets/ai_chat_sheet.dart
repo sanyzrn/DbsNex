@@ -533,6 +533,7 @@ class _AiChatSheetState extends State<AiChatSheet> with RouteAware {
                 Expanded(
                   child: _turns.isEmpty && _failure == null
                       ? _Suggestions(
+                          code: widget.focus?.snippetPreview != null,
                           // The sheet's own scrollable has to be the one
                           // DraggableScrollableSheet handed down, or dragging the
                           // body does not resize the sheet.

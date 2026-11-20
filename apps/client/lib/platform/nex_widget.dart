@@ -220,7 +220,7 @@ class NexWidgetSnapshot {
         for (final note in notes.take(maxNotes))
           NexWidgetNotePreview(
             id: note.id,
-            type: note.type.wireName,
+            type: note.snippetPreview == null ? note.type.wireName : 'code',
             preview: _previewOf(note),
             updatedAt: note.updatedAt.millisecondsSinceEpoch,
           ),

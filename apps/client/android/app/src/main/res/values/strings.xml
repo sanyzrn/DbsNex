@@ -47,6 +47,7 @@
     <!-- A row whose note has no text to preview (an uncaptioned photo, a
          recording with no transcript): the type's own name, the way the
          timeline card does it. -->
+    <string name="widget_type_code">Code</string>
     <string name="widget_type_text">Text</string>
     <string name="widget_type_voice">Voice</string>
     <string name="widget_type_photo">Photo</string>

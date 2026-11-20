@@ -350,6 +350,17 @@ class Note {
     }
   }
 
+  /// Shared, bounded recognition for cards, glyphs and assistant context.
+  /// Notes are immutable; dropping a timeline row also releases its cache.
+  static final _snippetPreviews = Expando<({NexCodeSnippet? value})>();
+  NexCodeSnippet? get snippetPreview {
+    final source = content;
+    if (type != NoteType.text || source == null) return null;
+    return (_snippetPreviews[this] ??= (
+      value: NexCodeSnippet.previewOf(source),
+    )).value;
+  }
+
   /// What Copy puts on the clipboard — from the hold menu, the selection bar
   /// and the note itself alike.
   ///
