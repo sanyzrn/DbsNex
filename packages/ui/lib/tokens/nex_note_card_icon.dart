@@ -28,8 +28,9 @@ class NexNoteCardGlyph extends StatelessWidget {
       final type = note.mimeType?.split(';').first.trim().toLowerCase();
       Widget? mark(String filename, String? mime) {
         final format = _formatOf(filename, mime);
-        if (format != null)
+        if (format != null) {
           return _FormatGlyph(format, size: side, color: color);
+        }
         final glyph = _nameIcon(filename) ?? _mimeIcon(mime);
         return glyph == null
             ? null

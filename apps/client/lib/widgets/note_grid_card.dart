@@ -625,6 +625,10 @@ class _Mark extends StatelessWidget {
         ? Icons.check_rounded
         : ringing
         ? Icons.notifications_active_rounded
+        // The site has its own mark by its name below. This is the link
+        // selection control, so it keeps the link glyph.
+        : note.type == NoteType.link
+        ? nexNoteTypeIcon(note.type.wireName)
         : null;
     final ink = picked ? scheme.onPrimary : tint;
     final glyphSize = size * 0.52;
