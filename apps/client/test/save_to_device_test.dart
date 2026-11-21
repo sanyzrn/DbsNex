@@ -69,6 +69,35 @@ void main() {
       expect(t.sourcePath, isNull);
     });
 
+    test('a code note saves its source, not the fence that stores it', () {
+      final t = nexSaveTargetFor(
+        _note(
+          NoteType.text,
+          content: '```dart\nvoid main() {\n  print(1);\n}\n```',
+        ),
+      )!;
+      expect(t.name, endsWith('.dart'));
+      expect(t.name, startsWith('void main()'));
+      expect(t.text, 'void main() {\n  print(1);\n}\n');
+      expect(t.mimeType, 'text/plain');
+      expect(t.sourcePath, isNull);
+    });
+
+    test('a snippet is named by its title and typed by its language', () {
+      final page = nexSaveTargetFor(
+        _note(NoteType.text, content: '```html\n<p>x</p>\n```', title: 'Page'),
+      )!;
+      expect(page.name, 'Page.html');
+      expect(page.mimeType, 'text/html');
+      expect(page.text, '<p>x</p>\n');
+
+      final unknown = nexSaveTargetFor(
+        _note(NoteType.text, content: '```kotlin\nval x = 1\n```'),
+      )!;
+      expect(unknown.name, endsWith('.txt'));
+      expect(unknown.text, 'val x = 1\n');
+    });
+
     test('a link saves as a Markdown link', () {
       final t = nexSaveTargetFor(
         _note(

@@ -371,6 +371,23 @@ NoteSaveTarget? nexSaveTargetFor(Note note) {
         'Nex $kind ${_stamp(note.createdAt)}$ext';
     return (name: name, mimeType: mime, sourcePath: uri, text: null);
   }
+  // A code note is its source. Copy and Share already hand over the code in
+  // the fence, not the fence itself; saving it wrote the Markdown that stores
+  // it, under `.md`, so the one way to get a `.dart` or `.py` file out of Nex
+  // produced a document with backticks around it instead.
+  if (note.type == NoteType.text) {
+    final snippet = NexCodeSnippet.parse(note.content ?? '');
+    if (snippet != null) {
+      if (snippet.code.trim().isEmpty) return null;
+      final extension = _sourceExtensionOf(snippet.language);
+      return (
+        name: _sourceFileNameFor(note, snippet, extension),
+        mimeType: _mimeFor(extension),
+        sourcePath: null,
+        text: snippet.code.endsWith('\n') ? snippet.code : '${snippet.code}\n',
+      );
+    }
+  }
   final text = _markdownOf(note);
   if (text == null) return null;
   return (
@@ -381,6 +398,34 @@ NoteSaveTarget? nexSaveTargetFor(Note note) {
     sourcePath: null,
     text: text,
   );
+}
+
+/// The file extension a snippet is saved under, by the language it is in.
+/// A language this build does not know keeps the neutral `.txt`.
+String _sourceExtensionOf(NexCodeLanguage language) => switch (language) {
+  NexCodeLanguage.dart => '.dart',
+  NexCodeLanguage.javascript => '.js',
+  NexCodeLanguage.python => '.py',
+  NexCodeLanguage.json => '.json',
+  NexCodeLanguage.html => '.html',
+  NexCodeLanguage.css => '.css',
+  NexCodeLanguage.php => '.php',
+  NexCodeLanguage.plainText => '.txt',
+};
+
+/// The name a snippet is saved under: its title, or the first code line.
+String _sourceFileNameFor(Note note, NexCodeSnippet snippet, String extension) {
+  final title = note.title?.trim() ?? '';
+  final firstLine = title.isNotEmpty
+      ? title
+      : snippet.code
+            .split('\n')
+            .map((line) => line.trim())
+            .firstWhere((line) => line.isNotEmpty, orElse: () => '');
+  final short = firstLine.length > 60
+      ? firstLine.substring(0, 60).trimRight()
+      : firstLine;
+  return safeFileName(short, extension: extension) ?? 'Nex code$extension';
 }
 
 String? _markdownOf(Note note) {
@@ -425,6 +470,11 @@ String _mimeFor(String ext) => switch (ext.toLowerCase()) {
   '.pdf' => 'application/pdf',
   '.md' => 'text/markdown',
   '.txt' => 'text/plain',
+  '.json' => 'application/json',
+  '.js' => 'text/javascript',
+  '.html' => 'text/html',
+  '.css' => 'text/css',
+  '.dart' || '.py' || '.php' => 'text/plain',
   _ => 'application/octet-stream',
 };
 
