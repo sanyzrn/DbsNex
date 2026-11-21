@@ -320,6 +320,13 @@ void main() {
               200,
             );
           }
+          expect(
+            request.url,
+            Uri.https(
+              'api.github.com',
+              '/repos/sanyzrn/DbsNex/releases/latest',
+            ),
+          );
           return http.Response(releaseWithSums(sumsLine: digest), 200);
         }),
       );
@@ -436,9 +443,8 @@ void main() {
         // different release under the same name, or corrupted — so the range
         // requested is unsatisfiable (416). That is a reason to start over,
         // not to keep the stale bytes already on disk.
-        File(
-          '${tmp.path}/Nex-0.3.0.apk.part',
-        ).writeAsBytesSync([9, 9, 9, 9, 9]);
+        File('${tmp.path}/Nex-0.3.0.apk.part')
+            .writeAsBytesSync([9, 9, 9, 9, 9]);
 
         var requests = 0;
         final downloader = UpdateDownloader(

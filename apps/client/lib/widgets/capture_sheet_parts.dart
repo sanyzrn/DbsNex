@@ -98,7 +98,7 @@ String _kindLabel(AppLocalizations l10n, CaptureKind kind) => switch (kind) {
 
 /// What is being captured, chosen at the top of the sheet.
 ///
-/// The three ways of using the same text field. Media lives below it.
+/// The ways of using the same text field. Media lives below it.
 class _KindBar extends StatelessWidget {
   const _KindBar({
     required this.shown,
@@ -112,9 +112,9 @@ class _KindBar extends StatelessWidget {
 
   static const _order = [
     CaptureKind.note,
-    CaptureKind.code,
     CaptureKind.checklist,
     CaptureKind.link,
+    CaptureKind.code,
   ];
 
   @override
@@ -122,22 +122,18 @@ class _KindBar extends StatelessWidget {
     container: true,
     explicitChildNodes: true,
     label: AppLocalizations.of(context).captureKinds,
-    // Scrolls rather than overflows: the largest text on the smallest phone
-    // still reaches the link.
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (final kind in _order)
-            _KindChip(
-              kind: kind,
-              selected: kind == shown,
-              // While recording, only the recorder's own buttons decide.
-              enabled: !recording,
-              onTap: () => onSelect(kind),
-            ),
-        ],
-      ),
+    // Keep every capture kind visible at larger text sizes.
+    child: Wrap(
+      children: [
+        for (final kind in _order)
+          _KindChip(
+            kind: kind,
+            selected: kind == shown,
+            // While recording, only the recorder's own buttons decide.
+            enabled: !recording,
+            onTap: () => onSelect(kind),
+          ),
+      ],
     ),
   );
 }
@@ -182,6 +178,7 @@ class _KindChip extends StatelessWidget {
               minHeight: nexMinTapTarget,
             ),
             child: Center(
+              widthFactor: 1,
               child: TweenAnimationBuilder<double>(
                 tween: Tween(end: selected ? 1 : 0),
                 duration: NexMotion.of(context, NexMotion.morph),
@@ -215,19 +212,22 @@ class _KindChip extends StatelessWidget {
                           children: [
                             Icon(_kindIcon(kind), size: 20, color: glyph),
                             const SizedBox(width: NexSpacing.xs),
-                            ExcludeSemantics(
-                              child: Text(
-                                label,
-                                maxLines: 1,
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  color: scheme.onSurface.withValues(
-                                    alpha: enabled ? 1 : 0.38,
+                            Flexible(
+                              child: ExcludeSemantics(
+                                child: Text(
+                                  label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    color: scheme.onSurface.withValues(
+                                      alpha: enabled ? 1 : 0.38,
+                                    ),
+                                    // One weight for every chip: a bolder selected
+                                    // label was wider, so the row jumped sideways the
+                                    // instant a kind was tapped while its colour was
+                                    // still fading in.
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                  // One weight for every chip: a bolder selected
-                                  // label was wider, so the row jumped sideways the
-                                  // instant a kind was tapped while its colour was
-                                  // still fading in.
-                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),

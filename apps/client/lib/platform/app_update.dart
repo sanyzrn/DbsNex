@@ -1,4 +1,3 @@
-import 'crash_reporter.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' show Abi;
@@ -8,6 +7,8 @@ import 'dart:isolate';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
+
+import 'crash_reporter.dart';
 
 /// A semantic version, comparable.
 ///
@@ -225,12 +226,8 @@ class UpdateChecker {
   UpdateChecker({
     required this.currentVersion,
     http.Client? client,
-    // A separate, public repo — never the source repo, which the release
-    // workflow now publishes to instead (see release.yml). GitHub's release
-    // API and asset URLs both need authentication once a repo is private,
-    // and shipping a token in the client to provide it would mean anyone
-    // could pull it back out of the built app.
-    this.repository = 'sanyzrn/DbsNex-releases',
+    // The public source repository also distributes app updates.
+    this.repository = 'sanyzrn/DbsNex',
     this.assetSuffix,
   }) : _client = client ?? http.Client(),
        _ownsClient = client == null;

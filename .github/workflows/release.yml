@@ -4,32 +4,17 @@ name: Release
 # installer, and attaches them to a GitHub Release. MANUAL ONLY.
 # Merging PRs or pushing tags must never trigger an automatic release.
 #
-# The release is published to RELEASES_REPO — a separate, public repo — not to
-# this one. The source repository is currently public; GitHub's API and assets
-# would require authentication if made private, and the in-app updater has no
-# way to hold a credential for that without shipping a token inside the app
-# that anyone could pull back out of it. A public releases-only repo needs no
-# token in the client at all.
+# This repository hosts public releases and the in-app updater. Keep it public
+# so installed apps can fetch release metadata and assets without credentials.
+# GitHub attaches source archives of the tagged commit to each release.
 #
-# One-time setup this depends on:
-#   1. Create the public repo named in RELEASES_REPO below, with one commit in
-#      it — a short README saying it holds build artifacts is enough. Not an
-#      empty repo: a release has to tag a commit, and a repo with no commits
-#      has no default branch for the tag to point at.
-#   2. Generate a fine-grained PAT scoped to *only* that repo, with
-#      Contents: Read and write — nothing else.
-#   3. Add it to this source repo's secrets as RELEASES_REPO_TOKEN.
-#
-# On the "Source code (zip)" and "(tar.gz)" entries: GitHub attaches those to
-# every release and offers no way to turn them off. Publishing to a separate
-# repo is what makes them harmless — they are archives of RELEASES_REPO, which
-# holds only that README, not of this repository. Keeping that repo to a single
-# file is what keeps them a couple of hundred bytes of nothing rather than a
-# copy of the source beside the installer.
+# Release 2.8.11 also gets one draft in the legacy repository. Publish the
+# primary draft first, then the legacy draft, so older installs can reach the
+# new updater. Only this bridge uses RELEASES_REPO_TOKEN (legacy Contents: write).
 #
 # Required repo secrets (one-time; never commit the keystore):
 #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
-#   ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD, RELEASES_REPO_TOKEN
+#   ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
 
 on:
   workflow_dispatch:
@@ -56,10 +41,8 @@ concurrency:
 env:
   # Only the version explicitly entered in GitHub's Run workflow UI.
   RELEASE_TAG: ${{ inputs.tag }}
-  # The public repo the in-app updater actually checks — see the note at the
-  # top of this file. Change this and UpdateChecker's default `repository`
-  # together; the two have to agree, or the app looks in the wrong place.
-  RELEASES_REPO: sanyzrn/DbsNex-releases
+  # Previous public channel, used during the migration and first signature check.
+  LEGACY_RELEASES_REPO: sanyzrn/DbsNex-releases
 
 jobs:
   # The tag is the single source of truth for the version. Every number that
@@ -420,7 +403,7 @@ jobs:
           path: apps/client/dist/*
           # Only ever consumed by publish-release's download-artifact step in
           # this same run — the actual long-lived distribution is the GitHub
-          # Release in RELEASES_REPO, not this artifact. Left at the default
+          # Release in this repository, not this artifact. Left at the default
           # 90 days, every release run permanently added ~130MB (this plus
           # windows-installer) to the account's Actions storage quota until it
           # was exhausted.
@@ -430,16 +413,25 @@ jobs:
       # installed app in place. Android would require a replacement install,
       # which can discard local profile settings and a multi-GB model while
       # notes later reappear from sync or backup. Compare against the APK the
-      # updater currently serves, from the separate public releases repo.
+      # updater currently serves. The first release in this repo uses the
+      # previous public channel as the signing and version-code baseline.
       - name: Verify in-place update identity
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          previous_tag="$(gh api "repos/$RELEASES_REPO/releases/latest" --jq .tag_name)"
+          previous_repo="$GITHUB_REPOSITORY"
+          if ! previous_tag="$(gh api "repos/$previous_repo/releases/latest" --jq .tag_name 2>previous-release-error)"; then
+            if ! grep -Fq '(HTTP 404)' previous-release-error; then
+              cat previous-release-error >&2
+              exit 1
+            fi
+            previous_repo="$LEGACY_RELEASES_REPO"
+            previous_tag="$(gh api "repos/$previous_repo/releases/latest" --jq .tag_name)"
+          fi
           mkdir -p previous
           gh release download "$previous_tag" \
-            --repo "$RELEASES_REPO" --pattern '*.apk' --dir previous
+            --repo "$previous_repo" --pattern '*.apk' --dir previous
           build_tools="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
           python3 ../../tools/verify_apk_updates.py --previous previous --current dist \
             --build-tools "$build_tools"
@@ -592,28 +584,27 @@ jobs:
           # anything; fail loudly instead.
           test -s SHA256SUMS
 
-      - name: Create GitHub Release
-        # Third-party actions are pinned by commit SHA: this job holds
-        # contents: write, so a compromised mutable tag would be able to push
-        # to the repository.
+      - name: Create primary release draft
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          # A different repo — the public one the in-app updater actually
-          # checks (see the note at the top of this file) — which needs its
-          # own token: the default GITHUB_TOKEN is scoped to the repo the
-          # workflow runs in and cannot write anywhere else.
-          repository: ${{ env.RELEASES_REPO }}
-          token: ${{ secrets.RELEASES_REPO_TOKEN }}
-          # The normalised tag, so a manual run started from a bare "0.2.1"
-          # still creates and publishes v0.2.1.
           tag_name: ${{ needs.version.outputs.tag }}
           name: ${{ needs.version.outputs.tag }}
-          # No target_commitish: that would be a commit SHA from *this* repo,
-          # which the releases repo has no history for. The release is a
-          # drop of build artifacts, not a snapshot of this repo's tree.
-          # Manual verification runs (workflow_dispatch) publish as draft so a
-          # test tag does not look like a production release.
-          draft: ${{ github.event_name == 'workflow_dispatch' }}
+          target_commitish: ${{ github.sha }}
+          draft: true
+          body_path: RELEASE_NOTES.md
+          files: |
+            dist/*
+            SHA256SUMS
+
+      - name: Create legacy updater bridge draft
+        if: needs.version.outputs.version == '2.8.11'
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          repository: ${{ env.LEGACY_RELEASES_REPO }}
+          token: ${{ secrets.RELEASES_REPO_TOKEN }}
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: ${{ needs.version.outputs.tag }}
+          draft: true
           body_path: RELEASE_NOTES.md
           files: |
             dist/*

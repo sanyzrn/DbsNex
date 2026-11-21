@@ -17,7 +17,7 @@ class NexCodeToolbar extends StatelessWidget {
     required this.focus,
     required this.onSelected,
     this.rawLanguage,
-    this.onTextChanged,
+    this.showIndentation = true,
     this.enabled = true,
   });
   final Key pickerKey;
@@ -26,7 +26,7 @@ class NexCodeToolbar extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focus;
   final ValueChanged<NexCodeLanguage> onSelected;
-  final ValueChanged<String>? onTextChanged;
+  final bool showIndentation;
   final bool enabled;
 
   Future<void> _pick(BuildContext context) async {
@@ -92,7 +92,6 @@ class NexCodeToolbar extends StatelessWidget {
         extentOffset: mapped(selection.extentOffset),
       ),
     );
-    onTextChanged?.call(controller.text);
     focus.requestFocus();
   }
 
@@ -150,22 +149,24 @@ class NexCodeToolbar extends StatelessWidget {
               },
             ),
           ),
-          IconButton(
-            tooltip: l10n.codeOutdent,
-            onPressed: enabled ? () => _indent(true) : null,
-            icon: const Icon(
-              Icons.format_indent_decrease,
-              textDirection: TextDirection.ltr,
+          if (showIndentation) ...[
+            IconButton(
+              tooltip: l10n.codeOutdent,
+              onPressed: enabled ? () => _indent(true) : null,
+              icon: const Icon(
+                Icons.format_indent_decrease,
+                textDirection: TextDirection.ltr,
+              ),
             ),
-          ),
-          IconButton(
-            tooltip: l10n.codeIndent,
-            onPressed: enabled ? () => _indent(false) : null,
-            icon: const Icon(
-              Icons.format_indent_increase,
-              textDirection: TextDirection.ltr,
+            IconButton(
+              tooltip: l10n.codeIndent,
+              onPressed: enabled ? () => _indent(false) : null,
+              icon: const Icon(
+                Icons.format_indent_increase,
+                textDirection: TextDirection.ltr,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

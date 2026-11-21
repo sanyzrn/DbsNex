@@ -36,7 +36,7 @@ extension _CaptureCode on _CaptureSheetState {
     controller: controller,
     focus: _fieldFocus,
     enabled: !_closing,
-    onTextChanged: changed,
+    showIndentation: false,
     onSelected: _selectLanguage,
   );
 }

@@ -4,6 +4,11 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.11
+
+- **App updates.** New releases are available in the main Nex GitHub repository. Existing installations can update to this version as usual.
+- **Simpler code capture and reading.** Code comes last in the capture menu. Long snippets wrap and scroll continuously in the reading sheet.
+
 ## v2.8.10
 
 - **HTML colours and smoother code opening.** HTML has distinct syntax colours in light and dark themes. Syntax colouring works while editing code and follows the opening animation in the reading sheet.
