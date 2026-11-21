@@ -21,8 +21,13 @@ Uint8List cropPhoto(
   bool legacy = false,
 }) {
   final jpeg = _isJpeg(bytes);
+  final quarterTurns = ((turns % 4) + 4) % 4;
   final source = legacy && jpeg
-      ? transformPhoto((bytes: uprightPhoto(bytes), turns: turns, flip: flip))
+      ? transformPhoto((
+          bytes: uprightPhoto(bytes),
+          turns: quarterTurns,
+          flip: flip,
+        ))
       : bytes;
   final decoded = img.decodeImage(source);
   if (decoded == null) throw const FormatException('Unsupported image');
@@ -32,9 +37,24 @@ Uint8List cropPhoto(
       : decoded;
   if (!legacy || !jpeg) {
     if (flip) image = img.flipHorizontal(image);
-    if (turns != 0) image = img.copyRotate(image, angle: 90 * turns);
+    if (quarterTurns != 0) {
+      image = img.copyRotate(image, angle: 90 * quarterTurns);
+    }
   }
-  final crop = img.copyCrop(image, x: x, y: y, width: width, height: height);
+  // A crop rect can arrive a fraction past the edge from the picker's own
+  // validator; clamping keeps it inside the pixels instead of throwing or
+  // shaving the wrong row.
+  final cropX = x.clamp(0, image.width - 1);
+  final cropY = y.clamp(0, image.height - 1);
+  final cropWidth = width.clamp(1, image.width - cropX);
+  final cropHeight = height.clamp(1, image.height - cropY);
+  final crop = img.copyCrop(
+    image,
+    x: cropX,
+    y: cropY,
+    width: cropWidth,
+    height: cropHeight,
+  );
   return jpeg
       ? img.encodeJpg(crop, quality: legacy ? 100 : 95)
       : img.encodePng(crop);

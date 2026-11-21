@@ -31,6 +31,11 @@ class NexCardAudio extends ChangeNotifier with WidgetsBindingObserver {
   String? _noteId;
   bool _loading = false;
 
+  /// Bumped by every play or stop: an opening player checks it after each
+  /// await, so a rapid second tap disposes the first player instead of
+  /// leaving a native one playing under an unreachable reference.
+  int _request = 0;
+
   /// The note whose recording is loaded, playing or paused; null when none.
   String? get noteId => _noteId;
 
@@ -58,8 +63,11 @@ class NexCardAudio extends ChangeNotifier with WidgetsBindingObserver {
       notifyListeners();
       return;
     }
-    await stop();
-    if (!File(uri).existsSync()) return;
+    final token = ++_request;
+    await _release();
+    if (token != _request) return;
+    if (!await File(uri).exists()) return;
+    if (token != _request) return;
     _noteId = note.id;
     _loading = true;
     notifyListeners();
@@ -70,7 +78,7 @@ class NexCardAudio extends ChangeNotifier with WidgetsBindingObserver {
       await player.setFilePath(
         note.type == NoteType.voice ? await NexVoiceSpool.playable(uri) : uri,
       );
-      if (_noteId != note.id) {
+      if (token != _request || _noteId != note.id) {
         // Another card asked while this one was opening.
         await player.dispose();
         return;
@@ -91,7 +99,7 @@ class NexCardAudio extends ChangeNotifier with WidgetsBindingObserver {
       await steady.play();
     } catch (_) {
       await player.dispose();
-      if (_noteId == note.id) {
+      if (token == _request && _noteId == note.id) {
         _noteId = null;
         _loading = false;
         notifyListeners();
@@ -106,11 +114,18 @@ class NexCardAudio extends ChangeNotifier with WidgetsBindingObserver {
     final player = _player;
     final total = player?.duration;
     if (player == null || total == null || _noteId != note.id) return;
-    await _steady!.seek(total * fraction);
+    await _steady!.seek(total * fraction.clamp(0.0, 1.0));
   }
 
   /// Stops and lets go of whatever is playing.
   Future<void> stop() async {
+    ++_request;
+    await _release();
+  }
+
+  /// The shared body of [stop], for a [toggle] that has already claimed the
+  /// request and must not invalidate itself.
+  Future<void> _release() async {
     final player = _player;
     final hadOne = _noteId != null;
     _player = null;

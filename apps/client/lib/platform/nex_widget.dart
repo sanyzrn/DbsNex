@@ -189,12 +189,21 @@ class NexWidgetSnapshot {
     return notes
         .where(
           (note) =>
-              (types.isEmpty || types.contains(note.type.wireName)) &&
+              (types.isEmpty || types.contains(_widgetTypeOf(note))) &&
               (tagIds.isEmpty ||
                   note.tags.any((tag) => tagIds.contains(tag.id))),
         )
         .toList();
   }
+
+  /// The kind the widget shows for [note]: a snippet is a text note in the
+  /// database, but it is Code on the card, in the app's filter and on the
+  /// widget's own icon and label — so it must be Code here too, or a Text
+  /// filter leaks snippets and a Code filter matches nothing.
+  static String _widgetTypeOf(Note note) =>
+      note.type == NoteType.text && note.snippetPreview != null
+      ? 'code'
+      : note.type.wireName;
 
   static NexWidgetSnapshot build({
     required bool appLock,
@@ -220,7 +229,7 @@ class NexWidgetSnapshot {
         for (final note in notes.take(maxNotes))
           NexWidgetNotePreview(
             id: note.id,
-            type: note.snippetPreview == null ? note.type.wireName : 'code',
+            type: _widgetTypeOf(note),
             preview: _previewOf(note),
             updatedAt: note.updatedAt.millisecondsSinceEpoch,
           ),
@@ -228,15 +237,21 @@ class NexWidgetSnapshot {
     );
   }
 
+  static final _whitespace = RegExp(r'\s+');
+
   static String _previewOf(Note note) {
     final raw = note.displayText ?? '';
     var preview = raw;
     if (note.type == NoteType.text) {
       preview = NexCodeSnippet.previewOf(raw)?.code ?? raw;
     }
-    final collapsed = preview.replaceAll(RegExp(r'\s+'), ' ').trim();
+    final collapsed = preview.replaceAll(_whitespace, ' ').trim();
     if (collapsed.length <= maxPreviewLength) return collapsed;
-    return collapsed.substring(0, maxPreviewLength);
+    var end = maxPreviewLength;
+    // A cut between the halves of a surrogate pair would leave a broken
+    // character on the widget.
+    if ((collapsed.codeUnitAt(end - 1) & 0xFC00) == 0xD800) end--;
+    return collapsed.substring(0, end);
   }
 
   Map<String, Object?> toJson() => <String, Object?>{

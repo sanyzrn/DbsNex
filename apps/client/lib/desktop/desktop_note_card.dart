@@ -67,7 +67,17 @@ class _NexDesktopNoteCardState extends State<NexDesktopNoteCard> {
         child: Semantics(
           button: true,
           selected: widget.selected,
-          label: content.title,
+          // An untitled snippet shows its language where a title would be;
+          // reading "" for it says nothing at all.
+          label: content.title.isNotEmpty
+              ? content.title
+              : snippet == null
+              ? null
+              : nexCodeLanguageLabel(
+                  context,
+                  snippet.language,
+                  rawLanguage: snippet.rawLanguage,
+                ),
           child: AnimatedContainer(
             duration: NexMotion.of(context, NexMotion.fast),
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
@@ -198,8 +208,10 @@ class _Title extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return SizedBox(
-      height: 20,
+    // A minimum, not a fixed row: at a larger text scale the title grows
+    // instead of being clipped by the height a 14 px title needed.
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 20),
       child: Row(
         children: [
           if (note.type == NoteType.file ||

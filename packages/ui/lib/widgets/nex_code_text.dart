@@ -310,7 +310,12 @@ List<TextSpan> nexHighlightCode(
     }
     final prefixQuote = spec.prefixes ? _prefixQuote(code, i, spec) : null;
     if (prefixQuote != null) {
-      final end = _stringEnd(code, prefixQuote, spec);
+      final end = _stringEnd(
+        code,
+        prefixQuote,
+        spec,
+        raw: spec.rawPrefixes && _isRawPrefix(code, i, prefixQuote),
+      );
       token(code.substring(i, end), string);
       i = end;
       continue;
@@ -382,6 +387,7 @@ final class _LanguageSpec {
     this.multilineStrings = false,
     this.templateStrings = false,
     this.prefixes = false,
+    this.rawPrefixes = false,
   });
 
   final Set<String> keywords;
@@ -393,6 +399,10 @@ final class _LanguageSpec {
   final bool multilineStrings;
   final bool templateStrings;
   final bool prefixes;
+
+  /// Whether a prefix can make a string raw, as Dart's `r'\'` does: a raw
+  /// string has no escapes, so its own quote closes it.
+  final bool rawPrefixes;
 }
 
 const _dartKeywords = <String>{
@@ -609,6 +619,7 @@ _LanguageSpec? _specFor(NexCodeLanguage language) => switch (language) {
     blockComments: true,
     tripleQuotes: true,
     prefixes: true,
+    rawPrefixes: true,
   ),
   NexCodeLanguage.javascript => const _LanguageSpec(
     keywords: _javascriptKeywords,
@@ -656,12 +667,29 @@ bool _isPrefixLetter(int unit) =>
     unit == 0x66 || // f
     unit == 0x46; // F
 
+/// Whether the prefix letters in `code[start..quote)` ask for a raw string.
+///
+/// Only Dart sets [rawPrefixes], where `r` is the one prefix that carries
+/// the meaning. Python's `rb`/`fr` do not: its tokenizer still treats a
+/// backslash before the quote as preventing closure even in a raw string.
+bool _isRawPrefix(String code, int start, int quote) {
+  for (var i = start; i < quote; i++) {
+    final unit = code.codeUnitAt(i);
+    if (unit == 0x72 || unit == 0x52) return true;
+  }
+  return false;
+}
+
 /// The end of the string starting at [quote], including the closing quotes.
 ///
 /// A string that is not closed before its line ends stops there rather than
 /// colouring the rest of the file: one missing quote is a typo, not an
-/// instruction to swallow every line after it.
-int _stringEnd(String code, int quote, _LanguageSpec spec) {
+/// instruction to swallow every line after it. The rule has two exceptions:
+/// triple-quoted strings and a backtick in a language with template literals
+/// both cross lines, because that is what they are for.
+///
+/// A [raw] string takes no escapes, so a backslash does not hide its quote.
+int _stringEnd(String code, int quote, _LanguageSpec spec, {bool raw = false}) {
   final marker = code[quote];
   final triple =
       spec.tripleQuotes &&
@@ -669,15 +697,19 @@ int _stringEnd(String code, int quote, _LanguageSpec spec) {
       code[quote + 1] == marker &&
       code[quote + 2] == marker;
   final close = triple ? '$marker$marker$marker' : marker;
+  final template = spec.templateStrings && marker == '`';
   var i = quote + close.length;
   while (i < code.length) {
     final unit = code.codeUnitAt(i);
-    if (unit == 0x5C) {
+    if (unit == 0x5C && !raw) {
       i += 2;
       continue;
     }
     if (code.startsWith(close, i)) return i + close.length;
-    if (!triple && !spec.multilineStrings && (unit == 0x0A || unit == 0x0D)) {
+    if (!triple &&
+        !spec.multilineStrings &&
+        !template &&
+        (unit == 0x0A || unit == 0x0D)) {
       return i;
     }
     i++;

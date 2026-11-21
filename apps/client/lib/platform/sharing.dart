@@ -113,7 +113,7 @@ Future<bool> nexShareNote(
                 staged: staged,
               ),
           ],
-          text: words?.isNotEmpty == true ? words : null,
+          text: words?.trim().isNotEmpty == true ? words : null,
         ),
       );
     } finally {
@@ -122,7 +122,9 @@ Future<bool> nexShareNote(
     return true;
   }
   final text = _noteShareText(note);
-  if (text.isEmpty) return false;
+  // A fenced snippet's code is shared exactly as written, but a block that
+  // is nothing but spaces is still nothing to share.
+  if (text.trim().isEmpty) return false;
   await SharePlus.instance.share(ShareParams(text: text));
   return true;
 }
@@ -169,7 +171,7 @@ Future<bool> nexShareNotes(List<Note> notes) async {
       continue;
     }
     final text = _noteShareText(note);
-    if (text.isNotEmpty) words.add(text);
+    if (text.trim().isNotEmpty) words.add(text);
   }
   if (files.isEmpty && words.isEmpty) return false;
   try {

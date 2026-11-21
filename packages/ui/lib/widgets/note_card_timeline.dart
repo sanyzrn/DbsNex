@@ -53,8 +53,11 @@ class _TimelineWords extends StatelessWidget {
         : title != null
         ? note.content
         : note.displayText;
-    final snippet = note.type == NoteType.text
-        ? NexCodeSnippet.previewOf(source ?? '')
+    // The note's own cached preview (an Expando on the immutable Note), not
+    // a fresh parse on every scroll frame. A filename is the one source that
+    // is not the note's content, so that case still reads what is shown.
+    final snippet = note.type == NoteType.text && !file
+        ? note.snippetPreview
         : null;
     final text = snippet?.code ?? NexMarkdownText.preview(source ?? '').trim();
     final bodyLines = maxLines - (title == null ? 0 : 1);

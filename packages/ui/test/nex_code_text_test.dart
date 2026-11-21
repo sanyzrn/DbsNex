@@ -143,6 +143,44 @@ BODY;
     },
   );
 
+  test('a JavaScript template literal keeps its colour across lines', () {
+    const code = 'const page = `hello\nworld`;\nconst n = 1;';
+    final span = spanOf(code, NexCodeLanguage.javascript);
+
+    expect(
+      span.children!.whereType<TextSpan>().any(
+        (piece) => piece.text == '`hello\nworld`',
+      ),
+      isTrue,
+    );
+  });
+
+  test('a quote that never closes still stops at its own line', () {
+    const code = "const broken = 'oops\nconst n = 1;";
+    final span = spanOf(code, NexCodeLanguage.javascript);
+
+    expect(
+      span.children!.whereType<TextSpan>().any(
+        (piece) => piece.text == "'oops",
+      ),
+      isTrue,
+    );
+  });
+
+  test('a Dart raw string ends at its own quote, backslash and all', () {
+    const code =
+        r"final path = r'C:\';"
+        '\nfinal n = 1;';
+    final span = spanOf(code, NexCodeLanguage.dart);
+
+    expect(
+      span.children!.whereType<TextSpan>().any(
+        (piece) => piece.text == r"r'C:\'",
+      ),
+      isTrue,
+    );
+  });
+
   test('CSS highlights selectors, properties, values and at-rules', () {
     final span = spanOf(css, NexCodeLanguage.css);
     expect(styleOf(span, '@media')?.fontWeight, FontWeight.w600);
