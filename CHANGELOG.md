@@ -7,6 +7,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 ## v2.8.11
 
 - **App updates.** New releases are available in the main Nex GitHub repository. Existing installations can update to this version as usual.
+- **Simpler code capture and reading.** Code comes last in the capture menu. Long snippets wrap and scroll continuously in the reading sheet.
 
 ## v2.8.10
 

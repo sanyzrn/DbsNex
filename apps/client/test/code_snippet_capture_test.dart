@@ -143,27 +143,29 @@ void main() {
   });
 
   testWidgets(
-    'language hints and multiline indentation preserve the selection and draft',
+    'capture puts Code last and keeps language hints without indentation buttons',
     (tester) async {
+      await preferences.setLocale('en');
       await openComposer(tester);
       const source = 'def draw():\n  return 1\n';
       await tester.enterText(_field, source);
       await tester.pumpAndSettle();
-      final input = tester.widget<TextField>(_field).controller!;
-      input.selection = const TextSelection(
-        baseOffset: 0,
-        extentOffset: source.length,
-      );
+      final l10n = AppLocalizations.of(tester.element(_field));
+      final modeCenters =
+          [l10n.captureKindNote, l10n.checklist, l10n.link, l10n.code].map((
+            label,
+          ) {
+            final chip = find.descendant(
+              of: find.byType(CaptureSheet),
+              matching: find.text(label),
+            );
+            return tester.getCenter(chip).dx;
+          }).toList();
+      expect(modeCenters, orderedEquals([...modeCenters]..sort()));
+      expect(find.byTooltip(l10n.codeIndent), findsNothing);
+      expect(find.byTooltip(l10n.codeOutdent), findsNothing);
       await tester.tap(find.byKey(const ValueKey('code-language-suggestion')));
       await tester.pumpAndSettle();
-      final l10n = AppLocalizations.of(tester.element(_field));
-      await tester.tap(find.byTooltip(l10n.codeIndent));
-      await tester.pumpAndSettle();
-      expect(input.text, '  def draw():\n    return 1\n');
-      await tester.tap(find.byTooltip(l10n.codeOutdent));
-      await tester.pumpAndSettle();
-      expect(input.text, source);
-      expect(input.selection.extentOffset, source.length);
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       final note = (await services.timeline(limit: 1)).single;
@@ -288,7 +290,19 @@ void main() {
       of: find.byType(NexSnippetEditorSheet),
       matching: find.byType(TextField),
     );
-    expect(tester.widget<TextField>(editor).controller!.text, _code);
+    final controller = tester.widget<TextField>(editor).controller!;
+    expect(controller.text, _code);
+    controller.selection = const TextSelection(
+      baseOffset: 0,
+      extentOffset: _code.length,
+    );
+    await tester.tap(find.byTooltip(l10n.codeIndent));
+    await tester.pumpAndSettle();
+    expect(controller.text, startsWith('  \tif (ok) {'));
+    await tester.tap(find.byTooltip(l10n.codeOutdent));
+    await tester.pumpAndSettle();
+    expect(controller.text, _code);
+    expect(controller.selection.extentOffset, _code.length);
 
     const edited = '\tprint("سلام");   \n\n';
     await tester.enterText(editor, edited);
@@ -429,13 +443,13 @@ void main() {
   });
 
   testWidgets(
-    'long source pages reassemble exactly and wrap independently of copying',
+    'long source wraps and scrolls continuously with bounded rendering',
     (tester) async {
-      tester.view.physicalSize = const Size(600, 1100);
+      tester.view.physicalSize = const Size(600, 900);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       final code =
-          '${'a' * 3999}😀\r\n${List.generate(55, (i) => '  line $i').join('\n')}';
+          '${'a' * 3999}😀\r\n${List.generate(480, (i) => '  line $i').join('\n')}';
       final note = (await services.captureText(
         NexCodeSnippet(code: code).markdown,
       ))!;
@@ -454,25 +468,45 @@ void main() {
       );
       await tester.pumpAndSettle();
       final source = find.byType(NexCodeText);
-      final context = tester.element(source);
-      await tester.tap(find.byTooltip(AppLocalizations.of(context).codeWrap));
-      await tester.pumpAndSettle();
-      expect(tester.widget<NexCodeText>(source).softWrap, isTrue);
-      final nextLabel = MaterialLocalizations.of(tester.element(source))
-          .nextPageTooltip;
-      final next = find.byWidgetPredicate(
-        (w) => w is IconButton && w.tooltip == nextLabel,
+      final context = tester.element(source.first);
+      final nav = MaterialLocalizations.of(context);
+      expect(find.byTooltip(nav.nextPageTooltip), findsNothing);
+      expect(find.byTooltip(nav.previousPageTooltip), findsNothing);
+      expect(
+        find.byTooltip(AppLocalizations.of(context).codeWrap),
+        findsNothing,
       );
-      final pages = <String>[];
-      while (true) {
-        pages.add(tester.widget<NexCodeText>(source).code);
-        if (tester.widget<IconButton>(next).onPressed == null) break;
-        await tester.tap(next);
-        await tester.pumpAndSettle();
-      }
-      expect(pages, hasLength(3));
-      expect(pages.join(), code);
-      expect(pages.first.length, 3999);
+      final first = tester.widget<NexCodeText>(source.first);
+      expect(first.code, 'a' * 3999);
+      expect(first.softWrap, isTrue);
+      expect(tester.getSize(source.first).height, greaterThan(200));
+      expect(source.evaluate().length, lessThan(5));
+      final scrollable = find
+          .descendant(
+            of: find.byType(CustomScrollView),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      Finder codeContaining(String text) => find.byWidgetPredicate(
+        (widget) => widget is NexCodeText && widget.code.contains(text),
+      );
+      await tester.scrollUntilVisible(
+        codeContaining('😀'),
+        480,
+        scrollable: scrollable,
+      );
+      expect(
+        tester.widget<NexCodeText>(codeContaining('😀')).code,
+        startsWith('😀\r\n'),
+      );
+      await tester.scrollUntilVisible(
+        codeContaining('  line 479'),
+        520,
+        scrollable: scrollable,
+      );
+      expect(codeContaining('  line 479'), findsOneWidget);
+      expect(codeContaining('a' * 3999), findsNothing);
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -518,21 +552,9 @@ void main() {
       );
       expect(rich.textDirection, TextDirection.ltr);
       expect(rich.text.toPlainText(), contains('# کامنت فارسی'));
-      final horizontal = find.ancestor(
-        of: find.byType(NexCodeText),
-        matching: find.byWidgetPredicate(
-          (w) =>
-              w is SingleChildScrollView &&
-              w.scrollDirection == Axis.horizontal,
-        ),
-      );
-      final scrollable = find
-          .descendant(of: horizontal, matching: find.byType(Scrollable))
-          .first;
-      final position = tester.state<ScrollableState>(scrollable).position;
-      expect(position.maxScrollExtent, greaterThan(0));
-      expect(position.axisDirection, AxisDirection.right);
-      expect(position.pixels, 0);
+      final source = tester.widget<NexCodeText>(find.byType(NexCodeText));
+      expect(source.softWrap, isTrue);
+      expect(rich.text.toPlainText(), contains('x' * 300));
       expect(tester.takeException(), isNull);
     }
   });
