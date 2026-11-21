@@ -340,6 +340,13 @@ void main() {
     expect(asked, ['c']);
     // Three shown, the first big; two more than shown are counted.
     expect(find.text('+2'), findsOneWidget);
+    final widths = tester
+        .widgetList<Image>(find.byType(Image))
+        .map((image) => (image.image as ResizeImage).width!)
+        .toList();
+    expect(widths, hasLength(3));
+    expect(widths.first, closeTo(widths[1] * 1.5, 1));
+    expect(widths[1], widths[2]);
   });
 
   testWidgets('a video with no frame to be had keeps its words', (

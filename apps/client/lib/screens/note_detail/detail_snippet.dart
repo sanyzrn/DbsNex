@@ -92,24 +92,41 @@ extension _DetailSnippet on _NoteDetailSheetState {
 /// a long paste opens at once rather than waiting for its colours.
 const _syncHighlightLimit = 12000;
 
-/// The whole-source colour pass, on a worker isolate.
-List<TextSpan> _snippetHighlight(
-  ({String source, NexCodeLanguage language, ColorScheme scheme}) request,
-) => nexHighlightCode(
-  request.source,
-  request.language,
-  style: const TextStyle(),
-  scheme: request.scheme,
-);
+typedef _ReaderRequest = ({
+  String source,
+  NexCodeLanguage language,
+  ColorScheme scheme,
+  List<int> boundaries,
+});
 
-/// Draws one continuous code block while laying out and highlighting only
-/// the chunks near the viewport. Copy and share use the original snippet.
-///
-/// The colours are made once for the whole source and each chunk draws its
-/// share of them (see [nexSliceCodeSpans]). Colouring chunk by chunk was
-/// cheaper to write but read code wrongly: a block comment or a triple-quoted
-/// string that crossed a chunk boundary lost its colour halfway through, and
-/// a long file was tokenized again for every chunk shown.
+int _chunkTextEnd(String source, List<int> boundaries, int index) {
+  var end = boundaries[index + 1];
+  if (end < source.length && source.codeUnitAt(end - 1) == 0x0a) {
+    end--;
+    if (end > boundaries[index] && source.codeUnitAt(end - 1) == 0x0d) end--;
+  }
+  return end;
+}
+
+/// Tokenize once so comments and strings keep their style across chunks.
+/// Partition on the same isolate to keep large-file work off the UI thread.
+List<List<TextSpan>> _snippetHighlight(_ReaderRequest request) {
+  final spans = nexHighlightCode(
+    request.source,
+    request.language,
+    style: const TextStyle(),
+    scheme: request.scheme,
+  );
+  return [
+    for (var i = 0; i < request.boundaries.length - 1; i++)
+      nexSliceCodeSpans(
+        spans,
+        request.boundaries[i],
+        _chunkTextEnd(request.source, request.boundaries, i),
+      ),
+  ];
+}
+
 class _SnippetReader extends StatefulWidget {
   const _SnippetReader({super.key, required this.snippet});
 
@@ -124,18 +141,8 @@ class _SnippetReaderState extends State<_SnippetReader> {
   bool _highlight = false;
   Animation<double>? _entrance;
 
-  /// The whole source's colours, once they are ready, and each chunk's share
-  /// of them. Slicing every chunk once costs one pass; slicing in `build`
-  /// would do it again each time a chunk scrolled back into view.
-  List<TextSpan>? _spans;
+  _ReaderRequest? _requested;
   List<List<TextSpan>>? _chunkSpans;
-  String? _spansSource;
-  ColorScheme? _spansScheme;
-
-  /// What a worker is colouring right now, so a dependency change while it
-  /// runs starts nothing twice.
-  String? _runningSource;
-  ColorScheme? _runningScheme;
 
   @override
   void didChangeDependencies() {
@@ -163,88 +170,38 @@ class _SnippetReaderState extends State<_SnippetReader> {
   /// Colours the whole snippet once, when the sheet has finished opening.
   void _prepareSpans() {
     if (!_highlight) return;
-    final code = widget.snippet.code;
-    final scheme = Theme.of(context).colorScheme;
-    if (_spans != null && _spansSource == code && _spansScheme == scheme) {
+    final snippet = widget.snippet;
+    if (snippet.language == NexCodeLanguage.plainText) {
+      _requested = null;
+      _chunkSpans = null;
       return;
     }
-    if (_runningSource == code && _runningScheme == scheme) return;
-    if (code.length <= _syncHighlightLimit) {
-      _spansSource = code;
-      _spansScheme = scheme;
-      _applySpans(
-        nexHighlightCode(
-          code,
-          widget.snippet.language,
-          style: const TextStyle(),
-          scheme: scheme,
-        ),
-      );
-      return;
+    final request = (
+      source: snippet.code,
+      language: snippet.language,
+      scheme: Theme.of(context).colorScheme,
+      boundaries: _boundaries,
+    );
+    if (_requested == request) return;
+    _requested = request;
+    if (snippet.code.length <= _syncHighlightLimit) {
+      _chunkSpans = _snippetHighlight(request);
+    } else {
+      _chunkSpans = null;
+      unawaited(_highlightOffThread(request));
     }
-    _spans = null;
-    _chunkSpans = null;
-    _runningSource = code;
-    _runningScheme = scheme;
-    unawaited(_highlightOffThread(code, widget.snippet.language, scheme));
   }
 
-  void _applySpans(List<TextSpan> spans) {
-    _spans = spans;
-    final chunks = <List<TextSpan>>[];
-    for (var i = 0; i < _boundaries.length - 1; i++) {
-      chunks.add(nexSliceCodeSpans(spans, _boundaries[i], _chunkTextEnd(i)));
-    }
-    _chunkSpans = chunks;
-  }
-
-  /// Where the [index]th chunk's own text ends: the boundary's line break
-  /// belongs to the layout, not to the chunk, except at the end of the source.
-  int _chunkTextEnd(int index) {
-    final source = widget.snippet.code;
-    final start = _boundaries[index];
-    var end = _boundaries[index + 1];
-    if (end < source.length && source.codeUnitAt(end - 1) == 0x0a) {
-      end--;
-      if (end > start && source.codeUnitAt(end - 1) == 0x0d) end--;
-    }
-    return end;
-  }
-
-  Future<void> _highlightOffThread(
-    String code,
-    NexCodeLanguage language,
-    ColorScheme scheme,
-  ) async {
-    List<TextSpan> spans;
+  Future<void> _highlightOffThread(_ReaderRequest request) async {
     try {
-      spans = await compute(_snippetHighlight, (
-        source: code,
-        language: language,
-        scheme: scheme,
-      ));
-    } catch (_) {
-      // The chunks stay plain: readable, just uncoloured. A later dependency
-      // change tries again.
-      if (_runningSource == code && _runningScheme == scheme) {
-        _runningSource = null;
-        _runningScheme = null;
+      final chunks = await compute(_snippetHighlight, request);
+      if (mounted && _requested == request) {
+        setState(() => _chunkSpans = chunks);
       }
-      return;
+    } catch (_) {
+      // Keep the source readable and allow a later dependency change to retry.
+      if (_requested == request) _requested = null;
     }
-    if (!mounted || _runningSource != code || _runningScheme != scheme) {
-      return;
-    }
-    _runningSource = null;
-    _runningScheme = null;
-    if (Theme.of(context).colorScheme != scheme) {
-      // The colours were made for a theme that is no longer on screen.
-      _prepareSpans();
-      return;
-    }
-    _spansSource = code;
-    _spansScheme = scheme;
-    setState(() => _applySpans(spans));
   }
 
   @override
@@ -258,12 +215,8 @@ class _SnippetReaderState extends State<_SnippetReader> {
     super.didUpdateWidget(old);
     if (old.snippet.code != widget.snippet.code) {
       _boundaries = _chunkBoundaries(widget.snippet.code);
-      _spans = null;
-      _chunkSpans = null;
-      _spansSource = null;
-      _spansScheme = null;
-      _runningSource = null;
-      _runningScheme = null;
+    }
+    if (old.snippet != widget.snippet) {
       _prepareSpans();
     }
   }
@@ -314,7 +267,7 @@ class _SnippetReaderState extends State<_SnippetReader> {
             final start = _boundaries[index];
             // The next widget already starts on a new line. Leave the last
             // line break in place at the end of the original source.
-            final end = _chunkTextEnd(index);
+            final end = _chunkTextEnd(source, _boundaries, index);
             return NexCodeText(
               source.substring(start, end),
               language: widget.snippet.language,

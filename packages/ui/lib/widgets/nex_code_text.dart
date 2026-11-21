@@ -157,15 +157,11 @@ List<TextSpan> nexSliceCodeSpans(List<TextSpan> spans, int start, int end) {
     final take = from > offset ? from - offset : 0;
     final stop = to < ends[i] ? to - offset : text.length;
     if (stop > take) {
+      final span = spans[i];
       pieces.add(
-        TextSpan(
-          // A piece that is whole keeps the original string, which is the
-          // common case for every span a chunk contains.
-          text: take == 0 && stop == text.length
-              ? text
-              : text.substring(take, stop),
-          style: spans[i].style,
-        ),
+        take == 0 && stop == text.length
+            ? span
+            : TextSpan(text: text.substring(take, stop), style: span.style),
       );
     }
   }

@@ -78,25 +78,42 @@ void main() {
       )!;
       expect(t.name, endsWith('.dart'));
       expect(t.name, startsWith('void main()'));
-      expect(t.text, 'void main() {\n  print(1);\n}\n');
+      expect(t.text, 'void main() {\n  print(1);\n}');
       expect(t.mimeType, 'text/plain');
       expect(t.sourcePath, isNull);
     });
 
     test('a snippet is named by its title and typed by its language', () {
       final page = nexSaveTargetFor(
-        _note(NoteType.text, content: '```html\n<p>x</p>\n```', title: 'Page'),
+        _note(
+          NoteType.text,
+          content: '```html\n<p>x</p>\n```',
+          title: 'Page.html',
+        ),
       )!;
       expect(page.name, 'Page.html');
       expect(page.mimeType, 'text/html');
-      expect(page.text, '<p>x</p>\n');
+      expect(page.text, '<p>x</p>');
 
       final unknown = nexSaveTargetFor(
         _note(NoteType.text, content: '```kotlin\nval x = 1\n```'),
       )!;
       expect(unknown.name, endsWith('.txt'));
-      expect(unknown.text, 'val x = 1\n');
+      expect(unknown.text, 'val x = 1');
     });
+
+    test(
+      'source export preserves line endings, indentation and blank lines',
+      () {
+        for (final code in ['x', 'x\n', '\tسلام  \r\n\r\n']) {
+          final note = _note(
+            NoteType.text,
+            content: NexCodeSnippet(code: code).markdown,
+          );
+          expect(nexSaveTargetFor(note)!.text, code);
+        }
+      },
+    );
 
     test('a link saves as a Markdown link', () {
       final t = nexSaveTargetFor(

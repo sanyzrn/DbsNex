@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -384,7 +385,7 @@ NoteSaveTarget? nexSaveTargetFor(Note note) {
         name: _sourceFileNameFor(note, snippet, extension),
         mimeType: _mimeFor(extension),
         sourcePath: null,
-        text: snippet.code.endsWith('\n') ? snippet.code : '${snippet.code}\n',
+        text: snippet.code,
       );
     }
   }
@@ -417,14 +418,13 @@ String _sourceExtensionOf(NexCodeLanguage language) => switch (language) {
 String _sourceFileNameFor(Note note, NexCodeSnippet snippet, String extension) {
   final title = note.title?.trim() ?? '';
   final firstLine = title.isNotEmpty
-      ? title
-      : snippet.code
-            .split('\n')
+      ? (fileExtensionOf(title).toLowerCase() == extension
+            ? fileBaseNameOf(title)
+            : title)
+      : LineSplitter.split(snippet.code)
             .map((line) => line.trim())
             .firstWhere((line) => line.isNotEmpty, orElse: () => '');
-  final short = firstLine.length > 60
-      ? firstLine.substring(0, 60).trimRight()
-      : firstLine;
+  final short = String.fromCharCodes(firstLine.runes.take(55));
   return safeFileName(short, extension: extension) ?? 'Nex code$extension';
 }
 

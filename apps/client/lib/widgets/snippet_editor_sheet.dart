@@ -107,11 +107,11 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
 
   void _onChanged() {
     if (_code.text == _lastText) return;
+    final wasEdited = _lastText != widget.initial.code;
     _lastText = _code.text;
     _writeDraft();
-    // Only Save depends on the text, and the field repaints itself: rebuilding
-    // the sheet on every keystroke laid out the toolbar, the field's decorator
-    // and the buttons again for a character that had already been drawn.
+    // PopScope needs a new canPop value on the first edit and after undo.
+    if (wasEdited != (_lastText != widget.initial.code)) setState(() {});
   }
 
   void _writeDraft() {

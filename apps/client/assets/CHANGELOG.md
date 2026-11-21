@@ -4,8 +4,11 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
-- **Code that stays code.** Saving a code note to your device now writes the source itself — as a `.dart`, `.py`, `.html` or whatever its language is — named after its title or first line, instead of a Markdown file with the code fenced inside it. A long snippet keeps its syntax colours from top to bottom, even when a comment or a string runs past a screenful, and opens immediately while those colours are prepared.
-- **Lighter editing and photo tiles.** Typing in a long snippet no longer redraws the whole editor, and a tile holding several photos decodes each picture at the size it is actually drawn, so a grid of them uses far less memory.
+## v2.8.12
+
+- **Save code as a source file.** Save to device uses the language’s file extension and preserves indentation, blank lines and line endings. The suggested name comes from the title or first non-empty line.
+- **Read and edit long snippets.** Multiline comments and strings keep their colours as you scroll. Changing the language updates highlighting immediately, and Back asks before discarding edits.
+- **Lighter photo grids.** Multi-photo cards load smaller previews for each cell, reducing memory use when browsing a gallery.
 
 ## v2.8.11
 
