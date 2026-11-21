@@ -66,11 +66,21 @@ class _MediaTileState extends State<_MediaTile> {
 
   String get _path => widget.note.mediaUri ?? '';
 
-  int get _cacheWidth {
-    final width = widget.previewWidth ?? widget.metrics.tileWidth;
+  int get _cacheWidth => _cacheWidthFor(1);
+
+  /// The decode width one picture of this tile is given. [share] is the part
+  /// of the tile it covers: a collage cell is a third or less of it, and
+  /// decoding every cell at the whole tile's width would hold several times
+  /// the pixels the screen can show — the largest single allocation a grid
+  /// tile can make.
+  int _cacheWidthFor(double share) {
+    final width = (widget.previewWidth ?? widget.metrics.tileWidth) * share;
     final pixels = (width * 1.6 * MediaQuery.devicePixelRatioOf(context))
         .round();
-    return widget.previewWidth == null ? pixels : pixels.clamp(1, 1440);
+    return (widget.previewWidth == null ? pixels : pixels.clamp(1, 1440)).clamp(
+      1,
+      4096,
+    );
   }
 
   @override
@@ -131,9 +141,9 @@ class _MediaTileState extends State<_MediaTile> {
     );
   }
 
-  Widget _photo(String path, {bool drift = true}) {
+  Widget _photo(String path, {bool drift = true, double share = 1}) {
     final image = ResizeImage.resizeIfNeeded(
-      _cacheWidth,
+      _cacheWidthFor(share),
       null,
       FileImage(File(path)),
     );
@@ -165,10 +175,14 @@ class _MediaTileState extends State<_MediaTile> {
       if (all.length < 2) return _tile(_photo(_path));
       const gap = SizedBox.square(dimension: 2);
       final extra = all.length - 3;
+      // The left cell is three fifths of the tile and each right cell two
+      // fifths — half each in a two-picture collage — with a little over so
+      // the cover fit has pixels to spare.
+      final share = all.length == 2 ? 0.52 : null;
       Widget cell(int i) => Stack(
         fit: StackFit.expand,
         children: [
-          _photo(all[i], drift: false),
+          _photo(all[i], drift: false, share: share ?? (i == 0 ? 0.62 : 0.42)),
           if (i == 2 && extra > 0)
             ColoredBox(
               color: Colors.black.withValues(alpha: 0.45),
