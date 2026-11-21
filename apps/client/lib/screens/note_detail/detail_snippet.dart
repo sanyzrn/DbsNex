@@ -3,6 +3,15 @@ part of '../note_detail_sheet.dart';
 /// A snippet's reading body: one fixed-width block, its language, and the
 /// copy action that copies the code and nothing around it.
 extension _DetailSnippet on _NoteDetailSheetState {
+  NexCodeSnippet? _snippetFor(Note note) {
+    final source = note.content;
+    if (_parsedSnippetSource != source) {
+      _parsedSnippetSource = source;
+      _parsedSnippet = source == null ? null : NexCodeSnippet.parse(source);
+    }
+    return _parsedSnippet;
+  }
+
   Widget _snippetBody(
     BuildContext context,
     Note note,
