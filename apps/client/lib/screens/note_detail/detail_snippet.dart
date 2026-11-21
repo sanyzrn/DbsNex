@@ -87,8 +87,46 @@ extension _DetailSnippet on _NoteDetailSheetState {
   }
 }
 
-/// Draws one continuous code block while laying out and highlighting only
-/// the chunks near the viewport. Copy and share use the original snippet.
+/// Sources below this length are coloured on the sheet's frame. Longer ones
+/// are coloured off the UI isolate and the chunks stay plain until it returns:
+/// a long paste opens at once rather than waiting for its colours.
+const _syncHighlightLimit = 12000;
+
+typedef _ReaderRequest = ({
+  String source,
+  NexCodeLanguage language,
+  ColorScheme scheme,
+  List<int> boundaries,
+});
+
+int _chunkTextEnd(String source, List<int> boundaries, int index) {
+  var end = boundaries[index + 1];
+  if (end < source.length && source.codeUnitAt(end - 1) == 0x0a) {
+    end--;
+    if (end > boundaries[index] && source.codeUnitAt(end - 1) == 0x0d) end--;
+  }
+  return end;
+}
+
+/// Tokenize once so comments and strings keep their style across chunks.
+/// Partition on the same isolate to keep large-file work off the UI thread.
+List<List<TextSpan>> _snippetHighlight(_ReaderRequest request) {
+  final spans = nexHighlightCode(
+    request.source,
+    request.language,
+    style: const TextStyle(),
+    scheme: request.scheme,
+  );
+  return [
+    for (var i = 0; i < request.boundaries.length - 1; i++)
+      nexSliceCodeSpans(
+        spans,
+        request.boundaries[i],
+        _chunkTextEnd(request.source, request.boundaries, i),
+      ),
+  ];
+}
+
 class _SnippetReader extends StatefulWidget {
   const _SnippetReader({super.key, required this.snippet});
 
@@ -103,22 +141,67 @@ class _SnippetReaderState extends State<_SnippetReader> {
   bool _highlight = false;
   Animation<double>? _entrance;
 
+  _ReaderRequest? _requested;
+  List<List<TextSpan>>? _chunkSpans;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final animation = ModalRoute.of(context)?.animation;
-    if (animation == _entrance && animation != null) return;
-    _entrance?.removeStatusListener(_onEntrance);
-    _entrance = animation;
-    _highlight =
-        animation == null || animation.status == AnimationStatus.completed;
-    if (!_highlight) animation?.addStatusListener(_onEntrance);
+    if (animation != _entrance || animation == null) {
+      _entrance?.removeStatusListener(_onEntrance);
+      _entrance = animation;
+      _highlight =
+          animation == null || animation.status == AnimationStatus.completed;
+      if (!_highlight) animation?.addStatusListener(_onEntrance);
+    }
+    // Also on a theme change, which arrives here with the same animation.
+    _prepareSpans();
   }
 
   void _onEntrance(AnimationStatus status) {
     if (status != AnimationStatus.completed) return;
     _entrance?.removeStatusListener(_onEntrance);
+    if (!mounted) return;
     setState(() => _highlight = true);
+    _prepareSpans();
+  }
+
+  /// Colours the whole snippet once, when the sheet has finished opening.
+  void _prepareSpans() {
+    if (!_highlight) return;
+    final snippet = widget.snippet;
+    if (snippet.language == NexCodeLanguage.plainText) {
+      _requested = null;
+      _chunkSpans = null;
+      return;
+    }
+    final request = (
+      source: snippet.code,
+      language: snippet.language,
+      scheme: Theme.of(context).colorScheme,
+      boundaries: _boundaries,
+    );
+    if (_requested == request) return;
+    _requested = request;
+    if (snippet.code.length <= _syncHighlightLimit) {
+      _chunkSpans = _snippetHighlight(request);
+    } else {
+      _chunkSpans = null;
+      unawaited(_highlightOffThread(request));
+    }
+  }
+
+  Future<void> _highlightOffThread(_ReaderRequest request) async {
+    try {
+      final chunks = await compute(_snippetHighlight, request);
+      if (mounted && _requested == request) {
+        setState(() => _chunkSpans = chunks);
+      }
+    } catch (_) {
+      // Keep the source readable and allow a later dependency change to retry.
+      if (_requested == request) _requested = null;
+    }
   }
 
   @override
@@ -132,6 +215,9 @@ class _SnippetReaderState extends State<_SnippetReader> {
     super.didUpdateWidget(old);
     if (old.snippet.code != widget.snippet.code) {
       _boundaries = _chunkBoundaries(widget.snippet.code);
+    }
+    if (old.snippet != widget.snippet) {
+      _prepareSpans();
     }
   }
 
@@ -179,17 +265,16 @@ class _SnippetReaderState extends State<_SnippetReader> {
           addAutomaticKeepAlives: false,
           itemBuilder: (context, index) {
             final start = _boundaries[index];
-            var end = _boundaries[index + 1];
             // The next widget already starts on a new line. Leave the last
             // line break in place at the end of the original source.
-            if (end < source.length && source.codeUnitAt(end - 1) == 0x0a) {
-              end--;
-              if (end > start && source.codeUnitAt(end - 1) == 0x0d) end--;
-            }
+            final end = _chunkTextEnd(source, _boundaries, index);
             return NexCodeText(
               source.substring(start, end),
               language: widget.snippet.language,
-              highlight: _highlight,
+              // The chunk draws its share of the whole source's colours, so
+              // a construct crossing the boundary keeps its reading.
+              highlight: false,
+              spans: _chunkSpans?[index],
               style: style,
               softWrap: true,
             );

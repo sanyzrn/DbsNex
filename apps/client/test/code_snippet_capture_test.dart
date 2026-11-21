@@ -299,6 +299,11 @@ void main() {
     await tester.tap(find.byTooltip(l10n.codeIndent));
     await tester.pumpAndSettle();
     expect(controller.text, startsWith('  \tif (ok) {'));
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.unsavedChanges), findsOneWidget);
+    await tester.tap(find.text(l10n.keepEditing));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(l10n.codeOutdent));
     await tester.pumpAndSettle();
     expect(controller.text, _code);
@@ -319,6 +324,25 @@ void main() {
       saved.content,
       NexCodeSnippet(code: edited, language: NexCodeLanguage.python).markdown,
     );
+
+    // Change only the language while the same detail sheet is open.
+    expect(
+      tester.widget<NexCodeText>(find.byType(NexCodeText)).spans,
+      isNotNull,
+    );
+    await tester.tap(find.text(l10n.edit));
+    await tester.pumpAndSettle();
+    await chooseLanguage(
+      tester,
+      l10n.codeLanguagePlainText,
+      key: const ValueKey('snippet-code-language'),
+    );
+    await tester.tap(find.text(l10n.save));
+    await tester.pumpAndSettle();
+    final plain = tester.widget<NexCodeText>(find.byType(NexCodeText));
+    expect(plain.code, edited);
+    expect(plain.language, NexCodeLanguage.plainText);
+    expect(plain.spans, isNull);
   });
 
   testWidgets(
@@ -359,11 +383,78 @@ void main() {
       final source = find.byType(NexCodeText);
       final first = tester.widget<NexCodeText>(source);
       expect(first.code, code);
-      expect(first.highlight, isFalse);
+      // Readable from the first frame; coloured once the sheet has opened.
+      expect(first.spans, isNull);
       await tester.pumpAndSettle();
-      expect(tester.widget<NexCodeText>(source).highlight, isTrue);
+      final coloured = tester.widget<NexCodeText>(source).spans;
+      expect(coloured, isNotNull);
+      expect(coloured!.map((span) => span.text).join(), code);
+      expect(coloured.any((span) => span.style?.color != null), isTrue);
     },
   );
+
+  testWidgets('a comment that runs past a chunk boundary keeps its colour', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(600, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    // 48 lines end inside the comment: the chunk after the cut starts with
+    // its middle, with no `/*` of its own.
+    final code =
+        '${List.generate(46, (i) => 'final v$i = $i;').join('\n')}\n'
+        '/* start\n * middle\n * end */\nfinal done = true;\n'
+        '${'// filler to exercise background highlighting\n' * 350}';
+    final note = (await services.captureText(
+      NexCodeSnippet(code: code, language: NexCodeLanguage.dart).markdown,
+    ))!;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NoteDetailSheet(
+            services: services,
+            preferences: preferences,
+            noteId: note.id,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    Finder chunkContaining(String text) => find.byWidgetPredicate(
+      (widget) => widget is NexCodeText && widget.code.contains(text),
+    );
+    final scrollable = find
+        .descendant(
+          of: find.byType(CustomScrollView),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      chunkContaining(' * end */'),
+      600,
+      scrollable: scrollable,
+    );
+    final visibleChunk = chunkContaining(' * end */');
+    final deadline = Stopwatch()..start();
+    while (tester.widget<NexCodeText>(visibleChunk).spans == null &&
+        deadline.elapsed < const Duration(seconds: 10)) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pump();
+    }
+    final chunk = tester.widget<NexCodeText>(visibleChunk);
+    expect(chunk.spans, isNotNull);
+    expect(
+      chunk.spans!.any((span) => span.style?.fontStyle == FontStyle.italic),
+      isTrue,
+      reason: 'the middle of a block comment is still a comment',
+    );
+    expect(chunk.spans!.map((span) => span.text).join(), chunk.code);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'editing HTML on the Android editor path shows syntax and preserves composing text',

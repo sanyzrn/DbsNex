@@ -518,7 +518,15 @@ class _Foot extends StatelessWidget {
                       if (known != null) {
                         fits = known;
                       } else {
-                        if (_footFits.length > 300) _footFits.clear();
+                        if (_footFits.length >= 300) {
+                          // Keep the labels on screen; clearing the whole map
+                          // made each of their tiles measure the same text
+                          // again on the next build.
+                          for (final oldest
+                              in _footFits.keys.take(75).toList()) {
+                            _footFits.remove(oldest);
+                          }
+                        }
                         final painter = TextPainter(
                           text: TextSpan(text: full, style: style),
                           textScaler: scaler,

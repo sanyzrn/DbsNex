@@ -4,6 +4,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.12
+
+- **Save code as a source file.** Save to device uses the language’s file extension and preserves indentation, blank lines and line endings. The suggested name comes from the title or first non-empty line.
+- **Read and edit long snippets.** Multiline comments and strings keep their colours as you scroll. Changing the language updates highlighting immediately, and Back asks before discarding edits.
+- **Lighter photo grids.** Multi-photo cards load smaller previews for each cell, reducing memory use when browsing a gallery.
+
 ## v2.8.11
 
 - **App updates.** New releases are available in the main Nex GitHub repository. Existing installations can update to this version as usual.

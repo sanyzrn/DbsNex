@@ -66,11 +66,14 @@ class _MediaTileState extends State<_MediaTile> {
 
   String get _path => widget.note.mediaUri ?? '';
 
-  int get _cacheWidth {
-    final width = widget.previewWidth ?? widget.metrics.tileWidth;
+  int get _cacheWidth => _cacheWidthFor(1);
+
+  /// Decode each picture at its fraction of the tile width.
+  int _cacheWidthFor(double share) {
+    final width = (widget.previewWidth ?? widget.metrics.tileWidth) * share;
     final pixels = (width * 1.6 * MediaQuery.devicePixelRatioOf(context))
         .round();
-    return widget.previewWidth == null ? pixels : pixels.clamp(1, 1440);
+    return pixels.clamp(1, widget.previewWidth == null ? 4096 : 1440);
   }
 
   @override
@@ -131,9 +134,9 @@ class _MediaTileState extends State<_MediaTile> {
     );
   }
 
-  Widget _photo(String path, {bool drift = true}) {
+  Widget _photo(String path, {bool drift = true, double share = 1}) {
     final image = ResizeImage.resizeIfNeeded(
-      _cacheWidth,
+      _cacheWidthFor(share),
       null,
       FileImage(File(path)),
     );
@@ -165,10 +168,10 @@ class _MediaTileState extends State<_MediaTile> {
       if (all.length < 2) return _tile(_photo(_path));
       const gap = SizedBox.square(dimension: 2);
       final extra = all.length - 3;
-      Widget cell(int i) => Stack(
+      Widget cell(int i, double share) => Stack(
         fit: StackFit.expand,
         children: [
-          _photo(all[i], drift: false),
+          _photo(all[i], drift: false, share: share),
           if (i == 2 && extra > 0)
             ColoredBox(
               color: Colors.black.withValues(alpha: 0.45),
@@ -191,22 +194,22 @@ class _MediaTileState extends State<_MediaTile> {
           child: all.length == 2
               ? Row(
                   children: [
-                    Expanded(child: cell(0)),
+                    Expanded(child: cell(0, 0.5)),
                     gap,
-                    Expanded(child: cell(1)),
+                    Expanded(child: cell(1, 0.5)),
                   ],
                 )
               : Row(
                   children: [
-                    Expanded(flex: 3, child: cell(0)),
+                    Expanded(flex: 3, child: cell(0, 0.6)),
                     gap,
                     Expanded(
                       flex: 2,
                       child: Column(
                         children: [
-                          Expanded(child: cell(1)),
+                          Expanded(child: cell(1, 0.4)),
                           gap,
-                          Expanded(child: cell(2)),
+                          Expanded(child: cell(2, 0.4)),
                         ],
                       ),
                     ),

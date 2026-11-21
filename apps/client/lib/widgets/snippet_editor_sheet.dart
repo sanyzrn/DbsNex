@@ -107,9 +107,11 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
 
   void _onChanged() {
     if (_code.text == _lastText) return;
+    final wasEdited = _lastText != widget.initial.code;
     _lastText = _code.text;
     _writeDraft();
-    setState(() {});
+    // PopScope needs a new canPop value on the first edit and after undo.
+    if (wasEdited != (_lastText != widget.initial.code)) setState(() {});
   }
 
   void _writeDraft() {
@@ -250,9 +252,12 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
                         child: Text(l10n.cancel),
                       ),
                       const Spacer(),
-                      FilledButton(
-                        onPressed: _canSave ? _save : null,
-                        child: Text(l10n.save),
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _code,
+                        builder: (context, value, _) => FilledButton(
+                          onPressed: value.text.trim().isEmpty ? null : _save,
+                          child: Text(l10n.save),
+                        ),
                       ),
                     ],
                   ),

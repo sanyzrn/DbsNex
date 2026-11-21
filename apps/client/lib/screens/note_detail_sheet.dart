@@ -414,6 +414,14 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final archived = note.isSetAside();
     final isText = note.type == NoteType.text && !archived;
     final hasMedia = note.mediaUri != null;
+    final copyable = _copyableText(note) != null;
+    // A text-only note exports the same source it copies. Generate the file
+    // name and export content only when Save is actually pressed.
+    final canSave = switch (note.type) {
+      NoteType.text ||
+      NoteType.checklist => (note.mediaUri?.isNotEmpty ?? false) || copyable,
+      _ => nexSaveTargetFor(note) != null,
+    };
     final editableImage =
         hasMedia &&
         (note.type == NoteType.photo ||
@@ -501,7 +509,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           primaryRank: 2,
                           onPressed: _share,
                         ),
-                      if (nexSaveTargetFor(note) != null)
+                      if (canSave)
                         _DetailAction(
                           icon: Icons.save_alt,
                           label: l10n.saveToDevice,
@@ -514,7 +522,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           label: l10n.rename,
                           onPressed: _renameFile,
                         ),
-                      if (_copyableText(note) != null)
+                      if (copyable)
                         _DetailAction(
                           icon: Icons.copy_outlined,
                           label: l10n.copy,
