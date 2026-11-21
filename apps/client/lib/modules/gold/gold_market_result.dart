@@ -58,6 +58,10 @@ class GoldMarketResult extends StatelessWidget {
         (goldStrings(context, 'settlement'), number(settlement)),
         (goldStrings(context, 'marketRate750'), rate(rateCenti)),
         (
+          goldStrings(context, 'effectiveSaleRate'),
+          rate(GoldMarketMath.rateAt(rateCenti, 750, settlement)),
+        ),
+        (
           goldStrings(context, 'saleDeduction'),
           '${formatPercent(deductionBp, persian: persian)} · ${money(s.deductionRial)}',
         ),

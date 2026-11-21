@@ -259,7 +259,7 @@ class _RecurringAttachmentsState extends State<RecurringAttachments> {
             for (final id in _ids)
               if (_notes[id] case final note?)
                 InputChip(
-                  avatar: Icon(nexNoteTypeIcon(note.type.wireName), size: 16),
+                  avatar: NexNoteCardGlyph(note, size: 16),
                   label: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 160),
                     child: Text(
@@ -401,7 +401,7 @@ class _NoteSearchState extends State<_NoteSearch> {
               children: [
                 for (final note in _found)
                   ListTile(
-                    leading: Icon(nexNoteTypeIcon(note.type.wireName)),
+                    leading: NexNoteCardGlyph(note),
                     title: Text(
                       _RecurringAttachmentsState._label(note),
                       maxLines: 1,

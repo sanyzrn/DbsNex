@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/gold/gold_screen.dart';
+import 'package:nex_client/modules/gold/gold_compare_page.dart';
+import 'package:nex_client/modules/gold/gold_models.dart';
+import 'package:nex_client/modules/gold/gold_quotes_page.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
 import '../../support/nex_harness.dart';
@@ -347,6 +350,59 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'saved quotes, detail and comparison fit a narrow large-text screen',
+    (t) async {
+      t.view.physicalSize = const Size(320, 640);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      final store = NexModuleStore(harness.services, 'gold');
+      final quote = GoldQuote.fromRecord('ring', {
+        'title': 'Wedding ring',
+        'shop': 'Gold workshop',
+        'quoteDate': '2026-11-20',
+        'snapTotalRial': 987654321000,
+      });
+      await store.put('quote', quote.id, quote.toRecord());
+
+      Widget largeText(Widget child) => host(
+        Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(2)),
+            child: child,
+          ),
+        ),
+        locale: const Locale('fa'),
+      );
+      await t.pumpWidget(
+        largeText(GoldQuotesPage(store: store, showRials: true)),
+      );
+      await t.pumpAndSettle();
+      expect(
+        t.widget<Text>(find.text('Wedding ring')).textDirection,
+        TextDirection.ltr,
+      );
+      expect(t.takeException(), isNull);
+
+      await t.tap(find.text('Wedding ring'));
+      await t.pumpAndSettle();
+      expect(find.text('Wedding ring'), findsWidgets);
+      expect(t.takeException(), isNull);
+
+      await t.pumpWidget(const SizedBox.shrink());
+      await t.pumpWidget(
+        largeText(
+          GoldComparePage(first: quote, second: quote, showRials: true),
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.drag(scrollable(), const Offset(0, -500));
+      await t.pumpAndSettle();
+      expect(t.takeException(), isNull);
+    },
+  );
 
   testWidgets('a failed save keeps the estimate on screen, honestly', (
     tester,

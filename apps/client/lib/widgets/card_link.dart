@@ -6,7 +6,6 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/link_art.dart';
-import '../platform/link_face.dart';
 
 /// What a link's card calls it: the page's own title, or the one its address
 /// spells out — never the address again, which the site's name already says.
@@ -58,6 +57,9 @@ class NexSiteMark extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final color = nexSiteColor(face, scheme);
+    if (face.brandColor != null) {
+      return NexSiteGlyph(face: face, size: size);
+    }
     final radius = BorderRadius.circular(size * 0.3);
     if (icon case final file?) {
       return Container(
@@ -74,7 +76,8 @@ class NexSiteMark extends StatelessWidget {
           fit: BoxFit.contain,
           filterQuality: FilterQuality.medium,
           cacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).round(),
-          errorBuilder: (context, error, stack) => const SizedBox.shrink(),
+          errorBuilder: (context, error, stack) =>
+              NexSiteGlyph(face: face, size: size * 0.72),
         ),
       );
     }

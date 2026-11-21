@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
-/// The shared detail control, with a static open body for reduced motion.
-/// Flutter's zero-duration AnimatedSize can invalidate itself during layout
-/// when the open body changes height. A static body also honours that setting.
+/// Keeps the toggle visible above the optional fields.
 class GoldDetails extends StatelessWidget {
   const GoldDetails({
     super.key,
@@ -22,7 +20,25 @@ class GoldDetails extends StatelessWidget {
   final Widget child;
   @override
   Widget build(BuildContext context) {
-    if (open && MediaQuery.disableAnimationsOf(context)) return child;
+    if (open) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ListTile(
+            key: toggleKey,
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.tune_outlined),
+            title: Text(title),
+            trailing: const Icon(Icons.expand_less),
+            onTap: () {
+              FocusScope.of(context).unfocus();
+              onChanged(false);
+            },
+          ),
+          child,
+        ],
+      );
+    }
     return NexMoreDetails(
       open: open,
       onChanged: onChanged,

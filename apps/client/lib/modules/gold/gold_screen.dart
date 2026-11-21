@@ -19,6 +19,7 @@ import 'gold_models.dart';
 import 'gold_tabs.dart';
 import 'gold_quotes_page.dart';
 import 'gold_receipt.dart';
+import 'draft_guard.dart';
 import 'gold_save_sheet.dart';
 import 'gold_strings.dart';
 
@@ -45,6 +46,7 @@ class _GoldScreenState extends State<GoldScreen> {
   /// Buy, sell or melted gold: the destination on show (2.8.2).
   int _tab = 0;
 
+  final _marketKey = GlobalKey<GoldMarketPanelState>();
   final _formKey = GlobalKey<GoldFormState>();
   final _title = TextEditingController();
   final _shop = TextEditingController();
@@ -182,182 +184,193 @@ class _GoldScreenState extends State<GoldScreen> {
     final input = _input;
     final result = input == null ? null : GoldMath.calculate(input);
 
-    return Scaffold(
-      appBar: NexAppBar(
-        title: Text(strings(context, 'title')),
-        actions: [
-          // The rial/toman toggle: labelled with the unit in use, one tap
-          // away from the other. Never a guess about which one is meant.
-          Semantics(
-            label: strings(context, 'unitToggleSemantics'),
-            button: true,
-            child: TextButton(
-              key: const ValueKey('gold-unit-toggle'),
-              onPressed: () => setState(() => _showRials = !_showRials),
-              child: Text(
-                _showRials
-                    ? strings(context, 'showRial')
-                    : strings(context, 'showToman'),
-              ),
-            ),
-          ),
-          IconButton(
-            key: const ValueKey('gold-open-budget'),
-            tooltip: strings(context, 'budgetTip'),
-            onPressed: _saving ? null : () => unawaited(_fromBudget()),
-            icon: const Icon(Icons.savings_outlined),
-          ),
-          IconButton(
-            key: const ValueKey('gold-open-quotes'),
-            tooltip: strings(context, 'openSavedQuotesTip'),
-            onPressed: () => Navigator.of(context).push(
-              NexPageRoute<void>(
-                builder: (_) =>
-                    GoldQuotesPage(store: widget.store, showRials: _showRials),
-              ),
-            ),
-            icon: const Icon(Icons.inventory_2_outlined),
-          ),
-        ],
-      ),
-      // Saving is a purchase estimate's; selling and melted gold are worked
-      // out, not saved.
-      floatingActionButton: _tab != 0
-          ? null
-          : FloatingActionButton.extended(
-              // No hero: a page's button never flies into another's (2.8.2).
-              heroTag: null,
-              key: const ValueKey('gold-save-fab'),
-              onPressed: _saving || input == null ? null : _save,
-              label: Text(
-                strings(
-                  context,
-                  editing || _saved ? 'updateQuote' : 'saveQuote',
+    return DraftGuard(
+      drafts: () => [
+        ?_formKey.currentState?.draft,
+        ?_marketKey.currentState?.draft,
+      ],
+      busy: () => _saving,
+      child: Scaffold(
+        appBar: NexAppBar(
+          title: Text(strings(context, 'title')),
+          actions: [
+            // The rial/toman toggle: labelled with the unit in use, one tap
+            // away from the other. Never a guess about which one is meant.
+            Semantics(
+              label: strings(context, 'unitToggleSemantics'),
+              button: true,
+              child: TextButton(
+                key: const ValueKey('gold-unit-toggle'),
+                onPressed: () => setState(() => _showRials = !_showRials),
+                child: Text(
+                  _showRials
+                      ? strings(context, 'showRial')
+                      : strings(context, 'showToman'),
                 ),
               ),
-              icon: const Icon(Icons.save_outlined),
             ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
-        children: [
-          const SizedBox(height: NexSpacing.md),
-          GoldWorkspace(
-            selected: _tab,
-            onChanged: (tab) {
-              if (tab == _tab) return;
-              FocusManager.instance.primaryFocus?.unfocus();
-              setState(() => _tab = tab);
-            },
-          ),
-          // Buy, and selling or melted gold, in place (2.8.2): both kept as
-          // they were left, the one chosen fading in.
-          GoldKeptTabs(
-            index: _tab == 0 ? 0 : 1,
-            builders: [
-              (context) => Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: NexSpacing.sm),
-                  Wrap(
-                    spacing: NexSpacing.sm,
-                    children: [
-                      IconButton(
-                        key: const ValueKey('gold-open-guide'),
-                        tooltip: strings(context, 'openGuideTip'),
-                        onPressed: () => Navigator.of(context).push(
-                          NexPageRoute<void>(
-                            builder: (_) => const GoldGuidePage(),
+            IconButton(
+              key: const ValueKey('gold-open-budget'),
+              tooltip: strings(context, 'budgetTip'),
+              onPressed: _saving ? null : () => unawaited(_fromBudget()),
+              icon: const Icon(Icons.savings_outlined),
+            ),
+            IconButton(
+              key: const ValueKey('gold-open-quotes'),
+              tooltip: strings(context, 'openSavedQuotesTip'),
+              onPressed: () => Navigator.of(context).push(
+                NexPageRoute<void>(
+                  builder: (_) => GoldQuotesPage(
+                    store: widget.store,
+                    showRials: _showRials,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.inventory_2_outlined),
+            ),
+          ],
+        ),
+        // Saving is a purchase estimate's; selling and melted gold are worked
+        // out, not saved.
+        floatingActionButton: _tab != 0
+            ? null
+            : FloatingActionButton.extended(
+                // No hero: a page's button never flies into another's (2.8.2).
+                heroTag: null,
+                key: const ValueKey('gold-save-fab'),
+                onPressed: _saving || input == null ? null : _save,
+                label: Text(
+                  strings(
+                    context,
+                    editing || _saved ? 'updateQuote' : 'saveQuote',
+                  ),
+                ),
+                icon: const Icon(Icons.save_outlined),
+              ),
+        body: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
+          children: [
+            const SizedBox(height: NexSpacing.md),
+            GoldWorkspace(
+              selected: _tab,
+              onChanged: (tab) {
+                if (tab == _tab) return;
+                FocusManager.instance.primaryFocus?.unfocus();
+                setState(() => _tab = tab);
+              },
+            ),
+            // Buy, and selling or melted gold, in place (2.8.2): both kept as
+            // they were left, the one chosen fading in.
+            GoldKeptTabs(
+              index: _tab == 0 ? 0 : 1,
+              builders: [
+                (context) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: NexSpacing.sm),
+                    Wrap(
+                      spacing: NexSpacing.sm,
+                      children: [
+                        IconButton(
+                          key: const ValueKey('gold-open-guide'),
+                          tooltip: strings(context, 'openGuideTip'),
+                          onPressed: () => Navigator.of(context).push(
+                            NexPageRoute<void>(
+                              builder: (_) => const GoldGuidePage(),
+                            ),
                           ),
+                          icon: const Icon(Icons.help_outline),
                         ),
-                        icon: const Icon(Icons.help_outline),
+                      ],
+                    ),
+                    const SizedBox(height: NexSpacing.sm),
+                    GoldForm(
+                      key: _formKey,
+                      initialQuote: widget.editing,
+                      store: widget.store,
+                      metadata: {
+                        'title': _title,
+                        'shop': _shop,
+                        'quoteDate': _quoteDate,
+                        'notes': _notes,
+                      },
+                      recordId: _recordId,
+                      busy: () => _saving,
+                      receipt: input != null && result != null
+                          ? GoldReceipt(
+                              input: input,
+                              result: result,
+                              showRials: _showRials,
+                              quoteDate: _quoteDate.text.trim(),
+                            )
+                          : null,
+                      onInputChanged: (input) {
+                        if (mounted) setState(() => _input = input);
+                      },
+                    ),
+                    if (!editing && !_saved)
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton.icon(
+                          key: const ValueKey('gold-discard-draft'),
+                          onPressed:
+                              _saving ||
+                                  _formKey.currentState?.canDiscard != true
+                              ? null
+                              : _discard,
+                          icon: const Icon(Icons.restart_alt),
+                          label: Text(strings(context, 'discardDraft')),
+                        ),
+                      ),
+                    if (editing || _saved) ...[
+                      const SizedBox(height: NexSpacing.sm),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton.icon(
+                          key: const ValueKey('gold-new-estimate'),
+                          onPressed: () => Navigator.of(context).push(
+                            NexPageRoute<void>(
+                              builder: (_) => GoldScreen(store: widget.store),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add),
+                          label: Text(strings(context, 'newEstimate')),
+                        ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: NexSpacing.sm),
-                  GoldForm(
-                    key: _formKey,
-                    initialQuote: widget.editing,
-                    store: widget.store,
-                    metadata: {
-                      'title': _title,
-                      'shop': _shop,
-                      'quoteDate': _quoteDate,
-                      'notes': _notes,
-                    },
-                    recordId: _recordId,
-                    busy: () => _saving,
-                    receipt: input != null && result != null
-                        ? GoldReceipt(
-                            input: input,
-                            result: result,
-                            showRials: _showRials,
-                            quoteDate: _quoteDate.text.trim(),
-                          )
-                        : null,
-                    onInputChanged: (input) {
-                      if (mounted) setState(() => _input = input);
-                    },
-                  ),
-                  if (!editing && !_saved)
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: TextButton.icon(
-                        key: const ValueKey('gold-discard-draft'),
-                        onPressed:
-                            _saving || _formKey.currentState?.canDiscard != true
-                            ? null
-                            : _discard,
-                        icon: const Icon(Icons.restart_alt),
-                        label: Text(strings(context, 'discardDraft')),
-                      ),
+                    const SizedBox(height: NexSpacing.md),
+                    GoldHowCalculated(
+                      open: _howOpen,
+                      onToggle: () => setState(() => _howOpen = !_howOpen),
                     ),
-                  if (editing || _saved) ...[
-                    const SizedBox(height: NexSpacing.sm),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: TextButton.icon(
-                        key: const ValueKey('gold-new-estimate'),
-                        onPressed: () => Navigator.of(context).push(
-                          NexPageRoute<void>(
-                            builder: (_) => GoldScreen(store: widget.store),
+                    const SizedBox(height: NexSpacing.md),
+                    if (input == null)
+                      Padding(
+                        padding: const EdgeInsets.all(NexSpacing.md),
+                        child: Text(
+                          strings(context, 'fixFields'),
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        icon: const Icon(Icons.add),
-                        label: Text(strings(context, 'newEstimate')),
                       ),
-                    ),
                   ],
-                  const SizedBox(height: NexSpacing.md),
-                  GoldHowCalculated(
-                    open: _howOpen,
-                    onToggle: () => setState(() => _howOpen = !_howOpen),
-                  ),
-                  const SizedBox(height: NexSpacing.md),
-                  if (input == null)
-                    Padding(
-                      padding: const EdgeInsets.all(NexSpacing.md),
-                      child: Text(
-                        strings(context, 'fixFields'),
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              (context) => Padding(
-                padding: const EdgeInsets.only(top: NexSpacing.md),
-                child: GoldMarketPanel(
-                  store: widget.store,
-                  mode: _tab == 0 ? 1 : _tab,
-                  showRials: _showRials,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: NexSpacing.xl * 2),
-        ],
+                (context) => Padding(
+                  padding: const EdgeInsets.only(top: NexSpacing.md),
+                  child: GoldMarketPanel(
+                    key: _marketKey,
+                    store: widget.store,
+                    mode: _tab == 0 ? 1 : _tab,
+                    showRials: _showRials,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: NexSpacing.xl * 2),
+          ],
+        ),
       ),
     );
   }

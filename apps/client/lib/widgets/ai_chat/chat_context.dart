@@ -155,7 +155,7 @@ extension _ChatContext on _AiChatSheetState {
   String _focusLabel(Note note) {
     final source = (note.title?.trim().isNotEmpty ?? false)
         ? note.title!.trim()
-        : (note.displayText ?? '').trim();
+        : (note.snippetPreview?.code ?? note.displayText ?? '').trim();
     final line = source
         .split('\n')
         .firstWhere(
@@ -173,14 +173,15 @@ extension _ChatContext on _AiChatSheetState {
   /// photo's OCR read and a recording's transcript are the only way the
   /// assistant knows those notes exist as anything but "a photo".
   String? _contextLine(Note note, {int limit = 400, String? fileText}) {
-    final text =
+    final isCode = note.snippetPreview != null;
+    final words =
         [
               note.title,
               // The person's own line on a photo, voice or file note.
               note.caption,
               if (note.type == NoteType.checklist)
                 checklistContextLine(note)
-              else
+              else if (!isCode)
                 note.content,
               note.transcriptText,
               note.ocrText,
@@ -201,8 +202,19 @@ extension _ChatContext on _AiChatSheetState {
             .where((part) => part.isNotEmpty)
             .join(' — ')
             .replaceAll(RegExp(r'\s+'), ' ');
+    // Put the original fence and source first so a long caption cannot
+    // crowd out the code. Only prose goes through whitespace normalization.
+    final text = isCode
+        ? [note.content!, if (words.isNotEmpty) words].join('\n')
+        : words;
     if (text.isEmpty) return null;
-    final clipped = text.length > limit ? '${text.substring(0, limit)}…' : text;
+    var end = limit;
+    if (text.length > limit &&
+        end > 0 &&
+        (text.codeUnitAt(end - 1) & 0xfc00) == 0xd800) {
+      end--;
+    }
+    final clipped = text.length > limit ? '${text.substring(0, end)}…' : text;
     // Its tags, so "the ones tagged work" can be answered from what is
     // already in front of the model, and acted on without a search.
     final tags = [for (final tag in note.tags) '#${tag.name}'].join(' ');
@@ -214,7 +226,7 @@ extension _ChatContext on _AiChatSheetState {
       DateTime.now(),
       threads: _threadsOf[note.id] ?? const [],
     );
-    return '[${note.id}] ${note.type.wireName}${tags.isEmpty ? '' : ' $tags'}'
+    return '[${note.id}] ${isCode ? 'code' : note.type.wireName}${tags.isEmpty ? '' : ' $tags'}'
         ' ($marks): $clipped';
   }
 

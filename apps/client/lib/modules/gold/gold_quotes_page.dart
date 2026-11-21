@@ -183,7 +183,7 @@ class _GoldQuotesPageState extends State<GoldQuotesPage>
       if (mounted) {
         NexBannerHost.of(context)?.show(
           kind: NexBannerKind.failed,
-          message: goldStrings(context, 'quoteSaveFailed'),
+          message: goldStrings(context, 'quoteDeleteFailed'),
         );
       }
       return;
@@ -205,14 +205,13 @@ class _GoldQuotesPageState extends State<GoldQuotesPage>
     try {
       await bundle.restore();
       if (!mounted) return;
-      NexBannerHost.of(
-        context,
-      )?.show(message: goldStrings(context, 'quoteRestored'));
+      NexBannerHost.of(context)
+          ?.show(message: goldStrings(context, 'quoteRestored'));
     } catch (_) {
       if (!mounted) return;
       NexBannerHost.of(context)?.show(
         kind: NexBannerKind.failed,
-        message: goldStrings(context, 'quoteSaveFailed'),
+        message: goldStrings(context, 'quoteRestoreFailed'),
       );
     }
   }
@@ -353,13 +352,20 @@ class _QuoteRow extends StatelessWidget {
                 color: theme.colorScheme.primary,
               )
             : const Icon(Icons.receipt_long_outlined),
-        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        isThreeLine: true,
+        title: Text(
+          title,
+          textDirection: nexDirectionOf(title),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (quote.shop.isNotEmpty)
               Text(
                 quote.shop,
+                textDirection: nexDirectionOf(quote.shop),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall,

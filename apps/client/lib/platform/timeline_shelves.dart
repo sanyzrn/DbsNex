@@ -16,7 +16,7 @@ enum NexTimelineArrangement {
 }
 
 /// What a shelf of an arranged home holds.
-enum NexShelfKind { pinned, type, tag, untagged }
+enum NexShelfKind { pinned, type, code, tag, untagged }
 
 /// One heading of an arranged home and the notes under it.
 class NexShelf {
@@ -112,6 +112,7 @@ List<NexShelf> nexArrangeShelves(
   if (by == NexTimelineArrangement.type) {
     for (final type in nexShelfTypeOrder) {
       defaults.add('type:${type.wireName}');
+      if (type == NoteType.text) defaults.add('type:code');
     }
   } else {
     final chosen = selectedTagIds.isNotEmpty;
@@ -131,7 +132,7 @@ List<NexShelf> nexArrangeShelves(
       continue;
     }
     if (by == NexTimelineArrangement.type) {
-      (buckets['type:${note.type.wireName}'] ??= []).add(note);
+      (buckets[nexTypeShelfKey(note)] ??= []).add(note);
       continue;
     }
     var placed = false;
@@ -173,12 +174,13 @@ List<NexShelf> nexArrangeShelves(
         : loaded.sublist(0, nexShelfPreview);
     return NexShelf(
       key: key,
-      kind: key == 'untagged'
-          ? NexShelfKind.untagged
-          : key.startsWith('type:')
-          ? NexShelfKind.type
-          : NexShelfKind.tag,
-      type: key.startsWith('type:')
+      kind: switch (key) {
+        'untagged' => NexShelfKind.untagged,
+        'type:code' => NexShelfKind.code,
+        _ when key.startsWith('type:') => NexShelfKind.type,
+        _ => NexShelfKind.tag,
+      },
+      type: key.startsWith('type:') && key != 'type:code'
           ? NoteType.fromWire(key.substring(5))
           : null,
       tag: key.startsWith('tag:') ? tagById[key.substring(4)] : null,
@@ -203,6 +205,10 @@ List<NexShelf> nexArrangeShelves(
     for (final key in keys) shelf(key),
   ];
 }
+
+/// Snippets are stored as text notes, with their own shelf in the timeline.
+String nexTypeShelfKey(Note note) =>
+    note.snippetPreview != null ? 'type:code' : 'type:${note.type.wireName}';
 
 /// [defaults] in the reader's [order]: the keys it names first, as it names
 /// them, then the rest in their default order.

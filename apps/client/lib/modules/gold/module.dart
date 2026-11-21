@@ -2,8 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'gold_screen.dart';
+import 'gold_models.dart';
 import 'gold_strings.dart';
 import 'gold_glance.dart';
+
+ModuleSummary? summarize(ModuleRecord record) {
+  if (record.kind != 'quote') return null;
+  final quote = GoldQuote.fromRecord(record.id, record.body);
+  return ModuleSummary(
+    title: quote.title.isEmpty ? 'Gold estimate' : quote.title,
+    private: true,
+  );
+}
 
 /// «Gold Check» — offline buying, buyback and market conversions for Iran.
 ///

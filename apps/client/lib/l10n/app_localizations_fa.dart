@@ -6860,6 +6860,30 @@ class AppLocalizationsFa extends AppLocalizations {
   String get code => 'کد';
 
   @override
+  String get codeIndent => 'افزایش تورفتگی خط‌ها';
+
+  @override
+  String get codeOutdent => 'کاهش تورفتگی خط‌ها';
+
+  @override
+  String get askAboutCode => 'دربارهٔ این کد بپرس';
+
+  @override
+  String get chatCodeExplain => 'توضیح بده این کد چه کار می‌کند';
+
+  @override
+  String get chatCodeReview => 'این کد را از نظر خطا بررسی کن';
+
+  @override
+  String get chatCodeTests => 'برای این کد چند مورد تست پیشنهاد بده';
+
+  @override
+  String get codeSuggestedLanguage => 'انتخاب زبان پیشنهادی';
+
+  @override
+  String get codeWrap => 'شکستن خط‌های بلند';
+
+  @override
   String get codeHint => 'کد را بنویسید یا بچسبانید';
 
   @override

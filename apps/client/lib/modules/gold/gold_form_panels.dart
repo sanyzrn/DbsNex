@@ -8,6 +8,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'gold_fields.dart';
 import 'gold_math.dart';
+import 'gold_format.dart';
 import 'gold_strings.dart';
 
 /// One separately priced extra's two controllers.
@@ -39,7 +40,6 @@ Widget goldPiecePanel(
         maxScaled: GoldInput.maxWeightMg,
         allowEmpty: false,
       ),
-    const SizedBox(height: NexSpacing.sm),
     GoldNumberField(
       fieldKey: const ValueKey('gold-gross'),
       label: goldStrings(context, 'grossWeight'),
@@ -47,6 +47,7 @@ Widget goldPiecePanel(
       controller: gross,
       scale: 3,
       maxScaled: GoldInput.maxGrossMg,
+      errorKey: _grossWeightError(weight, gross),
     ),
     const SizedBox(height: NexSpacing.md),
     GoldFinenessField(
@@ -228,6 +229,9 @@ Widget goldExtrasPanel(
                   fieldKey: ValueKey('gold-extra-label-$i'),
                   label: strings(context, 'extraLabel'),
                   controller: extras[i].label,
+                  errorKey: extras[i].label.text.trim().isEmpty
+                      ? 'extraLabelRequired'
+                      : null,
                 ),
               ),
               const SizedBox(width: NexSpacing.sm),
@@ -282,6 +286,7 @@ Widget goldMakingFields(
   children: [
     GoldDropdownField<GoldMakingMode>(
       fieldKey: const ValueKey('gold-making-mode'),
+      compact: true,
       label: goldStrings(context, 'making'),
       value: mode,
       items: [
@@ -327,3 +332,14 @@ Widget goldMakingFields(
     const SizedBox(height: NexSpacing.sm),
   ],
 );
+
+String? _grossWeightError(
+  TextEditingController weight,
+  TextEditingController gross,
+) {
+  final net = parseScaled(weight.text, 3);
+  final total = parseScaled(gross.text, 3);
+  return net != null && total != null && total > 0 && total < net
+      ? 'grossBelowNet'
+      : null;
+}

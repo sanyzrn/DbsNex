@@ -10604,6 +10604,54 @@ abstract class AppLocalizations {
   /// **'Code'**
   String get code;
 
+  /// No description provided for @codeIndent.
+  ///
+  /// In en, this message translates to:
+  /// **'Indent lines'**
+  String get codeIndent;
+
+  /// No description provided for @codeOutdent.
+  ///
+  /// In en, this message translates to:
+  /// **'Outdent lines'**
+  String get codeOutdent;
+
+  /// No description provided for @askAboutCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about this code'**
+  String get askAboutCode;
+
+  /// No description provided for @chatCodeExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'Explain what this code does'**
+  String get chatCodeExplain;
+
+  /// No description provided for @chatCodeReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Review this code for mistakes'**
+  String get chatCodeReview;
+
+  /// No description provided for @chatCodeTests.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest test cases for this code'**
+  String get chatCodeTests;
+
+  /// No description provided for @codeSuggestedLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Use suggested language'**
+  String get codeSuggestedLanguage;
+
+  /// No description provided for @codeWrap.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrap long lines'**
+  String get codeWrap;
+
   /// No description provided for @codeHint.
   ///
   /// In en, this message translates to:

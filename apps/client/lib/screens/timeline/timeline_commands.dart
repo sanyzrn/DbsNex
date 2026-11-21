@@ -197,9 +197,9 @@ extension TimelineCommands on TimelineScreenState {
     await _model.selectTags(tagIds);
   }
 
-  Future<void> _selectType(NoteType? type) async {
+  Future<void> _selectType(NoteType? type, {bool code = false}) async {
     _tick();
-    await _model.selectType(type);
+    await _model.selectType(type, code: code);
   }
 
   Future<void> _selectOnlyReminders(bool only) async {

@@ -70,6 +70,7 @@ void main() {
         notes: [note('code', NoteType.text, code)],
       );
 
+      expect(snapshot.notes.single.type, 'code');
       expect(snapshot.notes.single.preview, 'final x = 1;');
     });
 

@@ -2,9 +2,9 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_core/nex_core.dart' show NexLinkFace;
 import 'package:nex_client/modules/lent_borrowed/loan_math.dart';
 import 'package:nex_client/modules/lent_borrowed/loan_model.dart';
-import 'package:nex_client/platform/link_face.dart';
 import 'package:nex_client/platform/vault_store.dart';
 
 /// NEX-UI performance benches: the costs this patch removed, measured

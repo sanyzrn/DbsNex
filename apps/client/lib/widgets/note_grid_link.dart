@@ -79,7 +79,7 @@ class _SiteCard extends StatelessWidget {
     var room = height - siteHeight - NexSpacing.sm;
     // A small screen for a video, when it leaves a line for the title.
     final lineHeight = fitting('M', titleStyle, 1000).$2;
-    final screen = face.kind == NexLinkKind.video
+    final screen = height.isFinite && face.kind == NexLinkKind.video
         ? math.min(
             room - (words.isEmpty ? 0 : lineHeight + NexSpacing.sm),
             96.0,
@@ -87,7 +87,11 @@ class _SiteCard extends StatelessWidget {
         : 0.0;
     final showScreen = screen >= 48;
     if (showScreen) room -= screen + NexSpacing.sm;
-    final lines = words.isEmpty ? 0 : fitting(words, titleStyle, room).$1;
+    final lines = words.isEmpty
+        ? 0
+        : height.isFinite
+        ? fitting(words, titleStyle, room).$1
+        : 2;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -132,6 +136,8 @@ class _SiteCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (!height.isFinite && face.kind == NexLinkKind.video)
+              Icon(Icons.play_circle_outline_rounded, color: tint),
           ],
         ),
         if (showScreen) ...[

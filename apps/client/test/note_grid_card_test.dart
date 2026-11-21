@@ -66,26 +66,26 @@ void main() {
   testWidgets(
     'file marks use the original suffix, MIME and stored path in order',
     (tester) async {
-      for (final (name, mime, path, icon) in [
+      for (final (name, mime, path, mark) in [
         (
           'گزارش.PDF',
           'application/octet-stream',
           '/stored',
           Icons.picture_as_pdf_outlined,
         ),
-        ('video.MP4', null, null, Icons.smart_display_outlined),
-        ('backup.zip', null, null, Icons.folder_zip_outlined),
-        ('backup.RAR', null, null, Icons.folder_zip_outlined),
-        ('backup.tar.gz', null, null, Icons.folder_zip_outlined),
-        ('contract.docx', 'application/zip', null, Icons.description_outlined),
-        ('ledger.xlsx', null, null, Icons.table_chart_outlined),
-        ('data.csv', 'text/plain', null, Icons.table_chart_outlined),
-        ('slides.pptx', null, null, Icons.slideshow_outlined),
-        ('image.webp', null, null, Icons.image_outlined),
-        ('sample.flac', null, null, Icons.audio_file_outlined),
-        ('main.dart', 'text/plain', null, Icons.code_outlined),
-        ('notes.txt', null, null, Icons.article_outlined),
-        ('book.epub', null, null, Icons.menu_book_outlined),
+        ('video.MP4', null, null, 'MP4'),
+        ('backup.zip', null, null, 'ZIP'),
+        ('backup.RAR', null, null, 'RAR'),
+        ('backup.tar.gz', null, null, 'TAR'),
+        ('contract.docx', 'application/zip', null, 'DOC'),
+        ('ledger.xlsx', null, null, 'XLS'),
+        ('data.csv', 'text/plain', null, 'CSV'),
+        ('slides.pptx', null, null, 'PPT'),
+        ('image.webp', null, null, 'WEBP'),
+        ('sample.flac', 'text/plain', null, Icons.audio_file_outlined),
+        ('main.dart', 'text/plain', null, 'Dart'),
+        ('notes.txt', null, null, 'TXT'),
+        ('book.epub', null, null, 'EPUB'),
         (
           'video',
           'Video/WebM; codecs=vp9',
@@ -106,7 +106,12 @@ void main() {
             child: NexNoteCardGlyph(fileNote(name, mimeType: mime, path: path)),
           ),
         );
-        expect(find.byIcon(icon), findsOneWidget, reason: name);
+        final glyph = switch (mark) {
+          final IconData icon => find.byIcon(icon),
+          final String label => find.text(label),
+          _ => throw StateError('Invalid file mark expectation'),
+        };
+        expect(glyph, findsOneWidget, reason: name);
         expect(find.text('MD'), findsNothing, reason: name);
       }
     },

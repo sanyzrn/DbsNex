@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart' show nexDigits;
 import 'package:nex_ui/nex_ui.dart';
@@ -269,6 +270,17 @@ class _NexPdfReaderState extends State<NexPdfReader>
       nexDigits('$_count', persian: persian),
     );
     final swipe = page != null && !_zoomed && _count > 1;
+    final media = MediaQuery.of(context);
+    // Scale normally waits for twice the touch slop before it claims a pan.
+    // Inside a zoomed page it must win before the sheet's vertical drag,
+    // including when the PDF has already reached the edge in that direction.
+    final gestureMedia = _zoomed
+        ? media.copyWith(
+            gestureSettings: DeviceGestureSettings(
+              touchSlop: (media.gestureSettings.touchSlop ?? kTouchSlop) / 3,
+            ),
+          )
+        : media;
     return Padding(
       padding: const EdgeInsets.only(top: NexSpacing.sm),
       child: Material(
@@ -337,27 +349,31 @@ class _NexPdfReaderState extends State<NexPdfReader>
                           onDoubleTapDown: (details) =>
                               _doubleTapAt = details.localPosition,
                           onDoubleTap: () => _toggleZoom(_doubleTapAt),
-                          child: InteractiveViewer(
-                            transformationController: _transform,
-                            minScale: 1,
-                            maxScale: 4,
-                            panEnabled: _zoomed,
-                            child: AnimatedBuilder(
-                              animation: _drag,
-                              builder: (context, child) {
-                                final width = MediaQuery.sizeOf(context).width;
-                                final pulled = (_drag.value.abs() / width)
-                                    .clamp(0.0, 1.0);
-                                return Transform.translate(
-                                  offset: Offset(_drag.value, 0),
-                                  child: Opacity(
-                                    opacity: 1 - pulled * 0.35,
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: SizedBox.expand(
-                                child: _pageSwitcher(page, pageLabel),
+                          child: MediaQuery(
+                            data: gestureMedia,
+                            child: InteractiveViewer(
+                              transformationController: _transform,
+                              minScale: 1,
+                              maxScale: 4,
+                              panEnabled: _zoomed,
+                              child: AnimatedBuilder(
+                                animation: _drag,
+                                builder: (context, child) {
+                                  final width = MediaQuery.sizeOf(context)
+                                      .width;
+                                  final pulled = (_drag.value.abs() / width)
+                                      .clamp(0.0, 1.0);
+                                  return Transform.translate(
+                                    offset: Offset(_drag.value, 0),
+                                    child: Opacity(
+                                      opacity: 1 - pulled * 0.35,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: SizedBox.expand(
+                                  child: _pageSwitcher(page, pageLabel),
+                                ),
                               ),
                             ),
                           ),

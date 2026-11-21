@@ -118,6 +118,31 @@ BODY;
     expect(styleOf(span, 'const example = "<div>";'), isNull);
   });
 
+  test(
+    'HTML roles keep distinct colours with readable contrast in both themes',
+    () {
+      const source = '<!-- note --><p id="a" title=plain>';
+      for (final theme in [ThemeData.light(), ThemeData.dark()]) {
+        final span = spanOf(
+          source,
+          NexCodeLanguage.html,
+          brightness: theme.brightness,
+        );
+        final colors = [
+          for (final token in ['<!-- note -->', '<p', 'id', '"a"', 'plain'])
+            styleOf(span, token)!.color!,
+        ];
+        expect(colors.toSet(), hasLength(colors.length));
+        for (final color in colors) {
+          expect(
+            nexContrast(color, theme.colorScheme.surfaceContainerHighest),
+            greaterThanOrEqualTo(4.5),
+          );
+        }
+      }
+    },
+  );
+
   test('CSS highlights selectors, properties, values and at-rules', () {
     final span = spanOf(css, NexCodeLanguage.css);
     expect(styleOf(span, '@media')?.fontWeight, FontWeight.w600);

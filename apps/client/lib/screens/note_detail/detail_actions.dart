@@ -39,7 +39,13 @@ extension _DetailActions on _NoteDetailSheetState {
   /// the same as Copy in the hold menu — a caption once there is one, not
   /// the transcript/OCR text underneath it. That text keeps its own small
   /// copy icon in the AI panel (see [_copyDerivedText]).
-  String? _copyableText(Note note) => note.copyText;
+  String? _copyableText(Note note) {
+    final snippet = note.type == NoteType.text ? _snippetFor(note) : null;
+    if (snippet != null) {
+      return snippet.code.trim().isEmpty ? null : snippet.code;
+    }
+    return note.copyText;
+  }
 
   /// The note's own words, wherever they live.
   ///
@@ -294,8 +300,7 @@ extension _DetailActions on _NoteDetailSheetState {
     final preferences = widget.preferences;
     if (note == null || note.type != NoteType.text) return;
     if (preferences == null) return;
-    final content = note.content ?? '';
-    final snippet = NexCodeSnippet.parse(content);
+    final snippet = _snippetFor(note);
     if (snippet != null) {
       final draftKey = 'code-${note.id}';
       final edited = await NexSnippetEditorSheet.show(

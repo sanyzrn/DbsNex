@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:nex_core/nex_core.dart' show NexCodeLanguage, NexCodeSnippet;
 import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -23,13 +24,15 @@ void main() {
     tmp.deleteSync(recursive: true);
   });
 
-  Note insert(NoteType type) {
+  Note insert(NoteType type, {String? content}) {
     final now = DateTime.now().toUtc();
     return repo.insert(
       Note(
         id: newUuidV7(),
         type: type,
-        content: type == NoteType.link ? 'https://example.com' : 'words',
+        content:
+            content ??
+            (type == NoteType.link ? 'https://example.com' : 'words'),
         createdAt: now,
         updatedAt: now,
         deviceId: 'test',
@@ -65,6 +68,28 @@ void main() {
     expect(counts['tag:${home.id}'], 1);
     expect(counts['untagged'], 1, reason: 'the link');
   });
+
+  test(
+    'counts only standalone code fences under code and keeps pins separate',
+    () {
+      final code = NexCodeSnippet(
+        code: 'print(1)',
+        language: NexCodeLanguage.dart,
+      ).markdown;
+      insert(NoteType.text, content: code);
+      insert(NoteType.text, content: '   ~~~js\nlet n = 1;\n~~~');
+      insert(NoteType.text, content: '$code\nProse below the fence');
+      insert(NoteType.text, content: 'plain words');
+      final pinned = insert(NoteType.text, content: code);
+      repo.pinNote(pinned.id);
+
+      expect(repo.timelineShelfCounts(), {
+        'type:text': 2,
+        'type:code': 2,
+        'untagged': 4,
+      });
+    },
+  );
 
   test('an empty library counts nothing untagged', () {
     expect(repo.timelineShelfCounts(), {'untagged': 0});

@@ -360,16 +360,10 @@ extension _DetailAiPanel on _NoteDetailSheetState {
         when AiChatSheet.availableFor(preferences))
       _AiTool(
         icon: Icons.forum_outlined,
-        label: l10n.askAboutNote,
-        onRun: () => unawaited(
-          AiChatSheet.show(
-            context,
-            preferences: preferences,
-            services: widget.services,
-            history: preferences.chatHistory,
-            focus: note,
-          ),
-        ),
+        label: note.snippetPreview == null
+            ? l10n.askAboutNote
+            : l10n.askAboutCode,
+        onRun: () => _askAbout(note, preferences),
       ),
     if (widget.preferences?.effectiveAiCapabilities.tagSuggestions == true &&
         widget.services.aiIsUsable)
@@ -380,6 +374,18 @@ extension _DetailAiPanel on _NoteDetailSheetState {
         onRun: () => unawaited(_loadTagSuggestions()),
       ),
   ];
+
+  void _askAbout(Note note, NexPreferences preferences) {
+    unawaited(
+      AiChatSheet.show(
+        context,
+        preferences: preferences,
+        services: widget.services,
+        history: preferences.chatHistory,
+        focus: note,
+      ),
+    );
+  }
 
   String _translationSource(Note note) =>
       note.isImageMedia ? note.ocrText?.trim() ?? '' : _translatableText(note);

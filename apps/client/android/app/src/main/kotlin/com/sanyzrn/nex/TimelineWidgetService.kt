@@ -102,6 +102,7 @@ class TimelineWidgetService : RemoteViewsService() {
             "link" -> R.drawable.nex_widget_ic_type_link
             // The timeline's catch-all is an infinity glyph; the widget keeps
             // that mapping so an unfamiliar type never pretends to be text.
+            "code" -> R.drawable.nex_widget_ic_type_code
             "text" -> R.drawable.nex_widget_ic_type_text
             else -> R.drawable.nex_widget_ic_type_other
         }
@@ -113,6 +114,7 @@ class TimelineWidgetService : RemoteViewsService() {
                 "file" -> R.string.widget_type_file
                 "checklist" -> R.string.widget_type_checklist
                 "link" -> R.string.widget_type_link
+                "code" -> R.string.widget_type_code
                 else -> R.string.widget_type_text
             }
         )

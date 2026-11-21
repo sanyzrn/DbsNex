@@ -19,7 +19,7 @@ part 'nex_code_web.dart';
 /// to draw the first two lines would make the timeline pay for code nobody is
 /// reading. [maxLines] bounds it further, and [selectable] is off there for
 /// the same reason a card is one tap target rather than a text field.
-class NexCodeText extends StatelessWidget {
+class NexCodeText extends StatefulWidget {
   const NexCodeText(
     this.code, {
     super.key,
@@ -48,24 +48,44 @@ class NexCodeText extends StatelessWidget {
       );
 
   @override
+  State<NexCodeText> createState() => _NexCodeTextState();
+}
+
+class _NexCodeTextState extends State<NexCodeText> {
+  (String, NexCodeLanguage, ColorScheme)? _highlightKey;
+  List<TextSpan>? _spans;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final base = monospaceStyle(style ?? theme.textTheme.bodyLarge);
-    final spans = highlight && language != NexCodeLanguage.plainText
-        ? nexHighlightCode(
-            code,
-            language,
-            style: base,
-            scheme: theme.colorScheme,
-          )
-        : <TextSpan>[TextSpan(text: code)];
-    final text = TextSpan(style: base, children: spans);
-    final body = selectable
+    final base = NexCodeText.monospaceStyle(
+      widget.style ?? theme.textTheme.bodyLarge,
+    );
+    List<TextSpan>? spans;
+    if (widget.highlight && widget.language != NexCodeLanguage.plainText) {
+      final key = (widget.code, widget.language, theme.colorScheme);
+      if (_highlightKey != key) {
+        _highlightKey = key;
+        _spans = nexHighlightCode(
+          widget.code,
+          widget.language,
+          style: base,
+          scheme: theme.colorScheme,
+        );
+      }
+      spans = _spans;
+    }
+    final text = TextSpan(
+      style: base,
+      text: spans == null ? widget.code : null,
+      children: spans,
+    );
+    final body = widget.selectable
         ? SelectableText.rich(
             text,
             textAlign: TextAlign.left,
             textDirection: TextDirection.ltr,
-            maxLines: maxLines,
+            maxLines: widget.maxLines,
             contextMenuBuilder: nexReadingMenu,
             style: base,
           )
@@ -73,9 +93,9 @@ class NexCodeText extends StatelessWidget {
             text,
             textAlign: TextAlign.left,
             textDirection: TextDirection.ltr,
-            maxLines: maxLines,
-            overflow: overflow,
-            softWrap: softWrap,
+            maxLines: widget.maxLines,
+            overflow: widget.overflow,
+            softWrap: widget.softWrap,
           );
     return Directionality(textDirection: TextDirection.ltr, child: body);
   }
@@ -87,7 +107,6 @@ class NexCodeText extends StatelessWidget {
 /// one of them — so selecting or copying what is drawn cannot invent or lose
 /// a space. A language this build does not know is returned as one plain
 /// span rather than guessed at.
-@visibleForTesting
 List<TextSpan> nexHighlightCode(
   String code,
   NexCodeLanguage language, {
@@ -115,7 +134,9 @@ List<TextSpan> nexHighlightCode(
 
   final spans = <TextSpan>[];
   if (language == NexCodeLanguage.html || language == NexCodeLanguage.css) {
-    final scan = language == NexCodeLanguage.html ? _scanHtml : _scanCss;
+    final html = language == NexCodeLanguage.html;
+    final scan = html ? _scanHtml : _scanCss;
+    final markup = html ? _htmlStyles(scheme, ground) : null;
     var cursor = 0;
     scan(code, (start, end, kind) {
       if (cursor < start) {
@@ -124,14 +145,16 @@ List<TextSpan> nexHighlightCode(
       spans.add(
         TextSpan(
           text: code.substring(start, end),
-          style: switch (kind) {
-            _WebToken.comment => comment,
-            _WebToken.keyword => keyword,
-            _WebToken.name => number,
-            _WebToken.string => string,
-            _WebToken.number => number,
-            _WebToken.punctuation => punctuation,
-          },
+          style:
+              markup?[kind] ??
+              switch (kind) {
+                _WebToken.comment => comment,
+                _WebToken.keyword => keyword,
+                _WebToken.name => number,
+                _WebToken.string || _WebToken.bareValue => string,
+                _WebToken.number => number,
+                _WebToken.punctuation => punctuation,
+              },
         ),
       );
       cursor = end;

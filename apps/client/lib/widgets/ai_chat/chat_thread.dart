@@ -2,7 +2,13 @@ part of '../ai_chat_sheet.dart';
 
 /// What the sheet offers before anyone has typed anything.
 class _Suggestions extends StatelessWidget {
-  const _Suggestions({required this.controller, required this.onPick});
+  const _Suggestions({
+    required this.controller,
+    required this.onPick,
+    required this.code,
+  });
+
+  final bool code;
 
   final ScrollController controller;
   final ValueChanged<String> onPick;
@@ -13,11 +19,17 @@ class _Suggestions extends StatelessWidget {
     final theme = Theme.of(context);
     // Widgets rather than `IconData`: the first of them is painted, because
     // no Material glyph says "shorten this" (see [NexSummariseIcon]).
-    final prompts = <(Widget, String)>[
-      (const NexSummariseIcon(), l10n.chatPromptSummarise),
-      (const Icon(Icons.checklist_outlined), l10n.chatPromptPlan),
-      (const Icon(Icons.lightbulb_outline), l10n.chatPromptIdeas),
-    ];
+    final prompts = code
+        ? <(Widget, String)>[
+            (const Icon(Icons.code_rounded), l10n.chatCodeExplain),
+            (const Icon(Icons.rule_outlined), l10n.chatCodeReview),
+            (const Icon(Icons.checklist_outlined), l10n.chatCodeTests),
+          ]
+        : <(Widget, String)>[
+            (const NexSummariseIcon(), l10n.chatPromptSummarise),
+            (const Icon(Icons.checklist_outlined), l10n.chatPromptPlan),
+            (const Icon(Icons.lightbulb_outline), l10n.chatPromptIdeas),
+          ];
     return ListView(
       controller: controller,
       padding: const EdgeInsets.fromLTRB(
@@ -329,7 +341,7 @@ class _Grounding extends StatelessWidget {
             ),
           for (final note in sources)
             ActionChip(
-              avatar: Icon(nexNoteTypeIcon(note.type.wireName), size: 16),
+              avatar: NexNoteCardGlyph(note, size: 16),
               label: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 180),
                 child: Text(

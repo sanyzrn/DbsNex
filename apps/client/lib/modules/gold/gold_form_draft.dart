@@ -13,7 +13,6 @@ Future<void> _restoreGoldDraft(
     return;
   }
   if (body != null) {
-    state._detailsOpen = true;
     state._draft!.apply(body);
     final fine = body['fineness'];
     final ref = body['rateRef'];
@@ -47,6 +46,7 @@ Future<void> _restoreGoldDraft(
         }
       }
     }
+    state._detailsOpen = state._optionalFieldsNeedAttention;
   }
   state._draft!.resume();
   state._completeRestore();

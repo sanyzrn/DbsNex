@@ -6,7 +6,6 @@ import 'package:image/image.dart' as img;
 import 'package:nex_core/nex_core.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'link_face.dart';
 import 'link_reader.dart';
 
 /// A link's picture and its site's icon, kept on the phone (2.8.3).

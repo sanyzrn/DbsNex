@@ -311,4 +311,13 @@ const Map<String, String> goldStringsEn = {
   'glanceSaved': '{n} estimates saved',
   'glanceLatest': 'Latest: {when}',
   'glanceUntitled': 'Estimate',
+  'convertedRateTooSmall':
+      'Enter a higher rate. The converted rate rounds to zero.',
+  'grossBelowNet': 'Gross weight must be at least the net weight.',
+  'extraLabelRequired': 'Enter a name for this item.',
+  'positiveRequired': 'Enter a value greater than zero.',
+  'totalTooBig': 'The total is too large. Check the weight, rate and charges.',
+  'quoteDeleteFailed': 'Could not delete this estimate.',
+  'quoteRestoreFailed': 'Could not restore this estimate.',
+  'effectiveSaleRate': 'Effective buyback rate',
 };

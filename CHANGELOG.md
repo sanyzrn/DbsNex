@@ -4,6 +4,16 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.10
+
+- **HTML colours and smoother code opening.** HTML has distinct syntax colours in light and dark themes. Syntax colouring works while editing code and follows the opening animation in the reading sheet.
+- **File and site icons.** File cards show more specific format marks, common sites have their own icons, and each code language has a distinct mark.
+- **Pan a zoomed PDF.** Dragging inside a zoomed PDF now moves the page without scrolling or dismissing note details.
+- **Easier code editing.** Code capture and editing share a language palette, optional language hints and indentation tools. Snippets have a code icon, long source can wrap or page, and you can ask the assistant about the code with its indentation intact.
+- **Cards that fit their content.** The easier-to-read list fits each preview to its contents. Short notes and filenames sit beside their icons, while photos, videos and PDFs keep their full-size previews.
+- **Simpler Gold Check forms.** Gold Check keeps purchase inputs together, puts the estimate below the form, and points out invalid values beside their fields. Sell and melted-gold drafts are checked before you leave.
+- **Code has its own shelf.** The By type layout groups code snippets under Code and lets you open them with See all.
+
 ## v2.8.9
 
 - **Full-width cards in the large list.** Photos, video previews, PDF pages and link covers fill the card, with text and badges on top. Photos and cover images move with the scroll, just as in the grid.

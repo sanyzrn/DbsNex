@@ -44,6 +44,7 @@ class _GoldQuoteSheet extends StatelessWidget {
         children: [
           Text(
             quote.title.isEmpty ? strings(context, 'receipt') : quote.title,
+            textDirection: nexDirectionOf(quote.title),
             style: theme.textTheme.titleLarge,
           ),
           if (quote.shop.isNotEmpty)
@@ -51,6 +52,7 @@ class _GoldQuoteSheet extends StatelessWidget {
               padding: const EdgeInsetsDirectional.only(top: NexSpacing.xs),
               child: Text(
                 quote.shop,
+                textDirection: nexDirectionOf(quote.shop),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

@@ -34,6 +34,7 @@ class _Body extends StatelessWidget {
     final uri = note.mediaUri;
     return LayoutBuilder(
       builder: (context, constraints) {
+        final flowing = !constraints.hasBoundedHeight;
         final width = constraints.maxWidth;
         // Whole lines only: a line cut through the middle reads as a glitch.
         //
@@ -104,7 +105,7 @@ class _Body extends StatelessWidget {
           style: titleStyle,
         );
 
-        if (note.type == NoteType.photo && uri != null) {
+        if (note.type == NoteType.photo && uri != null && uri.isNotEmpty) {
           final caption = heading.isNotEmpty ? heading : body;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -158,13 +159,18 @@ class _Body extends StatelessWidget {
           final toggle = onToggleItem;
           // A row a finger can hit when the items can be ticked here (2.8.2),
           // the line's own height when they are only shown.
-          final rowHeight = toggle == null
+          final rowHeight = flowing
+              ? math.max(nexMinTapTarget, lineOf(bodyStyle))
+              : toggle == null
               ? lineOf(bodyStyle)
               : math.max(lineOf(bodyStyle), 30.0);
           final head = math.max(lineOf(titleStyle), 22.0);
-          final rows = ((constraints.maxHeight - head) / rowHeight)
-              .floor()
-              .clamp(1, 40);
+          final rows = flowing
+              ? NexNoteGridCard.listChecklistRows
+              : ((constraints.maxHeight - head) / rowHeight).floor().clamp(
+                  1,
+                  40,
+                );
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -220,6 +226,7 @@ class _Body extends StatelessWidget {
         }
 
         if (note.isAudioMedia && uri != null && uri.isNotEmpty) {
+          if (flowing) return NexListVoicePreview(note: note, strings: strings);
           // The recording plays from the tile (2.8.2): its words above, as
           // many whole lines as fit, and the player at the foot.
           final room = constraints.maxHeight - _gridVoiceStrip - NexSpacing.xs;
@@ -275,8 +282,17 @@ class _Body extends StatelessWidget {
           );
         }
 
-        final rest = body;
-        final baseRest = heading.isEmpty
+        final fileCaption = flowing && note.type == NoteType.file
+            ? NexMarkdownText.preview(note.caption ?? '').trim()
+            : '';
+        final rest = flowing && snippet != null
+            ? snippet.code
+            : fileCaption.isNotEmpty
+            ? fileCaption
+            : body;
+        final baseRest = flowing && note.type == NoteType.text
+            ? NexCardDensity.of(context).previewStyle(theme)
+            : heading.isEmpty
             ? bodyStyle?.copyWith(color: scheme.onSurface)
             : bodyStyle;
         // A snippet is source on the tile too: fixed-width and left to
@@ -284,6 +300,50 @@ class _Body extends StatelessWidget {
         final restStyle = snippet == null
             ? baseRest
             : NexCodeText.monospaceStyle(baseRest);
+        final caption = _gridCaption(note);
+        Widget preview(int headLines, int restLines, int captionLines) {
+          final restText = rest.isEmpty || restLines == 0
+              ? null
+              : Text(
+                  rest,
+                  maxLines: restLines,
+                  overflow: TextOverflow.ellipsis,
+                  textDirection: codeDirection ?? nexDirectionOf(rest),
+                  style: restStyle,
+                );
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (heading.isNotEmpty) headingText(headLines),
+              if (restText != null)
+                if (flowing) restText else Flexible(child: restText),
+              if (caption.isNotEmpty && captionLines > 0) ...[
+                const SizedBox(height: _gridCaptionGap),
+                Text(
+                  caption,
+                  key: const ValueKey('grid-caption'),
+                  maxLines: captionLines,
+                  overflow: TextOverflow.ellipsis,
+                  textDirection: nexDirectionOf(caption),
+                  style: bodyStyle,
+                ),
+              ],
+            ],
+          );
+        }
+
+        if (flowing) {
+          final file = note.type == NoteType.file;
+          return preview(
+            file ? 2 : 1,
+            file
+                ? 1
+                : heading.isEmpty
+                ? 4
+                : 3,
+            1,
+          );
+        }
         // The heading takes up to three lines; the words under it every
         // whole line that is left.
         var headLines = 0;
@@ -303,7 +363,6 @@ class _Body extends StatelessWidget {
         // card — it used to be left off the tile altogether (2.7.2). Up to
         // two lines, and never so many that the note's own words lose their
         // first line to it.
-        final caption = _gridCaption(note);
         const captionGap = _gridCaptionGap;
         var captionLines = 0;
         var captionHeight = 0.0;
@@ -335,33 +394,7 @@ class _Body extends StatelessWidget {
                 constraints.maxHeight - used - captionHeight,
                 direction: codeDirection,
               ).$1;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (heading.isNotEmpty) headingText(headLines),
-            if (rest.isNotEmpty && restLines > 0)
-              Flexible(
-                child: Text(
-                  rest,
-                  maxLines: restLines,
-                  overflow: TextOverflow.ellipsis,
-                  textDirection: codeDirection ?? nexDirectionOf(rest),
-                  style: restStyle,
-                ),
-              ),
-            if (captionLines > 0) ...[
-              const SizedBox(height: captionGap),
-              Text(
-                caption,
-                key: const ValueKey('grid-caption'),
-                maxLines: captionLines,
-                overflow: TextOverflow.ellipsis,
-                textDirection: nexDirectionOf(caption),
-                style: bodyStyle,
-              ),
-            ],
-          ],
-        );
+        return preview(headLines, restLines, captionLines);
       },
     );
   }

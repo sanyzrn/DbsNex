@@ -6,6 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
+import 'code_editing_controller.dart';
 import 'code_language_button.dart';
 import 'draft_guard.dart';
 import 'keyboard_dismisser.dart';
@@ -61,8 +62,9 @@ class NexSnippetEditorSheet extends StatefulWidget {
 
 class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
     with NexDraftGuard<NexSnippetEditorSheet> {
-  late final TextEditingController _code = TextEditingController(
+  late final _code = NexCodeEditingController(
     text: widget.initial.code,
+    language: widget.initial.language,
   );
   final _focus = FocusNode();
   late NexCodeLanguage _language = widget.initial.language;
@@ -89,6 +91,7 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
       final raw = recovered?['rawLanguage'];
       _rawLanguage = raw is String ? raw : null;
     }
+    _code.language = _language;
     _lastText = _code.text;
     _code.addListener(_onChanged);
   }
@@ -135,6 +138,7 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
     if (language == _language && _rawLanguage == null) return;
     setState(() {
       _language = language;
+      _code.language = language;
       _rawLanguage = null;
     });
     _writeDraft();
@@ -196,24 +200,13 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
                     ],
                   ),
                   const SizedBox(height: NexSpacing.xs),
-                  Wrap(
-                    spacing: NexSpacing.sm,
-                    runSpacing: NexSpacing.xs,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        l10n.language,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                      NexCodeLanguageButton(
-                        key: const ValueKey('snippet-code-language'),
-                        language: _language,
-                        rawLanguage: _rawLanguage,
-                        onSelected: _selectLanguage,
-                      ),
-                    ],
+                  NexCodeToolbar(
+                    pickerKey: const ValueKey('snippet-code-language'),
+                    language: _language,
+                    rawLanguage: _rawLanguage,
+                    controller: _code,
+                    focus: _focus,
+                    onSelected: _selectLanguage,
                   ),
                   const SizedBox(height: NexSpacing.sm),
                   Expanded(
@@ -226,6 +219,7 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
                       ),
                       child: NexTextField(
                         controller: _code,
+                        useNativeEditor: false,
                         focusNode: _focus,
                         autofocus: true,
                         expands: true,

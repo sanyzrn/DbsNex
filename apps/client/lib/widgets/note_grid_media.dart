@@ -255,7 +255,7 @@ class _MediaTileState extends State<_MediaTile> {
         ? ''
         : NexMarkdownText.preview(caption).replaceAll(RegExp(r'\s+'), ' ');
     const radius = BorderRadius.all(Radius.circular(NexRadius.xl));
-    return ClipRRect(
+    final tile = ClipRRect(
       borderRadius: radius,
       child: Material(
         type: MaterialType.transparency,
@@ -383,6 +383,9 @@ class _MediaTileState extends State<_MediaTile> {
         ),
       ),
     );
+    return widget.previewWidth == null
+        ? tile
+        : SizedBox(height: metrics.heightFor(context), child: tile);
   }
 }
 

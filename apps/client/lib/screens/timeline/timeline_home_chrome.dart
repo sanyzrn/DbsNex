@@ -88,7 +88,9 @@ extension _TimelineHomeChrome on TimelineScreenState {
                   _model.selectedType != null || _model.onlyReminders,
               activeFilterLabel: [
                 if (_model.selectedType != null)
-                  l10n.noteType(_model.selectedType!.wireName),
+                  _model.onlyCode
+                      ? l10n.code
+                      : l10n.noteType(_model.selectedType!.wireName),
                 if (_model.onlyReminders) l10n.filterHasReminder,
               ].join(' · '),
               onOpenActiveFilter: () => unawaited(_pickFilters()),

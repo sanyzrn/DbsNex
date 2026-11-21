@@ -88,6 +88,8 @@ class TimelineModel extends ChangeNotifier {
 
   NoteType? get selectedType => _selectedType;
   NoteType? _selectedType;
+  bool get onlyCode => _onlyCode;
+  bool _onlyCode = false;
 
   /// Show only notes with a reminder still ahead of them.
   ///
@@ -338,8 +340,9 @@ class TimelineModel extends ChangeNotifier {
     return _applyFilters();
   }
 
-  Future<void> selectType(NoteType? type) {
-    _selectedType = type;
+  Future<void> selectType(NoteType? type, {bool code = false}) {
+    _selectedType = code ? NoteType.text : type;
+    _onlyCode = code;
     return _applyFilters();
   }
 
@@ -352,6 +355,7 @@ class TimelineModel extends ChangeNotifier {
     _onlyUntagged = false;
     _selectedTagIds = const {};
     _selectedType = null;
+    _onlyCode = false;
     _onlyReminders = false;
     return _applyFilters();
   }
@@ -492,6 +496,9 @@ class TimelineModel extends ChangeNotifier {
     return source.where((note) {
       if (_onlyReminders && note.dueAt == null) return false;
       if (type != null && note.type != type) return false;
+      if (type == NoteType.text && (note.snippetPreview != null) != _onlyCode) {
+        return false;
+      }
       if (_onlyUntagged && note.tags.isNotEmpty) return false;
       if (tagIds.isNotEmpty && !note.tags.any((t) => tagIds.contains(t.id))) {
         return false;

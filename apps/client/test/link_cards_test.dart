@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/link_art.dart';
-import 'package:nex_client/platform/link_face.dart';
 import 'package:nex_client/platform/link_reader.dart';
 import 'package:nex_client/widgets/card_link.dart';
 import 'package:nex_client/widgets/note_grid_card.dart';
@@ -199,6 +198,9 @@ void main() {
     expect(find.text('YouTube'), findsOneWidget);
     expect(find.text('Video'), findsOneWidget);
     expect(find.byKey(const ValueKey('grid-link-screen')), findsOneWidget);
+    final marks = tester.widgetList<NexSiteGlyph>(find.byType(NexSiteGlyph));
+    expect(marks.map((mark) => mark.face.name), everyElement('YouTube'));
+    expect(marks, isNotEmpty);
     expect(find.text('youtube.com'), findsNothing);
     expect(tester.takeException(), isNull);
   });

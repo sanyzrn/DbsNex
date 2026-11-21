@@ -4,6 +4,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/gold/gold_form.dart';
 import 'package:nex_client/modules/gold/gold_market_page.dart';
 import 'package:nex_client/modules/gold/gold_screen.dart';
+import 'package:nex_client/platform/nex_services.dart';
 
 import '../../support/nex_harness.dart';
 
@@ -134,6 +135,103 @@ void main() {
     },
   );
 
+  testWidgets('a tiny converted rate shows an error on the Melted gold tab', (
+    t,
+  ) async {
+    await t.pumpWidget(host(GoldScreen(store: store())));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Melted gold'));
+    await t.pumpAndSettle();
+    await fill(t, 'meltWeight', '3');
+    await fill(t, 'meltQuote', '0.01');
+
+    expect(
+      find.text('Enter a higher rate. The converted rate rounds to zero.'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('gold-market-result')), findsNothing);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('purchase details stay in place while the estimate changes', (
+    t,
+  ) async {
+    await t.pumpWidget(host(GoldScreen(store: store()), fa: true));
+    await t.pumpAndSettle();
+    await fill(t, 'weight', '3');
+    await fill(t, 'rate', '10000000');
+    await fill(t, 'making-percent', '10');
+
+    final details = find.byKey(const ValueKey('gold-purchase-details'));
+    await reveal(t, details);
+    await t.tap(details);
+    await t.pumpAndSettle();
+
+    final gross = find.byKey(const ValueKey('gold-gross'));
+    await reveal(t, gross);
+    await t.showKeyboard(gross);
+    t.view.viewInsets = const FakeViewPadding(bottom: 200);
+    addTearDown(t.view.resetViewInsets);
+    await reveal(t, gross);
+    final y = t.getTopLeft(gross).dy;
+    await t.enterText(gross, '1');
+    await t.pumpAndSettle();
+
+    expect(find.text('وزن کل نباید از وزن خالص کمتر باشد.'), findsOneWidget);
+    expect(t.getTopLeft(gross).dy, closeTo(y, 1));
+    expect(find.byKey(const ValueKey('gold-hero')), findsNothing);
+
+    await t.enterText(gross, '17');
+    await t.pumpAndSettle();
+    expect(t.getTopLeft(gross).dy, closeTo(y, 1));
+    expect(find.byKey(const ValueKey('gold-hero')), findsOneWidget);
+
+    await reveal(t, details);
+    await t.tap(details);
+    await t.pumpAndSettle();
+    expect(gross, findsNothing);
+  });
+
+  testWidgets(
+    'leaving Sell waits for the draft and can retry a write failure',
+    (t) async {
+      final moduleStore = _MarketWriteStore(harness.services);
+      await t.pumpWidget(
+        host(
+          Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => GoldScreen(store: moduleStore),
+                  ),
+                ),
+                child: const Text('Open gold'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await t.tap(find.text('Open gold'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Sell'));
+      await t.pumpAndSettle();
+      await fill(t, 'sellWeight', '2.5');
+
+      await t.pageBack();
+      await t.pumpAndSettle();
+      expect(find.byType(GoldScreen), findsOneWidget);
+      expect(find.textContaining('Could not save your draft'), findsOneWidget);
+
+      moduleStore.fail = false;
+      await t.pageBack();
+      await t.pumpAndSettle();
+      expect(find.text('Open gold'), findsOneWidget);
+      final draft = await moduleStore.get('draft', 'market:tools');
+      expect((draft?['fields'] as Map?)?['sellWeight'], '2.5');
+    },
+  );
+
   testWidgets(
     'sale uses explicit deductions and shows break-even, copy and invalid state',
     (t) async {
@@ -260,5 +358,19 @@ void main() {
         );
       }
     }
+  }
+}
+
+class _MarketWriteStore extends NexModuleStore {
+  _MarketWriteStore(NexServices services) : super(services, 'gold');
+
+  bool fail = true;
+
+  @override
+  Future<void> put(String kind, String id, Map<String, Object?> body) {
+    if (fail && kind == 'draft' && id == 'market:tools') {
+      return Future.error(StateError('draft write failed'));
+    }
+    return super.put(kind, id, body);
   }
 }

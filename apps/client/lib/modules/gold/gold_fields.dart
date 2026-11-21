@@ -29,6 +29,8 @@ class GoldNumberField extends StatelessWidget {
     this.hint,
     this.suffix,
     this.allowEmpty = true,
+    this.requirePositive = false,
+    this.errorKey,
     this.onChanged,
     this.fieldKey,
   });
@@ -42,6 +44,8 @@ class GoldNumberField extends StatelessWidget {
 
   /// Whether an empty field is acceptable (weight and rate say no).
   final bool allowEmpty;
+  final bool requirePositive;
+  final String? errorKey;
   final void Function(int? value)? onChanged;
 
   /// A stable key for tests, distinct from the label's own text.
@@ -56,6 +60,7 @@ class GoldNumberField extends StatelessWidget {
           : 'parse_${problem.name}';
     }
     if (value! > maxScaled) return 'parse_tooBig';
+    if (requirePositive && value == 0) return 'positiveRequired';
     return null;
   }
 
@@ -76,6 +81,7 @@ class GoldNumberField extends StatelessWidget {
           suffixText: suffix,
           counterText: '',
           errorMaxLines: 3,
+          errorText: errorKey == null ? null : goldStrings(context, errorKey!),
         ),
         onChanged: (text) {
           final (value, problem) = parseScaledDetailed(text, scale);
@@ -110,10 +116,12 @@ class GoldAutoTextField extends StatelessWidget {
     required this.controller,
     this.hint,
     this.fieldKey,
+    this.errorKey,
   });
 
   final String label;
   final String? hint;
+  final String? errorKey;
   final TextEditingController controller;
   final Key? fieldKey;
 
@@ -127,6 +135,8 @@ class GoldAutoTextField extends StatelessWidget {
         labelText: label,
         hintText: hint,
         counterText: '',
+        errorText: errorKey == null ? null : goldStrings(context, errorKey!),
+        errorMaxLines: 3,
       ),
     ),
   );
@@ -172,10 +182,12 @@ class GoldDropdownField<T> extends StatelessWidget {
     required this.onSelected,
     this.hint,
     this.fieldKey,
+    this.compact = false,
   });
 
   final String label;
   final String? hint;
+  final bool compact;
   final T value;
   final List<(T, String)> items;
   final ValueChanged<T> onSelected;
@@ -192,26 +204,38 @@ class GoldDropdownField<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsetsDirectional.only(bottom: NexSpacing.xs),
-          child: Text(label, style: theme.textTheme.labelLarge),
-        ),
+        if (!compact)
+          Padding(
+            padding: const EdgeInsetsDirectional.only(bottom: NexSpacing.xs),
+            child: Text(label, style: theme.textTheme.labelLarge),
+          ),
         NexPopupMenuButton<T>(
           key: fieldKey,
           initialValue: value,
           onSelected: onSelected,
           position: PopupMenuPosition.under,
+          tooltip: label,
           borderRadius: BorderRadius.circular(NexRadius.lg),
           itemBuilder: (context) => [
             for (final (itemValue, itemLabel) in items)
               nexMenuItem(value: itemValue, label: itemLabel),
           ],
-          child: InputDecorator(
-            decoration: const InputDecoration(
-              suffixIcon: Icon(Icons.unfold_more),
-            ),
-            child: Text(selectedLabel ?? ''),
-          ),
+          child: compact
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: NexSpacing.sm),
+                  child: Row(
+                    children: [
+                      Flexible(child: Text('$label · ${selectedLabel ?? ''}')),
+                      const Icon(Icons.expand_more),
+                    ],
+                  ),
+                )
+              : InputDecorator(
+                  decoration: const InputDecoration(
+                    suffixIcon: Icon(Icons.unfold_more),
+                  ),
+                  child: Text(selectedLabel ?? ''),
+                ),
         ),
         if (hint != null)
           Padding(

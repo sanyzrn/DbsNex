@@ -256,6 +256,8 @@ class _Breakdown extends StatelessWidget {
     String rate(int centi) => formatCentiRate(centi, persian: persian);
     final strings = goldStrings;
 
+    final diff = result.quoteDiffRial;
+    final diffPct = result.quoteDiffHundredthsPct;
     return [
       strings(context, 'breakdownMetal', {
         'weight': weight(input.weightMg),
@@ -312,10 +314,12 @@ class _Breakdown extends StatelessWidget {
         strings(context, 'breakdownQuote', {
           'amount': money(input.shopQuoteRial),
         }),
-      if (result.quoteDiffRial != null && result.quoteDiffHundredthsPct != null)
+      if (diff != null)
         strings(context, 'breakdownDiff', {
-          'amount': money(result.quoteDiffRial!),
-          'pct': pct(result.quoteDiffHundredthsPct!),
+          'amount': '${diff >= 0 ? '+' : ''}${money(diff)}',
+          'pct': diffPct == null
+              ? strings(context, 'diffPercentUnavailable')
+              : pct(diffPct),
         }),
       if (quoteDate.isNotEmpty)
         strings(context, 'breakdownDate', {
@@ -358,12 +362,21 @@ class _Breakdown extends StatelessWidget {
           child: TextButton.icon(
             key: const ValueKey('gold-copy-estimate'),
             onPressed: () async {
-              await nexModuleCopyText(lines.join('\n'));
-              if (!context.mounted) return;
-              nexShowBanner(
-                context,
-                message: strings(context, 'breakdownCopied'),
-              );
+              try {
+                await nexModuleCopyText(lines.join('\n'));
+                if (!context.mounted) return;
+                nexShowBanner(
+                  context,
+                  message: strings(context, 'breakdownCopied'),
+                );
+              } catch (_) {
+                if (!context.mounted) return;
+                nexShowBanner(
+                  context,
+                  message: strings(context, 'copyFailed'),
+                  kind: NexBannerKind.failed,
+                );
+              }
             },
             icon: const Icon(Icons.copy_outlined),
             label: Text(strings(context, 'copyBreakdown')),

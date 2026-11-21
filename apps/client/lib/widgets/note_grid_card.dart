@@ -9,9 +9,9 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../desktop/desktop_note_card.dart' show nexSplitNoteText;
 import '../platform/link_art.dart';
-import '../platform/link_face.dart';
 import '../platform/tile_previews.dart';
 import 'card_audio.dart';
+import 'code_language_button.dart';
 import 'card_link.dart';
 import 'parallax_image.dart';
 import '../l10n/app_localizations.dart';
@@ -137,7 +137,8 @@ class NexNoteGridCard extends StatelessWidget {
   /// photo note shows its first picture alone.
   final NexTilePhotos? photos;
 
-  /// The actual width of a full-width tile, for the media decode budget.
+  /// Set by the full-width list. Words wrap to content, media keep a frame
+  /// and use this width for their decode budget.
   final double? previewWidth;
 
   /// Ticks or unticks a checklist's item, by its place in the list (2.8.2).
@@ -150,6 +151,8 @@ class NexNoteGridCard extends StatelessWidget {
   /// Null when nothing is being picked; otherwise whether this one is.
   final bool? selected;
   final bool ringing;
+
+  static const listChecklistRows = 3;
 
   /// The height every tile in a row shares, at the reader's text size.
   static double heightFor(BuildContext context) =>
@@ -176,8 +179,17 @@ class NexNoteGridCard extends StatelessWidget {
     final (:tint, :from, :to, :muted, :outline) = wash;
     final ink = nexReadableOn(tint, from);
     final content = _gridWords(note, strings);
-    final kind = AppLocalizations.of(context).noteType(note.type.wireName);
-    final showKind = metrics.showKind && note.type != NoteType.text;
+    final l10n = AppLocalizations.of(context);
+    final snippet = note.snippetPreview;
+    final kind = snippet == null
+        ? l10n.noteType(note.type.wireName)
+        : nexCodeLanguageLabel(
+            context,
+            snippet.language,
+            rawLanguage: snippet.rawLanguage,
+          );
+    final showKind =
+        metrics.showKind && (note.type != NoteType.text || snippet != null);
     final highContrast = MediaQuery.highContrastOf(context);
     // The edge sits inside the tile, and a border inside insets what it
     // holds by its width — so the picked edge (2 px) used to move every line
@@ -196,7 +208,9 @@ class NexNoteGridCard extends StatelessWidget {
         ? NexTileBackdrop.link
         : nexTileBackdropOf(note, collages: photos != null);
     final label = [
-      strings.noteOfType(note.type.name),
+      snippet == null
+          ? strings.noteOfType(note.type.name)
+          : '${l10n.code} · $kind',
       content.title.isNotEmpty ? content.title : content.body,
       if (note.isUrgent) strings.urgentLabel,
       if (note.dueAt case final due?)
@@ -205,6 +219,22 @@ class NexNoteGridCard extends StatelessWidget {
             '',
       strings.relativeTime(nexRelativeTimeOf(note.updatedAt)),
     ].where((part) => part.isNotEmpty).join('. ');
+    final flowing = previewWidth != null;
+    final inline =
+        flowing &&
+        (note.type == NoteType.text ||
+            note.type == NoteType.link ||
+            note.type == NoteType.file && !note.isAudioMedia);
+    final body = _Body(
+      note: note,
+      title: content.title,
+      body: content.body,
+      strings: strings,
+      tint: tint,
+      muted: muted,
+      outline: outline,
+      onToggleItem: onToggleItem,
+    );
     // The tile as words: every kind but a picture, and a file whose picture
     // could not be read.
     Widget words(BuildContext context) => Material(
@@ -244,22 +274,29 @@ class NexNoteGridCard extends StatelessWidget {
                   ringing: ringing,
                   label: strings.selectLabel,
                   onPick: onLeadingTap,
+                  preview: !inline
+                      ? null
+                      : snippet == null
+                      ? body
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              kind,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: ink,
+                              ),
+                            ),
+                            body,
+                          ],
+                        ),
                 ),
-                SizedBox(height: metrics.padding * 0.8),
-                Expanded(
-                  child: ClipRect(
-                    child: _Body(
-                      note: note,
-                      title: content.title,
-                      body: content.body,
-                      strings: strings,
-                      tint: tint,
-                      muted: muted,
-                      outline: outline,
-                      onToggleItem: onToggleItem,
-                    ),
-                  ),
-                ),
+                if (!inline) ...[
+                  SizedBox(height: metrics.padding * 0.8),
+                  if (flowing) body else Expanded(child: ClipRect(child: body)),
+                ],
                 const SizedBox(height: NexSpacing.xs),
                 _Foot(
                   note: note,
@@ -315,6 +352,7 @@ class _Top extends StatelessWidget {
     required this.ringing,
     required this.label,
     required this.onPick,
+    this.preview,
   });
 
   final Note note;
@@ -327,6 +365,7 @@ class _Top extends StatelessWidget {
   final bool ringing;
   final String label;
   final VoidCallback? onPick;
+  final Widget? preview;
 
   @override
   Widget build(BuildContext context) {
@@ -357,7 +396,10 @@ class _Top extends StatelessWidget {
           label: label,
           onTap: onPick,
         ),
-        if (kind case final kind?) ...[
+        if (preview case final content?) ...[
+          const SizedBox(width: NexSpacing.contentGap),
+          Expanded(child: content),
+        ] else if (kind case final kind?) ...[
           const SizedBox(width: NexSpacing.sm),
           Expanded(
             child: Text(
@@ -583,9 +625,11 @@ class _Mark extends StatelessWidget {
         ? Icons.check_rounded
         : ringing
         ? Icons.notifications_active_rounded
-        : note.type == NoteType.file
-        ? null
-        : nexNoteTypeIcon(note.type.wireName);
+        // The site has its own mark by its name below. This is the link
+        // selection control, so it keeps the link glyph.
+        : note.type == NoteType.link
+        ? nexNoteTypeIcon(note.type.wireName)
+        : null;
     final ink = picked ? scheme.onPrimary : tint;
     final glyphSize = size * 0.52;
     final disc = AnimatedContainer(
