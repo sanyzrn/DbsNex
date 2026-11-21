@@ -194,30 +194,22 @@ A test that fails once and passes on a re-run has found a race. **A retry is nev
 
 **The tag is the version used by the build.** Before triggering the release, keep `pubspec.yaml`, `lib/app_version.dart` and both changelogs aligned with that version. The Release workflow parses the tag, stamps the two version files in its own checkout, derives the Android `versionCode` from it, and passes it to every build.
 
-Either way works:
+After merging, go to **Actions → Release → Run workflow**, select the updated `main` under **Use workflow from**, and enter the version. The workflow creates a draft in `sanyzrn/DbsNex`, using the selected commit for the release tag. Review the assets and publish the draft from Releases. For a rehearsal, select the release branch explicitly. Start a new run after updating the source, since reruns use the original commit.
 
-- **From a terminal**, once the work is merged to `main`:
-  ```
-  git fetch origin main
-  git tag v0.2.1 origin/main
-  git push origin v0.2.1
-  ```
-- **From GitHub**, with no git at all: merge the release PR first, then Actions → Release → Run workflow → select the updated `main` under **Use workflow from** → type `0.2.1`. A manual run publishes a **draft** release, so it is also how you rehearse one. For a draft rehearsal before merging, explicitly select the release's source branch instead of `main`; the version input does not select a branch or pull request.
-
-The workflow creates the public release tag and assets in `sanyzrn/DbsNex-releases`; do not tag that repository by hand. A source-repository tag triggers the workflow, while the public releases repository is the version record the app reads. **Start a new run after merging or changing the source.** GitHub's Re-run jobs keeps the original run's commit, so it cannot pick up a later merge.
+**For v2.8.11**, the same run also stages a draft in `sanyzrn/DbsNex-releases` using `RELEASES_REPO_TOKEN`. Publish the draft in `DbsNex` first, then publish the matching draft in `DbsNex-releases` and mark it as latest there. This lets installations through 2.8.10 reach 2.8.11 through their existing updater. From 2.8.11 onward the app checks `DbsNex`. Keep the source repository public for unauthenticated update checks. Earlier release links keep working in the legacy repository.
 
 The tag must be `vMAJOR.MINOR.PATCH`, optionally with a pre-release suffix (`v0.2.1-beta`). A leading `v` is added if you leave it off, but anything else — `v.0.2.1`, `v0.2.`, a stray space — is rejected in the first job with an explicit message, rather than surfacing later as a confusing mismatch.
 
 Two rules the numbers have to obey:
 
-- **Tag `main` after the work is merged, not before.** A tag names a commit; tagging the branch or an older `main` releases whatever was on that commit.
+- **Run Release from `main` after merging.** The workflow tags the commit it built.
 - **Never reuse or go backwards.** `versionCode` is `(major×10000 + minor×100 + patch) × 10000`, so `0.9.2` is `9020000`. Google Play requires it to increase strictly and forever, and Android refuses to install an APK whose `versionCode` is lower than the installed one. Minor and patch each have to stay under 100; the version job rejects the tag otherwise. A local `flutter build` without `--build-number` gets the same number: `build.gradle.kts` computes it from the version name, so a build made by hand can still install over a released one.
 
   **Why the ×10000.** Flutter adds an ABI offset to every `--split-per-abi` APK — arm32 +1000, arm64 +2000, x86_64 +4000 — so Play can tell the variants apart. Under the previous `major×1000000 + minor×1000 + patch` scheme consecutive releases were one apart, which put a split APK *above* the next several versions' universal APK. That is not theoretical: `v0.7.8-arm64-v8a` shipped as `9008` and `v0.9.1-universal` as `9001`, so anyone who had 0.7.8 could not install 0.9.1 at all without uninstalling first. Ten thousand per patch release clears the 4000 ceiling, so a later version's universal APK always outranks an earlier version's split.
 
   What made it possible to ship at all was a second bug in the same release: the `Collect release assets` step looked for the split APKs under `app-<flavor>-<abi>-release.apk` when the flutter-apk directory names them `app-<abi>-<flavor>-release.apk`, and the copy was guarded with `[ -f ]`, so all three splits were skipped without failing the build. Both the path and the guard are fixed, and the step now asserts it staged exactly five files.
 
-**Add the matching changelog section before you tag.** The release workflow selects `## vX.Y.Z` in [`CHANGELOG.md`](../CHANGELOG.md) by name and publishes its contents as both the GitHub Release body and the in-app update sheet's content. Keep a fresh `## Unreleased` above it for later changes, and mirror the new section in `apps/client/assets/CHANGELOG.md`. The workflow refuses to publish if the matching section is absent or empty. The same section in Persian goes in [`CHANGELOG.fa.md`](../CHANGELOG.fa.md): the workflow appends it under a `<!-- nex:fa -->` marker, and the update screen shows it instead of the English when the app is in Persian (LOC-05). A missing Persian section is a warning, not a failure — that release is shown in English.
+**Add the matching changelog section before running Release.** The release workflow selects `## vX.Y.Z` in [`CHANGELOG.md`](../CHANGELOG.md) by name and publishes its contents as both the GitHub Release body and the in-app update sheet's content. Keep a fresh `## Unreleased` above it for later changes, and mirror the new section in `apps/client/assets/CHANGELOG.md`. The workflow refuses to publish if the matching section is absent or empty. The same section in Persian goes in [`CHANGELOG.fa.md`](../CHANGELOG.fa.md): the workflow appends it under a `<!-- nex:fa -->` marker, and the update screen shows it instead of the English when the app is in Persian (LOC-05). A missing Persian section is a warning, not a failure — that release is shown in English.
 
 The first release job runs `python3 tools/release_notes.py --tag vX.Y.Z` against the checked-out commit. It requires a nonempty, unique section for that tag, matching root and bundled changelogs, and source version files matching the tag's base version. Only then can the full verification suite and signed builds start. Publishing uses the same extractor. A missing Persian section still warns and falls back to English; an explicitly empty section fails.
 

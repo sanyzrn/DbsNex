@@ -4,12 +4,11 @@
   tests and analysis pass) — the owner does not need to ask each time. Create,
   merge or edit pull requests only when the owner asks. Keep later edits
   together in the requested release.
-- **Before choosing a version number, always check what is already published at
-  <https://github.com/sanyzrn/DbsNex-releases>** (its tags and Releases). The
-  owner publishes from there, often between sessions: a version found there is
-  closed, and everything after it goes under the next number — never add to a
-  released version's changelog section or reuse its tag. (2.1.14 was out while a
-  later change was still being written under that number; it moved to 2.1.15.)
+- **Before choosing a version number, check what is already published at
+  <https://github.com/sanyzrn/DbsNex/releases>** and in the legacy
+  <https://github.com/sanyzrn/DbsNex-releases/releases> archive. A published
+  version is closed. Keep new work under the next number and preserve released
+  changelog entries and tags.
 - Continue on the current release branch and keep subsequent edits together.
   Start new release work from current `main`; use a release branch and a pull
   request back to `main`. Never resume the retired `codex/2.0-polish` branch.

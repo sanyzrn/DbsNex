@@ -12,7 +12,7 @@ A local-first capture app for Android, in Persian and English, with full right-t
 [![CI (pull requests)](https://github.com/sanyzrn/DbsNex/actions/workflows/ci.yml/badge.svg?event=pull_request)](https://github.com/sanyzrn/DbsNex/actions/workflows/ci.yml?query=event%3Apull_request)
 [![Release](https://github.com/sanyzrn/DbsNex/actions/workflows/release.yml/badge.svg)](https://github.com/sanyzrn/DbsNex/actions/workflows/release.yml)
 [![Nightly stress](https://github.com/sanyzrn/DbsNex/actions/workflows/stress.yml/badge.svg?branch=main)](https://github.com/sanyzrn/DbsNex/actions/workflows/stress.yml)
-[![Latest release](https://img.shields.io/github/v/release/sanyzrn/DbsNex-releases?label=release&color=0A84FF)](https://github.com/sanyzrn/DbsNex-releases/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/sanyzrn/DbsNex?label=release&color=0A84FF)](https://github.com/sanyzrn/DbsNex/releases/latest)
 <br>
 [![Flutter](https://img.shields.io/badge/Flutter-3.47.9-02569B?logo=flutter&logoColor=white)](./.fvmrc)
 [![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)](#what-works-today)
@@ -132,7 +132,7 @@ until that Worker is deployed and its URL is set for release builds.
 **Locked if you want it** — the app can ask for the device credential or a fingerprint
 whenever it comes back to the foreground. The lock is local; nothing about it is synced.
 
-**Updates** — the app checks a public releases repo and downloads its own installer,
+**Updates** — the app checks this repository’s public releases and downloads its own installer,
 resuming from where it left off if the connection drops.
 
 ### Not shipped yet
@@ -215,23 +215,14 @@ unrelated diff.
 
 ## Releasing
 
-Tag a version and [`release.yml`](./.github/workflows/release.yml) builds a signed Android
-bundle and APK — the Windows installer job is paused — then publishes them to a **separate public
-releases repository** — not this one.
+Run [`release.yml`](./.github/workflows/release.yml) manually after the release
+changes are merged. It builds signed Android packages and stages them as a
+draft release in this public repository. The Windows installer job is paused.
 
-That indirection is the point: GitHub requires authentication for a private repo's release
-API and asset URLs, so an in-app updater pointed at a private source repo breaks the moment
-the repo is made private, and shipping a token inside the app to fix it would mean anyone
-could extract it. A public releases-only repo needs no client-side credential at all.
-
-The one-time setup — creating that repo with a single README commit, minting a fine-grained
-token scoped to it, and storing it as `RELEASES_REPO_TOKEN` — is documented at the top of
-the workflow. The repo name must stay in step with `UpdateChecker`'s default in
-[`app_update.dart`](./apps/client/lib/platform/app_update.dart).
-
-GitHub attaches "Source code (zip)" and "(tar.gz)" to every release and gives no way to
-suppress them. Publishing to a separate repo is what defuses that: those archives are of
-the releases repo, which holds one README — not of this one.
+[Releases through v2.8.10](https://github.com/sanyzrn/DbsNex-releases/releases)
+remain at their original URLs. The v2.8.11 draft on that channel lets older
+installations update to the new channel. See [Cutting a Release](./docs/06-development.md#cutting-a-release)
+for the publication order.
 
 ---
 
