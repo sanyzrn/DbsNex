@@ -167,6 +167,96 @@ BODY;
     expect(styleOf(span, "<<<'BODY'\nسلام\nBODY")?.color, isNotNull);
   });
 
+  group('a long source is coloured once and drawn a chunk at a time', () {
+    const source =
+        '// first\n'
+        '/* opened before the cut\n'
+        ' * still the same comment\n'
+        ' */\n'
+        'final x = 1;\n';
+    final spans = nexHighlightCode(
+      source,
+      NexCodeLanguage.dart,
+      style: const TextStyle(),
+      scheme: ThemeData.light().colorScheme,
+    );
+
+    test('every slice joins back into its own part of the source', () {
+      for (final (start, end) in [
+        (0, 9),
+        (4, 20),
+        (20, 55),
+        (0, source.length),
+        (source.length - 2, source.length),
+      ]) {
+        final sliced = nexSliceCodeSpans(spans, start, end);
+        expect(
+          sliced.map((piece) => piece.text).join(),
+          source.substring(start, end),
+          reason: '$start–$end',
+        );
+      }
+    });
+
+    test('a comment cut in half keeps its style on both sides', () {
+      final first = nexSliceCodeSpans(spans, 0, 25);
+      final second = nexSliceCodeSpans(spans, 25, 60);
+      for (final piece in [first, second]) {
+        expect(
+          piece.any((span) => span.style?.fontStyle == FontStyle.italic),
+          isTrue,
+        );
+      }
+    });
+
+    test('offsets outside the source are clamped, not thrown', () {
+      expect(
+        nexSliceCodeSpans(spans, -8, 5).map((piece) => piece.text).join(),
+        source.substring(0, 5),
+      );
+      expect(nexSliceCodeSpans(spans, 6, 2), isEmpty);
+      expect(
+        nexSliceCodeSpans(spans, source.length + 10, source.length + 20),
+        isEmpty,
+      );
+    });
+
+    testWidgets('a widget given spans paints them without tokenizing again', (
+      tester,
+    ) async {
+      final chunk = nexSliceCodeSpans(spans, 20, 55);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: nexLightTheme(),
+          home: Scaffold(
+            body: NexCodeText(
+              source.substring(20, 55),
+              language: NexCodeLanguage.dart,
+              spans: chunk,
+            ),
+          ),
+        ),
+      );
+      final rich = tester.widget<RichText>(
+        find.descendant(
+          of: find.byType(NexCodeText),
+          matching: find.byType(RichText),
+        ),
+      );
+      expect(rich.text.toPlainText(), source.substring(20, 55));
+      expect(
+        rich.text.visitChildren((span) {
+          if (span is TextSpan && span.style?.fontStyle == FontStyle.italic) {
+            return false;
+          }
+          return true;
+        }),
+        isFalse,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('code reads left to right in a Persian interface', () {
     testWidgets('the text direction is LTR whatever the page is', (
       tester,
