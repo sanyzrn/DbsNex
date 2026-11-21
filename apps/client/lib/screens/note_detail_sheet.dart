@@ -440,125 +440,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     // long note that does not scroll, so the way to close it from the last
     // line — sat right under the status bar, and pulling it down opened the
     // phone's notification shade instead of closing the note.
-    const contentPadding = EdgeInsets.fromLTRB(
-      NexSpacing.md,
-      NexSpacing.sm,
-      NexSpacing.md,
-      NexSpacing.md,
-    );
-    final header = <Widget>[
-      // The type and when it was captured, on one line.
-      //
-      // The date used to be on the timeline card and the time was
-      // nowhere except behind the Details button — so the card
-      // carried the half nobody needed at a glance and hid the
-      // half you go looking for. It is the other way round now:
-      // the card is clean, and this is where you find out when.
-      //
-      // A wrap, so at the largest text sizes the time moves under
-      // the type instead of running off the edge.
-      //
-      // The type is a chip in its own colour — the colour its
-      // card's square wears on the timeline, so the sheet reads
-      // as that card opened — and the date has its month in
-      // words and stops at the minute; the seconds are in
-      // Details for whoever needs them.
-      _DetailHeading(
-        note: note,
-        when: nexReadableDate(
-          note.createdAt,
-          solar: widget.services.solarCalendar,
-          persian: Localizations.localeOf(context).languageCode == 'fa',
-          time: true,
-        ),
-      ),
-      if (note.dueAt case final due?)
-        Padding(
-          key: const ValueKey('detail-reminder-when'),
-          padding: const EdgeInsets.only(top: NexSpacing.xs),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.notifications_none,
-                size: 15,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: NexSpacing.xs),
-              Expanded(
-                child: Text(
-                  '${l10n.detailsReminder}: '
-                  '${nexDueCardDescription(context, due, note.dueRepeat)}'
-                  '${note.dueClears ? ' · ${l10n.remindClearsOnCard}' : ''}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      if (archived)
-        _ArchivedStrip(note: note, solar: widget.services.solarCalendar),
-      const SizedBox(height: NexSpacing.md),
-    ];
-    final footer = <Widget>[
-      ..._attachmentStrip(context, note, l10n),
-      const SizedBox(height: NexSpacing.md),
-      Wrap(
-        spacing: NexSpacing.xs,
-        children: [
-          for (final tag in note.tags)
-            TagChip(
-              tag: tag,
-              strings: nexCardStrings(context),
-              onRemove: archived
-                  ? null
-                  : () => unawaited(_removeTag(note, tag)),
-            ),
-          if (!archived)
-            ActionChip(
-              avatar: const Icon(Icons.add, size: 16),
-              label: Text(l10n.tag),
-              onPressed: note.tags.length < nexMaxTagsPerNote ? _addTag : null,
-            ),
-          ?_attachChip(note, l10n),
-          // Threads sit with the tags: both say what a note
-          // belongs with, and neither moves it anywhere.
-          for (final thread in _threads)
-            ActionChip(
-              avatar: const Icon(Icons.timeline_outlined, size: 16),
-              label: Text(thread.name),
-              onPressed: () => unawaited(_openThread(thread)),
-            ),
-        ],
-      ),
-      // Nothing to ask of a note put away (2.3.3): the AI
-      // workspace comes back with the note.
-      if (!archived) _aiPanel(note, l10n),
-    ];
-    final snippet = note.type == NoteType.text ? _snippetFor(note) : null;
-    final scroll = snippet == null
-        ? SingleChildScrollView(
-            padding: contentPadding,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ...header,
-                ..._typeBody(context, note, l10n),
-                ...footer,
-              ],
-            ),
-          )
-        : _snippetScroll(
-            context,
-            note,
-            snippet,
-            l10n,
-            contentPadding,
-            header,
-            footer,
-          );
     return ConstrainedBox(
       constraints: BoxConstraints(
         maxHeight: screenHeight * nexNoteSheetMaxHeight,
@@ -570,7 +451,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
           Flexible(
             // A long note's sheet is almost entirely content, so the handle
             // at the top was the only part of it that could be dragged shut.
-            child: NexDismissOnOverscroll(child: scroll),
+            child: NexDismissOnOverscroll(
+              child: _detailScroll(context, note, l10n, archived: archived),
+            ),
           ),
           // The actions are pinned below the scroll rather than sitting at the
           // end of it: a long note would otherwise bury them under a screenful
