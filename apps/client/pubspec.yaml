@@ -133,6 +133,9 @@ dev_dependencies:
   shared_preferences_platform_interface: ^2.4.2
   plugin_platform_interface: ^2.1.8
   video_player_platform_interface: ^6.3.0
+  # Only for card_audio_test.dart's fake: card playback builds a real
+  # AudioPlayer, so the test stands in for the platform behind it.
+  just_audio_platform_interface: ^4.6.0
 
 flutter:
   uses-material-design: true
