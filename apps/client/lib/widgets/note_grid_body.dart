@@ -61,7 +61,15 @@ class _Body extends StatelessWidget {
           final key = (text, width, style, textLayout, direction);
           final known = _lineHeights[key];
           if (known != null) return known;
-          if (_lineHeights.length > 600) _lineHeights.clear();
+          if (_lineHeights.length >= 600) {
+            // Drop the oldest quarter rather than the whole map: clearing it
+            // made every tile on screen lay its words out again on the next
+            // build — a hitch each time a long timeline reached 600 distinct
+            // texts (a title and a body are two keys).
+            for (final oldest in _lineHeights.keys.take(150).toList()) {
+              _lineHeights.remove(oldest);
+            }
+          }
           return _lineHeights[key] = _gridLineHeights(
             text,
             style,
