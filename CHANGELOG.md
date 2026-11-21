@@ -4,6 +4,9 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Code that stays code.** Saving a code note to your device now writes the source itself — as a `.dart`, `.py`, `.html` or whatever its language is — named after its title or first line, instead of a Markdown file with the code fenced inside it. A long snippet keeps its syntax colours from top to bottom, even when a comment or a string runs past a screenful, and opens immediately while those colours are prepared.
+- **Lighter editing and photo tiles.** Typing in a long snippet no longer redraws the whole editor, and a tile holding several photos decodes each picture at the size it is actually drawn, so a grid of them uses far less memory.
+
 ## v2.8.11
 
 - **App updates.** New releases are available in the main Nex GitHub repository. Existing installations can update to this version as usual.

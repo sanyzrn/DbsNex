@@ -109,7 +109,9 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
     if (_code.text == _lastText) return;
     _lastText = _code.text;
     _writeDraft();
-    setState(() {});
+    // Only Save depends on the text, and the field repaints itself: rebuilding
+    // the sheet on every keystroke laid out the toolbar, the field's decorator
+    // and the buttons again for a character that had already been drawn.
   }
 
   void _writeDraft() {
@@ -250,9 +252,12 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
                         child: Text(l10n.cancel),
                       ),
                       const Spacer(),
-                      FilledButton(
-                        onPressed: _canSave ? _save : null,
-                        child: Text(l10n.save),
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _code,
+                        builder: (context, value, _) => FilledButton(
+                          onPressed: value.text.trim().isEmpty ? null : _save,
+                          child: Text(l10n.save),
+                        ),
                       ),
                     ],
                   ),

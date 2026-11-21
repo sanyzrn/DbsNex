@@ -359,11 +359,68 @@ void main() {
       final source = find.byType(NexCodeText);
       final first = tester.widget<NexCodeText>(source);
       expect(first.code, code);
-      expect(first.highlight, isFalse);
+      // Readable from the first frame; coloured once the sheet has opened.
+      expect(first.spans, isNull);
       await tester.pumpAndSettle();
-      expect(tester.widget<NexCodeText>(source).highlight, isTrue);
+      final coloured = tester.widget<NexCodeText>(source).spans;
+      expect(coloured, isNotNull);
+      expect(coloured!.map((span) => span.text).join(), code);
+      expect(coloured.any((span) => span.style?.color != null), isTrue);
     },
   );
+
+  testWidgets('a comment that runs past a chunk boundary keeps its colour', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(600, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    // 48 lines end inside the comment: the chunk after the cut starts with
+    // its middle, with no `/*` of its own.
+    final code =
+        '${List.generate(46, (i) => 'final v$i = $i;').join('\n')}\n'
+        '/* start\n * middle\n * end */\nfinal done = true;';
+    final note = (await services.captureText(
+      NexCodeSnippet(code: code, language: NexCodeLanguage.dart).markdown,
+    ))!;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NoteDetailSheet(
+            services: services,
+            preferences: preferences,
+            noteId: note.id,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    Finder chunkContaining(String text) => find.byWidgetPredicate(
+      (widget) => widget is NexCodeText && widget.code.contains(text),
+    );
+    final scrollable = find
+        .descendant(
+          of: find.byType(CustomScrollView),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      chunkContaining(' * end */'),
+      600,
+      scrollable: scrollable,
+    );
+    final chunk = tester.widget<NexCodeText>(chunkContaining(' * end */'));
+    expect(chunk.spans, isNotNull);
+    expect(
+      chunk.spans!.any((span) => span.style?.fontStyle == FontStyle.italic),
+      isTrue,
+      reason: 'the middle of a block comment is still a comment',
+    );
+    expect(chunk.spans!.map((span) => span.text).join(), chunk.code);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'editing HTML on the Android editor path shows syntax and preserves composing text',

@@ -19,6 +19,11 @@ part 'nex_code_web.dart';
 /// to draw the first two lines would make the timeline pay for code nobody is
 /// reading. [maxLines] bounds it further, and [selectable] is off there for
 /// the same reason a card is one tap target rather than a text field.
+///
+/// [spans] is for a caller that has already coloured the whole of a longer
+/// source and is drawing it a piece at a time — see [nexSliceCodeSpans]. Given
+/// them, this widget paints exactly those spans and does no tokenizing of its
+/// own, so a chunk boundary cannot change how a comment or a string is read.
 class NexCodeText extends StatefulWidget {
   const NexCodeText(
     this.code, {
@@ -30,6 +35,7 @@ class NexCodeText extends StatefulWidget {
     this.selectable = false,
     this.highlight = true,
     this.softWrap = false,
+    this.spans,
   });
 
   final String code;
@@ -40,6 +46,10 @@ class NexCodeText extends StatefulWidget {
   final bool selectable;
   final bool highlight;
   final bool softWrap;
+
+  /// Pre-coloured pieces covering exactly [code], from [nexHighlightCode] or
+  /// [nexSliceCodeSpans]. Null colours [code] here instead.
+  final List<TextSpan>? spans;
 
   static TextStyle monospaceStyle(TextStyle? style) =>
       (style ?? const TextStyle()).copyWith(
@@ -61,8 +71,10 @@ class _NexCodeTextState extends State<NexCodeText> {
     final base = NexCodeText.monospaceStyle(
       widget.style ?? theme.textTheme.bodyLarge,
     );
-    List<TextSpan>? spans;
-    if (widget.highlight && widget.language != NexCodeLanguage.plainText) {
+    var spans = widget.spans;
+    if (spans == null &&
+        widget.highlight &&
+        widget.language != NexCodeLanguage.plainText) {
       final key = (widget.code, widget.language, theme.colorScheme);
       if (_highlightKey != key) {
         _highlightKey = key;
@@ -99,6 +111,84 @@ class _NexCodeTextState extends State<NexCodeText> {
           );
     return Directionality(textDirection: TextDirection.ltr, child: body);
   }
+}
+
+/// The part of [spans] that covers `start`–`end` of the source they were made
+/// for, keeping every piece's style.
+///
+/// A long snippet is drawn one bounded chunk at a time, but its syntax is a
+/// property of the whole source: a block comment, a triple-quoted string or a
+/// template literal that runs past the chunk boundary must not turn back into
+/// punctuation on the next widget. Colouring the whole source once and taking
+/// each chunk's share of those spans gives every chunk the same reading, and
+/// costs one pass instead of one pass per chunk.
+///
+/// Offsets outside [spans]' own text are clamped, so a stale chunk can never
+/// throw. The result always joins back into `code.substring(start, end)`.
+///
+/// The spans' cumulative ends are indexed once per list and reused, so drawing
+/// the nth chunk of a long file does not walk every span of it again: what a
+/// viewport shows is sliced in a fraction of a frame instead of once per span
+/// per chunk.
+List<TextSpan> nexSliceCodeSpans(List<TextSpan> spans, int start, int end) {
+  if (spans.isEmpty) return const <TextSpan>[];
+  final ends = _spanEndsOf(spans);
+  final total = ends.last;
+  final from = start < 0 ? 0 : (start > total ? total : start);
+  final to = end < from ? from : (end > total ? total : end);
+  if (to <= from) return const <TextSpan>[];
+
+  // The first span whose end passes `from` holds it.
+  var low = 0;
+  var high = ends.length;
+  while (low < high) {
+    final mid = (low + high) ~/ 2;
+    if (ends[mid] <= from) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+  final pieces = <TextSpan>[];
+  for (var i = low; i < spans.length; i++) {
+    final offset = i == 0 ? 0 : ends[i - 1];
+    if (offset >= to) break;
+    final text = spans[i].text ?? '';
+    final take = from > offset ? from - offset : 0;
+    final stop = to < ends[i] ? to - offset : text.length;
+    if (stop > take) {
+      pieces.add(
+        TextSpan(
+          // A piece that is whole keeps the original string, which is the
+          // common case for every span a chunk contains.
+          text: take == 0 && stop == text.length
+              ? text
+              : text.substring(take, stop),
+          style: spans[i].style,
+        ),
+      );
+    }
+  }
+  return pieces;
+}
+
+/// Cumulative ends, one per span, remembered for the list's lifetime.
+///
+/// The lists come from [nexHighlightCode], which never mutates one after
+/// returning it; an expanded list keyed by identity is collected with it.
+final _spanEnds = Expando<List<int>>();
+
+List<int> _spanEndsOf(List<TextSpan> spans) {
+  final known = _spanEnds[spans];
+  if (known != null) return known;
+  final ends = List<int>.filled(spans.length, 0);
+  var offset = 0;
+  for (var i = 0; i < spans.length; i++) {
+    offset += spans[i].text?.length ?? 0;
+    ends[i] = offset;
+  }
+  _spanEnds[spans] = ends;
+  return ends;
 }
 
 /// The coloured pieces of [code], for the surfaces that draw it themselves.
