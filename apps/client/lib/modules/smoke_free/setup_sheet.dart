@@ -121,7 +121,7 @@ abstract class _SetupLogic extends State<_SetupSheet> {
     _perDay = TextEditingController(
       text: '${baseline?.cigarettesPerDay ?? _preset.perDay}',
     );
-    _price = TextEditingController(
+    _price = NexMoneyController(
       text: moneyInput(baseline?.pricePerPackMinor ?? 0, _digits),
     );
     _perPack = TextEditingController(

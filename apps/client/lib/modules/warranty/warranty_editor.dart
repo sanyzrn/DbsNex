@@ -160,7 +160,7 @@ class _WarrantyEditorSheetState extends State<WarrantyEditorSheet> {
     _receiptRef = TextEditingController(
       text: WarrantyModels.readString(_from, 'receiptRef'),
     );
-    _amount = TextEditingController();
+    _amount = NexMoneyController();
     final rials = widget.existing != null
         ? WarrantyModels.readCount(_from, 'amountRials')
         : null;

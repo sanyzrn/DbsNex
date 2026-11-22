@@ -40,3 +40,4 @@ export 'module_checked_draft.dart';
 export 'module_segments.dart';
 export 'module_record_bundle.dart';
 export 'module_shared.dart';
+export 'money_entry.dart' show NexMoneyController, nexUngroupMoney;

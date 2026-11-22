@@ -52,7 +52,7 @@ class _FuelEditorSheetState extends State<FuelEditorSheet> {
         ? ''
         : meterInputText(widget.existing!.litres, scale: FuelEntry.scale),
   );
-  late final _price = TextEditingController(
+  late final _price = NexMoneyController(
     text: widget.existing == null
         ? ''
         : formatToman(

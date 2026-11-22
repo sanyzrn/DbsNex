@@ -6,7 +6,7 @@
 /// «٫» and percent sign «٪».
 library;
 
-import '../module_api.dart' show nexDigits;
+import '../module_api.dart' show nexDigits, nexUngroupMoney;
 
 const _enDigits = '0123456789';
 const _faDigits = '۰۱۲۳۴۵۶۷۸۹';
@@ -153,13 +153,11 @@ enum GoldParseProblem { empty, invalid, tooManyDecimals, negative, tooBig }
 
 /// Parses a typed decimal into a scaled integer.
 ///
-/// `123.45` with scale 2 → `12345`. Accepts only plain digits and one dot;
-/// the Persian digits a Persian keyboard produces are read as their
-/// values, and the Persian decimal separator «٫» as a dot. Surrounding
-/// whitespace is forgiven, everything else is not.
+/// `123.45` with scale 2 → `12345`. Accepts Persian and Arabic-Indic digits,
+/// either decimal mark and correctly grouped thousands.
 int? parseScaled(String text, int scale) {
   if (scale < 0 || scale > 6 || text.length > 256) return null;
-  final normalized = _normalize(text);
+  final normalized = _normalize(nexUngroupMoney(text));
   if (!RegExp(r'^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$')
       .hasMatch(normalized)) {
     return null;
@@ -201,7 +199,7 @@ String goldDigits(String text, bool persian) =>
 /// field can put into words.
 (int?, GoldParseProblem?) parseScaledDetailed(String text, int scale) {
   if (text.length > 256) return (null, GoldParseProblem.tooBig);
-  final normalized = _normalize(text);
+  final normalized = _normalize(nexUngroupMoney(text));
   if (normalized.isEmpty) return (null, GoldParseProblem.empty);
   if (normalized.startsWith('-')) {
     // A negative sign anywhere is rejected before anything else is read.
@@ -233,9 +231,7 @@ String goldDigits(String text, bool persian) =>
 
 /// The typed text in one canonical form: trimmed, Persian digits as ASCII
 /// and the Persian decimal separator «٫» as `.`. A leading `+` is dropped.
-/// A comma is **not** forgiven: half the world types it as a decimal
-/// separator and the other half as a thousands separator, and guessing
-/// wrong silently misprices a piece of jewelry. It is rejected instead.
+/// Only the amount parsers remove thousands marks, before normalizing.
 String _normalize(String text) {
   var out = text.trim();
   if (out.startsWith('+')) out = out.substring(1);

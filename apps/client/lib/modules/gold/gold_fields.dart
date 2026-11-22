@@ -73,9 +73,6 @@ class GoldNumberField extends StatelessWidget {
         controller: controller,
         textDirection: TextDirection.ltr,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        // No input formatter: the platform's formatter is not reachable
-        // through the module API, and the validator below already refuses
-        // whatever slips past the keyboard, in words rather than silence.
         decoration: InputDecoration(
           labelText: label,
           suffixText: suffix,

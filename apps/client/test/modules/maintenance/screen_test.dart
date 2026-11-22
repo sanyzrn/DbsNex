@@ -266,7 +266,7 @@ void main() {
       final cost = tester.widget<TextField>(
         find.byKey(const ValueKey('maintenance-cost')),
       );
-      expect(cost.controller!.text, '1200');
+      expect(cost.controller!.text, '1٬200');
     });
 
     testWidgets('delete a service asks and Undo restores it', (tester) async {
