@@ -119,6 +119,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // These fixtures belong to a historical month. Show them regardless of
+    // the calendar or date on the machine running the test.
+    await tester.tap(find.text('همهٔ زمان‌ها'));
+    await tester.pumpAndSettle();
     // The rial payment reads in Persian, in tomans, as it was entered.
     expect(find.text('۱۲۵ تومان'), findsWidgets);
     // The dollar one is visible as an incomplete record, not silently gone.
