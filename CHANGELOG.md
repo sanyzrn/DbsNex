@@ -4,6 +4,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Family fund, rebuilt for real family funds.** The monthly share can now change from a chosen month without rewriting recorded contributions, and every fund shows who has won each round and who is left. The draw happens in one sheet, with its result and a written reason for any redraw; tap a member for their history and open months; loans show every instalment and what is still owed; and the month report can be copied as well as shared. The manager can also correct a fund's name, rules and contribution and draw days.
+
 ## v2.8.13
 
 - **Code colours across a whole snippet.** Template literals that span lines and Dart raw strings keep the right colour, so the rest of the file is no longer coloured as if it were part of them.

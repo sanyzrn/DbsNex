@@ -13,9 +13,13 @@ class FundDues {
   List<ModuleDue> forMonth(NexModuleMonth month) {
     final key = dayKey(month.first);
     final drawDone = fund.winner(month) != null;
+    final share = fund.shareFor(month);
+    final active = month.first.isBefore(fund.start.first)
+        ? const <Fields>[]
+        : fund.active(month);
     return [
-      if (!month.first.isBefore(fund.start.first)) ...[
-        for (final m in fund.active(month))
+      if (active.isNotEmpty) ...[
+        for (final m in active)
           ModuleDue(
             id: 'payment:${fund.id}:$key:${m['id']}',
             recordKind: 'fund',
@@ -23,7 +27,7 @@ class FundDues {
             at: dueDay(month, fund.paymentDay),
             title: nameOf(m),
             kind: 'fund-contribution',
-            amountRial: fund.shareRial * (m['shares'] as int),
+            amountRial: share * (m['shares'] as int),
             done: fund.payment(month, m['id']) != null,
             private: true,
           ),

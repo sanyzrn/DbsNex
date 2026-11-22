@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
-import 'strings.dart';
 import 'fund_text.dart';
+import 'strings.dart';
+
+/// The line a fund reminder carries under its title, in the page's language.
+/// It names the day and the clock time that were actually chosen — the
+/// earlier version said the suggested day even after the manager picked
+/// another one.
+String fundReminderBody(String title, DateTime at, {required bool persian}) =>
+    '$title${fundSepFor(persian: persian)}'
+    '${nexReadableDate(at, solar: true, persian: persian, time: true)}';
 
 /// Both alerts refer to the same real fund row. The kit control derives its
 /// key from the source, so using it twice would overwrite the first alert.
@@ -36,19 +44,31 @@ class _FundReminderState extends State<FundReminder> {
     try {
       if (clear) {
         await widget.store.clearReminder(key);
+        if (mounted) {
+          nexShowBanner(
+            context,
+            message: fundStrings(context, 'reminderRemoved'),
+          );
+        }
       } else {
+        final stored = await widget.store.get('__reminder', key);
+        if (!mounted) return;
+        final storedAt = DateTime.tryParse('${stored?['at']}')?.toLocal();
         final now = DateTime.now();
         final today = DateUtils.dateOnly(now);
+        final suggested = storedAt ?? widget.initial;
         final day = await nexPickModuleDate(
           context,
-          initial: widget.initial.isBefore(today) ? today : widget.initial,
+          initial: suggested.isBefore(today) ? today : suggested,
           first: today,
           last: DateTime(now.year + 3, 12, 31),
         );
         if (day == null || !mounted) return;
         final time = await nexPickModuleTime(
           context,
-          initial: const TimeOfDay(hour: 9, minute: 0),
+          initial: storedAt == null
+              ? const TimeOfDay(hour: 9, minute: 0)
+              : TimeOfDay.fromDateTime(storedAt),
         );
         if (time == null || !mounted) return;
         final at = DateTime(
@@ -58,21 +78,29 @@ class _FundReminderState extends State<FundReminder> {
           time.hour,
           time.minute,
         );
-        final fa = NexModuleStrings.persian(context);
-        final wording = nexReadableDate(
-          widget.initial,
-          solar: true,
-          persian: fa,
-        );
+        final persian = NexModuleStrings.persian(context);
         final ok = await widget.store.setReminder(
           key,
           sourceKind: 'fund',
           sourceId: widget.fundId,
           at: at,
           title: widget.body,
-          body: '${widget.body}${fundSep(context)}$wording',
+          body: fundReminderBody(widget.body, at, persian: persian),
         );
         if (!ok) throw StateError('Reminder unavailable');
+        if (mounted) {
+          nexShowBanner(
+            context,
+            message: fundStrings(context, 'reminderSetFor', {
+              'date': nexReadableDate(
+                at,
+                solar: true,
+                persian: persian,
+                time: true,
+              ),
+            }),
+          );
+        }
       }
     } on Object {
       if (mounted) {
@@ -103,7 +131,14 @@ class _FundReminderState extends State<FundReminder> {
         children: [
           if (at != null)
             Text(
-              '${nexReadableDate(at, solar: true, persian: fa)}${fundSep(context)}${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(at))}',
+              fundStrings(context, 'reminderRings', {
+                'date': nexReadableDate(
+                  at,
+                  solar: true,
+                  persian: fa,
+                  time: true,
+                ),
+              }),
             ),
           Wrap(
             spacing: NexSpacing.sm,
@@ -112,7 +147,12 @@ class _FundReminderState extends State<FundReminder> {
                 onPressed: busy || !widget.store.remindersEnabled
                     ? null
                     : () => change(clear: false),
-                child: Text(fundStrings(context, 'reminderSet')),
+                child: Text(
+                  fundStrings(
+                    context,
+                    at == null ? 'reminderSet' : 'reminderChange',
+                  ),
+                ),
               ),
               if (at != null)
                 TextButton(
