@@ -88,25 +88,36 @@ class _CardsScreenState extends State<CardsScreen>
     final strings = upgradeStrings;
     return Scaffold(
       appBar: NexAppBar(title: Text(strings(context, 'cardsTitle'))),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: null,
-        key: const ValueKey('cards-new'),
-        onPressed: () => unawaited(_add()),
-        icon: const Icon(Icons.add),
-        label: Text(strings(context, 'cardNew')),
-      ),
+      // One primary action per page: with an empty book it is the button in
+      // the empty state, not a second one floating beside it.
+      floatingActionButton: _cards.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              heroTag: null,
+              key: const ValueKey('cards-new'),
+              onPressed: () => unawaited(_add()),
+              icon: const Icon(Icons.add),
+              label: Text(strings(context, 'cardNew')),
+            ),
       body: recordsBody(
         _cards.isEmpty
             ? NexEmptyState(
                 icon: Icons.credit_card,
                 message: strings(context, 'cardsEmpty'),
+                action: FilledButton.icon(
+                  key: const ValueKey('cards-new'),
+                  onPressed: () => unawaited(_add()),
+                  icon: const Icon(Icons.add),
+                  label: Text(strings(context, 'cardNew')),
+                ),
               )
             : ListView(
                 padding: EdgeInsetsDirectional.fromSTEB(
                   NexSpacing.md,
                   NexSpacing.sm,
                   NexSpacing.md,
-                  NexSpacing.lg + nexBottomInset(context),
+                  // Clear of the floating button.
+                  NexSpacing.xl * 3 + nexBottomInset(context),
                 ),
                 children: [
                   for (final (index, card) in _cards.indexed)

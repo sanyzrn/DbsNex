@@ -140,6 +140,9 @@ const lentStrings = NexModuleStrings(
     'filter_overdue': 'Overdue',
     'filter_settled': 'Settled',
     'noMatches': 'Nothing matches that',
+    'emptyDueSoon': 'Nothing is due soon.',
+    'emptyOverdue': 'Nothing is overdue.',
+    'emptySettled': 'Nothing is settled here yet.',
     'people': 'People',
     'peopleEmpty': 'People appear here once you record something.',
     'theyOweYou': 'Owes you {amount}',
@@ -163,7 +166,13 @@ const lentStrings = NexModuleStrings(
     'message_formal':
         'Dear {person}, I’m sorry to bring this up. May I ask what timing '
         'would be possible for {amount}{due}? Thank you.',
-    'messageItem': 'the {what}',
+    'messageItem': '{count} × {what}',
+    'messagePayTitle': 'Ask to pay',
+    'messagePay':
+        'Hi {person}, I’d like to settle {amount} with you. Could you send the '
+        'card number or IBAN I should pay to? Thank you!',
+    'netToYou': 'Net: {amount} in your favour',
+    'netToThem': 'Net: {amount} in their favour',
     'messageCopy': 'Copy the message',
     'messageShare': 'Share',
     'messageCopied': 'Message copied',
@@ -292,6 +301,9 @@ const lentStrings = NexModuleStrings(
     'filter_overdue': 'گذشته از موعد',
     'filter_settled': 'تسویه‌شده',
     'noMatches': 'چیزی پیدا نشد',
+    'emptyDueSoon': 'چیزی نزدیک موعد نیست.',
+    'emptyOverdue': 'هیچ موردی از موعد نگذشته است.',
+    'emptySettled': 'هنوز چیزی تسویه نشده است.',
     'people': 'اشخاص',
     'peopleEmpty': 'با ثبت اولین مورد، اشخاص اینجا می‌آیند.',
     'theyOweYou': 'به شما {amount} بدهکار است',
@@ -315,7 +327,13 @@ const lentStrings = NexModuleStrings(
     'message_formal':
         '{person} عزیز، سلام. شرمنده‌ام که این موضوع را پیش می‌کشم؛ ممکن است '
         'بفرمایید برای {amount}{due} چه زمانی مقدور است؟ سپاسگزارم.',
-    'messageItem': '{what}',
+    'messageItem': '{count} عدد {what}',
+    'messagePayTitle': 'درخواست پرداخت',
+    'messagePay':
+        'سلام {person}، می‌خواهم {amount} را با شما تسویه کنم. لطفاً شماره کارت '
+        'یا شبای خودتان را بفرستید. ممنون!',
+    'netToYou': 'خالص: {amount} به نفع شما',
+    'netToThem': 'خالص: {amount} به نفع او',
     'messageCopy': 'کپی پیام',
     'messageShare': 'اشتراک‌گذاری',
     'messageCopied': 'پیام کپی شد',
@@ -343,7 +361,7 @@ const lentStrings = NexModuleStrings(
     'untitledPerson': 'یک نفر',
     'more': 'بیشتر',
     'editRecord': 'ویرایش ثبت',
-    'glanceNone': 'قرض و طلب بازی ندارید',
+    'glanceNone': 'قرض و طلبی باز نیست',
     'glanceOpen': '{n} مورد باز',
     'glanceLate': '{n} مورد از موعد گذشته',
     'glanceSides': '{lent} طلب، {borrowed} بدهی',

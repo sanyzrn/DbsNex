@@ -45,6 +45,7 @@ class Loan {
     this.currency = 'IRR',
     this.currencyDecimals,
     this.reminderDetail = false,
+    this.splitId = '',
   });
 
   factory Loan.fromRecord(ModuleRecord record) =>
@@ -77,6 +78,9 @@ class Loan {
       // A lock screen is read by whoever holds the phone: absent means
       // private, and only an explicit true reveals the person and amount.
       reminderDetail: body['reminderDetail'] == true,
+      // The split a settle-up came from, when it did: a rename cannot then
+      // make the same payment look unrecorded.
+      splitId: body['split'] is String ? (body['split'] as String) : '',
     );
   }
 
@@ -113,6 +117,10 @@ class Loan {
   /// locked screen. False unless the person turned it on for this record.
   final bool reminderDetail;
 
+  /// The split whose settle-up wrote this loan, or empty. Written only when
+  /// it exists, so an ordinary record's body is unchanged.
+  final String splitId;
+
   int get digits => moneyDigits(currency, currencyDecimals);
 
   Map<String, Object?> toJson() => {
@@ -128,6 +136,7 @@ class Loan {
     'due': due,
     'note': note,
     if (reminderDetail) 'reminderDetail': true,
+    if (splitId.isNotEmpty) 'split': splitId,
   };
 
   /// An impossible date reads as no due date rather than as a deadline in

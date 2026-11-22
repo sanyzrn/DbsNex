@@ -15,6 +15,7 @@ import 'loan_dates.dart';
 import 'loan_fields.dart';
 import 'loan_math.dart';
 import 'loan_model.dart';
+import 'loan_people.dart';
 import 'module.dart';
 import 'money_format.dart';
 import 'money_input.dart';
@@ -35,6 +36,7 @@ Future<void> showLoanEditSheet(
   List<LoanReturn> returns = const [],
   LoanDirection initialDirection = LoanDirection.lent,
   required IrrUnit unit,
+  String initialPerson = '',
 }) => nexShowSheet<void>(
   context: context,
   dismissible: false,
@@ -45,6 +47,7 @@ Future<void> showLoanEditSheet(
     returns: returns,
     initialDirection: initialDirection,
     unit: unit,
+    initialPerson: initialPerson,
   ),
 );
 
@@ -55,6 +58,7 @@ class _LoanEditSheet extends StatefulWidget {
     required this.returns,
     required this.initialDirection,
     required this.unit,
+    this.initialPerson = '',
   });
 
   final NexModuleStore store;
@@ -62,6 +66,10 @@ class _LoanEditSheet extends StatefulWidget {
   final List<LoanReturn> returns;
   final LoanDirection initialDirection;
   final IrrUnit unit;
+
+  /// A record being added from a person's page arrives with that name
+  /// already written, and keeps its draft to itself (see `_draftKey`).
+  final String initialPerson;
 
   @override
   State<_LoanEditSheet> createState() => _LoanEditSheetState();

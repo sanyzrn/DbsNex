@@ -13,6 +13,10 @@ import 'module.dart';
 /// One tab: the loans of one direction, outstanding first, settled under
 /// their own quiet heading. Split from the page so each file keeps to one
 /// job — and so the ranking can be read without the page around it.
+///
+/// The list is built lazily: a ledger of a hundred records paints the rows
+/// on the screen, not all of them, so opening the tab stays quick and the
+/// scroll keeps its frame rate.
 class LoanListBody extends StatelessWidget {
   const LoanListBody({
     super.key,
@@ -75,6 +79,10 @@ class LoanListBody extends StatelessWidget {
       );
     }
     if (mine.isEmpty) {
+      // A filter that hides everything is not a failed search: saying
+      // «nothing matches that» after tapping Overdue, with no search typed,
+      // blamed the person for a list that is simply empty.
+      final searching = query.trim().isNotEmpty;
       return ListView(
         padding: const EdgeInsetsDirectional.all(NexSpacing.md),
         children: [
@@ -84,8 +92,12 @@ class LoanListBody extends StatelessWidget {
             unit: unit,
           ),
           NexEmptyState(
-            icon: Icons.search_off_outlined,
-            message: strings(context, 'noMatches'),
+            icon: !searching && filter == LoanFilter.settled
+                ? Icons.task_alt_outlined
+                : !searching
+                ? Icons.event_available_outlined
+                : Icons.search_off_outlined,
+            message: _emptyMessage(context, searching: searching),
           ),
         ],
       );
@@ -103,8 +115,32 @@ class LoanListBody extends StatelessWidget {
         });
     final outstanding = [for (final (_, loan) in ranked) loan];
     final settled = mine.where((l) => standings[l.id]!.settled).toList();
+    final slots = <_Slot>[
+      const _Summary(),
+      const _Gap(NexSpacing.md),
+      if (outstanding.isNotEmpty) ...[
+        _Heading(
+          icon: Icons.outbox_outlined,
+          title: strings(context, 'outstandingHeading'),
+        ),
+        const _Gap(NexSpacing.sm),
+        for (final (index, loan) in outstanding.indexed)
+          _Row(loan: loan, index: index, count: outstanding.length),
+      ],
+      if (settled.isNotEmpty) ...[
+        if (outstanding.isNotEmpty) const _Gap(NexSpacing.lg),
+        _Heading(
+          icon: Icons.task_alt_outlined,
+          title: strings(context, 'settledHeading'),
+        ),
+        const _Gap(NexSpacing.sm),
+        for (final (index, loan) in settled.indexed)
+          _Row(loan: loan, index: index, count: settled.length),
+      ],
+      const _Gap(NexSpacing.xl),
+    ];
 
-    return ListView(
+    return ListView.builder(
       padding: EdgeInsetsDirectional.fromSTEB(
         NexSpacing.md,
         NexSpacing.sm,
@@ -113,55 +149,46 @@ class LoanListBody extends StatelessWidget {
         // read through it.
         NexSpacing.xl * 3 + nexBottomInset(context),
       ),
-      children: [
-        LoanSummaryCard(
-          summary: summary,
-          owedToMe: direction == LoanDirection.lent,
-          unit: unit,
-        ),
-        const SizedBox(height: NexSpacing.md),
-        if (outstanding.isNotEmpty)
-          ..._section(
-            context,
-            icon: Icons.outbox_outlined,
-            title: strings(context, 'outstandingHeading'),
-            rows: outstanding,
-            standings: standings,
+      itemCount: slots.length,
+      itemBuilder: (context, index) {
+        final slot = slots[index];
+        return switch (slot) {
+          _Summary() => LoanSummaryCard(
+            summary: summary,
+            owedToMe: direction == LoanDirection.lent,
+            unit: unit,
           ),
-        if (settled.isNotEmpty) ...[
-          if (outstanding.isNotEmpty) const SizedBox(height: NexSpacing.lg),
-          ..._section(
-            context,
-            icon: Icons.task_alt_outlined,
-            title: strings(context, 'settledHeading'),
-            rows: settled,
-            standings: standings,
+          _Heading(:final icon, :final title) => NexShelfHeading(
+            icon: icon,
+            title: title,
           ),
-        ],
-        const SizedBox(height: NexSpacing.xl),
-      ],
+          _Gap(:final height) => SizedBox(height: height),
+          _Row(loan: final loan, index: final rowIndex, count: final count) =>
+            LoanRow(
+              index: rowIndex,
+              count: count,
+              loan: loan,
+              standing: standings[loan.id]!,
+              store: store,
+              unit: unit,
+            ),
+        };
+      },
     );
   }
 
-  List<Widget> _section(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required List<Loan> rows,
-    required Map<String, LoanStanding> standings,
-  }) => [
-    NexShelfHeading(icon: icon, title: title),
-    const SizedBox(height: NexSpacing.sm),
-    for (final (index, loan) in rows.indexed)
-      LoanRow(
-        index: index,
-        count: rows.length,
-        loan: loan,
-        standing: standings[loan.id]!,
-        store: store,
-        unit: unit,
-      ),
-  ];
+  /// What an empty list says: the search found nothing, or this filter has
+  /// nothing to show yet.
+  String _emptyMessage(BuildContext context, {required bool searching}) {
+    final strings = lentStrings;
+    if (searching) return strings(context, 'noMatches');
+    return switch (filter) {
+      LoanFilter.all => strings(context, 'noMatches'),
+      LoanFilter.dueSoon => strings(context, 'emptyDueSoon'),
+      LoanFilter.overdue => strings(context, 'emptyOverdue'),
+      LoanFilter.settled => strings(context, 'emptySettled'),
+    };
+  }
 
   /// Overdue first, then due soon, then the rest — the loans that need
   /// attention are the loans at the top.
@@ -173,4 +200,34 @@ class LoanListBody extends StatelessWidget {
     DueStatus.none => 1,
     DueStatus.settled => 0,
   };
+}
+
+/// One line of the lazily built tab: the hero, a heading, a gap or a row.
+sealed class _Slot {
+  const _Slot();
+}
+
+class _Summary extends _Slot {
+  const _Summary();
+}
+
+class _Heading extends _Slot {
+  const _Heading({required this.icon, required this.title});
+
+  final IconData icon;
+  final String title;
+}
+
+class _Gap extends _Slot {
+  const _Gap(this.height);
+
+  final double height;
+}
+
+class _Row extends _Slot {
+  const _Row({required this.loan, required this.index, required this.count});
+
+  final Loan loan;
+  final int index;
+  final int count;
 }

@@ -35,10 +35,19 @@ class LoanSummary {
     required this.overdue,
   });
 
-  factory LoanSummary.of(Iterable<Loan> loans, List<LoanReturn> returns) {
+  factory LoanSummary.of(Iterable<Loan> loans, List<LoanReturn> returns) =>
+      LoanSummary.ofBucketed(loans, LoanMath.returnsByLoan(returns));
+
+  /// The same summary when the returns are already bucketed by loan: the
+  /// People page answers once per person, and re-bucketing every return for
+  /// each of them was the one repeated piece of work on that page.
+  factory LoanSummary.ofBucketed(
+    Iterable<Loan> loans,
+    Map<String, List<LoanReturn>> returnsByLoan,
+  ) {
     final totals = <String, (int, BigInt)>{};
     var items = 0, open = 0, overdue = 0;
-    final bucketed = LoanMath.returnsByLoan(returns);
+    final bucketed = returnsByLoan;
     for (final loan in loans) {
       final standing = LoanMath.standing(loan, bucketed[loan.id] ?? const []);
       if (standing.settled) continue;
@@ -72,6 +81,22 @@ class LoanSummary {
       open: open,
       overdue: overdue,
     );
+  }
+
+  /// What the two directions leave between you, per currency — only where
+  /// both sides have money in that currency, since otherwise the single
+  /// direction already answers. Positive means they owe you.
+  static List<CurrencyTotal> net(LoanSummary owedToMe, LoanSummary iOwe) {
+    final mine = {for (final total in owedToMe.money) total.currency: total};
+    final out = <CurrencyTotal>[];
+    for (final total in iOwe.money) {
+      final held = mine.remove(total.currency);
+      if (held == null) continue;
+      final net = held.minor - total.minor;
+      if (net == 0) continue;
+      out.add(CurrencyTotal(total.currency, total.digits, net));
+    }
+    return out;
   }
 
   final List<CurrencyTotal> money;
@@ -108,19 +133,21 @@ List<PersonLedger> peopleOf(List<Loan> loans, List<LoanReturn> returns) {
   for (final loan in loans) {
     groups.putIfAbsent(personKey(loan.person), () => []).add(loan);
   }
+  // One pass over the returns for the whole page, not one per person.
+  final bucketed = LoanMath.returnsByLoan(returns);
   final people = [
     for (final MapEntry(:key, value: mine) in groups.entries)
       PersonLedger(
         key: key,
         name: mine.first.person.trim(),
         loans: mine,
-        owedToMe: LoanSummary.of(
+        owedToMe: LoanSummary.ofBucketed(
           mine.where((l) => l.direction == LoanDirection.lent),
-          returns,
+          bucketed,
         ),
-        iOwe: LoanSummary.of(
+        iOwe: LoanSummary.ofBucketed(
           mine.where((l) => l.direction == LoanDirection.borrowed),
-          returns,
+          bucketed,
         ),
       ),
   ];

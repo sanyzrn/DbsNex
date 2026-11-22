@@ -70,7 +70,36 @@ String _itemPhrase(
       : loan.what.trim();
   return strings(context, 'messageItem', {
     'what': what,
+    // A count is part of what is owed: «two backpacks» is not «a backpack».
+    // Given as a number, the Persian side writes it in Persian digits.
     'count': standing.outstanding,
+  });
+}
+
+/// A message to the person I owe, asking for the card or IBAN to pay to.
+///
+/// Paying by card-to-card is how people settle a debt in Iran, and a friend
+/// who is owed money rarely thinks to send their number unasked. Money only:
+/// a borrowed thing is returned, not transferred.
+String loanPayMessage(
+  BuildContext context,
+  Loan loan,
+  LoanStanding standing,
+  IrrUnit unit,
+) {
+  final strings = lentStrings;
+  final person = loan.person.trim().isEmpty
+      ? strings(context, 'untitledPerson')
+      : loan.person.trim();
+  return strings(context, 'messagePay', {
+    'person': person,
+    'amount': formatAmount(
+      standing.outstanding,
+      loan.currency,
+      loan.digits,
+      NexModuleStrings.persian(context),
+      unit,
+    ),
   });
 }
 

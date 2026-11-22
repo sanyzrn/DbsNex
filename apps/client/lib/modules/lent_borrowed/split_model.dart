@@ -78,6 +78,22 @@ class SplitCost {
       (mode != SplitMode.amounts ||
           parts.values.fold(0, (a, b) => a + b) == amount);
 
+  SplitCost copyWith({
+    String? id,
+    String? title,
+    int? amount,
+    String? payer,
+    SplitMode? mode,
+    Map<String, int>? parts,
+  }) => SplitCost(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    amount: amount ?? this.amount,
+    payer: payer ?? this.payer,
+    mode: mode ?? this.mode,
+    parts: parts ?? this.parts,
+  );
+
   Map<String, Object?> toJson() => {
     'id': id,
     'title': title,
@@ -140,6 +156,21 @@ class LoanSplit {
 
   /// The sum of every cost, in rials.
   int get total => costs.fold(0, (sum, cost) => sum + cost.amount);
+
+  LoanSplit copyWith({
+    String? title,
+    String? date,
+    String? me,
+    List<String>? people,
+    List<SplitCost>? costs,
+  }) => LoanSplit(
+    id: id,
+    title: title ?? this.title,
+    date: date ?? this.date,
+    me: me ?? this.me,
+    people: people ?? this.people,
+    costs: costs ?? this.costs,
+  );
 
   Map<String, Object?> toJson() => {
     'v': 1,

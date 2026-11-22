@@ -106,7 +106,8 @@ class _SplitsScreenState extends State<SplitsScreen>
                   NexSpacing.md,
                   NexSpacing.sm,
                   NexSpacing.md,
-                  NexSpacing.lg + nexBottomInset(context),
+                  // Clear of the floating button.
+                  NexSpacing.xl * 3 + nexBottomInset(context),
                 ),
                 children: [
                   for (final (index, split) in _splits.indexed)

@@ -4,6 +4,9 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Lent & Borrowed, finished.** A saved split stays editable — add a cost, correct an amount, rename it or change its date — and a settle-up you already recorded reads **Recorded** instead of offering the same loan twice. When you owe money, **Ask to pay** writes the message that asks for the card or IBAN to pay to. A person’s page adds their next record with the name already filled and shows how the two directions net out, and the People page can be searched by name.
+- **Two things said less than they meant.** A filter with nothing in it no longer blames the search, and a reminder about something lent now says how many.
+
 ## v2.8.13
 
 - **Family fund improvements.** Change the monthly share from a chosen month, draw and redraw in one sheet, view member history and overdue contributions, and copy or share a monthly report.

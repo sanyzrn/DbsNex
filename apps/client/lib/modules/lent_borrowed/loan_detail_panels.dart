@@ -1,5 +1,99 @@
 part of 'loan_detail_screen.dart';
 
+/// What a record still offers while something is out: record a return,
+/// settle it, the reminder message, and the optional due-day reminder.
+///
+/// Kept beside the summary so the page reads as "what it is, then what I can
+/// do", and so a thing lent keeps its message while money owed offers the
+/// other one: asking for the card to pay to.
+class _LoanActions extends StatelessWidget {
+  const _LoanActions({
+    required this.store,
+    required this.loan,
+    required this.standing,
+    required this.unit,
+    required this.busy,
+    required this.sheetOpen,
+    required this.onReturn,
+    required this.onSettle,
+    required this.onDetailChanged,
+  });
+
+  final NexModuleStore store;
+  final Loan loan;
+  final LoanStanding standing;
+  final IrrUnit unit;
+  final bool busy;
+  final bool sheetOpen;
+  final VoidCallback onReturn;
+  final VoidCallback onSettle;
+  final ValueChanged<bool> onDetailChanged;
+
+  /// A thing lent keeps its reminder message; asking to pay needs money and
+  /// a name to ask.
+  bool get _canMessage =>
+      loan.direction == LoanDirection.lent ||
+      (loan.kind == LoanKind.money && loan.person.trim().isNotEmpty);
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = lentStrings;
+    final lent = loan.direction == LoanDirection.lent;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        FilledButton.icon(
+          key: const ValueKey('loan-record-return'),
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+          onPressed: busy || sheetOpen ? null : onReturn,
+          icon: const Icon(Icons.replay_outlined),
+          label: Text(strings(context, 'recordReturn')),
+        ),
+        const SizedBox(height: NexSpacing.sm),
+        TextButton(
+          key: const ValueKey('loan-mark-settled'),
+          onPressed: busy || sheetOpen ? null : onSettle,
+          child: Text(strings(context, 'markSettled')),
+        ),
+        if (_canMessage)
+          TextButton.icon(
+            key: ValueKey(lent ? 'loan-message' : 'loan-pay-message'),
+            // Owing money asks the other thing of the other person: their
+            // card or IBAN, so the debt is paid rather than chased.
+            onPressed: () => unawaited(
+              lent
+                  ? showLoanMessageSheet(context, loan, standing, unit)
+                  : showPersonMessageSheet(
+                      context,
+                      store,
+                      person: loan.person,
+                      unit: unit,
+                      balanceLines: [
+                        loanPayMessage(context, loan, standing, unit),
+                      ],
+                    ),
+            ),
+            icon: const Icon(Icons.chat_bubble_outline),
+            label: Text(
+              strings(context, lent ? 'messageTitle' : 'messagePayTitle'),
+            ),
+          ),
+        const SizedBox(height: NexSpacing.md),
+        // A due date is only worth having if something says so when it comes:
+        // an optional system reminder, opened on the due day.
+        LoanReminderSection(
+          store: store,
+          loan: loan,
+          standing: standing,
+          unit: unit,
+          onDetailChanged: busy ? (_) {} : onDetailChanged,
+        ),
+        const SizedBox(height: NexSpacing.md),
+      ],
+    );
+  }
+}
+
 /// What the loan is and where it stands, in one panel.
 class _SummaryPanel extends StatelessWidget {
   const _SummaryPanel({
