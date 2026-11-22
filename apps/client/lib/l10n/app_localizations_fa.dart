@@ -4664,7 +4664,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get pauseAudio => 'توقف صدا';
 
   @override
-  String get convertToMarkdown => 'تبدیل به Markdown';
+  String get convertToMarkdown => 'تبدیل به MD';
 
   @override
   String get convertToNote => 'تبدیل به یادداشت';

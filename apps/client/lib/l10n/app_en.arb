@@ -2975,7 +2975,7 @@
   "playAudio": "Play audio",
   "pauseAudio": "Pause audio",
   "@annotateColor": {"placeholders": {"color": {"type": "String"}}},
-  "convertToMarkdown": "Convert to Markdown",
+  "convertToMarkdown": "Convert to MD",
   "convertToNote": "Convert to note",
   "markdownConvertFailed": "Could not convert this file. The original is still safe. Markdown files must be UTF-8 and at most 16 MB.",
   "fullBackupTitle": "Complete device backup",

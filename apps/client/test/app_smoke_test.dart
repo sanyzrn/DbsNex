@@ -1463,6 +1463,7 @@ void main() {
 
     await tester.tap(find.text('More actions'));
     await tester.pumpAndSettle();
+    expect(find.text('Convert to MD'), findsOneWidget);
     expect(find.text('Pin'), findsOneWidget);
     expect(find.text('Details'), findsOneWidget);
     expect(find.text('Delete'), findsOneWidget);

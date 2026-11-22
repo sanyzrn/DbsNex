@@ -151,6 +151,7 @@ void main() {
     final anchor = tester.getRect(more);
     await tester.tap(more);
     await tester.pumpAndSettle();
+    expect(find.text('تبدیل به MD'), findsOneWidget);
     final last = find.ancestor(
       of: find.text(l10n.delete),
       matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),

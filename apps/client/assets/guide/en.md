@@ -99,7 +99,7 @@ Web addresses in a note or caption become links automatically. Tap a link to ope
 
 ## Long notes, Markdown and files
 
-Android’s **Open with → Nex** also accepts PDF and DOCX. Opening imports a copy into Nex through the same path as Markdown; the source file is kept. **Convert to Markdown** in a text note’s More actions converts it inside Nex; **Save to device** exports a file.
+Android’s **Open with → Nex** also accepts PDF and DOCX. Opening imports a copy into Nex through the same path as Markdown; the source file is kept. **Convert to MD** in a text note’s More actions converts it inside Nex; **Save to device** exports a file.
 
 Long notes open folded; tap **More** to read the rest and **Less** to fold them again.
 

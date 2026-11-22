@@ -7367,7 +7367,7 @@ abstract class AppLocalizations {
   /// No description provided for @convertToMarkdown.
   ///
   /// In en, this message translates to:
-  /// **'Convert to Markdown'**
+  /// **'Convert to MD'**
   String get convertToMarkdown;
 
   /// No description provided for @convertToNote.

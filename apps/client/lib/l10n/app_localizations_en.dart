@@ -4724,7 +4724,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pauseAudio => 'Pause audio';
 
   @override
-  String get convertToMarkdown => 'Convert to Markdown';
+  String get convertToMarkdown => 'Convert to MD';
 
   @override
   String get convertToNote => 'Convert to note';

@@ -349,8 +349,8 @@ typedef NoteSaveTarget = ({
 ///
 /// A note with a file saves that file: a file note under its own name, a
 /// photo or recording under its caption or the moment it was taken. A note
-/// of words saves as Markdown, named after its first line, which is what
-/// "Convert to Markdown" would have made of it.
+/// of words saves as Markdown, using the same first-line filename as the
+/// in-app conversion.
 NoteSaveTarget? nexSaveTargetFor(Note note) {
   final uri = note.mediaUri;
   if (uri != null && uri.isNotEmpty) {
