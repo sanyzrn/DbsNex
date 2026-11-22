@@ -39,30 +39,12 @@ class _Arrange {
   int get hashCode => Object.hash(by, filtering, onlyUntagged, order.length);
 }
 
-/// The timeline's flattened rows, built once per change rather than once per
-/// rebuild (T-01).
-///
-/// Grouping and row assembly walked the whole window on *every* build of the
-/// screen — a per-note `DateTime` allocation, a fresh wrapper per note, and
-/// the whole list handed to `SliverAnimatedList`'s differ — for a screen that
-/// rebuilds far more often than its notes move: a selection toggle, a recap
-/// landing, a sponsor pulse, a ringing change. This holds the answer keyed on
-/// the only inputs that can change it, and hands the same list back until one
-/// of them does.
-///
-/// Identity is the whole contract: the same list instance flows into
-/// `_TimelineList`, whose `didUpdateWidget` then skips its diff entirely, so
-/// an unrelated rebuild costs neither the walk nor the wrappers nor the
-/// longest-increasing-subsequence pass over notes that were never touched.
+/// Caches grouping and stable per-group rows against the notes, view and day.
 class _TimelineRowsCache {
-  /// The last computation's inputs and answer, all of it replaced together.
   List<Note>? _notes;
   String? _locale;
   String? _dayKey;
-  List<String>? _collapsed;
-  List<String>? _closing;
   List<_NoteGroup>? _groups;
-  List<_TimelineRow>? _rows;
   _Arrange? _arrange;
 
   /// What the list is a view of — arrangement and filters — when it was last
@@ -73,79 +55,31 @@ class _TimelineRowsCache {
   /// day; arranged, only while one shelf is the list ([nexShelvesGrow]).
   bool grows = true;
 
-  /// How many times the rows have actually been assembled. A test reads it
-  /// through `TimelineScreenState.debugRowBuilds` to prove that a change
-  /// which moves no note reuses what is on screen.
+  /// Read by `TimelineScreenState.debugRowBuilds` to verify reuse.
   int builds = 0;
 
-  /// The groups and rows for [notes], reusing the last answer when nothing
-  /// that shapes them has moved.
-  ///
-  /// - [notes] by identity: the model replaces the list whenever its contents
-  ///   change, so a same-instance list is a same-contents list;
-  /// - [collapsed] and [closing] by content: a fold flips them one group at a
-  ///   time, and they are never more than the six day keys plus `pinned`;
-  /// - the locale, because the headings are words;
-  /// - the local day, because "Today" is a place notes fall out of at
-  ///   midnight without any write — see [_bucketFor].
-  ///
-  /// [opening] is not an input: it changes only how a row *animates in when
-  /// the rows are already changing*, never which rows there are — see
-  /// `_openingGroups`.
-  (List<_NoteGroup>, List<_TimelineRow>) assemble(
+  List<_NoteGroup> assemble(
     BuildContext context, {
     required List<Note> notes,
-    required Set<String> collapsed,
-    required Set<String> closing,
     required AppLocalizations l10n,
     _Arrange? arrange,
   }) {
     final locale = Localizations.maybeLocaleOf(context)?.toString();
     final dayKey = nexDayKey(DateTime.now());
-    final sameGroups =
-        _notes != null &&
-        identical(_notes, notes) &&
+    if (identical(_notes, notes) &&
         _locale == locale &&
         _dayKey == dayKey &&
-        _arrange == arrange;
-    if (sameGroups &&
-        _sameKeyList(_collapsed, collapsed) &&
-        _sameKeyList(_closing, closing)) {
-      return (_groups!, _rows!);
+        _arrange == arrange) {
+      return _groups!;
     }
     _notes = notes;
     _locale = locale;
     _dayKey = dayKey;
     _arrange = arrange;
-    _collapsed = List.of(collapsed);
-    _closing = List.of(closing);
-    final groups = sameGroups
-        ? _groups!
-        : arrange == null
+    builds++;
+    return _groups = arrange == null
         ? _groupNotes(notes, l10n)
         : _shelveNotes(notes, arrange, l10n);
-    final rows = <_TimelineRow>[
-      for (final group in groups) ...[
-        _TimelineRow.header(group),
-        // A closing group keeps its rows for one animation. Without that the
-        // fold was a jump cut: the rows were simply gone on the next frame,
-        // which is the report this fixes. See `_toggleGroup`.
-        if (!collapsed.contains(group.key) || closing.contains(group.key)) ...[
-          for (final (i, note) in group.notes.indexed)
-            _TimelineRow.note(
-              note,
-              group.key,
-              i,
-              primary: !group.echoes.contains(note.id),
-            ),
-          if (!group.complete) _TimelineRow.more(group, group.notes.length),
-        ],
-      ],
-    ];
-    _groups = groups;
-    _rows = rows;
-    builds++;
-    return (groups, rows);
   }
 
   /// The shelves of a home arranged by kind or tag, as groups.
@@ -248,15 +182,6 @@ class _TimelineRowsCache {
     if (days <= 31) return ('month', l10n.timelineGroupMonth);
     return ('older', l10n.timelineGroupOlder);
   }
-
-  /// Set equality over the day keys, which are few and cheap to compare.
-  static bool _sameKeyList(List<String>? before, Set<String> after) {
-    if (before == null || before.length != after.length) return false;
-    for (final key in before) {
-      if (!after.contains(key)) return false;
-    }
-    return true;
-  }
 }
 
 /// Working the flattened rows out of the notes the stream delivered.
@@ -277,6 +202,10 @@ extension _TimelineRows on TimelineScreenState {
   void _onModelChange() {
     if (!mounted) return;
     final kind = _model.lastChange;
+    if (kind == TimelineChange.folds) {
+      _rebuild(() {});
+      return;
+    }
     if (kind == TimelineChange.notes) _fadeOnViewChange();
     // The first notes of a launch arrive the way a search's results do —
     // eased in over the placeholders they replace, once — rather than being

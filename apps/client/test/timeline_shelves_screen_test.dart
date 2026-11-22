@@ -130,6 +130,12 @@ void main() {
     expect(heading('Errands'), findsOneWidget);
     expect(heading('Untagged'), findsOneWidget);
     expect(find.text('the plan'), findsNWidgets(2));
+    await tester.tap(heading('Garden'));
+    await tester.pumpAndSettle();
+    expect(find.text('the plan'), findsOneWidget);
+    await tester.tap(heading('Garden'));
+    await tester.pumpAndSettle();
+    expect(find.text('the plan'), findsNWidgets(2));
     expect(tester.takeException(), isNull);
   });
 

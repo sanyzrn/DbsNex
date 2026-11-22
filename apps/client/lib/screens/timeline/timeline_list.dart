@@ -5,15 +5,12 @@ part of '../timeline_screen.dart';
 class _TimelineList extends StatefulWidget {
   const _TimelineList({
     required this.rows,
-    required this.revision,
     required this.builder,
     required this.removedBuilder,
   });
 
   final List<_TimelineRow> rows;
-  // Folding already animates its own rows. It does not change this snapshot.
-  final List<Note> revision;
-  final Widget Function(BuildContext, _TimelineRow, int) builder;
+  final Widget Function(BuildContext, _TimelineRow) builder;
   final Widget Function(BuildContext, _TimelineRow) removedBuilder;
 
   @override
@@ -53,9 +50,7 @@ class _TimelineListState extends State<_TimelineList> {
     // rebuild that changed no note, so the diff — the key map, the stable
     // subsequence, the splices — is skipped for all of those.
     if (identical(widget.rows, old.rows)) return;
-    final animate =
-        !identical(old.revision, widget.revision) &&
-        !MediaQuery.disableAnimationsOf(context);
+    final animate = !MediaQuery.disableAnimationsOf(context);
     final next = {
       for (var i = 0; i < widget.rows.length; i++) widget.rows[i].key: i,
     };
@@ -160,7 +155,9 @@ class _TimelineListState extends State<_TimelineList> {
       CurveTween(curve: leaving ? NexMotion.exitCurve : NexMotion.curve),
     );
     return SizeTransition(
-      sizeFactor: eased,
+      // Keep a leading arrival measurable on its first frame, so the
+      // group's sliver does not discard a zero-height first row.
+      sizeFactor: leaving ? eased : eased.drive(Tween(begin: .01, end: 1.0)),
       alignment: Alignment.topCenter,
       child: FadeTransition(
         opacity: eased,
@@ -189,7 +186,7 @@ class _TimelineListState extends State<_TimelineList> {
         key: ValueKey(row.key),
         onMount: () => _track(row.key, 1),
         onUnmount: () => _track(row.key, -1),
-        child: _transition(animation, widget.builder(context, row, index)),
+        child: _transition(animation, widget.builder(context, row)),
       );
     },
   );

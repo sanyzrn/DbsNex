@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderSliver;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/platform/hold_menu.dart';
 import 'package:nex_client/platform/nex_services.dart';
@@ -79,42 +80,60 @@ void main() {
     final briefHeight = tester.getSize(briefTile).height;
     expect(longHeight, greaterThan(briefHeight));
     final header = find.text('Today');
+    final body = find.byKey(const ValueKey('group-body-today'));
+    double extent() =>
+        tester.renderObject<RenderSliver>(body).geometry!.paintExtent;
+    final openExtent = extent();
+    final originalTile = tester.element(longTile);
+
     await tester.tap(header);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 60));
-    // Mid-fold: the rows are still there, shrinking.
-    final folding = find.byWidgetPredicate(
-      (w) =>
-          w.key is ValueKey<String> &&
-          (w.key! as ValueKey<String>).value.startsWith('grid-fold-'),
-    );
-    expect(folding, findsWidgets);
-    // Part-way, not still at full height: rows built for the fold used to
-    // start closed at 1 and never move, so collapsing was a cut (2.6.29).
-    double midway() => tester
-        .widgetList<SizeTransition>(
-          find.descendant(of: folding, matching: find.byType(SizeTransition)),
-        )
-        .first
-        .sizeFactor
-        .value;
-    expect(midway(), lessThan(1));
-    expect(midway(), greaterThan(0));
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 32));
+    expect(extent(), lessThan(openExtent));
+    expect(extent(), greaterThan(0));
+    expect(tester.element(longTile), same(originalTile));
+    expect(tester.getSize(longTile).height, longHeight);
+
+    // Reverse it before the close completes. The same grid should continue
+    // from its current extent and keep the same mounted tile.
+    final closingExtent = extent();
+    await tester.tap(header);
+    await tester.pump();
+    expect(extent(), closeTo(closingExtent, 1));
+    await tester.pumpAndSettle();
+    expect(tester.element(longTile), same(originalTile));
+    expect(extent(), closeTo(openExtent, 1));
+
+    await tester.tap(header);
     await tester.pumpAndSettle();
     expect(find.byType(NexNoteGridCard), findsNothing);
 
     await tester.tap(header);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 60));
-    expect(folding, findsWidgets);
-    expect(midway(), lessThan(1));
-    expect(midway(), greaterThan(0));
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 32));
+    expect(extent(), lessThan(openExtent));
+    expect(extent(), greaterThan(0));
+    final openingTile = tester.element(longTile);
     await tester.pumpAndSettle();
-    expect(folding, findsNothing, reason: 'back to the lazy grid');
+    expect(tester.element(longTile), same(openingTile));
     expect(tester.getSize(longTile).height, longHeight);
     expect(tester.getSize(briefTile).height, briefHeight);
+  });
+
+  testWidgets('reduced motion folds a group in one frame', (tester) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await open(tester);
+    final header = find.text('Today');
+
+    await tester.tap(header);
+    await tester.pump();
+    expect(find.byType(NexNoteGridCard), findsNothing);
+
+    await tester.tap(header);
+    await tester.pump();
+    expect(find.byType(NexNoteGridCard), findsWidgets);
   });
 
   testWidgets('the hold menu has no Show in full on a tile', (tester) async {

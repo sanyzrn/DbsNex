@@ -9,10 +9,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart'
     show
         OffsetLayer,
+        PaintingContext,
+        PipelineOwner,
         RenderAbstractViewport,
+        RenderObject,
+        RenderProxySliver,
         RenderRepaintBoundary,
         ScrollCacheExtent,
-        ScrollDirection;
+        ScrollDirection,
+        SliverGeometry;
 import 'package:flutter/foundation.dart'
     show ValueListenable, compute, listEquals, setEquals;
 
@@ -185,8 +190,7 @@ class TimelineScreenState extends State<TimelineScreen>
   @visibleForTesting
   TimelineModel get model => _model;
 
-  /// The timeline's flattened rows, assembled only when the notes, the
-  /// folds or the day actually move — see `_TimelineRowsCache`.
+  /// Groups and their rows, reused when only a group's fold state changes.
   final _rowsCache = _TimelineRowsCache();
   final _gridRowLayouts = Expando<NexGridRows>();
   NexGridRowSizing? _gridRowSizing;
@@ -211,21 +215,8 @@ class TimelineScreenState extends State<TimelineScreen>
     }
   }
 
-  /// The groups whose rows are on their way out — see [_toggleGroup]. Empty
-  /// at rest, which is every frame except the ~200ms after a fold. Several
-  /// at once when a pinch folds every day.
-  final Set<String> _closingGroups = {};
-
-  /// The group whose rows are on their way in, for the same window.
-  ///
-  /// Needed because `SliverList` matches its children by index. Folding a run
-  /// shortens the list, so every row below it arrives at a new index, gets a
-  /// new [_FoldingRow] state, and — if that state animated itself in on
-  /// creation — played the entrance animation. The result was every group
-  /// below the one being folded flickering open, which is the report this
-  /// exists to answer. Only the group actually being opened animates in;
-  /// everyone else appears at full height, because they never left it.
-  final Set<String> _openingGroups = {};
+  /// One controller per moving group, shared by list and grid.
+  final _groupFolds = <String, AnimationController>{};
   String? landedId;
 
   /// The note a tapped reminder is about, until its border has finished
@@ -744,6 +735,9 @@ class TimelineScreenState extends State<TimelineScreen>
     _dissolve.dispose();
     _dockRecede.dispose();
     _dockAway.dispose();
+    for (final fold in _groupFolds.values) {
+      fold.dispose();
+    }
     _searchFocus.dispose();
     _scroll.dispose();
     _stickyDay.dispose();

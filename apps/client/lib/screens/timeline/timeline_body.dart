@@ -262,38 +262,76 @@ extension _TimelineBody on TimelineScreenState {
     );
   }
 
-  /// Every day folded, or every day open, from a pinch — with the same
-  /// animation a single heading's tap plays, on every group that moves.
-  ///
-  /// It used to set the folds in one go: the rows were there on one frame
-  /// and gone on the next, which is the jump cut [_toggleGroup] exists to
-  /// avoid for one group.
+  /// A tap or pinch changes the fold target immediately. Reversing a group
+  /// reuses its current progress, even if a previous animation is still on.
   Future<void> _foldAll(Set<String> folded) async {
     final before = _model.collapsedGroups;
-    final closing = folded.difference(before);
-    final opening = before.difference(folded);
-    if (closing.isEmpty && opening.isEmpty) return;
-    _rebuild(() {
-      _closingGroups
-        ..clear()
-        ..addAll(closing);
-      _openingGroups
-        ..clear()
-        ..addAll(opening);
-    });
+    final changed = {
+      ...folded.difference(before),
+      ...before.difference(folded),
+    };
+    if (changed.isEmpty) return;
+    final duration = NexMotion.of(context, NexMotion.standard);
+    final moving = <String, AnimationController>{};
+    for (final group in _rowsCache._groups ?? const <_NoteGroup>[]) {
+      final key = group.key;
+      if (!changed.contains(key)) continue;
+      if (duration == Duration.zero) {
+        _groupFolds.remove(key)?.dispose();
+        continue;
+      }
+      moving[key] = _groupFolds.putIfAbsent(
+        key,
+        () => AnimationController(
+          vsync: this,
+          duration: duration,
+          value: before.contains(key) ? 0 : 1,
+        ),
+      );
+    }
     _model.setCollapsedGroups(folded);
-    await Future<void>.delayed(_foldDuration);
+    await Future.wait([
+      for (final entry in moving.entries)
+        _finishGroupFold(
+          entry.key,
+          entry.value,
+          closing: folded.contains(entry.key),
+        ),
+    ]);
     if (!mounted) return;
-    _rebuild(() {
-      _closingGroups.removeAll(closing);
-      _openingGroups.removeAll(opening);
-    });
-    // Same reason as [_toggleGroup]: the cards under the filter row moved
-    // without a scroll notification to carry the sticky day along.
+    // No scroll notification accompanies the new heading position.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _updateStickyDay();
     });
   }
+
+  Future<void> _finishGroupFold(
+    String key,
+    AnimationController progress, {
+    required bool closing,
+  }) async {
+    try {
+      await (closing
+              ? progress.animateBack(0, curve: NexMotion.curve)
+              : progress.animateTo(1, curve: NexMotion.curve))
+          .orCancel;
+    } on TickerCanceled {
+      return;
+    }
+    if (!mounted || !identical(_groupFolds[key], progress)) return;
+    _rebuild(() => _groupFolds.remove(key));
+    progress.dispose();
+  }
+
+  bool _showGroupBody(_NoteGroup group) =>
+      !_model.collapsedGroups.contains(group.key) ||
+      _groupFolds.containsKey(group.key);
+
+  Widget _groupBody(_NoteGroup group, Widget sliver) => _GroupReveal(
+    key: ValueKey('group-body-${group.key}'),
+    progress: _groupFolds[group.key] ?? kAlwaysCompleteAnimation,
+    sliver: sliver,
+  );
 
   Widget _wrapInRefresh({required bool enabled, required Widget child}) {
     child = Listener(
@@ -461,130 +499,31 @@ extension _TimelineBody on TimelineScreenState {
     // lands wherever it was dropped. A shelf's order can move; a note's
     // place inside it cannot.
     //
-    // The rows come from the cache: the same list instance until the notes,
-    // the folds or the day move, so an unrelated rebuild costs neither the
-    // walk nor the wrappers nor the list differ's pass — see
-    // `_TimelineRowsCache`.
-    final (groups, rows) = _rowsCache.assemble(
+    final groups = _rowsCache.assemble(
       context,
       notes: _model.notes,
-      collapsed: _model.collapsedGroups,
-      closing: _closingGroups,
       l10n: l10n,
       arrange: _arrangeNow(),
     );
-    final labels = {for (final group in groups) group.key: group.label};
-    final arranged = groups.firstOrNull?.shelf != null;
-    // One set of card strings per body build, not one per row: the list's
-    // builder used to make a fresh `NexCardStrings` — ten closures deep — for
-    // every card it laid out, on every rebuild.
-    final cardStrings = nexCardStrings(context);
 
     final desktop = NexDesktopScope.isDesktop(context);
+    final cardStrings = nexCardStrings(context);
     return [
       if (desktop)
         ..._desktopSlivers(groups, l10n)
       else if (widget.preferences.timelineGrid)
         ..._gridSlivers(groups, l10n)
-      else
-        _TimelineList(
-          rows: rows,
-          revision: _model.notes,
-          removedBuilder: (context, row) {
-            if (row.moreOf case final group?) return _shelfMore(group, l10n);
-            if (row.group case final group?) {
-              return _GroupHeader(
-                label: group.label,
-                count: group.count,
-                collapsed: _model.collapsedGroups.contains(group.key),
-                leading: _shelfMark(group),
-                onToggle: () {},
-                onAsk: null,
-                onDelete: null,
-              );
-            }
-            return _listCard(row.note!, cardStrings, interactive: false);
-          },
-          builder: (context, row, index) {
-            if (row.moreOf case final group?) {
-              return _FoldingRow(
-                key: ValueKey('fold-more-${group.key}'),
-                open: !_closingGroups.contains(group.key),
-                animateIn: _openingGroups.contains(group.key),
-                order: row.indexInGroup,
-                child: _shelfMore(group, l10n),
-              );
-            }
-            if (row.group case final group?) {
-              // Inert while a card is open: the fold, the menu and Ask all sit
-              // in the same list as the swiped card, and the tap that puts it
-              // away must not also do one of them.
-              return _groupHeading(group, groups, l10n);
-            }
-            final note = row.note!;
-            final wide = _usesWideListTile(note);
-            return _DayMark(
-              // Arranged, the line under the filters names the shelf being
-              // read, as by day it names the day.
-              label: arranged
-                  ? labels[row.groupKey] ?? ''
-                  : _dayLabel(note, l10n),
-              marks: _dayMarks,
-              child: _FoldingRow(
-                // Keyed on the note so the controller survives a rebuild of the
-                // list and an entrance is never restarted mid-flight.
-                key: ValueKey('fold-${note.id}'),
-                open: !_closingGroups.contains(row.groupKey),
-                animateIn: _openingGroups.contains(row.groupKey),
-                order: row.indexInGroup,
-                child: NoteSpotlight(
-                  key: _spotlightId == note.id && row.primary
-                      ? _spotlightAnchor
-                      : null,
-                  active: _spotlightId == note.id && _spotlightReady,
-                  radius: wide ? NexRadius.xl : NexRadius.lg,
-                  onDone: () {
-                    if (mounted && _spotlightId == note.id) {
-                      _rebuild(() => _spotlightId = null);
-                    }
-                  },
-                  child: CommitReceipt(
-                    key: ValueKey(note.id),
-                    active: landedId == note.id,
-                    // Cleared when it finishes, so the receipt is a moment rather than
-                    // a permanent mark on whichever note was captured last.
-                    onDone: () {
-                      if (mounted && landedId == note.id) {
-                        _rebuild(() => landedId = null);
-                      }
-                    },
-                    // ADR-022: the action set is open, and each edge is bound
-                    // independently.
-                    child: SwipeableNoteCard(
-                      haptics: widget.preferences.haptics,
-                      controller: _swipe,
-                      resolveAction: ({required bool isLeading}) => _selecting
-                          ? null
-                          : nexSwipeSpec(
-                              l10n,
-                              isLeading
-                                  ? widget.preferences.leadingAction
-                                  : widget.preferences.trailingAction,
-                            ),
-                      onAction: (action) => unawaited(_runSwipe(action, note)),
-                      child: NoteContextMenu(
-                        entriesBuilder: (menuContext, width) =>
-                            _holdEntries(note, menuContext, width),
-                        onHold: _selecting ? () => _pickNote(note) : null,
-                        child: _pickShield(note, _listCard(note, cardStrings)),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
+      else ...[
+        for (final group in groups)
+          SliverMainAxisGroup(
+            key: ValueKey(group.key),
+            slivers: [
+              SliverToBoxAdapter(child: _groupHeading(group, groups, l10n)),
+              if (_showGroupBody(group))
+                _groupBody(group, _listSliver(group, l10n, cardStrings)),
+            ],
+          ),
+      ],
       if (_model.notes.isEmpty)
         SliverFillRemaining(
           hasScrollBody: false,
@@ -603,45 +542,69 @@ extension _TimelineBody on TimelineScreenState {
     ];
   }
 
-  /// Folds a date run, or opens it.
-  ///
-  /// Opening is easy: the rows go into the list and each one animates itself
-  /// in. Closing cannot work the same way — a row that has been removed has
-  /// nothing left to animate — so the group is marked as closing, its rows
-  /// stay in the list for exactly one animation while they shrink to nothing,
-  /// and only then is the fold committed.
-  ///
-  /// The rows are kept rather than the whole group being built eagerly on the
-  /// side, so the list stays lazy: `SliverList` still builds only what the
-  /// viewport can see, which matters for a run like "Older" holding a
-  /// hundred notes.
-  Future<void> _toggleGroup(String key) async {
+  Widget _listSliver(
+    _NoteGroup group,
+    AppLocalizations l10n,
+    NexCardStrings cardStrings,
+  ) => _TimelineList(
+    rows: group.rows,
+    removedBuilder: (context, row) {
+      if (row.moreOf case final group?) return _shelfMore(group, l10n);
+      return _listCard(row.note!, cardStrings, interactive: false);
+    },
+    builder: (context, row) {
+      if (row.moreOf case final group?) return _shelfMore(group, l10n);
+      final note = row.note!;
+      final wide = _usesWideListTile(note);
+      return _DayMark(
+        label: group.shelf != null ? group.label : _dayLabel(note, l10n),
+        marks: _dayMarks,
+        child: NoteSpotlight(
+          key: _spotlightId == note.id && row.primary ? _spotlightAnchor : null,
+          active: _spotlightId == note.id && _spotlightReady,
+          radius: wide ? NexRadius.xl : NexRadius.lg,
+          onDone: () {
+            if (mounted && _spotlightId == note.id) {
+              _rebuild(() => _spotlightId = null);
+            }
+          },
+          child: CommitReceipt(
+            key: ValueKey(note.id),
+            active: landedId == note.id,
+            onDone: () {
+              if (mounted && landedId == note.id) {
+                _rebuild(() => landedId = null);
+              }
+            },
+            child: SwipeableNoteCard(
+              haptics: widget.preferences.haptics,
+              controller: _swipe,
+              resolveAction: ({required bool isLeading}) => _selecting
+                  ? null
+                  : nexSwipeSpec(
+                      l10n,
+                      isLeading
+                          ? widget.preferences.leadingAction
+                          : widget.preferences.trailingAction,
+                    ),
+              onAction: (action) => unawaited(_runSwipe(action, note)),
+              child: NoteContextMenu(
+                entriesBuilder: (menuContext, width) =>
+                    _holdEntries(note, menuContext, width),
+                onHold: _selecting ? () => _pickNote(note) : null,
+                child: _pickShield(note, _listCard(note, cardStrings)),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  Future<void> _toggleGroup(String key) {
     nexBump();
-    final collapsed = _model.collapsedGroups;
-    final closing = !collapsed.contains(key);
-    if (closing) {
-      _rebuild(() {
-        _closingGroups.add(key);
-        _openingGroups.remove(key);
-      });
-      _model.setCollapsedGroups({...collapsed, key});
-      await Future<void>.delayed(_foldDuration);
-      if (!mounted) return;
-      _rebuild(() => _closingGroups.remove(key));
-    } else {
-      _rebuild(() {
-        _closingGroups.remove(key);
-        _openingGroups.add(key);
-      });
-      _model.setCollapsedGroups({...collapsed}..remove(key));
-      await Future<void>.delayed(_foldDuration);
-      if (!mounted) return;
-      _rebuild(() => _openingGroups.remove(key));
-    }
-    // The fold moved the cards under the filter row without a scroll to
-    // say so: the sticky day is named again against the new layout.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _updateStickyDay();
-    });
+    final folded = {..._model.collapsedGroups};
+    if (!folded.remove(key)) folded.add(key);
+    return _foldAll(folded);
   }
 }
