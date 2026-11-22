@@ -121,6 +121,28 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a whitespace-only code draft does not block a file handoff', (
+    tester,
+  ) async {
+    await boot();
+    var launched = 0;
+    await showSheet(
+      tester,
+      initialKind: CaptureKind.code,
+      onFile: () => launched++,
+    );
+    final field = find.byType(TextField);
+    await tester.enterText(field, 'void main() {}');
+    await tester.pumpAndSettle();
+    expect(await db.timeline(), hasLength(1));
+
+    await tester.enterText(field, '  \n  ');
+    await tester.tap(find.byIcon(Icons.insert_drive_file_outlined));
+    await tester.pumpAndSettle();
+    expect(await db.timeline(), isEmpty);
+    expect(launched, 1);
+  });
+
   test(
     'startup recovers a journal after an uncertain first commit exactly once',
     () async {

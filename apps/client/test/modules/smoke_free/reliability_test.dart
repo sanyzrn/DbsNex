@@ -294,7 +294,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('smoke-field-price')), findsNothing);
       final draft = await inner.get('draft', 'quit:new');
-      expect((draft?['fields'] as Map?)?['price'], '12345');
+      expect((draft?['fields'] as Map?)?['price'], '12,345');
       final removed = const SmokeFreeModule().turnOff(
         tester.element(find.byType(SmokeFreeScreen)),
         services: harness.services,

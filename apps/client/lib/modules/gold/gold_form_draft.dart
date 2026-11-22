@@ -40,7 +40,7 @@ Future<void> _restoreGoldDraft(
         if (e is Map && e['label'] is String && e['amount'] is String) {
           final label = TextEditingController(text: e['label'] as String)
             ..addListener(state._changed);
-          final amount = TextEditingController(text: e['amount'] as String)
+          final amount = NexMoneyController(text: e['amount'] as String)
             ..addListener(state._changed);
           state._extras.add(GoldExtraControllers(label, amount));
         }

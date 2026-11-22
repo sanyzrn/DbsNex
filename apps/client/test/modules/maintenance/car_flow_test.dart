@@ -176,7 +176,8 @@ void main() {
     });
 
     test('tomans become exact rials or are refused', () {
-      expect(rialFromTomanInput('12,500'), isNull);
+      expect(rialFromTomanInput('12,500'), 125000);
+      expect(rialFromTomanInput('12,50'), isNull);
       expect(rialFromTomanInput('12500'), 125000);
       expect(rialFromTomanInput('12500.5'), 125005);
       expect(rialFromTomanInput('12500.55'), isNull);
@@ -299,10 +300,9 @@ void main() {
         find.byKey(const ValueKey('maintenance-fuel-litres')),
         '42.5',
       );
-      await tester.enterText(
-        find.byKey(const ValueKey('maintenance-fuel-price')),
-        '12500',
-      );
+      final price = find.byKey(const ValueKey('maintenance-fuel-price'));
+      await tester.enterText(price, '12500');
+      expect(tester.widget<TextField>(price).controller!.text, '12,500');
       await tester.tap(
         find.byKey(const ValueKey('maintenance-fuel-rate-Quota')),
       );

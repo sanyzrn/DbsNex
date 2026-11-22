@@ -19,18 +19,7 @@ class FundDues {
         : fund.active(month);
     return [
       if (active.isNotEmpty) ...[
-        for (final m in active)
-          ModuleDue(
-            id: 'payment:${fund.id}:$key:${m['id']}',
-            recordKind: 'fund',
-            recordId: fund.id,
-            at: dueDay(month, fund.paymentDay),
-            title: nameOf(m),
-            kind: 'fund-contribution',
-            amountRial: share * (m['shares'] as int),
-            done: fund.payment(month, m['id']) != null,
-            private: true,
-          ),
+        for (final m in active) _contribution(month, key, m, share),
         ModuleDue(
           id: 'draw:${fund.id}:$key',
           recordKind: 'fund',
@@ -58,6 +47,28 @@ class FundDues {
               private: true,
             ),
     ];
+  }
+
+  ModuleDue _contribution(
+    NexModuleMonth month,
+    String key,
+    Fields member,
+    int share,
+  ) {
+    final payment = fund.payment(month, member['id']);
+    return ModuleDue(
+      id: 'payment:${fund.id}:$key:${member['id']}',
+      recordKind: 'fund',
+      recordId: fund.id,
+      at: dueDay(month, fund.paymentDay),
+      title: nameOf(member),
+      kind: 'fund-contribution',
+      amountRial: payment == null
+          ? share * (member['shares'] as int)
+          : payment['amountRial'] as int,
+      done: payment != null,
+      private: true,
+    );
   }
 
   List<ModuleDue> duesBetween(DateTime from, DateTime to) {

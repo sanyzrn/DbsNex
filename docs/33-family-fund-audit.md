@@ -1,10 +1,7 @@
 # 33 · Family fund module audit — 2.8.13 line
 
-> Status: **implemented and tested on `agent/module-family_fund-audit`.**
-> Base: latest `main` at `76937946` (2.8.13 published). Scope:
-> `apps/client/lib/modules/family_fund` and its tests only; the module keeps
-> its one-row-per-fund storage shape, the shared module API and Nex's design
-> gates. Not merged to `main`.
+> Implemented and tested for 2.8.13. The module keeps its one-row-per-fund
+> storage shape and uses the shared module API.
 
 ## 1. The short answer
 

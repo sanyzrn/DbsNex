@@ -64,6 +64,11 @@ class Fund {
           f.start.year > 1499) {
         return null;
       }
+      final changes = f.body['shareChanges'];
+      if (changes != null &&
+          (changes is! List || changes.any((change) => change is! Map))) {
+        return null;
+      }
       final shareStarts = <String>{};
       for (final change in f.shareChanges) {
         final from = change['from'], amount = change['shareRial'];
@@ -365,17 +370,29 @@ class Fund {
   /// who won this round and has since left; winners are the *effective*
   /// results, so a redraw replaces the attempt it superseded.
   FundRound roundFor(NexModuleMonth month) {
-    final pool = drawPool(month);
-    final number = pool.round;
-    final winners =
-        effectiveDraws.values.where((draw) => draw['round'] == number).toList()
-          ..sort(
-            (a, b) => (a['month'] as String).compareTo(b['month'] as String),
-          );
-    final winnerIds = winners.map((draw) => draw['winner']).toSet();
+    final key = dayKey(month.first);
+    final recorded = effectiveDraws;
+    final past =
+        recorded.entries
+            .where((entry) => entry.key.compareTo(key) <= 0)
+            .toList()
+          ..sort((a, b) => a.key.compareTo(b.key));
+    var number = past.lastOrNull?.value['round'] as int? ?? 1;
     final activeMembers = month.first.isBefore(start.first)
         ? const <Fields>[]
         : active(month);
+    var winners = [
+      for (final entry in past)
+        if (entry.value['round'] == number) entry.value,
+    ];
+    final won = winners.map((draw) => draw['winner']).toSet();
+    if (!recorded.containsKey(key) &&
+        activeMembers.isNotEmpty &&
+        activeMembers.every((member) => won.contains(member['id']))) {
+      number++;
+      winners = [];
+    }
+    final winnerIds = winners.map((draw) => draw['winner']).toSet();
     final byId = {for (final member in members) member['id']: member};
     final participants = <Fields>[...activeMembers];
     for (final id in winnerIds) {
@@ -427,7 +444,7 @@ class Fund {
                 (m) => <String, Object?>{
                   'id': m['id'],
                   'person': m['person'],
-                  'shares': m['shares'],
+                  if (m['shares'] case final int shares) 'shares': shares,
                 },
               )
               .toList(),

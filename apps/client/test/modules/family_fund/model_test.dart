@@ -220,6 +220,19 @@ void main() {
     expect(FundDues(f).forMonth(esfand), isEmpty);
   });
 
+  test('a malformed share change cannot disappear on the next write', () {
+    final f = example(esfand);
+    expect(
+      Fund.read(
+        record({
+          ...f.body,
+          'shareChanges': ['unreadable'],
+        }),
+      ),
+      isNull,
+    );
+  });
+
   test('dues use the share in force for that month', () {
     final f = Fund('x', example(esfand).withShare(esfand, 7000));
     final dues = FundDues(f).forMonth(esfand);
@@ -229,6 +242,27 @@ void main() {
     );
     expect(f.potFor(esfand), 42000);
   });
+
+  test(
+    'paid dues retain the recorded amount after a backdated share change',
+    () {
+      final f = Fund('x', {
+        ...example(esfand).withShare(esfand, 7000),
+        'payments': [
+          {
+            'member': '0',
+            'month': dayKey(esfand.first),
+            'at': dayKey(esfand.first),
+            'amountRial': 5000,
+          },
+        ],
+      });
+      final dues = FundDues(f).forMonth(esfand);
+      expect(dues.first.done, isTrue);
+      expect(dues.first.amountRial, 5000);
+      expect(dues[1].amountRial, 14000);
+    },
+  );
 
   test('a round knows who has received the fund and who is still waiting', () {
     var f = example(esfand);
@@ -255,6 +289,25 @@ void main() {
     expect(full.remaining, isEmpty);
     expect(full.complete, isTrue);
     expect(Fund(f.id, last).roundFor(esfand.shift(3)).number, 2);
+  });
+
+  test('round progress for a past month excludes later draws', () {
+    final first = example(esfand);
+    final second = Fund(
+      first.id,
+      first.draw(esfand, esfand.first, 'first', '', Random(0)),
+    );
+    final later = esfand.shift(2);
+    final f = Fund(
+      second.id,
+      second.draw(later, later.first, 'later', '', Random(0)),
+    );
+    for (final month in [esfand, esfand.shift(1)]) {
+      final round = f.roundFor(month);
+      expect(round.number, 1);
+      expect(round.winners.map((draw) => draw['id']), ['first']);
+      expect(round.remaining, hasLength(2));
+    }
   });
 
   test('a draw snapshot keeps every eligible member and their shares', () {

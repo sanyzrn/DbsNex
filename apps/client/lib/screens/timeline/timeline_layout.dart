@@ -174,11 +174,13 @@ extension _TimelineLayout on TimelineScreenState {
           children: [
             GestureDetector(
               behavior: HitTestBehavior.translucent,
-              // A tap anywhere that is not a card closes what is open. Not
-              // an action a screen reader should offer: it covered the whole
-              // screen as one tappable thing with no name.
+              // A background tap dismisses an open overlay first, then can
+              // end a selection. The selection bar has the named action
+              // for screen readers.
               excludeFromSemantics: true,
-              onTap: _guard.claim,
+              onTap: () {
+                if (!_guard.claim()) _endSelection();
+              },
               child: NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
                   // Only the timeline's own scroll, not a nested one. The tag

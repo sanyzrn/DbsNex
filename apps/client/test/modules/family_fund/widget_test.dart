@@ -125,9 +125,8 @@ void main() {
         rows(first['eligible']).firstWhere((e) => e['id'] == first['winner']),
       );
       expect(find.text(firstWinner), findsWidgets);
-      await tap(t, find.text('Done'));
-      expect(find.textContaining('Winner:'), findsOneWidget);
-      await tap(t, find.text('Draw again'));
+      await tap(t, find.byKey(const ValueKey('draw-again-in-sheet')));
+      expect(find.text('Winner: $firstWinner'), findsWidgets);
       expect(
         find.text(
           'Both results stay in the history. Write why you are drawing again.',
@@ -142,11 +141,10 @@ void main() {
       );
       await tap(t, find.byKey(const ValueKey('draw-confirm')));
       expect(find.text('The winner is'), findsOneWidget);
-      await tap(t, find.text('Done'));
       final saved = Fund('x', (await store.get('fund', f.id))!);
       expect(saved.draws, hasLength(2));
       expect(saved.draws.last['reason'], 'Mistake in the first pool');
-      await tap(t, find.text('Draw history'));
+      await tap(t, find.text('Draw history').last);
       expect(find.textContaining('Mistake in the first pool'), findsOneWidget);
     },
   );

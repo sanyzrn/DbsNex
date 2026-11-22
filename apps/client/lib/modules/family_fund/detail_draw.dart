@@ -15,6 +15,8 @@ class _DrawSheet extends StatefulWidget {
     required this.month,
     required this.potText,
     required this.onDraw,
+    required this.remaining,
+    required this.onHistory,
   });
   final List<Fields> eligible;
   final int round;
@@ -22,6 +24,8 @@ class _DrawSheet extends StatefulWidget {
   final NexModuleMonth month;
   final String potText;
   final Future<Fields?> Function(String reason) onDraw;
+  final List<Fields> Function() remaining;
+  final Future<void> Function() onHistory;
 
   @override
   State<_DrawSheet> createState() => _DrawSheetState();
@@ -30,8 +34,11 @@ class _DrawSheet extends StatefulWidget {
 class _DrawSheetState extends State<_DrawSheet> {
   final reason = TextEditingController();
   bool busy = false;
+  bool editingRedraw = false;
+  late List<Fields> eligible = widget.eligible;
   String? error;
   Fields? result;
+  bool get redraw => widget.redraw || result != null;
 
   @override
   void dispose() {
@@ -50,7 +57,7 @@ class _DrawSheetState extends State<_DrawSheet> {
 
   Future<void> draw() async {
     if (busy) return;
-    if (widget.redraw && reason.text.trim().isEmpty) {
+    if (redraw && reason.text.trim().isEmpty) {
       setState(() => error = 'invalidReason');
       return;
     }
@@ -61,10 +68,15 @@ class _DrawSheetState extends State<_DrawSheet> {
     });
     final drawn = await widget.onDraw(reason.text.trim());
     if (!mounted) return;
+    if (drawn != null) reason.clear();
     setState(() {
       busy = false;
-      result = drawn;
       error = drawn == null ? 'saveError' : null;
+      if (drawn != null) {
+        result = drawn;
+        eligible = widget.remaining();
+        editingRedraw = false;
+      }
     });
   }
 
@@ -72,6 +84,7 @@ class _DrawSheetState extends State<_DrawSheet> {
   Widget build(BuildContext context) {
     final s = fundStrings;
     final name = winnerName;
+    final showForm = result == null || editingRedraw;
     return PopScope<void>(
       canPop: !busy,
       child: SafeArea(
@@ -83,13 +96,19 @@ class _DrawSheetState extends State<_DrawSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                widget.redraw ? s(context, 'redraw') : s(context, 'drawSheet'),
+                showForm && redraw
+                    ? s(context, 'redraw')
+                    : s(context, 'drawSheet'),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              if (result == null) ...[
+              if (showForm) ...[
+                if (name != null) ...[
+                  const SizedBox(height: NexSpacing.xs),
+                  Text(s(context, 'winner', {'name': name})),
+                ],
                 const SizedBox(height: NexSpacing.xs),
                 Text(
-                  s(context, 'drawEligible', {'n': widget.eligible.length}),
+                  s(context, 'drawEligible', {'n': eligible.length}),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -100,15 +119,19 @@ class _DrawSheetState extends State<_DrawSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      for (final member in widget.eligible)
+                      for (final member in eligible)
                         ListTile(
                           contentPadding: EdgeInsets.zero,
                           dense: true,
                           leading: const Icon(Icons.person_outline, size: 20),
                           title: Text(nameOf(member)),
-                          subtitle: Text(
-                            s(context, 'shareCount', {'n': member['shares']}),
-                          ),
+                          subtitle: member['shares'] is int
+                              ? Text(
+                                  s(context, 'shareCount', {
+                                    'n': member['shares'],
+                                  }),
+                                )
+                              : null,
                         ),
                       const SizedBox(height: NexSpacing.xs),
                       Text(
@@ -125,7 +148,7 @@ class _DrawSheetState extends State<_DrawSheet> {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
-                if (widget.redraw) ...[
+                if (redraw) ...[
                   const SizedBox(height: NexSpacing.md),
                   Text(s(context, 'redrawHint')),
                   const SizedBox(height: NexSpacing.xs),
@@ -158,12 +181,24 @@ class _DrawSheetState extends State<_DrawSheet> {
                   icon: const Icon(Icons.casino_outlined),
                   label: Text(s(context, busy ? 'drawing' : 'drawNow')),
                 ),
+                if (editingRedraw)
+                  TextButton(
+                    onPressed: busy
+                        ? null
+                        : () => setState(() {
+                            editingRedraw = false;
+                            error = null;
+                            reason.clear();
+                          }),
+                    child: Text(s(context, 'cancel')),
+                  ),
               ] else ...[
                 const SizedBox(height: NexSpacing.md),
                 Semantics(
                   liveRegion: true,
                   label: '${s(context, 'drawResult')}: ${name ?? ''}',
                   child: TweenAnimationBuilder<double>(
+                    key: ValueKey(result!['id']),
                     tween: Tween(begin: 0.92, end: 1),
                     duration: NexMotion.of(context, NexMotion.pop),
                     curve: NexMotion.popCurve,
@@ -215,6 +250,16 @@ class _DrawSheetState extends State<_DrawSheet> {
                 FilledButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(s(context, 'done')),
+                ),
+                if (eligible.isNotEmpty)
+                  TextButton(
+                    key: const ValueKey('draw-again-in-sheet'),
+                    onPressed: () => setState(() => editingRedraw = true),
+                    child: Text(s(context, 'redraw')),
+                  ),
+                TextButton(
+                  onPressed: () => unawaited(widget.onHistory()),
+                  child: Text(s(context, 'drawHistory')),
                 ),
               ],
             ],

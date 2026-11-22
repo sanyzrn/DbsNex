@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nex_client/modules/module_api.dart' show NexMoneyController;
 
 import 'money.dart';
 import 'options.dart';
@@ -14,6 +15,16 @@ import 'money_format.dart' as reference;
 /// money/count parsers with their rial/toman entry mode, and the error
 /// texts the fields show. Everything here is pure — the sheet holds the
 /// state, this decides what that state means.
+
+/// Legacy fractional-rial fields bypass the standard amount widget, so they
+/// need grouping that keeps their original precision.
+TextEditingController lensMoneyController(
+  String text,
+  PriceOption? existing,
+  int? minor,
+) => existing?.currency == 'IRR' && minor != null && minor % 100 != 0
+    ? NexMoneyController(text: text)
+    : TextEditingController(text: text);
 
 String initialPriceText(PriceOption? existing) {
   if (existing == null ||

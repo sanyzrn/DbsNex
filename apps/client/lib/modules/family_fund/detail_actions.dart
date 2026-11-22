@@ -237,25 +237,28 @@ extension _FundActions on _FundDetailState {
   }
 
   Future<void> runDraw() async {
-    final pool = fund.drawPool(month);
+    final drawnMonth = month;
+    final pool = fund.drawPool(drawnMonth);
     if (!started || future || pool.eligible.isEmpty) return;
     await nexShowSheet<void>(
       context: context,
       builder: (_) => _DrawSheet(
         eligible: pool.eligible,
         round: pool.round,
-        redraw: winner != null,
-        month: month,
-        potText: cash(fund.potFor(month)),
-        onDraw: performDraw,
+        redraw: fund.winner(drawnMonth) != null,
+        month: drawnMonth,
+        potText: cash(fund.potFor(drawnMonth)),
+        onDraw: (reason) => performDraw(drawnMonth, reason),
+        remaining: () => fund.drawPool(drawnMonth).eligible,
+        onHistory: drawHistory,
       ),
     );
   }
 
-  Future<Fields?> performDraw(String reason) async {
+  Future<Fields?> performDraw(NexModuleMonth drawnMonth, String reason) async {
     try {
       final next = fund.draw(
-        month,
+        drawnMonth,
         DateTime.now(),
         widget.store.newId(),
         reason,
