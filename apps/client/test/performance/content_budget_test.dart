@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/screens/timeline/timeline_model.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
 import 'package:nex_client/platform/nex_services.dart';
+import 'package:nex_client/widgets/note_grid_card.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -389,6 +390,18 @@ void main() {
 
     // Measure the work over the fold and the frame that costs the most.
     // The visible portion shrinks while the off-screen rows stay lazy.
+    final cardsBefore = <Element>{
+      ...find.byType(NoteCard).evaluate(),
+      ...find
+          .byWidgetPredicate((widget) => widget is NexNoteGridCard)
+          .evaluate(),
+    };
+    var rebuiltCards = 0;
+    debugOnRebuildDirtyWidget = (element, _) {
+      if (cardsBefore.contains(element)) rebuiltCards++;
+    };
+    addTearDown(() => debugOnRebuildDirtyWidget = null);
+
     await tester.tap(header);
     var watch = Stopwatch()..start();
     var worstClosedFrame = 0;
@@ -420,14 +433,16 @@ void main() {
     watch.stop();
     await tester.pumpAndSettle();
     final openMs = watch.elapsedMilliseconds;
+    debugOnRebuildDirtyWidget = null;
     debugPrint(
       'W6.10 mixed fold: closed $closedMs ms, open $openMs ms, '
-      'worst frames $worstClosedFrame / $worstOpenFrame ms',
+      'worst frames $worstClosedFrame / $worstOpenFrame ms, '
+      '$rebuiltCards rebuilt cards',
     );
 
     // These debug-mode budgets catch a group building its whole set of
     // heavy cards at once. They leave headroom for differences between CI
-    // machines.
+    // machines. The rebuild count below pins the regression independently.
     expect(closedMs, lessThan(1000), reason: 'closing the heavy group');
     expect(openMs, lessThan(800), reason: 'opening the heavy group');
     expect(
@@ -439,6 +454,11 @@ void main() {
       worstOpenFrame,
       lessThan(400),
       reason: 'the most expensive reveal frame',
+    );
+    expect(
+      rebuiltCards,
+      0,
+      reason: 'a fold rebuilt a card that was already on screen',
     );
     expect(
       find.byType(NoteCard).evaluate(),

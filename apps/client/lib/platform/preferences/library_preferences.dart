@@ -13,9 +13,10 @@ mixin _LibraryPreferences on _PreferencesStore {
   Set<String> get collapsedTimelineGroups =>
       (_prefs.getStringList('timeline.collapsed') ?? const []).toSet();
 
+  /// Persists the fold for the next launch. The model already published the
+  /// fold to its own listeners, so this write needs no preference notification.
   Future<void> setCollapsedTimelineGroups(Set<String> keys) async {
     await _prefs.setStringList('timeline.collapsed', keys.toList()..sort());
-    _notifyNow();
   }
 
   /// The reader's own order of the home's shelves, by kind or by tag

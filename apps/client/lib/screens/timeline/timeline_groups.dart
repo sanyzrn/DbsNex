@@ -112,11 +112,18 @@ class _RenderGroupReveal extends RenderProxySliver {
       super.performLayout();
       return;
     }
-    // There is no need to animate the unseen tail of a long group. The
-    // viewport's remaining space is revealed gradually, without prebuilding
-    // the rows that ordinarily sit in the scroll cache.
+    // Limit the reveal to the viewport so it stays lazy for long groups.
     final budget = constraints.scrollOffset + constraints.remainingPaintExtent;
     final end = budget * progress;
+    // The cache scales with the paint, but against its own full reach, so it
+    // arrives complete at the same moment the paint does. The rows a fold
+    // is about to uncover are then built a little ahead of the edge that
+    // uncovers them, spread across the animation — instead of all at once
+    // in the frame the reveal hands back to the viewport's own layout,
+    // which was the most expensive frame of an open.
+    final cache =
+        (constraints.scrollOffset + constraints.remainingCacheExtent) *
+        progress;
     child!.layout(
       constraints.copyWith(
         remainingPaintExtent: calculatePaintOffset(
@@ -127,7 +134,7 @@ class _RenderGroupReveal extends RenderProxySliver {
         remainingCacheExtent: calculateCacheOffset(
           constraints,
           from: 0,
-          to: end,
+          to: cache,
         ),
       ),
       parentUsesSize: true,
@@ -143,7 +150,9 @@ class _RenderGroupReveal extends RenderProxySliver {
       scrollExtent: extent,
       paintExtent: math.min(paint, childGeometry.paintExtent),
       maxPaintExtent: extent,
-      cacheExtent: calculateCacheOffset(constraints, from: 0, to: extent),
+      // What the child actually covers, cache included, so the group below
+      // is not asked to fill space this one has already built into.
+      cacheExtent: childGeometry.cacheExtent,
       hasVisualOverflow: true,
     );
   }
@@ -160,9 +169,16 @@ class _RenderGroupReveal extends RenderProxySliver {
   @override
   void paint(PaintingContext context, Offset offset) {
     if (_progress.value == 1) {
+      layer = null;
       super.paint(context, offset);
     } else {
-      context.pushClipRect(needsCompositing, offset, _clip, super.paint);
+      layer = context.pushClipRect(
+        needsCompositing,
+        offset,
+        _clip,
+        super.paint,
+        oldLayer: layer as ClipRectLayer?,
+      );
     }
   }
 }
@@ -419,6 +435,109 @@ class _GroupHeader extends StatelessWidget {
 
 /// What a date heading's menu can do to the whole run under it.
 enum _GroupAction { moveUp, moveDown, ask, delete }
+
+/// A fold invalidates its own heading and reveal, keeping the body widget
+/// and its mounted cards by identity. A new screen build supplies fresh
+/// builders for changes such as selection, locale, and note edits.
+class _GroupSliver extends StatefulWidget {
+  const _GroupSliver({
+    super.key,
+    required this.screen,
+    required this.group,
+    required this.folds,
+    required this.heading,
+    required this.body,
+    this.tail,
+  });
+
+  /// The screen these groups belong to, for its fold state and its reveal.
+  final TimelineScreenState screen;
+
+  /// The group this sliver shows.
+  final _NoteGroup group;
+
+  /// The screen's [_GroupSliver]s all listen here; see
+  /// [TimelineScreenState._groupFoldPulse].
+  final Listenable folds;
+
+  /// The group's heading, rebuilt when the group moves. Cheap by design: a
+  /// chevron, a name, a count.
+  final Widget Function() heading;
+
+  /// The group's body — the list or grid under the heading. Built once per
+  /// screen rebuild, and kept by identity across folds.
+  final Widget Function() body;
+
+  /// A sliver that follows the body whatever the fold, for the desktop's
+  /// breathing room.
+  final Widget? tail;
+
+  @override
+  State<_GroupSliver> createState() => _GroupSliverState();
+}
+
+class _GroupSliverState extends State<_GroupSliver> {
+  Widget? _body;
+  bool _wasCollapsed = false;
+  bool _wasMoving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.folds.addListener(_moved);
+  }
+
+  @override
+  void didUpdateWidget(_GroupSliver old) {
+    super.didUpdateWidget(old);
+    if (widget.folds != old.folds) {
+      old.folds.removeListener(_moved);
+      widget.folds.addListener(_moved);
+    }
+    _body = null;
+  }
+
+  @override
+  void dispose() {
+    widget.folds.removeListener(_moved);
+    super.dispose();
+  }
+
+  /// Another group may have moved; this one rebuilds only if its own fold
+  /// state did.
+  void _moved() {
+    final screen = widget.screen;
+    final collapsed = screen._model.collapsedGroups.contains(widget.group.key);
+    final moving = screen._groupFolds.containsKey(widget.group.key);
+    if (collapsed == _wasCollapsed && moving == _wasMoving) return;
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screen = widget.screen;
+    final group = widget.group;
+    final collapsed = screen._model.collapsedGroups.contains(group.key);
+    final moving = screen._groupFolds.containsKey(group.key);
+    _wasCollapsed = collapsed;
+    _wasMoving = moving;
+    if (!collapsed || moving) {
+      // A group opening builds its body for the reveal to uncover; a group
+      // closing keeps the one it has, so its cards are never rebuilt for the
+      // fold that is folding them.
+      _body ??= widget.body();
+    } else {
+      _body = null;
+    }
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(child: widget.heading()),
+        if (_body case final body?) screen._groupBody(group, body),
+        ?widget.tail,
+      ],
+    );
+  }
+}
 
 /// The list holds still while two fingers are on it (2.7.1).
 ///

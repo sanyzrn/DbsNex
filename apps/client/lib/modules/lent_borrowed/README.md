@@ -81,6 +81,64 @@ Against "Shared across modules" (this branch predates the section):
 | 8 Sharing, hiding | text through `nexModuleShareText`; hiding amounts is an open question |
 | 9 Look | shared pieces, `heroTag: null`, both languages and themes |
 
+## Audit (2.8.15 pass)
+
+Live module, so the rule is unchanged: nothing saved may be lost or changed
+in meaning. Every record format stays exactly as it was — the one addition is
+an optional `split` on a loan written from a settle-up, absent on every record
+that existed — and this pass adds one test file
+(`test/modules/lent_borrowed/audit_test.dart`, 18 tests).
+
+What was wrong and is fixed:
+
+- **An item's message dropped the count.** The sentence was given the number
+  and never used it, so two lent backpacks read as one. English says
+  «2 × Blue backpack», Persian «۲ عدد کوله‌پشتی».
+- **A filter with nothing in it blamed the search.** Choosing **Overdue**
+  with nothing late said «Nothing matches that»; each filter now has its own
+  line, and only a real search says it found nothing.
+- **Settling a loan recorded for a future date wrote a return before the
+  loan.** "Mark fully returned" dates the return on the loan's own day when
+  today is earlier.
+- **The card sheet said «Add a card» while editing one**, and a second save
+  for the same person (however the name is typed) added a second record to
+  choose between. It says **Edit card**, and the save adopts the person's
+  existing card record.
+- **A settle-up could be recorded a second time on the next day.** The guard
+  compared the loan's date with today; a recorded payment is now matched on
+  who, how much, which way and the split's note, so the button reads
+  **Recorded** and stays inert, today or next week.
+- **A saved split could not be corrected at all** — only deleted and retyped.
+- **A person's page could not start a record**, though it is where the next
+  flatmate cost comes from.
+- **Two lists ended under the floating button** (Cards & IBANs, Splits); both
+  now make room, and the empty card book states its one action instead of
+  also floating it.
+
+What is new:
+
+| Now | Where |
+| --- | --- |
+| A saved split is editable: rename it, change its date, add people, add or correct a cost | **Edit split** on the split's page; its cost rows open for correction, and a cost is added from the split itself |
+| An edited split keeps its id and every field this version does not know, so a recorded loan still points at it | `split_detail_screen._writeCosts` writes `{...raw, ...split.toJson()}` |
+| A transfer already recorded reads **Recorded** (disabled) instead of «Record as a loan» | `splitTransferRecorded`, matched without the date |
+| Owing money offers **Ask to pay**: a message asking for the card or IBAN to pay to, with the card they saved attached | the record's actions, `loanPayMessage` with the person message sheet |
+| A person's page starts their next record with the name written, and keeps that form's draft under that person | `initialPerson`; draft key `loan:new:<person>` |
+| Two directions in one currency say what they net out to | the person's ledger, `LoanSummary.net` |
+| The People page is searchable by name, with the module's letter folding | `people-search` |
+| Card lines in a message carry a **Pay to:** heading | `messagePayTo` |
+| Less repeated work on a busy page: returns bucketed once per page, one standings pass per list, and the loan list built lazily | `LoanSummary.ofBucketed`, `peopleOf`, `LoanListBody` |
+| A half-written split asks before it is thrown away | `confirmSplitDiscard` |
+
+Against "Shared across modules": the shared shape is untouched —
+`duesBetween` and `summarize` unchanged, money still whole rials, `person`
+still a plain string for the reason in 2.8.4, unknown loan/split fields kept
+(the card record still keeps exactly four).
+
+The editor's cost list and its discard question moved to
+`split_cost_list.dart` and `split_discard.dart`, and the record's actions to
+`loan_detail_panels.dart`; the largest files are 376, 372 and 369 lines.
+
 ## 1. What it does
 
 Remember who owes whom — money in the currency it was lent in, or a thing lent
@@ -96,7 +154,8 @@ Each screen:
 - **Lent / Borrowed** (two tabs, one page): what is owed to you and what you
   owe, outstanding summary per currency, `Due soon` / `Overdue` / `Settled`
   filters, search, overdue count, and a New button that takes the tab's
-  direction. The overflow menu also opens **Splits** and **Cards & IBANs**.
+  direction. A filter with nothing in it says so in its own words. The
+  overflow menu also opens **Splits** and **Cards & IBANs**.
 - **New / edit record** (sheet): direction, money or thing, who, amount with
   its words underneath. Dates and the note wait behind one button; the issue
   date is today and the due date is empty unless set. Nothing typed is lost:
@@ -105,21 +164,26 @@ Each screen:
   default and never in the future or before the loan; any return can be taken
   back.
 - **One record** (page): total, the same total in words, what is still out,
-  both dates, `Record a return`, `Mark fully returned`, `Reminder message`,
-  the reminder, and the return history. Deleting is here too, with Undo.
+  both dates, `Record a return`, `Mark fully returned`, `Reminder message`
+  (and, when the record is money I owe, `Ask to pay`), the reminder, and the
+  return history. Deleting is here too, with Undo.
 - **Reminder** (on the record): a one-time alert at a time you pick on the due
   date. It says "A reminder you set for a loan is due" until you turn on
   **Show who and how much on the lock screen** for that record.
 - **Reminder message** (sheet): friendly, neutral or formal, copied in one tap
   or shared through the phone's own sheet. Nex never sends anything.
 - **People** (page): one row per person, per currency and per direction, plus
-  a message button. Tapping the row opens their records; the person page has
-  its own message button in the bar.
+  a message button, and a search by name once there is more than one person.
+  Tapping the row opens their records; the person page has its own message
+  button, a New button that fills in that person, and the net of the two
+  directions per currency.
 - **Splits** (page): a list of trips and shared months with their totals.
   **New split** asks for a name, the people, which of them is you, and the
   costs. **One split** shows the total, everyone's net position, the fewest
   transfers, and each cost; a transfer to or from you has `Record as a loan`
-  and `Message`. Deleting a split can be undone.
+  (reading **Recorded** once it has one) and `Message`, and a cost is added or
+  corrected in place. **Edit split** changes the name, the date and the
+  people. Deleting a split can be undone.
 - **Cards & IBANs** (page): one row per person with the card grouped in fours,
   the bank the first six digits name, the IBAN in groups, the holder's name,
   and separate copy buttons for the card and the IBAN.
@@ -153,6 +217,7 @@ integer count of **whole rials**, items are an integer count.
 | `due` | string or null | civil date, or null for "no deadline" |
 | `note` | string | free text, optional |
 | `reminderDetail` | bool | written **only when true** |
+| `split` | string | the split id, written **only when** a settle-up made the loan; absent reads as empty |
 
 **`return`** — one repayment or return of things, its own record.
 
@@ -230,7 +295,23 @@ written only through `NexModuleStore.setReminder`.
   people is real, but this module is *your* ledger; recording it as your loan
   would be a lie. A recorded transfer writes a normal `loan` with today's date,
   the split's name in the note, no due date, and the direction read from who
-  pays whom. The duplicate guard means a second tap is harmless.
+  pays whom.
+- **A recorded transfer is recognised by what it is, not by the day.** The
+  guard matches the person, the amount and the direction, because a payment
+  recorded yesterday is still the same payment today; matching on today's date
+  let a second identical loan be created the next day. Which payment it is
+  comes from `split` on the loan — a link to the split that made it, so
+  renaming the split afterwards cannot make it look unrecorded — and, for a
+  loan recorded before that link existed, from the note naming the split. The
+  same match makes the button read **Recorded**.
+- **A split is edited in place.** Costs live in the split record, so adding
+  or correcting one is a write of the same record with the same id: an
+  ordinary loan already made from that split keeps pointing at it, and every
+  field this version does not know is written back.
+- **The two directions are netted only where both sides use a currency.**
+  One line «net: … in your favour» answers the question the person's page is
+  opened with; the direction lines stay, because which way the money runs is
+  not the same fact as where it ends up.
 - **Cards hold only what may be shown.** A card number is public to whoever is
   paid; a CVV2, an expiry date or a PIN is not, and the record has nowhere to
   put them. Validation is local: Luhn for the 16 digits, ISO 13616 mod 97 for
@@ -281,17 +362,21 @@ Added with the card book and splits, checked **2026-11-17**:
 **English:** Lent or Borrowed, then add what was lent or borrowed — money in its
 currency, or a thing and how many. Iranian amounts are said in tomans or rials
 (list menu), and the amount appears in words under the field. Add a due date if
-there is one; record each partial return and the remainder follows. On the
-record you can add a reminder for the due date — private unless you ask it to
+there is one; record each partial return and the remainder follows. On the record you can add a reminder for the due date — private unless you ask it to
 name the person and amount. Reminder message gives you a short, polite message
-in three tones to copy or share. The People page shows what each person owes
-you and what you owe them, per currency, with a message button. For a shared
+in three tones to copy or share; when the record is money you owe, **Ask to
+pay** writes the message that asks for the card or IBAN to pay to, with the
+one they saved attached. The People page shows what each person owes you and
+what you owe them, per currency, with a message button and a search by name;
+a person's page starts their next record with their name already filled and
+shows how the two directions net out. For a shared
 cost, open **Splits** from the menu, name the trip, add the people and mark
 which one is you, then add each cost with who paid and how it is divided. The
 split shows everyone's position and the fewest payments; your own transfer can
-become a loan record with one tap. Save a card or IBAN once under **Cards &
-IBANs**, and every message to that person can carry it. Everything stays on
-this phone.
+become a loan record with one tap and then reads **Recorded**. A saved split
+stays editable: add or correct a cost, rename it, change its date or its
+people. Save a card or IBAN once under **Cards & IBANs**, and every message to
+that person can carry it. Everything stays on this phone.
 
 **فارسی:** «قرض داده» یا «قرض گرفته» را انتخاب کنید و ثبت کنید چه چیزی قرض
 داده یا گرفته‌اید: پول با ارز خودش، یا یک وسیله و تعدادش. مبلغ‌های ایرانی را
@@ -299,12 +384,16 @@ this phone.
 به حروف می‌آید. اگر موعدی دارد، آن را تایپ کنید یا از تقویم انتخاب کنید؛ هر
 برگشت جزئی را ثبت کنید تا باقی‌مانده به‌روز شود. در صفحهٔ هر مورد می‌توانید
 یادآوری بگذارید؛ به‌طور پیش‌فرض نام و مبلغ روی صفحهٔ قفل نمی‌آید. «پیام
-یادآوری» پیامی کوتاه و مؤدبانه در سه لحن می‌سازد. صفحهٔ «اشخاص» حساب هر کس را
-به تفکیک ارز نشان می‌دهد و دکمهٔ پیام دارد. برای هزینهٔ مشترک، از منو
+یادآوری» پیامی کوتاه و مؤدبانه در سه لحن می‌سازد؛ اگر پول را شما بدهکار باشید،
+**«درخواست پرداخت»** پیامی می‌سازد که کارت یا شبای طرف را برای پرداخت می‌خواهد و
+کارتی که ذخیره کرده را همراه دارد. صفحهٔ «اشخاص» حساب هر کس را به تفکیک ارز
+نشان می‌دهد، دکمهٔ پیام و جست‌وجوی نام دارد؛ صفحهٔ هر شخص ثبت تازه را با نام خودش
+باز می‌کند و خالص حساب دو طرف را نشان می‌دهد. برای هزینهٔ مشترک، از منو
 **«دنگ‌ها»** را باز کنید، نام سفر را بنویسید، افراد را اضافه کنید و مشخص کنید
 کدام‌یک خودتان هستید؛ بعد هر هزینه را با پرداخت‌کننده و شیوهٔ تقسیم اضافه
-کنید. دنگ سهم هر کس و کمترین پرداخت‌ها را نشان می‌دهد و پرداخت خودتان با یک
-لمس به قرض تبدیل می‌شود. کارت یا شبا را یک‌بار در **«کارت‌ها و شبا»** ذخیره
+کنید. دنگ سهم هر کس و کمترین پرداخت‌ها را نشان می‌دهد، پرداخت خودتان با یک
+لمس به قرض تبدیل می‌شود و بعد **«ثبت شد»** می‌خواند، و دنگ ذخیره‌شده ویرایش
+می‌شود: هزینه اضافه یا اصلاح، نام و تاریخ و افراد. کارت یا شبا را یک‌بار در **«کارت‌ها و شبا»** ذخیره
 کنید تا در پیام‌ها بیاید. همه‌چیز روی همین گوشی می‌ماند.
 
 ## 6. Changelog
@@ -368,6 +457,14 @@ or improvised.
 9. Persian/English, light/dark, text scale 2.0 and a narrow screen: the split
    editor, the cost sheet, the card sheet and the person message must all stay
    usable and keep their Save button reachable.
+10. Open a saved split: rename it, add a cost, correct one, and tap a cost to
+    edit it. The balances and transfers follow. Record a transfer, leave the
+    page and come back: it still reads **Recorded**, and a second tap makes no
+    second loan.
+11. On a borrowed money record, open **Ask to pay**: the message names the
+    remaining amount and carries the card saved for that person. On a person's
+    page, **New record** opens with the name filled in, and leaving the split
+    editor with something typed asks before discarding it.
 
 ## 9. Open questions
 
@@ -375,9 +472,6 @@ or improvised.
   or is rial-only the right limit?
 - Should one person be allowed more than one card (a personal and a business
   account), or is one per person the clearer rule?
-- Should recording a settle-up transfer as a loan also mark something in the
-  split, so the same transfer is visibly done rather than only guarded against
-  duplicates?
 - Should other people's transfers be recordable at all, perhaps as a note,
   even though this module is your ledger?
 - Does the owner want a "hide amounts" switch for the whole module, and should
@@ -402,14 +496,30 @@ flutter test test/module_kit_test.dart test/modules/lent_borrowed
 flutter test
 ```
 
-Results: `dart format` clean; `flutter analyze --fatal-infos` over the module
-and over the whole client — "No issues found!"; the module gate
-`flutter test test/module_kit_test.dart test/modules/lent_borrowed` — **255
-passed** (52 gate + 203 module: the 172 that existed before, all still green,
-plus 31 added), and the platform's text-field direction rule (`text_field_rule_test.dart`,
-3) passes over the new fields; one full `flutter test` — **4135 passed, 4
-skipped**, exit 0. No file is over 400 lines and the Persian words carry no
-bidi control characters.
+Measured for this pass on Windows with Flutter 3.47.9 and `--no-pub` (pub.dev
+refuses the sandbox): `dart format` clean; `flutter analyze --no-pub
+--fatal-infos` over the whole client and again over this module — "No issues
+found!"; the module gate `flutter test --no-pub test/module_kit_test.dart
+test/modules/lent_borrowed` — **288 passed**, exit 0 (61 gate + 209 that
+existed before, all still green, + 18 in `audit_test.dart`); the platform's
+rule tests (`ui_consistency_test`, `menu_rule_test`, `sheet_swipe_test`,
+`sheet_scrim_test`, `motion_test`, `text_field_rule_test`,
+`module_shared_rules_test`, `module_glance_test`) — 89 passed; and one full
+`flutter test --no-pub` — **4588 passed, 5 skipped, 13 failed**.
+
+The 13 are not this module's. Eleven are in files that never import it and
+that fail the same way when run alone: `attachments` and `attach_paths` on a
+Windows temp-file lock in `nex_harness.dispose`, `brief_window` and
+`home_brief_balance` on the smart brief, `card_audio`, `os_capture_bridge
+(150 simultaneous shares)` and `sponsor_card`. One was a compile race from
+editing during that run and passes on rerun. One was this pass's own and is
+fixed: the Lent & Borrowed guide bullet had grown long enough to push the
+app-lock passage past the assistant's passage budget that
+`test/app_guide_test.dart` guards, so the bullet was tightened back to its old
+length and that test passes.
+
+No file is over 400 lines and the Persian words carry no bidi control
+characters.
 
 Screens in `review/`: the list, editor, detail, message,
 people and person pages from before, plus `lent_upgrade_*` for splits, one

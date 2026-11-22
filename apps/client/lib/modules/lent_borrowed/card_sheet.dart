@@ -140,7 +140,10 @@ class _CardSheetState extends State<CardSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              strings(context, 'cardNew'),
+              strings(
+                context,
+                widget.existing == null ? 'cardNew' : 'cardEdit',
+              ),
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: NexSpacing.md),

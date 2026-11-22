@@ -8,6 +8,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart'
     show
+        ClipRectLayer,
         OffsetLayer,
         PaintingContext,
         PipelineOwner,
@@ -217,6 +218,9 @@ class TimelineScreenState extends State<TimelineScreen>
 
   /// One controller per moving group, shared by list and grid.
   final _groupFolds = <String, AnimationController>{};
+
+  /// Lets group slivers react to folds without rebuilding the timeline.
+  final _groupFoldPulse = ValueNotifier<int>(0);
   String? landedId;
 
   /// The note a tapped reminder is about, until its border has finished
@@ -738,6 +742,7 @@ class TimelineScreenState extends State<TimelineScreen>
     for (final fold in _groupFolds.values) {
       fold.dispose();
     }
+    _groupFoldPulse.dispose();
     _searchFocus.dispose();
     _scroll.dispose();
     _stickyDay.dispose();

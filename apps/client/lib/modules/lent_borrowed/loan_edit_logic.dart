@@ -48,7 +48,9 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
     final editing = widget.editing;
     _currency = editing?.currency ?? 'IRR';
     _digits = editing?.digits ?? 0;
-    _person = TextEditingController(text: editing?.person ?? '');
+    _person = TextEditingController(
+      text: editing?.person ?? widget.initialPerson,
+    );
     _direction = editing?.direction ?? widget.initialDirection;
     _kind = editing?.kind ?? LoanKind.money;
     _amount = TextEditingController(
@@ -76,7 +78,7 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
     _note = TextEditingController(text: editing?.note ?? '');
     _draft = FormDraft(
       widget.store,
-      'loan:${widget.editing?.id ?? 'new'}',
+      _draftKey,
       widget.editing?.toJson() ?? const {},
       {
         'person': _person,
@@ -97,6 +99,17 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
       },
     );
     unawaited(_restoreDraft());
+  }
+
+  /// A new record opened from a person's page keeps its checkpoint under
+  /// that person, so half a flatmate's dinner is not offered to the next
+  /// person the editor is opened for. The plain `loan:new` key stays for
+  /// the button on the list, drafts written before this included.
+  String get _draftKey {
+    final editing = widget.editing;
+    if (editing != null) return 'loan:${editing.id}';
+    final person = personKey(widget.initialPerson);
+    return person.isEmpty ? 'loan:new' : 'loan:new:$person';
   }
 
   Future<void> _restoreDraft() async {
