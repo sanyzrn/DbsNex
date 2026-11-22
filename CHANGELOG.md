@@ -8,6 +8,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - **Faster timeline groups.** Open and close date, note-type and tag groups more smoothly in both the list and the grid.
 
+- **Editable splits in Lent & Borrowed.** Correct a saved split and its expenses, and see which settlement transfers are already recorded. Search for a person, start a record from their page, see balances per currency, or draft a message asking where to pay.
+
 ## v2.8.14
 
 - **Cycle calendar and logging.** Log today’s flow in one tap, see estimates in upcoming months and correct past periods without losing the edit if dates overlap.

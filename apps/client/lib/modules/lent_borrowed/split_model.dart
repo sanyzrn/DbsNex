@@ -78,6 +78,22 @@ class SplitCost {
       (mode != SplitMode.amounts ||
           parts.values.fold(0, (a, b) => a + b) == amount);
 
+  SplitCost copyWith({
+    String? id,
+    String? title,
+    int? amount,
+    String? payer,
+    SplitMode? mode,
+    Map<String, int>? parts,
+  }) => SplitCost(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    amount: amount ?? this.amount,
+    payer: payer ?? this.payer,
+    mode: mode ?? this.mode,
+    parts: parts ?? this.parts,
+  );
+
   Map<String, Object?> toJson() => {
     'id': id,
     'title': title,
@@ -141,14 +157,40 @@ class LoanSplit {
   /// The sum of every cost, in rials.
   int get total => costs.fold(0, (sum, cost) => sum + cost.amount);
 
-  Map<String, Object?> toJson() => {
-    'v': 1,
-    'title': title,
-    'date': date,
-    'me': me,
-    'people': people,
-    'costs': [for (final cost in costs) cost.toJson()],
-  };
+  LoanSplit copyWith({
+    String? title,
+    String? date,
+    String? me,
+    List<String>? people,
+    List<SplitCost>? costs,
+  }) => LoanSplit(
+    id: id,
+    title: title ?? this.title,
+    date: date ?? this.date,
+    me: me ?? this.me,
+    people: people ?? this.people,
+    costs: costs ?? this.costs,
+  );
+
+  Map<String, Object?> toJson({Map<String, Object?>? previous}) {
+    final oldCosts = previous?['costs'];
+    final oldById = <String, Map<String, Object?>>{
+      if (oldCosts is List)
+        for (final body in oldCosts.whereType<Map<String, Object?>>())
+          if (body['id'] case final String id when id.isNotEmpty) id: body,
+    };
+    return {
+      ...?previous,
+      'v': previous?['v'] ?? 1,
+      'title': title,
+      'date': date,
+      'me': me,
+      'people': people,
+      'costs': [
+        for (final cost in costs) {...?oldById[cost.id], ...cost.toJson()},
+      ],
+    };
+  }
 }
 
 /// The ids new costs get: the time in microseconds, so two costs added in

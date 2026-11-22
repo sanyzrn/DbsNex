@@ -5,6 +5,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'irr_unit.dart';
 import 'loan_date_entry.dart';
+import 'loan_dates.dart';
 import 'loan_edit_sheet.dart';
 import 'loan_math.dart';
 import 'loan_message.dart';
@@ -13,6 +14,7 @@ import 'loan_settings.dart';
 import 'loan_wording.dart';
 import 'module.dart';
 import 'money_format.dart';
+import 'person_message.dart';
 import 'record_bundle.dart';
 import 'reminder_section.dart';
 import 'return_history.dart';
@@ -276,59 +278,29 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
           children: [
             _SummaryPanel(loan: loan, standing: standing, unit: _unit),
             const SizedBox(height: NexSpacing.md),
-            if (!standing.settled) ...[
-              FilledButton.icon(
-                key: const ValueKey('loan-record-return'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
-                ),
-                onPressed: _writing || _sheetOpen
-                    ? null
-                    : () => unawaited(
-                        _openSheet(
-                          () => showReturnSheet(
-                            context,
-                            widget.store,
-                            loan: loan,
-                            returns: _returns,
-                            unit: _unit,
-                          ),
-                        ),
-                      ),
-                icon: const Icon(Icons.replay_outlined),
-                label: Text(strings(context, 'recordReturn')),
-              ),
-              const SizedBox(height: NexSpacing.sm),
-              TextButton(
-                key: const ValueKey('loan-mark-settled'),
-                onPressed: _writing
-                    ? null
-                    : () => unawaited(_recordReturn(standing.outstanding)),
-                child: Text(strings(context, 'markSettled')),
-              ),
-              if (loan.direction == LoanDirection.lent)
-                TextButton.icon(
-                  key: const ValueKey('loan-message'),
-                  onPressed: () => unawaited(
-                    showLoanMessageSheet(context, loan, standing, _unit),
-                  ),
-                  icon: const Icon(Icons.chat_bubble_outline),
-                  label: Text(strings(context, 'messageTitle')),
-                ),
-              const SizedBox(height: NexSpacing.md),
-              // A due date is only worth having if something says so when it
-              // comes: an optional system reminder, opened on the due day.
-              LoanReminderSection(
+            if (!standing.settled)
+              _LoanActions(
                 store: widget.store,
                 loan: loan,
                 standing: standing,
                 unit: _unit,
-                onDetailChanged: _writing
-                    ? (_) {}
-                    : (detail) => unawaited(_setReminderDetail(detail)),
+                busy: _writing,
+                sheetOpen: _sheetOpen,
+                onReturn: () => unawaited(
+                  _openSheet(
+                    () => showReturnSheet(
+                      context,
+                      widget.store,
+                      loan: loan,
+                      returns: _returns,
+                      unit: _unit,
+                    ),
+                  ),
+                ),
+                onSettle: () => unawaited(_recordReturn(standing.outstanding)),
+                onDetailChanged: (detail) =>
+                    unawaited(_setReminderDetail(detail)),
               ),
-              const SizedBox(height: NexSpacing.md),
-            ],
             LoanReturnHistory(
               loan: loan,
               returns: _returns,
@@ -357,9 +329,15 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
         .toList();
     final remaining = LoanMath.standing(fresh, records).outstanding;
     if (remaining <= 0) return;
+    // A loan recorded for a future day cannot take a return dated before
+    // it; settling it early is dated the day the money was promised for.
+    final today = civilDateKey(DateTime.now());
+    final date = (civilDaysBetween(fresh.issued, today) ?? 0) < 0
+        ? fresh.issued
+        : today;
     await widget.store.put('return', widget.store.newId(), {
       'loan': loan.id,
-      'date': civilDateKey(DateTime.now()),
+      'date': date,
       'amount': remaining,
     });
   });

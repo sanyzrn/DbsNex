@@ -103,12 +103,17 @@ class _TransfersPanel extends StatelessWidget {
   const _TransfersPanel({
     required this.split,
     required this.unit,
+    required this.recorded,
     required this.onRecord,
     required this.onMessage,
   });
 
   final LoanSplit split;
   final IrrUnit unit;
+
+  /// Whether this payment already has its loan record — asked of the saved
+  /// loans, so the answer survives closing the page and the next day.
+  final bool Function(SplitTransfer transfer) recorded;
   final ValueChanged<SplitTransfer> onRecord;
   final ValueChanged<SplitTransfer> onMessage;
 
@@ -155,9 +160,23 @@ class _TransfersPanel extends StatelessWidget {
                 children: [
                   FilledButton.tonalIcon(
                     key: ValueKey('split-record-$index'),
-                    onPressed: () => onRecord(transfer),
-                    icon: const Icon(Icons.add_link),
-                    label: Text(strings(context, 'splitRecordLoan')),
+                    // A recorded payment says so instead of inviting a second
+                    // identical loan; the guard in the screen holds even if
+                    // the record was made on another day.
+                    onPressed: recorded(transfer)
+                        ? null
+                        : () => onRecord(transfer),
+                    icon: Icon(
+                      recorded(transfer) ? Icons.check : Icons.add_link,
+                    ),
+                    label: Text(
+                      strings(
+                        context,
+                        recorded(transfer)
+                            ? 'splitRecordedChip'
+                            : 'splitRecordLoan',
+                      ),
+                    ),
                   ),
                   TextButton.icon(
                     key: ValueKey('split-message-$index'),

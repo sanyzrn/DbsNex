@@ -35,6 +35,7 @@ class _PeopleScreenState extends State<PeopleScreen>
   List<LoanReturn> _returns = const [];
   StreamSubscription<void>? _changes;
   late IrrUnit _unit = widget.unit ?? IrrUnit.toman;
+  final TextEditingController _search = TextEditingController();
 
   @override
   void initState() {
@@ -46,6 +47,7 @@ class _PeopleScreenState extends State<PeopleScreen>
   @override
   void dispose() {
     unawaited(_changes?.cancel());
+    _search.dispose();
     super.dispose();
   }
 
@@ -66,6 +68,15 @@ class _PeopleScreenState extends State<PeopleScreen>
   Widget build(BuildContext context) {
     final strings = lentStrings;
     final people = peopleOf(_loans, _returns);
+    // A ledger with a dozen names is read by finding one of them: the same
+    // folding the rest of the module uses, so «سارا» finds «سارا ».
+    final needle = personKey(_search.text);
+    final shown = needle.isEmpty
+        ? people
+        : [
+            for (final person in people)
+              if (personKey(person.name).contains(needle)) person,
+          ];
     return Scaffold(
       appBar: NexAppBar(title: Text(strings(context, 'people'))),
       body: recordsBody(
@@ -74,43 +85,70 @@ class _PeopleScreenState extends State<PeopleScreen>
                 icon: Icons.people_outline,
                 message: strings(context, 'peopleEmpty'),
               )
-            : ListView(
-                padding: EdgeInsetsDirectional.fromSTEB(
-                  NexSpacing.md,
-                  NexSpacing.sm,
-                  NexSpacing.md,
-                  NexSpacing.lg + nexBottomInset(context),
-                ),
+            : Column(
                 children: [
-                  for (final (index, person) in people.indexed)
-                    NexGroupedRow(
-                      index: index,
-                      count: people.length,
-                      child: _PersonTile(
-                        person: person,
-                        unit: _unit,
-                        onMessage: () => unawaited(
-                          showPersonMessageSheet(
-                            context,
-                            widget.store,
-                            person: person.name,
-                            unit: _unit,
-                          ),
-                        ),
-                        onTap: () => unawaited(
-                          Navigator.push(
-                            context,
-                            NexPageRoute<void>(
-                              builder: (_) => PersonScreen(
-                                store: widget.store,
-                                personKey: person.key,
-                                unit: _unit,
-                              ),
-                            ),
-                          ),
-                        ),
+                  if (people.length > 1)
+                    Padding(
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        NexSpacing.md,
+                        NexSpacing.sm,
+                        NexSpacing.md,
+                        0,
+                      ),
+                      child: NexSearchField(
+                        fieldKey: const ValueKey('people-search'),
+                        controller: _search,
+                        hintText: upgradeWord(context, 'peopleSearch'),
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
+                  Expanded(
+                    child: shown.isEmpty
+                        ? NexEmptyState(
+                            icon: Icons.search_off_outlined,
+                            message: strings(context, 'noMatches'),
+                          )
+                        : ListView.builder(
+                            padding: EdgeInsetsDirectional.fromSTEB(
+                              NexSpacing.md,
+                              NexSpacing.sm,
+                              NexSpacing.md,
+                              NexSpacing.lg + nexBottomInset(context),
+                            ),
+                            itemCount: shown.length,
+                            itemBuilder: (context, index) {
+                              final person = shown[index];
+                              return NexGroupedRow(
+                                index: index,
+                                count: shown.length,
+                                child: _PersonTile(
+                                  person: person,
+                                  unit: _unit,
+                                  onMessage: () => unawaited(
+                                    showPersonMessageSheet(
+                                      context,
+                                      widget.store,
+                                      person: person.name,
+                                      unit: _unit,
+                                    ),
+                                  ),
+                                  onTap: () => unawaited(
+                                    Navigator.push(
+                                      context,
+                                      NexPageRoute<void>(
+                                        builder: (_) => PersonScreen(
+                                          store: widget.store,
+                                          personKey: person.key,
+                                          unit: _unit,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
                 ],
               ),
         () => unawaited(_load()),

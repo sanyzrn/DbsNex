@@ -1,4 +1,5 @@
 import 'loan_model.dart';
+import 'loan_people.dart';
 import 'money_format.dart';
 import 'split_model.dart';
 
@@ -164,6 +165,39 @@ List<SplitTransfer> settleTransfers(LoanSplit split) {
 String splitNote(LoanSplit split, String settleWord) {
   final title = split.title.trim();
   return title.isEmpty ? settleWord : '$settleWord: $title';
+}
+
+/// Whether [transfer] already has its ordinary loan record.
+///
+/// The match deliberately leaves the date out: a transfer recorded today and
+/// looked at tomorrow is still the same payment, and checking the date would
+/// offer to record it a second time. Who, how much and which way make the
+/// shape; the link back to the split ([Loan.splitId]) says which payment it
+/// is, so renaming the split afterwards cannot make it look unrecorded. A
+/// loan recorded before that link was written is matched by its note.
+bool splitTransferRecorded(
+  Iterable<Loan> loans,
+  LoanSplit split,
+  SplitTransfer transfer,
+  String settleWord,
+) {
+  final me = personKey(split.me);
+  if (me.isEmpty || !transfer.involves(split.me)) return false;
+  final other = personKey(transfer.from) == me ? transfer.to : transfer.from;
+  final lent = personKey(transfer.to) == me;
+  final note = splitNote(split, settleWord);
+  return loans.any(
+    (loan) =>
+        loan.kind == LoanKind.money &&
+        loan.currency == 'IRR' &&
+        loan.digits == 0 &&
+        personKey(loan.person) == personKey(other) &&
+        loan.amount == transfer.amount &&
+        (loan.direction == LoanDirection.lent) == lent &&
+        (loan.splitId.isNotEmpty
+            ? loan.splitId == split.id
+            : loan.note == note),
+  );
 }
 
 /// A civil date key for a new split, kept out of the widget layer.

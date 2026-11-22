@@ -91,7 +91,13 @@ class _PersonMessageSheetState extends State<PersonMessageSheet> {
       _text = [
         if (widget.intro != null) widget.intro!,
         ...lines,
-        if (payment.isNotEmpty) ...['', ...payment],
+        // The card lines arrive with a short heading, so a message that
+        // begins with an amount still says what the numbers under it are.
+        if (payment.isNotEmpty) ...[
+          '',
+          upgradeWord(context, 'messagePayTo'),
+          ...payment,
+        ],
       ].join('\n');
       _hasPayment = payment.isNotEmpty;
       _loading = false;

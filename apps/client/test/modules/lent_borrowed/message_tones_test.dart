@@ -24,12 +24,14 @@ void main() {
     String? due = '2026-10-15',
     String person = 'Sara',
     String what = 'Blue backpack',
+    // An item's amount is its count, not a sum of money.
+    int amount = 500000,
   }) => Loan(
     id: 'l1',
     direction: LoanDirection.lent,
     person: person,
     kind: kind,
-    amount: 500000,
+    amount: amount,
     what: kind == LoanKind.item ? what : '',
     issued: '2026-10-01',
     due: due,
@@ -166,18 +168,21 @@ void main() {
       tester,
       const Locale('en'),
       MessageTone.friendly,
-      record: loan(kind: LoanKind.item),
+      record: loan(kind: LoanKind.item, amount: 2),
     );
-    expect(english, contains('the Blue backpack'));
+    // How many is part of what is owed: «2 × Blue backpack». The count used
+    // to be dropped from the sentence, so two things read as one.
+    expect(english, contains('2 × Blue backpack'));
     expect(english, isNot(contains('toman')));
 
     final persian = await message(
       tester,
       const Locale('fa'),
       MessageTone.friendly,
-      record: loan(kind: LoanKind.item, what: 'کوله‌پشتی آبی'),
+      record: loan(kind: LoanKind.item, what: 'کوله‌پشتی آبی', amount: 2),
     );
     expect(persian, contains('کوله‌پشتی'));
+    expect(persian, contains('۲ عدد'));
   });
 
   testWidgets('no due date means no date is claimed', (tester) async {

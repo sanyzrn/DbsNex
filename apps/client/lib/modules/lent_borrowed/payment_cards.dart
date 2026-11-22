@@ -84,12 +84,17 @@ Future<List<PaymentCard>> allCards(NexModuleStore store) async {
 
 /// Saves [card] under its own record id (person key when new), so repeated
 /// saves for one person never multiply records.
+///
+/// A new card for someone who already has one adopts that record: typing
+/// the same person twice — from the book and from their page — updates the
+/// details they gave instead of leaving two rows to choose between.
 Future<PaymentCard> saveCard(
   NexModuleStore store,
   PaymentCard card, {
   String? existingId,
 }) async {
-  final id = existingId ?? card.id;
+  final id =
+      existingId ?? (await cardForPerson(store, card.person))?.id ?? card.id;
   await store.put('card', id, card.toJson());
   return PaymentCard(
     id: id,

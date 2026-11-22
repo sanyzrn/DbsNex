@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'irr_unit.dart';
+import 'loan_edit_sheet.dart';
 import 'loan_math.dart';
 import 'loan_model.dart';
 import 'loan_people.dart';
@@ -11,6 +12,7 @@ import 'loan_settings.dart';
 import 'loan_row.dart';
 import 'loan_summary_card.dart';
 import 'module.dart';
+import 'money_format.dart';
 import 'person_message.dart';
 import 'store_state.dart';
 import 'upgrade_strings.dart';
@@ -75,6 +77,8 @@ class _PersonScreenState extends State<PersonScreen>
     final borrowed = _loans.where((l) => l.direction == LoanDirection.borrowed);
     final owedToMe = LoanSummary.of(lent, _returns);
     final iOwe = LoanSummary.of(borrowed, _returns);
+    // One pass for every row on the page, as the list body already does.
+    final standings = LoanMath.standingsOf(_loans, _returns);
     return Scaffold(
       appBar: NexAppBar(
         title: Text(
@@ -99,13 +103,33 @@ class _PersonScreenState extends State<PersonScreen>
             ),
         ],
       ),
+      // The other half of a person's page is adding to it: a flatmate's next
+      // shared cost, the next thing borrowed, without typing the name again.
+      floatingActionButton: _loans.isEmpty || name.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              heroTag: null,
+              key: const ValueKey('person-new'),
+              onPressed: () => unawaited(
+                showLoanEditSheet(
+                  context,
+                  widget.store,
+                  initialDirection: LoanDirection.lent,
+                  initialPerson: name,
+                  unit: _unit,
+                ),
+              ),
+              icon: const Icon(Icons.add),
+              label: Text(strings(context, 'newRecord')),
+            ),
       body: recordsBody(
         ListView(
           padding: EdgeInsetsDirectional.fromSTEB(
             NexSpacing.md,
             NexSpacing.sm,
             NexSpacing.md,
-            NexSpacing.lg + nexBottomInset(context),
+            // Clear of the floating button, as on the list.
+            NexSpacing.xl * 3 + nexBottomInset(context),
           ),
           children: [
             _PersonLedgerPanel(owedToMe: owedToMe, iOwe: iOwe, unit: _unit),
@@ -130,7 +154,7 @@ class _PersonScreenState extends State<PersonScreen>
                     index: index,
                     count: group.length,
                     loan: loan,
-                    standing: LoanMath.standing(loan, _returns),
+                    standing: standings[loan.id]!,
                     store: widget.store,
                     unit: _unit,
                     showPerson: false,
@@ -176,6 +200,10 @@ class _PersonLedgerPanel extends StatelessWidget {
       ),
     ];
     final nothing = owedToMe.isEmpty && iOwe.isEmpty;
+    // Where both directions hold the same currency, one line settles the
+    // question the page is opened with: how do the two of us stand?
+    final net = LoanSummary.net(owedToMe, iOwe);
+    final persian = NexModuleStrings.persian(context);
     return NexPanel(
       key: const ValueKey('person-ledger'),
       child: Column(
@@ -216,6 +244,32 @@ class _PersonLedgerPanel extends StatelessWidget {
                   ),
               ],
             ],
+          if (net.isNotEmpty) ...[
+            const SizedBox(height: NexSpacing.sm),
+            Divider(height: 1, color: scheme.outlineVariant),
+            for (final total in net)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(
+                  start: NexSpacing.lg,
+                  top: NexSpacing.sm,
+                ),
+                child: Text(
+                  strings(context, total.minor > 0 ? 'netToYou' : 'netToThem', {
+                    'amount': formatAmount(
+                      total.minor.abs(),
+                      total.currency,
+                      total.digits,
+                      persian,
+                      unit,
+                    ),
+                  }),
+                  key: ValueKey('person-net-${total.currency}'),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: scheme.primary,
+                  ),
+                ),
+              ),
+          ],
         ],
       ),
     );
