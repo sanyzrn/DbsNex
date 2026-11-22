@@ -1,3 +1,5 @@
+import '../module_api.dart' show nexUngroupMoney;
+
 import 'local_values.dart';
 
 /// Reading back what the editor's fields hold, kept apart so it can be
@@ -38,7 +40,7 @@ class WarrantyParse {
   /// The rials an amount stands for, given the unit it was typed in.
   /// Half-tomans are refused, not rounded.
   static int? rials(String written, {required bool inTomans}) {
-    final text = LocalValues.ascii(written.trim());
+    final text = LocalValues.ascii(nexUngroupMoney(written).trim());
     if (!inTomans) {
       return count(text);
     }

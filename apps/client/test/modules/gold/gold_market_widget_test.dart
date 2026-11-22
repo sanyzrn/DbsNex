@@ -283,7 +283,7 @@ void main() {
             .widget<TextFormField>(find.byKey(const ValueKey('gold-meltQuote')))
             .controller!
             .text,
-        '43318020',
+        '43,318,020',
       );
       await reveal(t, find.byKey(const ValueKey('gold-market-result')));
       expect(find.text('30,000,000'), findsOneWidget);

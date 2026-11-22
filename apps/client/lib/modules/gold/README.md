@@ -140,8 +140,8 @@ No schema migration or changes to existing `quote` snapshots are required.
   while the signed monetary difference remains visible.
 - Typed Latin/Persian/Arabic digits and `.`/`٫` work. Malformed/negative and
   excessive precision are rejected; empty optional charges mean zero.
-  Commas remain rejected to avoid guessing decimal vs grouping conventions.
-  Reopened fields use ungrouped, symbol-free exact text.
+  Monetary fields group thousands on edit and on reopen. Commas are accepted
+  as thousands marks when correctly placed.
 - The quote day is entered as civil `YYYY-MM-DD` (Persian digits normalize)
   or picked from the shared module calendar, which writes the same civil
   day into the field. Every date a person reads — the detail sheet, both

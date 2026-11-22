@@ -45,8 +45,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   String? _categoryFilter;
   bool _searching = false;
   final _search = TextEditingController();
-  final _min = TextEditingController();
-  final _max = TextEditingController();
+  final _min = NexMoneyController();
+  final _max = NexMoneyController();
 
   /// Captured once per open: a month is computed from the day the module
   /// was opened, not against a ticking clock.

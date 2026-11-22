@@ -73,8 +73,10 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
   late final TextEditingController _label = TextEditingController(
     text: widget.existing?.label ?? '',
   );
-  late final TextEditingController _price = TextEditingController(
-    text: widget.priceEntry ? '' : initialPriceText(widget.existing),
+  late final _price = lensMoneyController(
+    widget.priceEntry ? '' : initialPriceText(widget.existing),
+    widget.existing,
+    widget.priceEntry ? null : widget.existing?.priceMinor,
   );
   late final TextEditingController _quantity = TextEditingController(
     text: initialQuantityText(widget.existing),
@@ -85,11 +87,15 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
   late final TextEditingController _paidCount = TextEditingController(
     text: '${widget.existing?.paidCount ?? ''}',
   );
-  late final TextEditingController _discount = TextEditingController(
-    text: initialDiscountText(widget.existing, _currency.exponent),
+  late final _discount = lensMoneyController(
+    initialDiscountText(widget.existing, _currency.exponent),
+    widget.existing,
+    widget.existing?.discountMinor,
   );
-  late final TextEditingController _shipping = TextEditingController(
-    text: initialShippingText(widget.existing, _currency.exponent),
+  late final _shipping = lensMoneyController(
+    initialShippingText(widget.existing, _currency.exponent),
+    widget.existing,
+    widget.existing?.shippingMinor,
   );
 
   late final _product = TextEditingController(

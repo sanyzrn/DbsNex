@@ -113,7 +113,10 @@ class GoldMarketPanelState extends State<GoldMarketPanel> {
       'meltQuote',
       'meltGram',
     ])
-      key: TextEditingController(),
+      key: switch (key) {
+        'sellWeight' || 'deduction' || 'meltWeight' => TextEditingController(),
+        _ => NexMoneyController(),
+      },
   };
   late final FormDraft _draft;
 

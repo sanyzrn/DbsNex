@@ -58,21 +58,21 @@ class MedicineFields {
     ),
   );
 
-  /// A number field: left to right, digits only expected, but the reader
-  /// accepts Persian digits too.
+  /// A left-to-right number field, with an optional decimal key.
   static Widget number({
     Key? fieldKey,
     required TextEditingController controller,
     required String label,
     String? hint,
     String? helper,
+    bool decimal = false,
     ValueChanged<String>? onChanged,
   }) => TextField(
     key: fieldKey,
     controller: controller,
     textDirection: TextDirection.ltr,
     textAlign: TextAlign.start,
-    keyboardType: TextInputType.number,
+    keyboardType: TextInputType.numberWithOptions(decimal: decimal),
     onChanged: onChanged,
     decoration: InputDecoration(
       labelText: label,

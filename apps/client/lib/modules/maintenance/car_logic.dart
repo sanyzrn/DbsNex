@@ -98,7 +98,7 @@ String formatToman(int rial, {required bool persian}) {
 /// 125,000 rials; more than one decimal of a toman cannot be a rial amount,
 /// so it is refused instead of rounded.
 int? rialFromTomanInput(String input) {
-  final milli = parseMeterInput(input);
+  final milli = parseMeterInput(nexUngroupMoney(input));
   if (milli == null || milli % 100 != 0) return null;
   return milli ~/ 100;
 }
