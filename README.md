@@ -246,6 +246,7 @@ two are worth knowing where to find.
 | [`10-decisions.md`](./docs/10-decisions.md) | Decision log (`ADR-0nn`) — why things are the way they are |
 | [`11-roadmap-2.0.md`](./docs/11-roadmap-2.0.md) | The roadmap (Persian): what is next, what 2.0 is, ideas, and the owner's open decisions. What shipped is in `CHANGELOG.md` |
 | [`31-2.6.23-audit-and-roadmap.md`](./docs/31-2.6.23-audit-and-roadmap.md) | The whole-product audit of 2.6.23: the verified baseline, what changed, what was measured and left alone, and what is next |
+| [`33-family-fund-audit.md`](./docs/33-family-fund-audit.md) | The family-fund module audit: effective-dated shares, the one draw sheet, member history, fixed reminder text, tests and remaining limits |
 | [`13-sponsor-card.md`](./docs/13-sponsor-card.md) | Publishing the timeline's one sponsor card (`banner.example.json`) |
 | [`brand/`](./docs/brand) | Logo, logotype, icon and splash artwork; `tools/generate_brand_assets.py` builds the app's pictures from it |
 

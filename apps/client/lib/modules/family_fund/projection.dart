@@ -13,20 +13,13 @@ class FundDues {
   List<ModuleDue> forMonth(NexModuleMonth month) {
     final key = dayKey(month.first);
     final drawDone = fund.winner(month) != null;
+    final share = fund.shareFor(month);
+    final active = month.first.isBefore(fund.start.first)
+        ? const <Fields>[]
+        : fund.active(month);
     return [
-      if (!month.first.isBefore(fund.start.first)) ...[
-        for (final m in fund.active(month))
-          ModuleDue(
-            id: 'payment:${fund.id}:$key:${m['id']}',
-            recordKind: 'fund',
-            recordId: fund.id,
-            at: dueDay(month, fund.paymentDay),
-            title: nameOf(m),
-            kind: 'fund-contribution',
-            amountRial: fund.shareRial * (m['shares'] as int),
-            done: fund.payment(month, m['id']) != null,
-            private: true,
-          ),
+      if (active.isNotEmpty) ...[
+        for (final m in active) _contribution(month, key, m, share),
         ModuleDue(
           id: 'draw:${fund.id}:$key',
           recordKind: 'fund',
@@ -54,6 +47,28 @@ class FundDues {
               private: true,
             ),
     ];
+  }
+
+  ModuleDue _contribution(
+    NexModuleMonth month,
+    String key,
+    Fields member,
+    int share,
+  ) {
+    final payment = fund.payment(month, member['id']);
+    return ModuleDue(
+      id: 'payment:${fund.id}:$key:${member['id']}',
+      recordKind: 'fund',
+      recordId: fund.id,
+      at: dueDay(month, fund.paymentDay),
+      title: nameOf(member),
+      kind: 'fund-contribution',
+      amountRial: payment == null
+          ? share * (member['shares'] as int)
+          : payment['amountRial'] as int,
+      done: payment != null,
+      private: true,
+    );
   }
 
   List<ModuleDue> duesBetween(DateTime from, DateTime to) {

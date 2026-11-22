@@ -72,6 +72,15 @@ void main() {
       0,
     );
     expect(nexPersianDate(esfand).month, 12);
+
+    final first = FundReminderUpkeep.nextRing(
+      now,
+      5,
+      9,
+      30,
+      firstMonth: const NexModuleMonth(true, 1405, 11),
+    );
+    expect(first, _j(1405, 11, 5, 9).add(const Duration(minutes: 30)));
   });
 
   test('a passed alert rolls on; a cleared one, today’s, and one for '
@@ -92,5 +101,9 @@ void main() {
     expect(nexPersianDate(next).day, 30);
     expect(next.hour, 9);
     expect(store.bodies['fund-contribution:x'], contains('Family'));
+    expect(
+      store.bodies['fund-contribution:x'],
+      contains(nexReadableDate(next, solar: true, persian: true, time: true)),
+    );
   });
 }

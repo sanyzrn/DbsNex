@@ -2,7 +2,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'model.dart';
 import 'strings.dart';
-import 'fund_text.dart';
+import 'reminder.dart';
 
 /// Keeps a fund manager's two alerts monthly (2.8.4).
 ///
@@ -20,15 +20,24 @@ abstract final class FundReminderUpkeep {
 
   /// The next [day] of a fund month at [hour]:[minute] that is still ahead
   /// of [now].
-  static DateTime nextRing(DateTime now, int day, int hour, int minute) {
+  static DateTime nextRing(
+    DateTime now,
+    int day,
+    int hour,
+    int minute, {
+    NexModuleMonth? firstMonth,
+  }) {
     var month = fundMonth(now);
-    for (var i = 0; i < 3; i++, month = month.shift(1)) {
-      final date = dueDay(month, day);
-      final at = DateTime(date.year, date.month, date.day, hour, minute);
-      if (at.isAfter(now)) return at;
+    if (firstMonth != null && month.first.isBefore(firstMonth.first)) {
+      month = firstMonth;
     }
-    final date = dueDay(month, day);
-    return DateTime(date.year, date.month, date.day, hour, minute);
+    DateTime inMonth(NexModuleMonth month) {
+      final date = dueDay(month, day);
+      return DateTime(date.year, date.month, date.day, hour, minute);
+    }
+
+    final at = inMonth(month);
+    return at.isAfter(now) ? at : inMonth(month.shift(1));
   }
 
   static Future<void> roll(
@@ -53,7 +62,13 @@ abstract final class FundReminderUpkeep {
       // shade, and moving it the same day would only confuse.
       if (!rang.isBefore(today)) continue;
       final day = label == 'payReminder' ? fund.paymentDay : fund.drawDay;
-      final next = nextRing(at, day, rang.hour, rang.minute);
+      final next = nextRing(
+        at,
+        day,
+        rang.hour,
+        rang.minute,
+        firstMonth: fund.start,
+      );
       final title = fundStrings.text(l10n, label, {'fund': fund.name});
       final persian = l10n.localeName.startsWith('fa');
       await store.setReminder(
@@ -62,8 +77,7 @@ abstract final class FundReminderUpkeep {
         sourceId: fund.id,
         at: next,
         title: title,
-        body:
-            '$title${fundSepFor(persian: persian)}${nexReadableDate(next, solar: true, persian: persian)}',
+        body: fundReminderBody(title, next, persian: persian),
       );
     }
   }

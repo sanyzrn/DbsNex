@@ -6,6 +6,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.8.13
 
+- **Family fund improvements.** Change the monthly share from a chosen month, draw and redraw in one sheet, view member history and overdue contributions, and copy or share a monthly report.
 - **Code colours across a whole snippet.** Template literals that span lines and Dart raw strings keep the right colour, so the rest of the file is no longer coloured as if it were part of them.
 - **Code notes in the home-screen widget.** The Text and Code filters now match what each card shows, and a long preview never cuts a character in half.
 - **Smaller fixes.** A reminder set while writing code is kept if the sheet closes mid-save, trailing blank lines after a fence still read as a snippet, a new PDF opens unzoomed, rapid taps on a recording leave no second player behind, and loading an older Gold quote clears fields that no longer apply.

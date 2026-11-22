@@ -3,11 +3,11 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'amount_field.dart';
 import 'draft_guard.dart';
+import 'fund_text.dart';
 import 'irr_unit.dart';
 import 'model.dart';
 import 'money_format.dart';
 import 'strings.dart';
-import 'fund_text.dart';
 
 Future<void> openFundEditor(
   BuildContext context,
@@ -20,6 +20,8 @@ Future<void> openFundEditor(
   NexModuleMonth? initial,
   String? description,
   IrrUnit unit = IrrUnit.toman,
+  Map<String, String> initialValues = const {},
+  String? monthLabel,
 }) => nexShowSheet<void>(
   context: context,
   dismissible: false,
@@ -34,6 +36,8 @@ Future<void> openFundEditor(
     save: save,
     initial: initial,
     unit: unit,
+    initialValues: initialValues,
+    monthLabel: monthLabel,
   ),
 );
 
@@ -49,6 +53,8 @@ class FundEditor extends StatefulWidget {
     this.initial,
     this.description,
     required this.unit,
+    this.initialValues = const {},
+    this.monthLabel,
   });
   final NexModuleStore store;
   final String keyName, title;
@@ -58,6 +64,8 @@ class FundEditor extends StatefulWidget {
   final Future<void> Function(Fields) save;
   final NexModuleMonth? initial;
   final IrrUnit unit;
+  final Map<String, String> initialValues;
+  final String? monthLabel;
   @override
   State<FundEditor> createState() => _FundEditorState();
 }
@@ -91,6 +99,16 @@ class _FundEditorState extends State<FundEditor> {
   bool loading = true, failed = false, busy = false, committed = false;
   String? error;
 
+  String _monthLabel(BuildContext context) => fundStrings(
+    context,
+    widget.monthLabel ??
+        (widget.fields.contains('shares')
+            ? 'join'
+            : widget.fields.contains('count')
+            ? 'repayStart'
+            : 'start'),
+  );
+
   @override
   void initState() {
     super.initState();
@@ -115,6 +133,13 @@ class _FundEditorState extends State<FundEditor> {
               ? ''
               : amountInput(amount, 'IRR', 0, widget.unit);
         }
+      }
+    } else {
+      // What the record already holds, so correcting it opens a filled form
+      // rather than an empty one that would erase what is not retyped.
+      for (final entry in widget.initialValues.entries) {
+        final controller = controllers[entry.key];
+        if (controller != null) controller.text = entry.value;
       }
     }
     setState(() {
@@ -215,7 +240,20 @@ class _FundEditorState extends State<FundEditor> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               if (widget.description case final description?)
-                                Text(description),
+                                Padding(
+                                  padding: const EdgeInsetsDirectional.only(
+                                    bottom: NexSpacing.sm,
+                                  ),
+                                  child: Text(
+                                    description,
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                  ),
+                                ),
                               for (final e in controllers.entries)
                                 Padding(
                                   padding: const EdgeInsets.only(
@@ -266,11 +304,7 @@ class _FundEditorState extends State<FundEditor> {
                                     Icons.calendar_month_outlined,
                                   ),
                                   label: Text(
-                                    '${s(context, widget.fields.contains('shares')
-                                        ? 'join'
-                                        : widget.fields.contains('count')
-                                        ? 'repayStart'
-                                        : 'start')}${fundSep(context)}${month!.title(context)}',
+                                    '${_monthLabel(context)}${fundSep(context)}${month!.title(context)}',
                                   ),
                                   onPressed: () async {
                                     final picked = await nexPickModuleDate(

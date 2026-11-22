@@ -142,4 +142,279 @@ void main() {
     expect(summarize(record({...f.body, 'paymentDay': null})), isNull);
     expect(summarize(record({...f.body, 'start': '2025-02-30'})), isNull);
   });
+
+  test('a share change applies from its month and never rewrites the past', () {
+    final f = example(esfand);
+    final later = esfand.shift(2);
+    final body = f.withShare(later, 9000);
+    final changed = Fund('x', body);
+    expect(changed.shareFor(esfand), 5000);
+    expect(changed.shareFor(esfand.shift(1)), 5000);
+    expect(changed.shareFor(later), 9000);
+    expect(changed.potFor(later), 9000 * 6);
+    expect(changed.collectedFor(later), 0);
+    expect(rows(body['shareChanges']), hasLength(1));
+    final back = changed.withShare(later, 5000);
+    expect(rows(back['shareChanges']), isEmpty);
+    expect(Fund('x', back).shareFor(later), 5000);
+    final second = Fund('x', changed.withShare(esfand.shift(4), 12000));
+    expect(second.shareFor(later), 9000);
+    expect(second.shareFor(esfand.shift(4)), 12000);
+    expect(second.shareFor(esfand.shift(5)), 12000);
+  });
+
+  test('share changes keep unknown fields and are validated on read', () {
+    final f = example(esfand);
+    final later = esfand.shift(2);
+    final changed = {
+      ...f.withShare(later, 9000),
+      'futureField': {'kept': true},
+    };
+    expect(changed['futureField'], {'kept': true});
+    final read = Fund.read(record(changed));
+    expect(read, isNotNull);
+    expect(read!.shareChanges.single['shareRial'], 9000);
+    expect(
+      Fund.read(
+        record({
+          ...changed,
+          'shareChanges': [
+            {'from': dayKey(esfand.dayAt(15)), 'shareRial': 9000},
+          ],
+        }),
+      ),
+      isNull,
+    );
+    expect(
+      Fund.read(
+        record({
+          ...changed,
+          'shareChanges': [
+            {'from': dayKey(esfand.first), 'shareRial': 0},
+          ],
+        }),
+      ),
+      isNull,
+    );
+  });
+
+  test('a redundant share entry keeps fields a later version added', () {
+    final f = Fund('x', {
+      ...example(esfand).body,
+      'shareChanges': [
+        <String, Object?>{
+          'from': dayKey(esfand.first),
+          'shareRial': 5000,
+          'note': 'kept',
+        },
+      ],
+    });
+    final changes = rows(f.withShare(esfand, 5000)['shareChanges']);
+    expect(changes, hasLength(1));
+    expect(changes.single['note'], 'kept');
+    expect(changes.single['shareRial'], 5000);
+  });
+
+  test('a fund with no members has neither a contribution nor a draw due', () {
+    final f = Fund('x', {...example(esfand).body, 'members': <Fields>[]});
+    expect(FundDues(f).forMonth(esfand), isEmpty);
+  });
+
+  test('a malformed share change cannot disappear on the next write', () {
+    final f = example(esfand);
+    expect(
+      Fund.read(
+        record({
+          ...f.body,
+          'shareChanges': ['unreadable'],
+        }),
+      ),
+      isNull,
+    );
+  });
+
+  test('dues use the share in force for that month', () {
+    final f = Fund('x', example(esfand).withShare(esfand, 7000));
+    final dues = FundDues(f).forMonth(esfand);
+    expect(
+      dues.where((d) => d.kind == 'fund-contribution').map((d) => d.amountRial),
+      [7000, 14000, 21000],
+    );
+    expect(f.potFor(esfand), 42000);
+  });
+
+  test(
+    'paid dues retain the recorded amount after a backdated share change',
+    () {
+      final f = Fund('x', {
+        ...example(esfand).withShare(esfand, 7000),
+        'payments': [
+          {
+            'member': '0',
+            'month': dayKey(esfand.first),
+            'at': dayKey(esfand.first),
+            'amountRial': 5000,
+          },
+        ],
+      });
+      final dues = FundDues(f).forMonth(esfand);
+      expect(dues.first.done, isTrue);
+      expect(dues.first.amountRial, 5000);
+      expect(dues[1].amountRial, 14000);
+    },
+  );
+
+  test('a round knows who has received the fund and who is still waiting', () {
+    var f = example(esfand);
+    f = Fund(f.id, f.draw(esfand, esfand.first, 'd1', '', Random(0)));
+    f = Fund(
+      f.id,
+      f.draw(esfand.shift(1), esfand.shift(1).first, 'd2', '', Random(1)),
+    );
+    final round = f.roundFor(esfand.shift(2));
+    expect(round.number, 1);
+    expect(round.received, 2);
+    expect(round.total, 3);
+    expect(round.remaining, hasLength(1));
+    expect(round.complete, isFalse);
+    final last = f.draw(
+      esfand.shift(2),
+      esfand.shift(2).first,
+      'd3',
+      '',
+      Random(2),
+    );
+    final full = Fund(f.id, last).roundFor(esfand.shift(2));
+    expect(full.received, 3);
+    expect(full.remaining, isEmpty);
+    expect(full.complete, isTrue);
+    expect(Fund(f.id, last).roundFor(esfand.shift(3)).number, 2);
+  });
+
+  test('round progress for a past month excludes later draws', () {
+    final first = example(esfand);
+    final second = Fund(
+      first.id,
+      first.draw(esfand, esfand.first, 'first', '', Random(0)),
+    );
+    final later = esfand.shift(2);
+    final f = Fund(
+      second.id,
+      second.draw(later, later.first, 'later', '', Random(0)),
+    );
+    for (final month in [esfand, esfand.shift(1)]) {
+      final round = f.roundFor(month);
+      expect(round.number, 1);
+      expect(round.winners.map((draw) => draw['id']), ['first']);
+      expect(round.remaining, hasLength(2));
+    }
+  });
+
+  test('a draw snapshot keeps every eligible member and their shares', () {
+    final f = Fund(
+      'x',
+      example(esfand).draw(esfand, esfand.first, 'd1', '', Random(0)),
+    );
+    final pool = rows(f.draws.single['eligible']);
+    expect(pool, hasLength(3));
+    expect(pool.every((member) => member['shares'] is int), isTrue);
+    expect(pool.every((member) => member['person'] is Map), isTrue);
+  });
+
+  test(
+    'unpaid months are counted only once their contribution day has gone',
+    () {
+      final f = example(esfand);
+      final due = esfand.dayAt(30);
+      expect(f.arrearsFor(f.members.first, due), isEmpty);
+      final after = due.add(const Duration(days: 1));
+      expect(f.arrearsFor(f.members.first, after).map((a) => a.amountRial), [
+        5000,
+      ]);
+      expect(f.arrearsFor(f.members.last, after).map((a) => a.amountRial), [
+        15000,
+      ]);
+      final paid = Fund(f.id, {
+        ...f.body,
+        'payments': [
+          <String, Object?>{
+            'member': '0',
+            'month': dayKey(esfand.first),
+            'at': dayKey(esfand.first),
+            'amountRial': 5000,
+          },
+        ],
+      });
+      expect(paid.arrearsFor(paid.members.first, after), isEmpty);
+      expect(paid.arrearsFor(paid.members[1], after), hasLength(1));
+    },
+  );
+
+  test('a payout day may not be left with less than no cash', () {
+    final base = example(esfand);
+    final drawn = Fund(
+      'x',
+      base.draw(esfand, esfand.first, 'd1', '', Random(1)),
+    );
+    final payment = <String, Object?>{
+      'member': '0',
+      'month': dayKey(esfand.first),
+      'at': dayKey(esfand.first),
+      'amountRial': 5000,
+    };
+    final loan = <String, Object?>{
+      'draw': 'd1',
+      'at': dayKey(esfand.first),
+      'amountRial': 1001,
+      'person': {'name': 'Ali'},
+      'instalments': instalments(1001, 1, esfand.shift(1), 31),
+    };
+    final sound = Fund('x', {
+      ...drawn.body,
+      'payments': [payment],
+      'loans': [loan],
+    });
+    expect(sound.keepsLedgerSound(sound.body), isTrue);
+    expect(
+      sound.keepsLedgerSound({
+        ...drawn.body,
+        'payments': <Fields>[],
+        'loans': [loan],
+      }),
+      isFalse,
+    );
+  });
+
+  test('a stored month must be the first day of its own month', () {
+    final f = example(esfand);
+    final middle = dayKey(esfand.dayAt(15));
+    expect(
+      Fund.read(
+        record({
+          ...f.body,
+          'payments': [
+            <String, Object?>{
+              'member': '0',
+              'month': middle,
+              'at': dayKey(esfand.first),
+              'amountRial': 5000,
+            },
+          ],
+        }),
+      ),
+      isNull,
+    );
+    expect(
+      Fund.read(
+        record({
+          ...f.body,
+          'members': [
+            for (final member in f.members)
+              member['id'] == '0' ? {...member, 'from': middle} : member,
+          ],
+        }),
+      ),
+      isNull,
+    );
+  });
 }

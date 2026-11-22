@@ -17,7 +17,7 @@ class FamilyFundModule extends NexStoredModule {
   @override
   IconData get icon => Icons.groups_outlined;
   @override
-  NexHue get hue => NexHue.teal;
+  NexHue get hue => NexHue.rose;
   @override
   NexModuleStrings get strings => fundStrings;
   @override

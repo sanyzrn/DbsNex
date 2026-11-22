@@ -6,18 +6,18 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'editor.dart';
+import 'fund_text.dart';
 import 'irr_unit.dart';
 import 'model.dart';
 import 'money_format.dart';
-import 'projection.dart';
 import 'reminder.dart';
-import 'screen.dart' show between;
 import 'strings.dart';
-import 'fund_text.dart';
 
 part 'detail_actions.dart';
-part 'detail_views.dart';
+part 'detail_draw.dart';
+part 'detail_member.dart';
 part 'detail_report.dart';
+part 'detail_views.dart';
 
 class FundDetail extends StatefulWidget {
   const FundDetail({super.key, required this.store, required this.initial});
@@ -37,6 +37,7 @@ class _FundDetailState extends State<FundDetail> {
   bool hidden = false, busy = false;
   IrrUnit unit = IrrUnit.toman;
   final scroll = ScrollController();
+  final expandedLoans = <String>{};
   String s(String key, [Fields args = const {}]) =>
       fundStrings(context, key, args);
   String date(DateTime value) => nexReadableDate(
@@ -48,11 +49,15 @@ class _FundDetailState extends State<FundDetail> {
       ? s('masked')
       : formatAmount(value, 'IRR', 0, NexModuleStrings.persian(context), unit);
   bool get future => month.first.isAfter(now);
-  String get key => dayKey(month.first);
+  bool get started => !month.first.isBefore(fund.start.first);
+  int get monthShare => fund.shareFor(month);
   Fields? get winner => fund.winner(month);
-  String winnerName(Fields draw) => nameOf(
-    rows(draw['eligible']).firstWhere((e) => e['id'] == draw['winner']),
-  );
+  String winnerName(Fields draw) {
+    final found = rows(draw['eligible'])
+        .where((e) => e['id'] == draw['winner'])
+        .firstOrNull;
+    return found == null ? s('none') : nameOf(found);
+  }
 
   @override
   void dispose() {
@@ -88,23 +93,26 @@ class _FundDetailState extends State<FundDetail> {
     }
   }
 
-  Future<void> update(Fields next, {bool undo = false}) async {
+  Future<void> update(Fields next, {bool undo = false, String? message}) async {
     final before = fund.body;
     try {
       await write(next);
-      if (mounted && undo) {
+      if (!mounted) return;
+      if (undo || message != null) {
         nexShowBanner(
           context,
-          message: s('updated'),
-          actionLabel: s('undo'),
-          onAction: () async {
-            if (!mounted) return;
-            if (!identical(fund.body, next)) {
-              nexShowBanner(context, message: s('undoFailed'));
-              return;
-            }
-            await update(before);
-          },
+          message: message ?? s('updated'),
+          actionLabel: undo ? s('undo') : null,
+          onAction: undo
+              ? () async {
+                  if (!mounted) return;
+                  if (!identical(fund.body, next)) {
+                    nexShowBanner(context, message: s('undoFailed'));
+                    return;
+                  }
+                  await update(before);
+                }
+              : null,
         );
       }
     } on Object {
@@ -117,6 +125,11 @@ class _FundDetailState extends State<FundDetail> {
       }
     }
   }
+
+  void changeMonth(NexModuleMonth next) => paint(() {
+    month = next;
+    now = DateTime.now();
+  });
 
   @override
   Widget build(BuildContext context) => NexModuleCalendar(
@@ -135,16 +148,38 @@ class _FundDetailState extends State<FundDetail> {
             ),
           ),
           IconButton(
-            tooltip: s(unit == IrrUnit.toman ? 'rial' : 'toman'),
-            onPressed: () => paint(
-              () => unit = unit == IrrUnit.toman ? IrrUnit.rial : IrrUnit.toman,
-            ),
-            icon: const Icon(Icons.swap_horiz),
-          ),
-          IconButton(
             tooltip: s('report'),
             onPressed: () => unawaited(report()),
             icon: const Icon(Icons.ios_share),
+          ),
+          NexPopupMenuButton<String>(
+            tooltip: MaterialLocalizations.of(context).showMenuTooltip,
+            enabled: !busy,
+            icon: const Icon(Icons.more_vert),
+            onSelected: (action) {
+              switch (action) {
+                case 'edit':
+                  unawaited(editFund());
+                case 'unit':
+                  paint(
+                    () => unit = unit == IrrUnit.toman
+                        ? IrrUnit.rial
+                        : IrrUnit.toman,
+                  );
+              }
+            },
+            itemBuilder: (_) => [
+              nexMenuItem(
+                value: 'edit',
+                icon: Icons.edit_outlined,
+                label: s('editFund'),
+              ),
+              nexMenuItem(
+                value: 'unit',
+                icon: Icons.swap_horiz,
+                label: s(unit == IrrUnit.toman ? 'rial' : 'toman'),
+              ),
+            ],
           ),
         ],
       ),
