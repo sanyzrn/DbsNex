@@ -203,7 +203,7 @@ extension _TimelineRows on TimelineScreenState {
     if (!mounted) return;
     final kind = _model.lastChange;
     if (kind == TimelineChange.folds) {
-      _rebuild(() {});
+      _groupFoldPulse.value++;
       return;
     }
     if (kind == TimelineChange.notes) _fadeOnViewChange();

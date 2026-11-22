@@ -4,6 +4,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Faster timeline groups.** Open and close date, note-type and tag groups more smoothly in both the list and the grid.
+
 ## v2.8.14
 
 - **Cycle calendar and logging.** Log today’s flow in one tap, see estimates in upcoming months and correct past periods without losing the edit if dates overlap.

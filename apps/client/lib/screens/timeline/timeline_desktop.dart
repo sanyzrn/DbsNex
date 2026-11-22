@@ -14,58 +14,54 @@ extension _TimelineDesktop on TimelineScreenState {
         SliverPadding(
           key: ValueKey(group.key),
           padding: const EdgeInsets.symmetric(horizontal: _desktopGutter),
-          sliver: SliverMainAxisGroup(
-            slivers: [
-              SliverToBoxAdapter(
-                child: _groupHeading(group, groups, l10n, compact: true),
-              ),
-              if (_showGroupBody(group))
-                _groupBody(
-                  group,
-                  SliverMainAxisGroup(
-                    slivers: [
-                      if (group.notes.isNotEmpty)
-                        SliverGrid.builder(
-                          gridDelegate:
-                              const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 340,
-                                mainAxisExtent: NexDesktopNoteCard.height,
-                                crossAxisSpacing: 14,
-                                mainAxisSpacing: 14,
-                              ),
-                          itemCount: group.notes.length,
-                          itemBuilder: (context, i) {
-                            final note = group.notes[i];
-                            return NexTapGuarded(
-                              controller: _guard,
-                              child: NoteContextMenu(
-                                key: ValueKey('menu-${note.id}'),
-                                entriesBuilder: (menuContext, width) =>
-                                    _holdEntries(note, menuContext, width),
-                                onHold: _selecting
-                                    ? () => _pickNote(note)
-                                    : null,
-                                child: NexDesktopNoteCard(
-                                  note: note,
-                                  strings: strings,
-                                  onTap: () => _tapNote(note),
-                                  selected: _selecting
-                                      ? _selected.contains(note.id)
-                                      : null,
-                                  ringing: widget.services.ringing.value
-                                      .contains(note.id),
-                                ),
-                              ),
-                            );
-                          },
+          sliver: _GroupSliver(
+            screen: this,
+            group: group,
+            folds: _groupFoldPulse,
+            heading: () => _groupHeading(group, groups, l10n, compact: true),
+            body: () => SliverMainAxisGroup(
+              slivers: [
+                if (group.notes.isNotEmpty)
+                  SliverGrid.builder(
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 340,
+                          mainAxisExtent: NexDesktopNoteCard.height,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
                         ),
-                      if (!group.complete)
-                        SliverToBoxAdapter(child: _shelfMore(group, l10n)),
-                    ],
+                    itemCount: group.notes.length,
+                    itemBuilder: (context, i) {
+                      final note = group.notes[i];
+                      return NexTapGuarded(
+                        controller: _guard,
+                        child: NoteContextMenu(
+                          key: ValueKey('menu-${note.id}'),
+                          entriesBuilder: (menuContext, width) =>
+                              _holdEntries(note, menuContext, width),
+                          onHold: _selecting ? () => _pickNote(note) : null,
+                          child: NexDesktopNoteCard(
+                            note: note,
+                            strings: strings,
+                            onTap: () => _tapNote(note),
+                            selected: _selecting
+                                ? _selected.contains(note.id)
+                                : null,
+                            ringing: widget.services.ringing.value.contains(
+                              note.id,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                ),
-              const SliverToBoxAdapter(child: SizedBox(height: NexSpacing.lg)),
-            ],
+                if (!group.complete)
+                  SliverToBoxAdapter(child: _shelfMore(group, l10n)),
+              ],
+            ),
+            tail: const SliverToBoxAdapter(
+              child: SizedBox(height: NexSpacing.lg),
+            ),
           ),
         ),
     ];

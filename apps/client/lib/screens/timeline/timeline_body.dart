@@ -319,13 +319,13 @@ extension _TimelineBody on TimelineScreenState {
       return;
     }
     if (!mounted || !identical(_groupFolds[key], progress)) return;
-    _rebuild(() => _groupFolds.remove(key));
+    // The settled group's reveal hands back to the viewport's own layout,
+    // and its scope drops the body it was holding open. Only that group's
+    // own sliver hears this — no card anywhere rebuilds for a fold settling.
+    _groupFolds.remove(key);
+    _groupFoldPulse.value++;
     progress.dispose();
   }
-
-  bool _showGroupBody(_NoteGroup group) =>
-      !_model.collapsedGroups.contains(group.key) ||
-      _groupFolds.containsKey(group.key);
 
   Widget _groupBody(_NoteGroup group, Widget sliver) => _GroupReveal(
     key: ValueKey('group-body-${group.key}'),
@@ -515,13 +515,13 @@ extension _TimelineBody on TimelineScreenState {
         ..._gridSlivers(groups, l10n)
       else ...[
         for (final group in groups)
-          SliverMainAxisGroup(
+          _GroupSliver(
             key: ValueKey(group.key),
-            slivers: [
-              SliverToBoxAdapter(child: _groupHeading(group, groups, l10n)),
-              if (_showGroupBody(group))
-                _groupBody(group, _listSliver(group, l10n, cardStrings)),
-            ],
+            screen: this,
+            group: group,
+            folds: _groupFoldPulse,
+            heading: () => _groupHeading(group, groups, l10n),
+            body: () => _listSliver(group, l10n, cardStrings),
           ),
       ],
       if (_model.notes.isEmpty)

@@ -47,35 +47,32 @@ extension _TimelineGrid on TimelineScreenState {
     );
     return [
       for (final group in groups)
-        SliverMainAxisGroup(
+        _GroupSliver(
           key: ValueKey(group.key),
-          slivers: [
-            SliverToBoxAdapter(child: _groupHeading(group, groups, l10n)),
-            if (_showGroupBody(group))
-              _groupBody(
-                group,
-                SliverMainAxisGroup(
-                  slivers: [
-                    if (group.notes.isNotEmpty)
-                      SliverPadding(
-                        padding: padding,
-                        sliver: SliverGrid.builder(
-                          gridDelegate: NexGridColumnsDelegate(
-                            metrics: metrics,
-                            mainAxisExtent: height,
-                            rows: adaptiveRows(group),
-                          ),
-                          itemCount: group.notes.length,
-                          itemBuilder: (context, i) =>
-                              _gridTile(group.notes[i], strings, l10n, group),
-                        ),
-                      ),
-                    if (!group.complete)
-                      SliverToBoxAdapter(child: _shelfMore(group, l10n)),
-                  ],
+          screen: this,
+          group: group,
+          folds: _groupFoldPulse,
+          heading: () => _groupHeading(group, groups, l10n),
+          body: () => SliverMainAxisGroup(
+            slivers: [
+              if (group.notes.isNotEmpty)
+                SliverPadding(
+                  padding: padding,
+                  sliver: SliverGrid.builder(
+                    gridDelegate: NexGridColumnsDelegate(
+                      metrics: metrics,
+                      mainAxisExtent: height,
+                      rows: adaptiveRows(group),
+                    ),
+                    itemCount: group.notes.length,
+                    itemBuilder: (context, i) =>
+                        _gridTile(group.notes[i], strings, l10n, group),
+                  ),
                 ),
-              ),
-          ],
+              if (!group.complete)
+                SliverToBoxAdapter(child: _shelfMore(group, l10n)),
+            ],
+          ),
         ),
     ];
   }
