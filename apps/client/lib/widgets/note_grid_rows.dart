@@ -244,9 +244,6 @@ class NexGridRows {
 
   bool matches(NexGridRowSizing sizing) => identical(_sizing, sizing);
 
-  double heightAt(int row, double width, {required bool reverseCrossAxis}) =>
-      _layoutFor(width, reverseCrossAxis)._heightAt(row);
-
   _AdaptiveGridLayout _layoutFor(double width, bool reverse) {
     final cached = _cached;
     if (cached != null && cached.width == width && cached.reverse == reverse) {

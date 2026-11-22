@@ -33,196 +33,137 @@ class _NoteGroup {
   final String key;
   final String label;
   final List<Note> notes;
+
+  late final rows = [
+    for (final note in notes)
+      _TimelineRow.note(note, primary: !echoes.contains(note.id)),
+    if (!complete) _TimelineRow.more(this),
+  ];
 }
 
-/// A row in the flattened list: a heading, a note, or a shelf's "See all".
+/// A note or an arranged shelf's "See all", keyed within its group.
 class _TimelineRow {
-  const _TimelineRow.header(this.group)
-    : note = null,
-      groupKey = null,
-      moreOf = null,
-      primary = true,
-      indexInGroup = 0;
-  const _TimelineRow.note(
-    this.note,
-    this.groupKey,
-    this.indexInGroup, {
-    this.primary = true,
-  }) : group = null,
-       moreOf = null;
-  const _TimelineRow.more(_NoteGroup this.moreOf, this.indexInGroup)
-    : group = null,
-      note = null,
-      primary = true,
-      groupKey = null;
+  const _TimelineRow.note(this.note, {required this.primary}) : moreOf = null;
+  const _TimelineRow.more(this.moreOf) : note = null, primary = false;
 
-  /// A note's key names its shelf too when the home is arranged — by tag, the
-  /// same note can be on two — and stays `note-<id>` by day, as it always was.
-  String get key => group != null
-      ? 'group-${group!.key}'
-      : moreOf != null
-      ? 'more-${moreOf!.key}'
-      : groupKey?.contains(':') ?? false
-      ? 'note-$groupKey-${note!.id}'
-      : 'note-${note!.id}';
-
-  final _NoteGroup? group;
   final Note? note;
-
-  /// The shelf whose "See all" this row is.
   final _NoteGroup? moreOf;
-
-  /// Whether this is the note's first appearance — see [_NoteGroup.echoes].
   final bool primary;
 
-  /// Which run this note sits under. Needed only while a group is closing —
-  /// see `_closingGroups`.
-  final String? groupKey;
-
-  /// Where in its run this note is, which sets its place in the fold's
-  /// cascade — see [_FoldingRow.order].
-  final int indexInGroup;
+  String get key => note == null ? 'more' : 'note-${note!.id}';
 }
 
-/// How long a run takes to fold away or open up.
-///
-/// Long enough for the cascade to read as one movement: each row folds over
-/// most of it, a little after the one above — see [_FoldingRow.order].
-const _foldDuration = NexMotion.morph;
-
-/// The total vertical room a group heading claims, split 60/40 above and
-/// below — see `_GroupHeader`.
+/// The total vertical room a group heading claims, split 60/40 above and below.
 const _headerSpace = NexSpacing.lg;
 
-/// One note row, which grows in when its group opens and shrinks out when it
-/// closes.
-///
-/// A `SizeTransition` rather than an `AnimatedSize`, because the two ends are
-/// not symmetrical. A row that has just been inserted has to start closed and
-/// open itself — that is the expand. A row on its way out is still in the list
-/// only because [_TimelineScreenState._toggleGroup] is holding it there for
-/// exactly this animation, and it has to reach zero before the fold commits.
-///
-/// The fade is deliberately faster than the size: content that disappears
-/// before the space does reads as leaving, where the two together read as
-/// being squashed.
-class _FoldingRow extends StatefulWidget {
-  const _FoldingRow({
+/// Reveals the existing lazy sliver from its leading edge. Its cards keep
+/// their own size and state as only the visible extent of the group changes.
+class _GroupReveal extends SingleChildRenderObjectWidget {
+  const _GroupReveal({
     super.key,
-    required this.open,
-    required this.animateIn,
-    required this.child,
-    this.order = 0,
-  });
+    required this.progress,
+    required Widget sliver,
+  }) : super(child: sliver);
 
-  final bool open;
-
-  /// This row's place in its run. The rows of a run used to fold all at once,
-  /// as one block shrinking to nothing; now each starts a beat after the one
-  /// above it, so a day opens like a fan and closes back up into its heading,
-  /// last row first. Capped, so a long run does not keep the last rows
-  /// waiting.
-  final int order;
-
-  /// Whether this row is arriving now, or was already here.
-  ///
-  /// False means "start at full height and stay there". A row that was
-  /// already on screen must not animate itself in when its index shifts —
-  /// see `_openingGroups`.
-  final bool animateIn;
-
-  final Widget child;
+  final Animation<double> progress;
 
   @override
-  State<_FoldingRow> createState() => _FoldingRowState();
+  _RenderGroupReveal createRenderObject(BuildContext context) =>
+      _RenderGroupReveal(progress);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderGroupReveal renderObject,
+  ) {
+    renderObject.progress = progress;
+  }
 }
 
-class _FoldingRowState extends State<_FoldingRow>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
+class _RenderGroupReveal extends RenderProxySliver {
+  _RenderGroupReveal(this._progress);
+
+  Animation<double> _progress;
+
+  set progress(Animation<double> progress) {
+    if (identical(_progress, progress)) return;
+    if (attached) _progress.removeListener(markNeedsLayout);
+    _progress = progress;
+    if (attached) _progress.addListener(markNeedsLayout);
+    markNeedsLayout();
+  }
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: _foldDuration,
-      // Closed only when this row is genuinely arriving. Otherwise it starts
-      // where it already was, which is the difference between one group
-      // opening and every group below it flickering.
-      value: widget.animateIn ? 0 : 1,
-    );
-    if (widget.open) {
-      _controller.forward();
-    } else {
-      // Built already closing: the grid view builds its folding rows only
-      // when a day starts to fold, so a row that is born closed has to fold
-      // from where it was — full height — rather than sit there until the
-      // fold is committed and it vanishes in one frame (2.6.29).
-      _controller.reverse();
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _progress.addListener(markNeedsLayout);
+  }
+
+  @override
+  void detach() {
+    _progress.removeListener(markNeedsLayout);
+    super.detach();
+  }
+
+  @override
+  void performLayout() {
+    final progress = _progress.value;
+    if (progress == 1) {
+      super.performLayout();
+      return;
     }
-  }
-
-  @override
-  void didUpdateWidget(_FoldingRow old) {
-    super.didUpdateWidget(old);
-    if (widget.open == old.open) return;
-    widget.open ? _controller.forward() : _controller.reverse();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Someone who asked for less motion gets none of this: the row is simply
-    // there or not, which is what the setting means.
-    if (MediaQuery.disableAnimationsOf(context)) {
-      return widget.open ? widget.child : const SizedBox.shrink();
-    }
-    final start = (widget.order * 0.07).clamp(0.0, 0.35);
-    // A driven curve, not a [CurvedAnimation]: that one attaches a listener
-    // to the controller, and this is created in build — one leaked listener
-    // per rebuild, kept until the row is disposed.
-    final curved = _controller.drive(
-      // Every row ends with the fold, and the later ones start later — so
-      // opening, the run fans out from the top; closing, every row starts at
-      // once and the lower ones, with less time, are gone first. Nothing
-      // waits before it moves.
-      CurveTween(curve: Interval(start, 1, curve: NexMotion.moveCurve)),
-    );
-    // The size and the look move apart: the space opens on the whole curve,
-    // while the card fades and settles in over its second half — drifting
-    // down a few pixels and up to full size, rather than being uncovered by
-    // a hard edge.
-    final settle = curved.drive(CurveTween(curve: const Interval(0.3, 1)));
-    // A repaint boundary per folding row (F-04): every mounted row folds
-    // at once on a pinch, and without one each row's opacity layer dirties
-    // the viewport's layer too — the measured 761ms trigger frame.
-    return RepaintBoundary(
-      child: SizeTransition(
-        sizeFactor: curved,
-        alignment: Alignment.topCenter,
-        child: AnimatedBuilder(
-          animation: settle,
-          builder: (context, child) => Opacity(
-            opacity: settle.value,
-            child: Transform.translate(
-              offset: Offset(0, -10 * (1 - settle.value)),
-              child: Transform.scale(
-                scale: 0.96 + 0.04 * settle.value,
-                alignment: Alignment.topCenter,
-                child: child,
-              ),
-            ),
-          ),
-          child: widget.child,
+    // There is no need to animate the unseen tail of a long group. The
+    // viewport's remaining space is revealed gradually, without prebuilding
+    // the rows that ordinarily sit in the scroll cache.
+    final budget = constraints.scrollOffset + constraints.remainingPaintExtent;
+    final end = budget * progress;
+    child!.layout(
+      constraints.copyWith(
+        remainingPaintExtent: calculatePaintOffset(
+          constraints,
+          from: 0,
+          to: end,
+        ),
+        remainingCacheExtent: calculateCacheOffset(
+          constraints,
+          from: 0,
+          to: end,
         ),
       ),
+      parentUsesSize: true,
     );
+    final childGeometry = child!.geometry!;
+    if (childGeometry.scrollOffsetCorrection case final correction?) {
+      geometry = SliverGeometry(scrollOffsetCorrection: correction);
+      return;
+    }
+    final extent = math.min(childGeometry.scrollExtent, budget) * progress;
+    final paint = calculatePaintOffset(constraints, from: 0, to: extent);
+    geometry = SliverGeometry(
+      scrollExtent: extent,
+      paintExtent: math.min(paint, childGeometry.paintExtent),
+      maxPaintExtent: extent,
+      cacheExtent: calculateCacheOffset(constraints, from: 0, to: extent),
+      hasVisualOverflow: true,
+    );
+  }
+
+  // Timeline groups are vertical. Clipping the trailing edge leaves the
+  // cards' own layout alone and bounds both painting and their semantics.
+  Rect get _clip =>
+      Rect.fromLTWH(0, 0, constraints.crossAxisExtent, geometry!.paintExtent);
+
+  @override
+  Rect? describeApproximatePaintClip(RenderObject child) =>
+      _progress.value == 1 ? null : _clip;
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    if (_progress.value == 1) {
+      super.paint(context, offset);
+    } else {
+      context.pushClipRect(needsCompositing, offset, _clip, super.paint);
+    }
   }
 }
 
@@ -384,7 +325,7 @@ class _GroupHeader extends StatelessWidget {
                                 ? 0.25
                                 : -0.25)
                           : 0,
-                      duration: NexMotion.standard,
+                      duration: NexMotion.of(context, NexMotion.standard),
                       curve: NexMotion.curve,
                       child: Icon(
                         Icons.expand_more,

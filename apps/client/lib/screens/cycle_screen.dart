@@ -13,6 +13,7 @@ import '../widgets/nex_time_picker.dart';
 import 'cycle/cycle_calendar.dart';
 import 'cycle/cycle_day_sheet.dart';
 import 'cycle/cycle_format.dart';
+import 'cycle/cycle_insights.dart';
 import 'cycle/cycle_report_screen.dart';
 import 'cycle/cycle_ring.dart';
 import 'cycle/cycle_settings_sheet.dart';
@@ -63,7 +64,8 @@ class _CycleScreenState extends State<CycleScreen> {
 
   /// The latest positive ovulation test in the current cycle, if any.
   CycleDate? _positiveTest;
-  late (DateTime, DateTime) _month;
+  int _reads = 0;
+  int _quickRevision = 0;
 
   /// The day "Still going" was answered for a period left open, so the
   /// question is not asked again until tomorrow.
@@ -76,27 +78,48 @@ class _CycleScreenState extends State<CycleScreen> {
   @override
   void initState() {
     super.initState();
-    final t = _today;
-    // Wide enough for either calendar's month around today; the calendar
-    // narrows it as soon as it is turned.
-    _month = (
-      t.subtract(const Duration(days: 40)),
-      t.add(const Duration(days: 40)),
-    );
     unawaited(_reload());
   }
 
   Future<void> _reload() async {
+    final read = ++_reads;
+    await _quickWrites;
+    if (!mounted || read != _reads) return;
+    final revision = _quickRevision;
+    final day = _today;
+    final today = CycleDate.of(day);
     final periods = await _services.cyclePeriods();
-    final prediction = await _services.cyclePrediction(today: _today);
-    final days = await _services.cycleDays(_month.$1, _month.$2);
-    final todayLog = (await _services.cycleDays(_today, _today)).firstOrNull;
-    final allLogs = await _services.cycleDays(DateTime(2000), _today);
-    if (!mounted) return;
+    // From the periods just read, rather than a second call that reads them
+    // again.
+    final prediction = CyclePredictor.predict(
+      periods: periods,
+      today: today,
+      typicalCycle: widget.preferences.cycleTypicalLength,
+      typicalPeriod: widget.preferences.cycleTypicalPeriod,
+    );
+    // Reuse the date keys for every calendar month.
+    final allLogs = await _services.cycleDays(DateTime(1900), day);
+    if (!mounted || read != _reads) return;
+    final logged = {for (final log in allLogs) log.day};
+    CycleDayLog? todayLog;
+    for (final log in allLogs) {
+      if (log.day == today) {
+        todayLog = log;
+        break;
+      }
+    }
+    if (revision != _quickRevision) {
+      todayLog = _todayLog;
+      if (todayLog != null) {
+        logged.add(todayLog.day);
+      } else {
+        logged.remove(today);
+      }
+    }
     setState(() {
       _periods = periods;
       _prediction = prediction;
-      _logged = {for (final d in days) d.day};
+      _logged = logged;
       _todayLog = todayLog;
       _patterns = CyclePatterns.find(periods: periods, logs: allLogs);
       final since = prediction?.lastStart;
@@ -165,6 +188,8 @@ class _CycleScreenState extends State<CycleScreen> {
       );
 
   Future<void> _openDay(DateTime day) async {
+    await _quickWrites;
+    if (!mounted) return;
     final saved = await CycleDaySheet.show(
       context,
       services: _services,
@@ -176,10 +201,62 @@ class _CycleScreenState extends State<CycleScreen> {
   }
 
   /// Today's mood from the quick row, kept with whatever else today holds.
-  Future<void> _quickMood(CycleMood? mood) async {
-    final log = _todayLog ?? CycleDayLog(day: CycleDate.of(_today));
-    await _services.cycleSaveDay(log.copyWith(mood: () => mood));
-    await _changed();
+  Future<void> _quickMood(CycleMood? mood) =>
+      _quickSave((log) => log.copyWith(mood: () => mood));
+
+  /// Today's flow, the other thing most days are noted for.
+  Future<void> _quickFlow(CycleFlow? flow) =>
+      _quickSave((log) => log.copyWith(flow: () => flow));
+
+  /// The last quick write, so two taps in a row are applied in order.
+  Future<void> _quickWrites = Future<void>.value();
+
+  /// Saves today's quick note without reading the library again.
+  ///
+  /// A mood or a flow changes nothing a prediction or an alarm is made from,
+  /// so one tap must not cost five database reads and a re-arm of every
+  /// alarm — which is what reloading the whole page for it did. The change
+  /// is applied to today's log as it stands when the write runs, not as it
+  /// stood when the finger landed, so a mood followed quickly by a flow
+  /// keeps both.
+  Future<void> _quickSave(CycleDayLog Function(CycleDayLog log) change) {
+    final day = _today;
+    final date = CycleDate.of(day);
+    _quickWrites = _quickWrites
+        .then((_) async {
+          final existing = _todayLog;
+          final log = change(
+            existing?.day == date
+                ? existing!
+                : (await _services.cycleDays(day, day)).firstOrNull ??
+                      CycleDayLog(day: date),
+          );
+          await _services.cycleSaveDay(log);
+          if (!mounted) return;
+          setState(() {
+            _quickRevision++;
+            if (date == CycleDate.of(_today)) {
+              _todayLog = log.isEmpty ? null : log;
+            }
+            // The calendar's dot for today follows at once, not at the next
+            // visit to the page.
+            if (log.isEmpty) {
+              _logged = {..._logged}..remove(log.day);
+            } else {
+              _logged = {..._logged, log.day};
+            }
+          });
+        })
+        .catchError((Object _) {
+          if (mounted) {
+            nexShowBanner(
+              context,
+              message: AppLocalizations.of(context).cycleWriteFailed,
+              kind: NexBannerKind.failed,
+            );
+          }
+        });
+    return _quickWrites;
   }
 
   /// "Yes, it ended": on the day it would usually have ended, unless a
@@ -227,9 +304,8 @@ class _CycleScreenState extends State<CycleScreen> {
         centerTitle: true,
         title: Text(
           l10n.cycleTitle,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(letterSpacing: 0.4),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(letterSpacing: 0.4),
         ),
         actions: [
           if (widget.preferences.cycleSetUp)
@@ -338,14 +414,7 @@ class _CycleScreenState extends State<CycleScreen> {
       ),
     };
 
-    final todaySummary = _todayLog == null
-        ? l10n.cycleNothingLogged
-        : [
-            if (_todayLog!.flow != null) cycleFlowLabel(l10n, _todayLog!.flow),
-            if (_todayLog!.mood != null) cycleMoodLabel(l10n, _todayLog!.mood!),
-            for (final s in _todayLog!.symptoms.take(3))
-              cycleSymptomLabel(l10n, s),
-          ].join(' · ');
+    final intervals = CyclePredictor.intervals(_periods);
 
     return RefreshIndicator(
       onRefresh: _reload,
@@ -574,44 +643,11 @@ class _CycleScreenState extends State<CycleScreen> {
               ),
             ),
           const SizedBox(height: NexSpacing.sm),
-          CycleCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                ListTile(
-                  key: const ValueKey('cycle-log-today'),
-                  contentPadding: const EdgeInsetsDirectional.only(
-                    start: NexSpacing.md,
-                    end: NexSpacing.sm,
-                    top: NexSpacing.xs,
-                    bottom: NexSpacing.xs,
-                  ),
-                  leading: const _Bud(icon: Icons.edit_calendar_outlined),
-                  title: Text(l10n.cycleLogToday),
-                  subtitle: Text(
-                    todaySummary.isEmpty
-                        ? l10n.cycleNothingLogged
-                        : todaySummary,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _openDay(_today),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    NexSpacing.md,
-                    0,
-                    NexSpacing.md,
-                    NexSpacing.sm,
-                  ),
-                  child: CycleQuickMood(
-                    mood: _todayLog?.mood,
-                    onPick: (mood) => unawaited(_quickMood(mood)),
-                  ),
-                ),
-              ],
-            ),
+          _TodayLogCard(
+            log: _todayLog,
+            onOpen: () => _openDay(_today),
+            onMood: (mood) => unawaited(_quickMood(mood)),
+            onFlow: (flow) => unawaited(_quickFlow(flow)),
           ),
           CycleCard(
             padding: const EdgeInsets.all(NexSpacing.sm),
@@ -624,10 +660,6 @@ class _CycleScreenState extends State<CycleScreen> {
                 solar: _solar,
                 today: _today,
                 onDay: _openDay,
-                onMonth: (from, to) {
-                  _month = (from, to);
-                  unawaited(_reload());
-                },
               ),
             ),
           ),
@@ -651,6 +683,11 @@ class _CycleScreenState extends State<CycleScreen> {
                 ),
               ],
             ),
+            if (intervals.length >= 2)
+              CycleCard(
+                key: const ValueKey('cycle-length-bars'),
+                child: CycleLengthBars(lengths: intervals),
+              ),
             const SizedBox(height: NexSpacing.md),
           ],
           CycleSectionTitle(l10n.cyclePatterns),
@@ -689,7 +726,7 @@ class _CycleScreenState extends State<CycleScreen> {
               key: const ValueKey('cycle-report'),
               leading: const _Bud(icon: Icons.picture_as_pdf_outlined),
               title: Text(l10n.cycleReport),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: Icon(cycleChevronEnd(context)),
               onTap: () => Navigator.push(
                 context,
                 NexPageRoute<void>(
@@ -709,6 +746,7 @@ class _CycleScreenState extends State<CycleScreen> {
                 children: [
                   for (final period in _periods.reversed.take(12))
                     ListTile(
+                      key: ValueKey('cycle-period-${period.id}'),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: NexSpacing.md,
                       ),

@@ -77,7 +77,10 @@ class _WelcomeState extends State<_Welcome> {
                 final picked = await nexPickDate(
                   context,
                   initial: _lastStart ?? widget.today,
-                  first: widget.today.subtract(const Duration(days: 120)),
+                  // A year back: cycles can be long and irregular, and a
+                  // last period five months ago is a date worth being able
+                  // to give.
+                  first: widget.today.subtract(const Duration(days: 400)),
                   last: widget.today,
                   solar: widget.solar,
                 );

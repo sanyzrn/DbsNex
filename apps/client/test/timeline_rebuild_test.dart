@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderSliver;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -578,10 +579,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('More actions'));
     await tester.pumpAndSettle();
-    final pinAction = tester.widget<ListTile>(
-      find.ancestor(of: find.text('Pin'), matching: find.byType(ListTile)),
-    );
-    expect(pinAction.onTap, isNotNull);
+    expect(find.text('Pin').hitTestable(), findsOneWidget);
     await tester.tap(find.text('Pin'));
     await tester.pumpAndSettle();
     Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
@@ -794,25 +792,21 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // The row's own fold, not any other size transition on screen — the
-    // search field's buttons make room the same way.
-    final row = find.ancestor(
-      of: find.text('note A'),
-      matching: find.byType(SizeTransition),
-    );
-    final openHeight = tester.getSize(row.first).height;
+    final body = find.byKey(const ValueKey('group-body-today'));
+    double extent() =>
+        tester.renderObject<RenderSliver>(body).geometry!.paintExtent;
+    final openHeight = extent();
+    final card = tester.element(find.byType(NoteCard));
+    final cardHeight = tester.getSize(find.byType(NoteCard)).height;
     expect(openHeight, greaterThan(0));
 
     await tester.tap(find.text('Today'));
-    // Mid-flight, not settled. The fold used to be a jump cut: the rows were
-    // simply absent on the very next frame. They have to still be there, and
-    // shorter than they were.
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 110));
-    expect(find.text('note A'), findsOneWidget);
-    final midHeight = tester.getSize(row.first).height;
-    expect(midHeight, lessThan(openHeight));
-    expect(midHeight, greaterThan(0));
+    await tester.pump(const Duration(milliseconds: 32));
+    expect(extent(), lessThan(openHeight));
+    expect(extent(), greaterThan(0));
+    expect(tester.element(find.byType(NoteCard)), same(card));
+    expect(tester.getSize(find.byType(NoteCard)).height, cardHeight);
 
     // And only then does it actually go.
     await tester.pumpAndSettle();
@@ -822,11 +816,6 @@ void main() {
   testWidgets('folding one group leaves the groups below it alone', (
     tester,
   ) async {
-    // `SliverList` matches its children by index, so folding a run shortens
-    // the list and every row below it arrives at a new index with fresh
-    // state. A row that animated itself in on creation then played the
-    // entrance animation, and every group below the one being folded
-    // flickered open — which is the report this guards.
     await services.captureText('today note');
     final older = await services.captureText('yesterday note');
     // Capture stamps `now`, so the second group has to be made by hand.
@@ -840,21 +829,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final below = find.ancestor(
-      of: find.text('yesterday note'),
-      matching: find.byWidgetPredicate((widget) => widget is SizeTransition),
-    );
-    expect(below, findsWidgets);
-    final restingHeight = tester.getSize(below.first).height;
+    final below = find.byKey(const ValueKey('group-body-yesterday'));
+    final resting = tester.renderObject<RenderSliver>(below);
+    final restingHeight = resting.geometry!.scrollExtent;
 
     await tester.tap(find.text('Today'));
-    // One frame into the fold. The row below must be exactly where it was.
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 90));
-    expect(tester.getSize(below.first).height, restingHeight);
+    await tester.pump(const Duration(milliseconds: 32));
+    expect(tester.renderObject<RenderSliver>(below), same(resting));
+    expect(resting.geometry!.scrollExtent, restingHeight);
 
     await tester.pumpAndSettle();
-    expect(tester.getSize(below.first).height, restingHeight);
+    expect(tester.renderObject<RenderSliver>(below), same(resting));
+    expect(resting.geometry!.scrollExtent, restingHeight);
   });
 
   testWidgets('a folded group stays folded across a rebuild', (tester) async {

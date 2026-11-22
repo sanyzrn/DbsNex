@@ -5396,6 +5396,12 @@ abstract class AppLocalizations {
   /// **'Period, day {day}'**
   String cycleDayOfPeriod(String day);
 
+  /// No description provided for @cyclePeriodDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Day {day} of this period'**
+  String cyclePeriodDay(String day);
+
   /// No description provided for @cycleDaysUntil.
   ///
   /// In en, this message translates to:
@@ -5498,6 +5504,12 @@ abstract class AppLocalizations {
   /// **'logged'**
   String get cycleDayLogged;
 
+  /// No description provided for @cycleWriteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t save your changes. Try again.'**
+  String get cycleWriteFailed;
+
   /// No description provided for @cyclePeriodOverlap.
   ///
   /// In en, this message translates to:
@@ -5533,6 +5545,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your averages'**
   String get cycleInsights;
+
+  /// No description provided for @cycleLengthHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent cycle lengths'**
+  String get cycleLengthHistory;
 
   /// No description provided for @cycleAverageCycle.
   ///
@@ -5581,6 +5599,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete this period'**
   String get cycleDeletePeriod;
+
+  /// No description provided for @cycleDeletePeriodConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This period will be removed from your history. This cannot be undone.'**
+  String get cycleDeletePeriodConfirm;
 
   /// No description provided for @cycleDisclaimer.
   ///
@@ -6104,6 +6128,18 @@ abstract class AppLocalizations {
   /// **'Made with Nex on {date}'**
   String cycleReportMade(String date);
 
+  /// No description provided for @cycleReportLmp.
+  ///
+  /// In en, this message translates to:
+  /// **'Last period started'**
+  String get cycleReportLmp;
+
+  /// No description provided for @cycleReportNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next period, likely'**
+  String get cycleReportNext;
+
   /// No description provided for @cycleReportPeriods.
   ///
   /// In en, this message translates to:
@@ -6163,6 +6199,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Temperature on waking (°C)'**
   String get cycleTemperature;
+
+  /// No description provided for @cycleTemperatureHint.
+  ///
+  /// In en, this message translates to:
+  /// **'On waking, between 34 and 43 °C'**
+  String get cycleTemperatureHint;
+
+  /// No description provided for @cycleTemperatureInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a temperature between 34 and 43.'**
+  String get cycleTemperatureInvalid;
 
   /// No description provided for @cycleOvulationTest.
   ///
@@ -7367,7 +7415,7 @@ abstract class AppLocalizations {
   /// No description provided for @convertToMarkdown.
   ///
   /// In en, this message translates to:
-  /// **'Convert to Markdown'**
+  /// **'Convert to MD'**
   String get convertToMarkdown;
 
   /// No description provided for @convertToNote.
@@ -8689,6 +8737,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start'**
   String get pauseStart;
+
+  /// Pause (breathing break) module: the short session length
+  ///
+  /// In en, this message translates to:
+  /// **'Short'**
+  String get pauseLengthShort;
+
+  /// Pause (breathing break) module: the standard session length
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get pauseLengthStandard;
+
+  /// Pause (breathing break) module: the long session length
+  ///
+  /// In en, this message translates to:
+  /// **'Long'**
+  String get pauseLengthLong;
+
+  /// Pause (breathing break) module: what tapping the session card does
+  ///
+  /// In en, this message translates to:
+  /// **'Double-tap to pause or carry on'**
+  String get pauseCardAction;
 
   /// Pause (breathing break) module
   ///

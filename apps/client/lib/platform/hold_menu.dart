@@ -92,7 +92,7 @@ enum NexHoldAction {
       addTag => l10n.addTag,
       thread => l10n.threads,
       setAside => l10n.setAside,
-      caption => nexLabel(context, 'Description', 'توضیح'),
+      caption => l10n.caption,
       expand => l10n.expandCard,
       open => nexLabel(context, 'Open details', 'باز کردن جزئیات'),
       openFile => nexLabel(context, 'Open file', 'باز کردن فایل'),

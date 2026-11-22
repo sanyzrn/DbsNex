@@ -1431,7 +1431,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('Delete is labelled and red in the More actions sheet', (
+  testWidgets('Delete is labelled and red in the More actions menu', (
     tester,
   ) async {
     await services.captureText('a note');
@@ -1446,11 +1446,9 @@ void main() {
     await tester.tap(find.text('More actions'));
     await tester.pumpAndSettle();
     expect(find.text('Delete'), findsOneWidget);
-    final delete = tester.widget<ListTile>(
-      find.ancestor(of: find.text('Delete'), matching: find.byType(ListTile)),
-    );
+    final delete = tester.widget<Text>(find.text('Delete'));
     final theme = Theme.of(tester.element(find.byType(NoteDetailSheet)));
-    expect(delete.textColor, theme.colorScheme.error);
+    expect(delete.style?.color, theme.colorScheme.error);
   });
 
   testWidgets('secondary actions are readable in More actions', (tester) async {
@@ -1465,6 +1463,7 @@ void main() {
 
     await tester.tap(find.text('More actions'));
     await tester.pumpAndSettle();
+    expect(find.text('Convert to MD'), findsOneWidget);
     expect(find.text('Pin'), findsOneWidget);
     expect(find.text('Details'), findsOneWidget);
     expect(find.text('Delete'), findsOneWidget);

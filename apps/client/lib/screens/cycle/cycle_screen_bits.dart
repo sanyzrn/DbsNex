@@ -160,3 +160,72 @@ class _Footnote extends StatelessWidget {
     );
   }
 }
+
+class _TodayLogCard extends StatelessWidget {
+  const _TodayLogCard({
+    required this.log,
+    required this.onOpen,
+    required this.onMood,
+    required this.onFlow,
+  });
+
+  final CycleDayLog? log;
+  final VoidCallback onOpen;
+  final ValueChanged<CycleMood?> onMood;
+  final ValueChanged<CycleFlow?> onFlow;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final entry = log;
+    final summary = entry == null
+        ? ''
+        : [
+            if (entry.flow != null) cycleFlowLabel(l10n, entry.flow),
+            if (entry.mood case final mood?) cycleMoodLabel(l10n, mood),
+            for (final symptom in entry.symptoms.take(3))
+              cycleSymptomLabel(l10n, symptom),
+          ].join(' · ');
+    return CycleCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          ListTile(
+            key: const ValueKey('cycle-log-today'),
+            contentPadding: const EdgeInsetsDirectional.only(
+              start: NexSpacing.md,
+              end: NexSpacing.sm,
+              top: NexSpacing.xs,
+              bottom: NexSpacing.xs,
+            ),
+            leading: const _Bud(icon: Icons.edit_calendar_outlined),
+            title: Text(l10n.cycleLogToday),
+            subtitle: Text(
+              summary.isEmpty ? l10n.cycleNothingLogged : summary,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: Icon(cycleChevronEnd(context)),
+            onTap: onOpen,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              NexSpacing.md,
+              0,
+              NexSpacing.md,
+              NexSpacing.sm,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                CycleQuickMood(mood: log?.mood, onPick: onMood),
+                const SizedBox(height: NexSpacing.sm),
+                CycleQuickFlow(flow: log?.flow, onPick: onFlow),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

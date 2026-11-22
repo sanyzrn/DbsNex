@@ -183,36 +183,53 @@ class _HabitsScreenState extends State<HabitsScreen>
     final active = _habits.where((h) => !h.archived).toList();
     final byHabit = _checksByHabit;
     final now = DateTime.now();
-    final rows = [
-      for (final habit in active)
-        (
-          habit: habit,
-          standing: HabitMath.fromChecks(
-            habit,
-            byHabit[habit.id] ?? const [],
-            now,
-            firstDay: _firstDay,
-          ),
-          logged: HabitMath.loggedDays(
-            habit,
-            byHabit[habit.id] ?? const [],
-            now,
-          ),
+    // One pass per habit: the logged amounts feed the standing, so the
+    // history is not walked twice for every tile on every build.
+    final rows =
+        <({Habit habit, HabitStanding standing, Map<DateTime, int> logged})>[];
+    for (final habit in active) {
+      final checks = byHabit[habit.id] ?? const <HabitCheck>[];
+      final logged = HabitMath.loggedDays(habit, checks, now);
+      final amounts = {
+        for (final entry in logged.entries) dateKeyOf(entry.key): entry.value,
+      };
+      rows.add((
+        habit: habit,
+        standing: HabitMath.standing(
+          habit,
+          amounts.keys,
+          now,
+          firstDay: _firstDay,
+          amounts: amounts,
         ),
-    ];
+        logged: logged,
+      ));
+    }
     bool dueNow(HabitStanding s, Habit h) =>
         s.dueToday && !(h.weekly && s.weekCount >= h.target);
+    // A habit on a rest is visible on its own, never hidden in a folded
+    // section: the person chose the rest and should still see it.
+    final paused = [
+      for (final row in rows)
+        if (row.habit.pauseOn(now) != null) row,
+    ];
     final todo = [
       for (final row in rows)
-        if (!row.standing.todayDone && dueNow(row.standing, row.habit)) row,
+        if (row.habit.pauseOn(now) == null &&
+            !row.standing.todayDone &&
+            dueNow(row.standing, row.habit))
+          row,
     ];
     final done = [
       for (final row in rows)
-        if (row.standing.todayDone) row,
+        if (row.habit.pauseOn(now) == null && row.standing.todayDone) row,
     ];
     final resting = [
       for (final row in rows)
-        if (!row.standing.todayDone && !dueNow(row.standing, row.habit)) row,
+        if (row.habit.pauseOn(now) == null &&
+            !row.standing.todayDone &&
+            !dueNow(row.standing, row.habit))
+          row,
     ];
     final today = [...todo, ...done];
 
@@ -327,7 +344,7 @@ class _HabitsScreenState extends State<HabitsScreen>
                     ],
                     done: done.length,
                     due: today.length,
-                    resting: resting.length,
+                    resting: resting.length + paused.length,
                     best: rows.isEmpty
                         ? null
                         : (rows.toList()..sort(
@@ -349,6 +366,15 @@ class _HabitsScreenState extends State<HabitsScreen>
                     ),
                     const SizedBox(height: NexSpacing.sm),
                     for (final row in todo) tile(row),
+                  ],
+                  if (paused.isNotEmpty) ...[
+                    const SizedBox(height: NexSpacing.sm),
+                    NexShelfHeading(
+                      icon: Icons.pause_circle_outline_rounded,
+                      title: strings(context, 'pauseTitle'),
+                    ),
+                    const SizedBox(height: NexSpacing.sm),
+                    for (final row in paused) tile(row),
                   ],
                   if (done.isNotEmpty) ...[
                     const SizedBox(height: NexSpacing.sm),

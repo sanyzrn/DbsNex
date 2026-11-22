@@ -282,7 +282,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               max: 15,
               onChanged: (v) async {
                 await _prefs.setCycleTypical(period: v);
-                if (mounted) setState(() {});
+                if (!mounted) return;
+                setState(() {});
+                // The lengths the prediction is counted from have moved, so
+                // the alarms counted from it move with them.
+                await _rearm();
               },
             ),
             _Stepper(
@@ -292,7 +296,9 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               max: 60,
               onChanged: (v) async {
                 await _prefs.setCycleTypical(cycle: v);
-                if (mounted) setState(() {});
+                if (!mounted) return;
+                setState(() {});
+                await _rearm();
               },
             ),
             const SizedBox(height: NexSpacing.lg),

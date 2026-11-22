@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsRole;
 
 import '../tokens/nex_appearance.dart';
 import '../tokens/nex_contrast.dart';
@@ -148,6 +151,155 @@ Future<T?> nexShowContextMenu<T>({
     ),
     items: glass ? [_GlassMenuGroup<T>(entries: items)] : items,
   );
+}
+
+/// Opens a menu above a bottom toolbar, aligned with its trailing edge.
+/// The transparent modal barrier consumes taps anywhere outside the menu.
+Future<T?> nexShowMenuAbove<T>({
+  required BuildContext context,
+  required List<PopupMenuEntry<T>> items,
+}) {
+  final navigator = Navigator.of(context);
+  final themes = InheritedTheme.capture(from: context, to: navigator.context);
+  final anchor = context.findRenderObject()! as RenderBox;
+  final direction = Directionality.of(context);
+  final anchorPoint = anchor.localToGlobal(
+    AlignmentDirectional.centerEnd.resolve(direction).alongSize(anchor.size),
+  );
+  final localizations = MaterialLocalizations.of(context);
+  return showGeneralDialog<T>(
+    context: context,
+    useRootNavigator: false,
+    anchorPoint: anchorPoint,
+    barrierColor: Colors.transparent,
+    barrierDismissible: true,
+    barrierLabel: localizations.modalBarrierDismissLabel,
+    transitionDuration: NexMotion.of(context, NexMotion.fast),
+    pageBuilder: (dialogContext, _, _) {
+      final media = MediaQuery.of(dialogContext);
+      final screen = MediaQuery.of(navigator.overlay!.context);
+      final regions = DisplayFeatureSubScreen.subScreensInBounds(
+        Offset.zero & screen.size,
+        DisplayFeatureSubScreen.avoidBounds(screen),
+      );
+      final region = regions.firstWhere(
+        (region) => region.contains(anchorPoint),
+        orElse: () => regions.first,
+      );
+      return themes.wrap(
+        CustomSingleChildLayout(
+          delegate: _MenuAboveLayout(
+            anchor: (anchor.localToGlobal(Offset.zero) & anchor.size).shift(
+              -region.topLeft,
+            ),
+            insets: EdgeInsets.fromLTRB(
+              media.padding.left + NexSpacing.sm,
+              math.max(media.padding.top, media.viewPadding.top) +
+                  NexSpacing.sm,
+              media.padding.right + NexSpacing.sm,
+              math.max(media.padding.bottom, media.viewInsets.bottom) +
+                  NexSpacing.sm,
+            ),
+            direction: direction,
+          ),
+          child: Semantics(
+            container: true,
+            explicitChildNodes: true,
+            namesRoute: true,
+            label: localizations.popupMenuLabel,
+            role: SemanticsRole.menu,
+            child: Builder(
+              builder: (context) {
+                final glass = context.nexVisualStyle.liquidGlass;
+                final borderRadius = nexDropdownRadius;
+                final color = nexDropdownColor(context);
+                final list = IntrinsicWidth(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: NexSpacing.sm,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: items,
+                    ),
+                  ),
+                );
+                return Material(
+                  color: glass ? Colors.transparent : color,
+                  elevation: glass || context.nexVisualStyle.minimal ? 0 : 3,
+                  shape: RoundedRectangleBorder(borderRadius: borderRadius),
+                  clipBehavior: glass ? Clip.none : Clip.antiAlias,
+                  child: glass
+                      ? NexGlassSurface(
+                          material: NexGlassMaterial.floating,
+                          fallbackColor: color,
+                          borderRadius: borderRadius,
+                          child: list,
+                        )
+                      : list,
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _MenuAboveLayout extends SingleChildLayoutDelegate {
+  const _MenuAboveLayout({
+    required this.anchor,
+    required this.insets,
+    required this.direction,
+  });
+
+  final Rect anchor;
+  final EdgeInsets insets;
+  final TextDirection direction;
+
+  Rect _available(Size size) {
+    final safe = insets.deflateRect(Offset.zero & size);
+    final bottom = (anchor.top - NexSpacing.xs).clamp(safe.top, safe.bottom);
+    return switch (direction) {
+      TextDirection.ltr => Rect.fromLTRB(
+        safe.left,
+        safe.top,
+        anchor.right.clamp(safe.left, safe.right),
+        bottom,
+      ),
+      TextDirection.rtl => Rect.fromLTRB(
+        anchor.left.clamp(safe.left, safe.right),
+        safe.top,
+        safe.right,
+        bottom,
+      ),
+    };
+  }
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      nexMenuConstraints.enforce(
+        BoxConstraints.loose(_available(constraints.biggest).size),
+      );
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    final available = _available(size);
+    return Offset(
+      direction == TextDirection.ltr
+          ? available.right - childSize.width
+          : available.left,
+      available.bottom - childSize.height,
+    );
+  }
+
+  @override
+  bool shouldRelayout(_MenuAboveLayout oldDelegate) =>
+      anchor != oldDelegate.anchor ||
+      insets != oldDelegate.insets ||
+      direction != oldDelegate.direction;
 }
 
 /// One bounded glass surface around a menu, rather than one blur per entry.

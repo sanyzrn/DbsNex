@@ -51,8 +51,8 @@ Future<HabitReminder> habitReadReminder(
 
 /// When the reminder should next ring: the first of the habit's days, from
 /// [now] on, at [minutes], that is not already kept. A weekly target is
-/// due on any day of a week that has not met it yet. Null when no such day
-/// comes within two months.
+/// due on any day of a week that has not met it yet. Rest stretches are
+/// skipped before looking for the next due day.
 DateTime? habitNextReminder(
   Habit habit,
   Iterable<HabitCheck> checks, {
@@ -65,8 +65,18 @@ DateTime? habitNextReminder(
     for (final entry in logged.entries)
       if (entry.value >= habit.goal) entry.key,
   };
-  for (var ahead = 0; ahead <= 60; ahead++) {
-    final day = DateTime(now.year, now.month, now.day + ahead);
+  var day = DateTime(now.year, now.month, now.day);
+  for (
+    var checked = 0;
+    checked <= 400;
+    checked++, day = DateTime(day.year, day.month, day.day + 1)
+  ) {
+    if (habit.pauseOn(day) case final pause?) {
+      if (civilOfKey(pause.to) case final last?) {
+        day = DateTime(last.year, last.month, last.day);
+        continue;
+      }
+    }
     final at = DateTime(
       day.year,
       day.month,
@@ -101,6 +111,7 @@ Future<bool> habitArmReminder(
   int? firstDay,
   DateTime? now,
   bool preserveShown = false,
+  bool clearPrevious = false,
 }) async {
   final key = habitReminderKey(habit.id);
   final reminder = await habitReadReminder(store, habit.id);
@@ -118,34 +129,42 @@ Future<bool> habitArmReminder(
         : store.clearReminder(key));
     return true;
   }
+  if (clearPrevious) await store.clearReminder(key);
   final mine =
-      checks ??
+      checks?.where((c) => c.habitId == habit.id) ??
       [
         for (final record in await store.list('check'))
           if (record.body['habit'] == habit.id) HabitCheck.fromRecord(record),
       ];
   final week = firstDay ?? _firstDayOf(await store.get('settings', 'week'));
+  final nowAt = now ?? DateTime.now();
   final at = habitNextReminder(
     habit,
-    mine.where((c) => c.habitId == habit.id),
+    mine,
     minutes: reminder.minutes,
-    now: now ?? DateTime.now(),
+    now: nowAt,
     firstDay: week,
   );
   if (at == null) {
-    await (preserveShown
-        ? store.withdrawReminder(key)
-        : store.clearReminder(key));
+    if (!clearPrevious) {
+      await (preserveShown
+          ? store.withdrawReminder(key)
+          : store.clearReminder(key));
+    }
     return true;
   }
-  final standing = HabitMath.fromChecks(habit, mine, at, firstDay: week);
   final name = habit.name.isEmpty
       ? habitsStrings.text(l10n, 'untitled')
       : habit.name;
-  final body = habit.counted
+  // Only a same-day reminder can use the amount already logged today.
+  final body = habit.counted && dateKeyOf(at) == dateKeyOf(nowAt)
       ? habitsStrings.text(l10n, 'reminderNamedProgress', {
           'name': name,
-          'done': standing.todayAmount,
+          'done':
+              HabitMath.loggedDays(habit, mine, nowAt)[tryParseDateKey(
+                dateKeyOf(nowAt),
+              )] ??
+              0,
           'goal': habit.goal,
           'unit': habit.unit.isEmpty
               ? habitsStrings.text(l10n, 'unitTimes')

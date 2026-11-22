@@ -47,6 +47,13 @@ const _persianMonthsLatin = [
 bool cyclePersian(BuildContext context) =>
     Localizations.localeOf(context).languageCode == 'fa';
 
+/// The chevron that opens a row, pointing the way the page is read: right
+/// on a left-to-right page, left on a Persian one.
+IconData cycleChevronEnd(BuildContext context) =>
+    Directionality.of(context) == TextDirection.rtl
+    ? Icons.chevron_left
+    : Icons.chevron_right;
+
 String cycleDigits(BuildContext context, Object value) =>
     nexDigits('$value', persian: cyclePersian(context));
 

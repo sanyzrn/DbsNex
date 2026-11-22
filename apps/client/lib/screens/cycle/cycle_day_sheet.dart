@@ -69,6 +69,8 @@ class _DaySheet extends StatefulWidget {
 }
 
 class _DaySheetState extends State<_DaySheet> {
+  bool _writing = false;
+  String? _saveError;
   late CycleDayLog _log = widget.initial;
   late final _note = TextEditingController(text: widget.initial.note ?? '');
   late final _temperature = TextEditingController(
@@ -93,7 +95,9 @@ class _DaySheetState extends State<_DaySheet> {
     }
     text = text.replaceAll('٫', '.').replaceAll(',', '.');
     final value = double.tryParse(text);
-    return value == null || value < 34 || value > 43 ? null : value;
+    return value == null || !value.isFinite || value < 34 || value > 43
+        ? null
+        : value;
   }
 
   CyclePeriod? get _period {
@@ -104,30 +108,38 @@ class _DaySheetState extends State<_DaySheet> {
     return null;
   }
 
-  Future<void> _save() async {
-    await widget.services.cycleSaveDay(
-      _log.copyWith(
-        note: () => _note.text,
-        temperature: () => _parsedTemperature,
-      ),
-    );
-    if (mounted) Navigator.pop(context, true);
-  }
-
-  Future<void> _startHere() async {
-    await widget.services.cycleStartPeriod(widget.day);
-    // A day that starts a period bled; say so unless something else was
-    // already chosen.
-    if (_log.flow == null) {
-      _log = _log.copyWith(flow: () => CycleFlow.medium);
+  Future<void> _save({Future<void> Function()? changePeriod}) async {
+    if (_writing) return;
+    final l10n = AppLocalizations.of(context);
+    final temperature = _parsedTemperature;
+    if (_temperature.text.trim().isNotEmpty && temperature == null) return;
+    setState(() {
+      _writing = true;
+      _saveError = null;
+    });
+    try {
+      await changePeriod?.call();
+      await widget.services.cycleSaveDay(
+        _log.copyWith(note: () => _note.text, temperature: () => temperature),
+      );
+      if (mounted) Navigator.pop(context, true);
+    } catch (_) {
+      if (mounted) setState(() => _saveError = l10n.cycleWriteFailed);
+    } finally {
+      if (mounted) setState(() => _writing = false);
     }
-    await _save();
   }
 
-  Future<void> _endHere(CyclePeriod period) async {
-    await widget.services.cycleEndPeriod(period.id, widget.day);
-    await _save();
-  }
+  Future<void> _startHere() => _save(
+    changePeriod: () async {
+      await widget.services.cycleStartPeriod(widget.day);
+      if (_log.flow == null) _log = _log.copyWith(flow: () => CycleFlow.medium);
+    },
+  );
+
+  Future<void> _endHere(CyclePeriod period) => _save(
+    changePeriod: () => widget.services.cycleEndPeriod(period.id, widget.day),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -135,6 +147,14 @@ class _DaySheetState extends State<_DaySheet> {
     final theme = Theme.of(context);
     final rose = cyclePeriodColor(theme.brightness);
     final period = _period;
+    final temperatureText = _temperature.text.trim();
+    // Said beside the field rather than swallowed on save: a number that is
+    // mistyped, or in Fahrenheit, used to be written as "no temperature".
+    final temperatureInvalid =
+        temperatureText.isNotEmpty && _parsedTemperature == null;
+    final periodDay = period == null
+        ? 0
+        : CycleDate.of(widget.day).daysSince(period.start) + 1;
     Widget heading(String text) => Padding(
       padding: const EdgeInsets.only(top: NexSpacing.md, bottom: NexSpacing.xs),
       child: Text(text, style: theme.textTheme.titleSmall),
@@ -152,18 +172,28 @@ class _DaySheetState extends State<_DaySheet> {
               ),
               style: theme.textTheme.titleLarge,
             ),
+            if (period != null)
+              Text(
+                l10n.cyclePeriodDay(cycleDigits(context, periodDay)),
+                key: const ValueKey('cycle-period-day'),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             const SizedBox(height: NexSpacing.sm),
             if (period == null)
               OutlinedButton.icon(
                 key: const ValueKey('cycle-start-here'),
-                onPressed: _startHere,
+                onPressed: _writing || temperatureInvalid ? null : _startHere,
                 icon: Icon(Icons.water_drop_outlined, color: rose),
                 label: Text(l10n.cycleStartHere),
               )
             else if (period.isOpen)
               OutlinedButton.icon(
                 key: const ValueKey('cycle-end-here'),
-                onPressed: () => _endHere(period),
+                onPressed: _writing || temperatureInvalid
+                    ? null
+                    : () => _endHere(period),
                 icon: Icon(Icons.check_circle_outline, color: rose),
                 label: Text(l10n.cycleEndHere),
               ),
@@ -174,6 +204,7 @@ class _DaySheetState extends State<_DaySheet> {
               children: [
                 for (final flow in <CycleFlow?>[null, ...CycleFlow.values])
                   ChoiceChip(
+                    key: ValueKey('cycle-day-flow-${flow?.name ?? 'none'}'),
                     label: Text(cycleFlowLabel(l10n, flow)),
                     selected: _log.flow == flow,
                     selectedColor: flow == null
@@ -272,8 +303,14 @@ class _DaySheetState extends State<_DaySheet> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
+                onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   labelText: l10n.cycleTemperature,
+                  helperText: l10n.cycleTemperatureHint,
+                  errorText: temperatureInvalid
+                      ? l10n.cycleTemperatureInvalid
+                      : null,
+                  suffixText: '°C',
                   isDense: true,
                 ),
               ),
@@ -326,9 +363,11 @@ class _DaySheetState extends State<_DaySheet> {
               decoration: const InputDecoration(),
             ),
             const SizedBox(height: NexSpacing.md),
+            if (_saveError case final message?)
+              Text(message, style: TextStyle(color: theme.colorScheme.error)),
             FilledButton(
               key: const ValueKey('cycle-day-save'),
-              onPressed: _save,
+              onPressed: _writing || temperatureInvalid ? null : () => _save(),
               child: Text(l10n.save),
             ),
           ],

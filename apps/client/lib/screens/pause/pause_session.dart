@@ -22,15 +22,25 @@ enum _Stage { countdown, breathing, paused, done }
 /// One clock drives everything — the drawing, the words, the taps — and the
 /// sound is started on the same frame, so what is seen, felt and heard stay
 /// together. Tapping the card pauses it; the screen stays lit while it runs.
+///
+/// The session also holds still when the world interrupts it: leaving the
+/// app, the system taking the sound away, the back gesture or (on a keyboard)
+/// the space bar all pause the breath rather than throwing it away, because a
+/// session is the one screen in Nex whose whole point is being uninterrupted.
 class PauseSession extends StatefulWidget {
   const PauseSession({
     super.key,
     required this.mode,
     required this.preferences,
+    this.length = PauseLength.standard,
   });
 
   final PauseMode mode;
   final NexPreferences preferences;
+
+  /// How long the session runs (2.8.14). The default keeps a session built
+  /// before lengths existed breathing as many rounds as it always did.
+  final PauseLength length;
 
   @override
   State<PauseSession> createState() => _PauseSessionState();
@@ -42,8 +52,15 @@ class _PauseSessionState extends State<PauseSession>
 
   late final Ticker _ticker = createTicker(_tick);
   late final PauseSound _sound = pauseSoundFactory();
+  late final FocusNode _keys = FocusNode(debugLabel: 'pause session');
 
   _Stage _stage = _Stage.countdown;
+
+  /// The stage a pause came from, so a pause in the three seconds before the
+  /// breathing can start the count again rather than half-finishing it.
+  _Stage _pausedFrom = _Stage.breathing;
+
+  StreamSubscription<void>? _interruptions;
 
   /// Time already spent in the current stage before the ticker last started.
   Duration _banked = Duration.zero;
@@ -52,46 +69,94 @@ class _PauseSessionState extends State<PauseSession>
   /// The last tap fired, so each one fires once: round, part, mark.
   (int, int, int)? _lastTap;
   int _lastCount = -1;
+  int _countdownAttempt = 0;
 
   PauseMode get _mode => widget.mode;
+
+  int get _rounds => widget.length.roundsFor(_mode);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _sound.setMuted(!widget.preferences.pauseSound);
+    _interruptions = _sound.interruptions.listen(
+      (_) => _pauseSession(pauseAudio: false),
+    );
     unawaited(NexKeepScreenOn.set(true));
-    unawaited(_begin());
+    unawaited(_startCountdown());
   }
 
-  Future<void> _begin() async {
-    // The sounds are made while the countdown is still to come; the first
-    // tap of it waits for them, but no longer than a moment.
+  Future<void> _startCountdown() async {
+    final attempt = ++_countdownAttempt;
+    _resetStage(_Stage.countdown);
     await _sound
         .prepare(_mode)
         .timeout(const Duration(milliseconds: 1500), onTimeout: () {});
-    if (!mounted) return;
+    if (!mounted ||
+        _stage != _Stage.countdown ||
+        attempt != _countdownAttempt) {
+      return;
+    }
     unawaited(_sound.countdown());
     _ticker.start();
   }
 
-  /// Leaving the app pauses the session where it is. Frames stop in the
-  /// background while the sound would go on, and coming back would jump the
-  /// drawing ahead to catch up with a breath nobody took.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed && _stage == _Stage.breathing) {
-      _togglePause();
+    if (state != AppLifecycleState.resumed) _pauseSession();
+  }
+
+  void _pauseSession({bool pauseAudio = true}) {
+    if (!mounted ||
+        (_stage != _Stage.countdown && _stage != _Stage.breathing)) {
+      return;
     }
+    _ticker.stop();
+    _pausedFrom = _stage;
+    _banked = _elapsed;
+    if (pauseAudio) unawaited(_sound.pause());
+    setState(() => _stage = _Stage.paused);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    unawaited(_interruptions?.cancel());
+    _interruptions = null;
+    _keys.dispose();
     _ticker.dispose();
     unawaited(_sound.dispose());
     unawaited(NexKeepScreenOn.set(false));
+    _restoreBars();
     super.dispose();
+  }
+
+  /// The bars go back to the app's own style, worked out the way `app.dart`
+  /// works it out. This screen is the one place in Nex that is always dark,
+  /// and without this the light icons it asked for would outlive it onto a
+  /// light page (2.8.14).
+  void _restoreBars() {
+    final dark = switch (widget.preferences.themeMode) {
+      ThemeMode.dark => true,
+      ThemeMode.light => false,
+      ThemeMode.system =>
+        WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+            Brightness.dark,
+    };
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+        // iOS reads the background it is drawn over rather than the icons.
+        statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: dark
+            ? Brightness.light
+            : Brightness.dark,
+        systemNavigationBarContrastEnforced: false,
+      ),
+    );
   }
 
   void _tick(Duration sinceStart) {
@@ -104,12 +169,13 @@ class _PauseSessionState extends State<PauseSession>
           _tap(HapticFeedback.selectionClick);
         }
         if (elapsed >= _countdown) {
-          _restart(_Stage.breathing);
+          _resetStage(_Stage.breathing);
           unawaited(_sound.startBreathing());
+          _ticker.start();
           return;
         }
       case _Stage.breathing:
-        final moment = pauseMomentAt(_mode, elapsed);
+        final moment = pauseMomentAt(_mode, elapsed, rounds: _rounds);
         if (moment.done) {
           _ticker.stop();
           _tap(HapticFeedback.mediumImpact);
@@ -124,14 +190,13 @@ class _PauseSessionState extends State<PauseSession>
     setState(() => _elapsed = elapsed);
   }
 
-  /// Starts [stage] from its beginning.
-  void _restart(_Stage stage) {
+  void _resetStage(_Stage stage) {
     _ticker.stop();
     _banked = Duration.zero;
     _elapsed = Duration.zero;
     _lastTap = null;
+    _lastCount = -1;
     setState(() => _stage = stage);
-    _ticker.start();
   }
 
   /// The taps that carry the breath to the hand.
@@ -157,11 +222,12 @@ class _PauseSessionState extends State<PauseSession>
   void _togglePause() {
     switch (_stage) {
       case _Stage.breathing:
-        _ticker.stop();
-        _banked = _elapsed;
-        unawaited(_sound.pause());
-        setState(() => _stage = _Stage.paused);
+        _pauseSession();
       case _Stage.paused:
+        if (_pausedFrom == _Stage.countdown) {
+          unawaited(_startCountdown());
+          return;
+        }
         setState(() => _stage = _Stage.breathing);
         unawaited(_sound.resume());
         _ticker.start();
@@ -170,10 +236,24 @@ class _PauseSessionState extends State<PauseSession>
     }
   }
 
-  void _again() {
-    _lastCount = -1;
-    _restart(_Stage.countdown);
-    unawaited(_sound.prepare(_mode).then((_) => _sound.countdown()));
+  /// Space or Enter does what a tap on the card does — for a desktop, and
+  /// for anyone driving the session from a keyboard. A key held down arrives
+  /// as its own KeyRepeatEvent, so this runs once per press.
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    final key = event.logicalKey;
+    if (key != LogicalKeyboardKey.space &&
+        key != LogicalKeyboardKey.enter &&
+        key != LogicalKeyboardKey.numpadEnter) {
+      return KeyEventResult.ignored;
+    }
+    if (_stage != _Stage.breathing && _stage != _Stage.paused) {
+      return KeyEventResult.ignored;
+    }
+    _togglePause();
+    return KeyEventResult.handled;
   }
 
   Future<void> _setSound(bool on) async {
@@ -192,118 +272,173 @@ class _PauseSessionState extends State<PauseSession>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final persian = Localizations.localeOf(context).languageCode == 'fa';
-    final moment = switch (_stage) {
-      _Stage.breathing || _Stage.paused => pauseMomentAt(_mode, _elapsed),
-      _ => null,
-    };
+    final showingBreath =
+        _stage == _Stage.breathing ||
+        (_stage == _Stage.paused && _pausedFrom == _Stage.breathing);
+    final moment = showingBreath
+        ? pauseMomentAt(_mode, _elapsed, rounds: _rounds)
+        : null;
     final fullness = moment?.fullness ?? 0;
-    final left = switch (_stage) {
-      _Stage.countdown => _mode.rounds,
-      _Stage.done => 0,
-      _ => _mode.rounds - moment!.round,
-    };
-    final width = MediaQuery.sizeOf(context).width;
-    final cardWidth = (width - NexSpacing.lg * 2).clamp(0.0, 420.0);
+    final left = _stage == _Stage.done ? 0 : _rounds - (moment?.round ?? 0);
+    final canToggle = _stage == _Stage.breathing || _stage == _Stage.paused;
     const white = Colors.white;
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D0E12),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const Spacer(),
-            Center(
-              child: SizedBox(
-                width: cardWidth,
-                child: AspectRatio(
-                  aspectRatio: 0.82,
-                  child: Semantics(
-                    button:
-                        _stage == _Stage.breathing || _stage == _Stage.paused,
-                    label: _word(l10n, moment),
-                    child: GestureDetector(
-                      key: const ValueKey('pause-card'),
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _togglePause,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(NexRadius.xl * 2),
-                        child: CustomPaint(
-                          painter: PauseSkyPainter(
-                            palette: PausePalette.of(_mode),
-                            fullness: fullness,
-                          ),
-                          child: Stack(
-                            children: [
-                              Positioned.fill(
-                                child: AnimatedOpacity(
-                                  opacity: _stage == _Stage.paused ? 0.4 : 1,
-                                  duration: NexMotion.of(
-                                    context,
-                                    NexMotion.standard,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // This one screen is dark in every theme, so it says so for itself:
+      // the app paints the bars for its theme, and dark icons on the
+      // session's near-black would vanish (2.8.14).
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarContrastEnforced: false,
+      ),
+      child: PopScope(
+        canPop: _stage != _Stage.breathing,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop && _stage == _Stage.breathing) _pauseSession();
+        },
+        child: Focus(
+          focusNode: _keys,
+          autofocus: true,
+          onKeyEvent: _onKey,
+          child: Scaffold(
+            backgroundColor: const Color(0xFF0D0E12),
+            body: SafeArea(
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: NexSpacing.lg,
+                        ),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: AspectRatio(
+                            aspectRatio: 0.82,
+                            child: Semantics(
+                              // The card is one thing to a screen reader — its
+                              // name, that it is a button, and what a tap does —
+                              // and the word of the moment is announced inside it
+                              // as its own live region, not folded into this
+                              // name.
+                              container: true,
+                              explicitChildNodes: true,
+                              button: canToggle,
+                              label: _name(l10n),
+                              hint: canToggle ? l10n.pauseCardAction : null,
+                              onTap: canToggle ? _togglePause : null,
+                              child: GestureDetector(
+                                key: const ValueKey('pause-card'),
+                                behavior: HitTestBehavior.opaque,
+                                onTap: _togglePause,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                    NexRadius.xl * 2,
                                   ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(
-                                      NexSpacing.xl,
+                                  child: CustomPaint(
+                                    painter: PauseSkyPainter(
+                                      palette: PausePalette.of(_mode),
+                                      fullness: fullness,
                                     ),
-                                    child: CustomPaint(
-                                      painter: PauseArtPainter(
-                                        mode: _mode,
-                                        fullness: _stage == _Stage.done
-                                            ? 0.5
-                                            : fullness,
-                                        seconds: _elapsed.inMilliseconds / 1000,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              PositionedDirectional(
-                                top: NexSpacing.lg,
-                                start: NexSpacing.lg,
-                                end: NexSpacing.lg,
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        _name(l10n),
-                                        style: theme.textTheme.titleMedium
-                                            ?.copyWith(color: white),
-                                      ),
-                                    ),
-                                    Semantics(
-                                      label: l10n.pauseBreathsLeft(
-                                        nexDigits('$left', persian: persian),
-                                      ),
-                                      excludeSemantics: true,
-                                      child: Text(
-                                        nexDigits('$left', persian: persian),
-                                        key: const ValueKey('pause-left'),
-                                        style: theme.textTheme.titleMedium
-                                            ?.copyWith(
-                                              color: white.withValues(
-                                                alpha: 0.85,
+                                    child: Stack(
+                                      children: [
+                                        Positioned.fill(
+                                          child: AnimatedOpacity(
+                                            opacity: _stage == _Stage.paused
+                                                ? 0.4
+                                                : 1,
+                                            duration: NexMotion.of(
+                                              context,
+                                              NexMotion.standard,
+                                            ),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(
+                                                NexSpacing.xl,
+                                              ),
+                                              child: CustomPaint(
+                                                painter: PauseArtPainter(
+                                                  mode: _mode,
+                                                  fullness:
+                                                      _stage == _Stage.done
+                                                      ? 0.5
+                                                      : fullness,
+                                                  seconds:
+                                                      _elapsed.inMilliseconds /
+                                                      1000,
+                                                ),
                                               ),
                                             ),
-                                      ),
+                                          ),
+                                        ),
+                                        PositionedDirectional(
+                                          top: NexSpacing.lg,
+                                          start: NexSpacing.lg,
+                                          end: NexSpacing.lg,
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  _name(l10n),
+                                                  style: theme
+                                                      .textTheme
+                                                      .titleMedium
+                                                      ?.copyWith(color: white),
+                                                ),
+                                              ),
+                                              Semantics(
+                                                label: l10n.pauseBreathsLeft(
+                                                  nexDigits(
+                                                    '$left',
+                                                    persian: persian,
+                                                  ),
+                                                ),
+                                                excludeSemantics: true,
+                                                child: Text(
+                                                  nexDigits(
+                                                    '$left',
+                                                    persian: persian,
+                                                  ),
+                                                  key: const ValueKey(
+                                                    'pause-left',
+                                                  ),
+                                                  style: theme
+                                                      .textTheme
+                                                      .titleMedium
+                                                      ?.copyWith(
+                                                        color: white.withValues(
+                                                          alpha: 0.85,
+                                                        ),
+                                                      ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Center(
+                                          child: _centre(context, l10n, moment),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
-                              Center(child: _centre(context, l10n, moment)),
-                            ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
+                  _controls(context, l10n),
+                  const SizedBox(height: NexSpacing.xl),
+                ],
               ),
             ),
-            const Spacer(),
-            _controls(context, l10n),
-            const SizedBox(height: NexSpacing.xl),
-          ],
+          ),
         ),
       ),
     );
@@ -326,7 +461,8 @@ class _PauseSessionState extends State<PauseSession>
     },
   };
 
-  /// The words in the middle: the count, the breath, or the end.
+  /// The words in the middle: the count, the breath, or the end. Each one is
+  /// said aloud as it changes, so a session can be followed by ear alone.
   Widget _centre(
     BuildContext context,
     AppLocalizations l10n,
@@ -346,48 +482,70 @@ class _PauseSessionState extends State<PauseSession>
       color: Colors.white.withValues(alpha: 0.85),
       shadows: lift,
     );
+    // The words give way before the drawing does: a huge text scale, or a
+    // window that leaves the card short, shrinks them to what fits.
+    Widget fitted(Key key, Widget child) =>
+        FittedBox(key: key, fit: BoxFit.scaleDown, child: child);
     final Widget child = switch (_stage) {
-      _Stage.countdown => Text(
-        nexDigits('${3 - _elapsed.inSeconds.clamp(0, 2)}', persian: persian),
-        key: const ValueKey('pause-count'),
-        style: big,
+      _Stage.countdown => fitted(
+        const ValueKey('count'),
+        Text(
+          nexDigits('${3 - _elapsed.inSeconds.clamp(0, 2)}', persian: persian),
+          key: const ValueKey('pause-count'),
+          style: big,
+        ),
       ),
-      _Stage.breathing => Column(
-        key: ValueKey(_word(l10n, moment)),
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(_word(l10n, moment), style: big),
-          if (moment!.phase.step == PauseStep.holdFull ||
-              moment.phase.step == PauseStep.holdEmpty)
+      _Stage.breathing => fitted(
+        ValueKey(_word(l10n, moment)),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Semantics(
+              // Its own node, so what it says is announced on its own and
+              // not folded into the card's name.
+              container: true,
+              liveRegion: true,
+              label: _word(l10n, moment),
+              child: ExcludeSemantics(
+                child: Text(_word(l10n, moment), style: big),
+              ),
+            ),
+            if (moment!.phase.step == PauseStep.holdFull ||
+                moment.phase.step == PauseStep.holdEmpty)
+              Text(
+                nexDigits('${moment.secondsLeft}', persian: persian),
+                style: small,
+              ),
+          ],
+        ),
+      ),
+      _Stage.paused => fitted(
+        const ValueKey('paused'),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.pausePaused, style: big),
+            const SizedBox(height: NexSpacing.xs),
+            Text(l10n.pauseTapToResume, style: small),
+          ],
+        ),
+      ),
+      _Stage.done => fitted(
+        const ValueKey('done'),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.pauseDoneTitle, style: big),
+            const SizedBox(height: NexSpacing.xs),
             Text(
-              nexDigits('${moment.secondsLeft}', persian: persian),
+              l10n.pauseDoneBody(
+                nexDigits('$_rounds', persian: persian),
+                pauseLength(widget.length.durationOf(_mode), persian: persian),
+              ),
               style: small,
             ),
-        ],
-      ),
-      _Stage.paused => Column(
-        key: const ValueKey('paused'),
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(l10n.pausePaused, style: big),
-          const SizedBox(height: NexSpacing.xs),
-          Text(l10n.pauseTapToResume, style: small),
-        ],
-      ),
-      _Stage.done => Column(
-        key: const ValueKey('done'),
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(l10n.pauseDoneTitle, style: big),
-          const SizedBox(height: NexSpacing.xs),
-          Text(
-            l10n.pauseDoneBody(
-              nexDigits('${_mode.rounds}', persian: persian),
-              pauseLength(_mode.sessionDuration, persian: persian),
-            ),
-            style: small,
-          ),
-        ],
+          ],
+        ),
       ),
     };
     return AnimatedSwitcher(
@@ -411,6 +569,7 @@ class _PauseSessionState extends State<PauseSession>
       child: Semantics(
         button: true,
         label: tooltip,
+        onTap: onPressed,
         excludeSemantics: true,
         child: Material(
           key: key,
@@ -432,18 +591,20 @@ class _PauseSessionState extends State<PauseSession>
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          FilledButton.tonalIcon(
-            key: const ValueKey('pause-again'),
-            onPressed: _again,
-            icon: const Icon(Icons.replay),
-            label: Text(l10n.pauseAgain),
+          Flexible(
+            child: FilledButton.tonalIcon(
+              key: const ValueKey('pause-again'),
+              onPressed: () => unawaited(_startCountdown()),
+              icon: const Icon(Icons.replay),
+              label: Text(l10n.pauseAgain),
+            ),
           ),
           const SizedBox(width: NexSpacing.md),
           round(
             key: const ValueKey('pause-close'),
             icon: Icons.close,
             tooltip: l10n.closeLabel,
-            onPressed: () => Navigator.maybePop(context),
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ],
       );
@@ -465,7 +626,7 @@ class _PauseSessionState extends State<PauseSession>
           key: const ValueKey('pause-close'),
           icon: Icons.close,
           tooltip: l10n.pauseEnd,
-          onPressed: () => Navigator.maybePop(context),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         const SizedBox(width: NexSpacing.xl),
         IconButton(

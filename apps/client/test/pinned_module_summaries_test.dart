@@ -133,6 +133,12 @@ void main() {
     final focus = (await load('pause'))!;
     expect(focus.primary, l.pinPauseDuration('1:36'));
     expect(focus.secondary, l.pauseModeFocus);
+    // The chosen length counts too (2.8.14).
+    await h.preferences.setPauseLength('long');
+    expect((await load('pause'))!.primary, l.pinPauseDuration('3:12'));
+    await h.preferences.setPauseMode('calm');
+    await h.preferences.setPauseLength('short');
+    expect((await load('pause'))!.primary, l.pinPauseDuration('0:55'));
   });
   test(
     'Cycle handles setup and pregnancy without predicting a period',

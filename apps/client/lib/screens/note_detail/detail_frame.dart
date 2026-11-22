@@ -130,7 +130,7 @@ extension _DetailFrame on _NoteDetailSheetState {
 }
 
 /// Keeps the note's own primary actions visible when available. Secondary note actions
-/// live in the labelled More sheet; AI has its own workspace below the content.
+/// live in the More menu; AI has its own workspace below the content.
 class _ActionRow extends StatelessWidget {
   const _ActionRow({required this.groups});
 
@@ -172,55 +172,24 @@ class _ActionRow extends StatelessWidget {
     );
   }
 
-  void _showMore(BuildContext context, List<_DetailAction> actions) {
-    // The app's sheet (design language §1), so a pull down closes it like
-    // every other: the plain modal's list caught the drag, and the sheet
-    // only closed from its handle. It grows to fit its actions — the last
-    // of them is Delete, the one people look for.
-    nexShowSheet<void>(
+  Future<void> _showMore(
+    BuildContext context,
+    List<_DetailAction> actions,
+  ) async {
+    final selected = await nexShowMenuAbove<_DetailAction>(
       context: context,
-      builder: (sheetContext) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, NexSpacing.sm),
-              child: Text(
-                AppLocalizations.of(context).moreActions,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            for (final action in actions)
-              ListTile(
-                leading: action.glyph ?? Icon(action.icon),
-                title: Text(
-                  action.label,
-                  style: TextStyle(
-                    color: action.onPressed == null
-                        ? Theme.of(sheetContext).disabledColor
-                        : action.destructive
-                        ? Theme.of(sheetContext).colorScheme.error
-                        : Theme.of(sheetContext).colorScheme.onSurface,
-                  ),
-                ),
-                textColor: action.destructive
-                    ? Theme.of(context).colorScheme.error
-                    : null,
-                iconColor: action.destructive
-                    ? Theme.of(context).colorScheme.error
-                    : null,
-                enabled: action.onPressed != null,
-                onTap: action.onPressed == null
-                    ? null
-                    : () {
-                        Navigator.pop(sheetContext);
-                        action.onPressed!.call();
-                      },
-              ),
-          ],
-        ),
-      ),
+      items: [
+        for (final action in actions)
+          nexMenuItem(
+            value: action,
+            icon: action.icon,
+            label: action.label,
+            destructive: action.destructive,
+            enabled: action.onPressed != null,
+          ),
+      ],
     );
+    if (context.mounted) selected?.onPressed?.call();
   }
 }
 
@@ -239,7 +208,7 @@ class _DetailAction extends StatelessWidget {
        );
 
   /// Above this rank an action is a candidate for the sheet's short
-  /// toolbar; at it, the action belongs to the More sheet only.
+  /// toolbar; at it, the action belongs to the More menu only.
   static const unranked = 4;
 
   /// Where this action stands when the short toolbar picks its three.

@@ -11,7 +11,7 @@ import 'nex_module.dart';
 ///
 /// First-party rather than a module-kit folder, because it needs what the kit
 /// keeps out: a player for its sound, the phone's haptics and a lit screen.
-/// It keeps nothing but three settings, so taking it off has no data to ask
+/// It keeps nothing but four settings, so taking it off has no data to ask
 /// about.
 class PauseModule extends NexModule {
   const PauseModule();

@@ -1,9 +1,5 @@
 part of '../timeline_screen.dart';
 
-/// How many rows of a day fold with motion. Enough to fill any phone screen;
-/// a longer day's remaining rows are below the screen while it moves.
-const _gridFoldRows = 8;
-
 /// The phone's grid view (2.6.27, reworked in 2.6.28): the same days, pins
 /// and folds as the list, each day laid out as tiles — three to a row at the
 /// compact card size, two at the others, more as the window widens
@@ -52,109 +48,31 @@ extension _TimelineGrid on TimelineScreenState {
     return [
       for (final group in groups)
         SliverMainAxisGroup(
+          key: ValueKey(group.key),
           slivers: [
             SliverToBoxAdapter(child: _groupHeading(group, groups, l10n)),
-            // A day folding or opening, by tap or by pinch: its first rows,
-            // built at once, each folding a beat after the one above — the
-            // list's fan, a row of tiles at a time. When the motion ends an
-            // opened day becomes the lazy grid below; a closed one is gone.
-            if (_closingGroups.contains(group.key) ||
-                _openingGroups.contains(group.key))
-              SliverPadding(
-                padding: padding,
-                sliver: SliverToBoxAdapter(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final columns = metrics.columnsFor(constraints.maxWidth);
-                      final rows = math.min(
-                        _gridFoldRows,
-                        (group.notes.length / columns).ceil(),
-                      );
-                      final adaptive = adaptiveRows(group);
-                      final rtl =
-                          Directionality.of(context) == TextDirection.rtl;
-                      return Column(
-                        children: [
-                          for (var r = 0; r < rows; r++)
-                            _FoldingRow(
-                              key: ValueKey('grid-fold-${group.key}-$r'),
-                              open: !_closingGroups.contains(group.key),
-                              animateIn: _openingGroups.contains(group.key),
-                              order: r,
-                              child: Padding(
-                                padding: EdgeInsets.only(
-                                  bottom: r == rows - 1 ? 0 : NexSpacing.sm,
-                                ),
-                                child: SizedBox(
-                                  height:
-                                      adaptive?.heightAt(
-                                        r,
-                                        constraints.maxWidth,
-                                        reverseCrossAxis: rtl,
-                                      ) ??
-                                      height,
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
-                                    children: [
-                                      for (var c = 0; c < columns; c++) ...[
-                                        if (c > 0)
-                                          const SizedBox(width: NexSpacing.sm),
-                                        Expanded(
-                                          child:
-                                              r * columns + c <
-                                                  group.notes.length
-                                              ? _gridTile(
-                                                  group.notes[r * columns + c],
-                                                  strings,
-                                                  l10n,
-                                                  group,
-                                                )
-                                              : const SizedBox.shrink(),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              )
-            else if (!_model.collapsedGroups.contains(group.key))
-              SliverPadding(
-                padding: padding,
-                // The columns are chosen at layout, from the width the grid
-                // is given — not by a SliverLayoutBuilder around it. Sliver
-                // constraints change on every frame of a scroll, and the
-                // builder rebuilt each day's grid, and every tile on screen
-                // in it, on every one of them: the grid's scroll did twice
-                // the list's work (2.7.2).
-                sliver: SliverGrid.builder(
-                  gridDelegate: NexGridColumnsDelegate(
-                    metrics: metrics,
-                    mainAxisExtent: height,
-                    rows: adaptiveRows(group),
-                  ),
-                  itemCount: group.notes.length,
-                  itemBuilder: (context, i) =>
-                      _gridTile(group.notes[i], strings, l10n, group),
-                ),
-              ),
-            // A shelf that holds more than it shows ends in "See all", open
-            // only — folded, the heading's count says it.
-            if (!group.complete &&
-                (!_model.collapsedGroups.contains(group.key) ||
-                    _closingGroups.contains(group.key)))
-              SliverToBoxAdapter(
-                child: _FoldingRow(
-                  key: ValueKey('grid-fold-more-${group.key}'),
-                  open: !_closingGroups.contains(group.key),
-                  animateIn: _openingGroups.contains(group.key),
-                  child: _shelfMore(group, l10n),
+            if (_showGroupBody(group))
+              _groupBody(
+                group,
+                SliverMainAxisGroup(
+                  slivers: [
+                    if (group.notes.isNotEmpty)
+                      SliverPadding(
+                        padding: padding,
+                        sliver: SliverGrid.builder(
+                          gridDelegate: NexGridColumnsDelegate(
+                            metrics: metrics,
+                            mainAxisExtent: height,
+                            rows: adaptiveRows(group),
+                          ),
+                          itemCount: group.notes.length,
+                          itemBuilder: (context, i) =>
+                              _gridTile(group.notes[i], strings, l10n, group),
+                        ),
+                      ),
+                    if (!group.complete)
+                      SliverToBoxAdapter(child: _shelfMore(group, l10n)),
+                  ],
                 ),
               ),
           ],

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path/path.dart' as p;
@@ -32,6 +33,11 @@ abstract class PauseSound {
   Future<void> pause();
   Future<void> resume();
 
+  /// Fires once each time the platform takes the sound away mid-session — a
+  /// call, another player, headphones unplugged — so the session can hold its
+  /// breath with it instead of carrying on in silence (2.8.14).
+  Stream<void> get interruptions;
+
   void setMuted(bool muted);
 
   Future<void> dispose();
@@ -55,6 +61,8 @@ class SilentPauseSound implements PauseSound {
   @override
   Future<void> resume() async {}
   @override
+  Stream<void> get interruptions => const Stream.empty();
+  @override
   void setMuted(bool muted) {}
   @override
   Future<void> dispose() async {}
@@ -66,90 +74,169 @@ class SilentPauseSound implements PauseSound {
 class NexPauseSound implements PauseSound {
   AudioPlayer? _breath;
   AudioPlayer? _cue;
-  Future<_Files?>? _files;
+  _Files? _files;
+  Future<void>? _preparation;
+  Future<void> _commands = Future.value();
+  StreamSubscription<AudioInterruptionEvent>? _focusEvents;
+  StreamSubscription<void>? _noisyEvents;
+  final _interruptions = StreamController<void>.broadcast();
   bool _muted = false;
+  bool _disposed = false;
+  bool _guiding = false;
+  bool _cueIsCountdown = true;
+  int _request = 0;
 
-  /// Bumped when the sounds change, so an old file is not played for a new
-  /// design.
+  @override
+  Stream<void> get interruptions => _interruptions.stream;
+
+  /// Bump when the cached WAV design changes.
   static const _version = 1;
 
   @override
-  Future<void> prepare(PauseMode mode) {
-    final files = _files ??= _make(mode);
-    return files.then((files) async {
-      if (files == null) return;
-      await _safely(() async {
-        final breath = _breath ??= AudioPlayer();
-        final cue = _cue ??= AudioPlayer();
-        await breath.setFilePath(files.round);
-        await breath.setLoopMode(LoopMode.one);
+  Future<void> prepare(PauseMode mode) =>
+      _preparation ??= _safely(() => _prepare(mode));
+
+  Future<void> _prepare(PauseMode mode) async {
+    final files = await _make(mode);
+    if (_disposed || files == null) return;
+    // Pause owns focus events so returning focus cannot restart sound while
+    // the visual guide is still waiting for the user to resume.
+    final breath = _breath = AudioPlayer(handleInterruptions: false);
+    final cue = _cue = AudioPlayer(handleInterruptions: false);
+    await breath.setFilePath(files.round);
+    await breath.setLoopMode(LoopMode.one);
+    await cue.setFilePath(files.countdown);
+    await _safely(_listenForInterruptions);
+    if (_disposed) return;
+    _applyVolume();
+    _files = files;
+  }
+
+  Future<void> _listenForInterruptions() async {
+    final session = await AudioSession.instance;
+    if (_disposed) return;
+    _focusEvents = session.interruptionEventStream.listen((event) {
+      if (event.begin && event.type != AudioInterruptionType.duck) {
+        _soundTaken();
+      }
+    });
+    _noisyEvents = session.becomingNoisyEventStream.listen(
+      (_) => _soundTaken(),
+    );
+  }
+
+  void _soundTaken() {
+    if (_muted || _disposed) return;
+    final guiding = _guiding;
+    if (!guiding && _cue?.playing != true) return;
+    unawaited(pause());
+    if (guiding) _interruptions.add(null);
+  }
+
+  /// A pause may be followed by resume while the platform is still handling
+  /// it. Keep player commands in order and suppress superseded starts.
+  Future<void> _enqueue(Future<void> Function() command) => _commands =
+      _commands.then((_) => _disposed ? Future.value() : _safely(command));
+
+  bool _current(int request) => !_disposed && request == _request;
+
+  void _play(AudioPlayer player) => unawaited(_safely(player.play));
+
+  @override
+  Future<void> countdown() {
+    final request = ++_request;
+    return _enqueue(() async {
+      final files = _files;
+      final cue = _cue;
+      if (!_current(request) || files == null || cue == null) return;
+      if (_cueIsCountdown) {
+        await cue.seek(Duration.zero);
+      } else {
         await cue.setFilePath(files.countdown);
-        _apply();
-      });
+        _cueIsCountdown = true;
+      }
+      if (!_current(request)) return;
+      _guiding = true;
+      _play(cue);
     });
   }
 
   @override
-  Future<void> countdown() => _safely(() async {
-    final cue = _cue;
-    if (cue == null) return;
-    await cue.seek(Duration.zero);
-    unawaited(cue.play());
-  });
+  Future<void> startBreathing() => _playBreath(fromStart: true);
 
   @override
-  Future<void> startBreathing() => _safely(() async {
-    final breath = _breath;
-    if (breath == null) return;
-    await breath.seek(Duration.zero);
-    unawaited(breath.play());
-  });
+  Future<void> resume() => _playBreath(fromStart: false);
+
+  Future<void> _playBreath({required bool fromStart}) {
+    final request = ++_request;
+    return _enqueue(() async {
+      final breath = _breath;
+      if (!_current(request) || _files == null || breath == null) return;
+      if (fromStart) await breath.seek(Duration.zero);
+      if (!_current(request)) return;
+      _guiding = true;
+      _play(breath);
+    });
+  }
 
   @override
-  Future<void> finish() => _safely(() async {
-    await _breath?.stop();
-    final files = await _files;
-    final cue = _cue;
-    if (files == null || cue == null) return;
-    await cue.setFilePath(files.bowl);
-    unawaited(cue.play());
-  });
+  Future<void> finish() {
+    final request = ++_request;
+    _guiding = false;
+    return _enqueue(() async {
+      if (!_current(request)) return;
+      await _breath?.stop();
+      final files = _files;
+      final cue = _cue;
+      if (!_current(request) || files == null || cue == null) return;
+      await cue.setFilePath(files.bowl);
+      _cueIsCountdown = false;
+      if (_current(request)) _play(cue);
+    });
+  }
 
   @override
-  Future<void> pause() => _safely(() async {
-    await _breath?.pause();
-    await _cue?.pause();
-  });
-
-  @override
-  Future<void> resume() => _safely(() async {
-    final breath = _breath;
-    if (breath != null && breath.processingState != ProcessingState.idle) {
-      unawaited(breath.play());
-    }
-  });
+  Future<void> pause() {
+    _request++;
+    _guiding = false;
+    return _enqueue(() async {
+      await Future.wait([
+        if (_breath case final breath?) breath.pause(),
+        if (_cue case final cue?) cue.pause(),
+      ]);
+    });
+  }
 
   @override
   void setMuted(bool muted) {
     _muted = muted;
-    _apply();
+    _applyVolume();
   }
 
-  void _apply() {
-    unawaited(
-      _safely(() => _breath?.setVolume(_muted ? 0 : 1) ?? Future.value()),
-    );
-    unawaited(_safely(() => _cue?.setVolume(_muted ? 0 : 1) ?? Future.value()));
+  void _applyVolume() {
+    final volume = _muted ? 0.0 : 1.0;
+    if (_breath case final breath?) {
+      unawaited(_safely(() => breath.setVolume(volume)));
+    }
+    if (_cue case final cue?) {
+      unawaited(_safely(() => cue.setVolume(volume)));
+    }
   }
 
   @override
   Future<void> dispose() async {
+    _disposed = true;
     final breath = _breath;
     final cue = _cue;
     _breath = null;
     _cue = null;
-    await _safely(() async => breath?.dispose());
-    await _safely(() async => cue?.dispose());
+    await _focusEvents?.cancel();
+    await _noisyEvents?.cancel();
+    unawaited(_interruptions.close());
+    await Future.wait([
+      if (breath != null) _safely(breath.dispose),
+      if (cue != null) _safely(cue.dispose),
+    ]);
   }
 
   static Future<_Files?> _make(PauseMode mode) async {

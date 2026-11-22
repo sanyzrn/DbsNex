@@ -3486,6 +3486,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String cyclePeriodDay(String day) {
+    return 'Day $day of this period';
+  }
+
+  @override
   String cycleDaysUntil(int count) {
     final intl.NumberFormat countNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -3565,6 +3570,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cycleDayLogged => 'logged';
 
   @override
+  String get cycleWriteFailed => 'Couldn’t save your changes. Try again.';
+
+  @override
   String get cyclePeriodOverlap =>
       'Those dates overlap another period. Change them, or delete the other period first.';
 
@@ -3582,6 +3590,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cycleInsights => 'Your averages';
+
+  @override
+  String get cycleLengthHistory => 'Recent cycle lengths';
 
   @override
   String get cycleAverageCycle => 'Cycle';
@@ -3606,6 +3617,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cycleDeletePeriod => 'Delete this period';
+
+  @override
+  String get cycleDeletePeriodConfirm =>
+      'This period will be removed from your history. This cannot be undone.';
 
   @override
   String get cycleDisclaimer =>
@@ -3926,6 +3941,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get cycleReportLmp => 'Last period started';
+
+  @override
+  String get cycleReportNext => 'Next period, likely';
+
+  @override
   String get cycleReportPeriods => 'Recent periods';
 
   @override
@@ -3955,6 +3976,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cycleTemperature => 'Temperature on waking (°C)';
+
+  @override
+  String get cycleTemperatureHint => 'On waking, between 34 and 43 °C';
+
+  @override
+  String get cycleTemperatureInvalid =>
+      'Enter a temperature between 34 and 43.';
 
   @override
   String get cycleOvulationTest => 'Ovulation test';
@@ -4724,7 +4752,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pauseAudio => 'Pause audio';
 
   @override
-  String get convertToMarkdown => 'Convert to Markdown';
+  String get convertToMarkdown => 'Convert to MD';
 
   @override
   String get convertToNote => 'Convert to note';
@@ -5571,6 +5599,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pauseStart => 'Start';
+
+  @override
+  String get pauseLengthShort => 'Short';
+
+  @override
+  String get pauseLengthStandard => 'Standard';
+
+  @override
+  String get pauseLengthLong => 'Long';
+
+  @override
+  String get pauseCardAction => 'Double-tap to pause or carry on';
 
   @override
   String get pauseSound => 'Sound';

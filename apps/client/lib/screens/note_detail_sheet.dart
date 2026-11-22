@@ -468,7 +468,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
           // of text, and they belong to the note, not to its ending.
           //
           // Common actions have labels in a short fixed row. The remaining
-          // actions are listed by name in a sheet, so none need a horizontally
+          // actions are listed by name in a menu, so none need a horizontally
           // scrolling strip of unexplained icons. The timeline still owns
           // soft-delete and its undo toast.
           Divider(height: 1, color: Theme.of(context).colorScheme.outline),

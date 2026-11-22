@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:nex_client/app.dart';
+import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
@@ -66,7 +67,7 @@ void main() {
     expect(find.byType(NoteDetailSheet), findsOneWidget);
 
     // The labelled toolbar replaced the old icon strip. Its last control
-    // must clear system navigation, as must the bottom of its More sheet.
+    // must clear system navigation, as must the bottom of its More menu.
     final more = tester.getRect(find.byTooltip('More actions'));
     expect(
       more.bottom,
@@ -79,16 +80,12 @@ void main() {
     final delete = tester.getRect(find.text('Delete').last);
     expect(
       delete.bottom,
-      lessThanOrEqualTo(900 - navBar),
-      reason: "the More sheet's last action must clear system navigation",
+      lessThan(more.top),
+      reason: 'the More menu opens above its toolbar',
     );
   });
 
-  testWidgets('More actions closes when pulled down over its list', (
-    tester,
-  ) async {
-    // Reported: the More sheet ignored a swipe down. Its list caught the
-    // drag, and the plain modal it was closed only from its handle.
+  testWidgets('an outside tap only closes the More menu', (tester) async {
     tester.view.physicalSize = const Size(400, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -101,15 +98,74 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('a note to open'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('More actions'));
-    await tester.pumpAndSettle();
-    expect(find.text('Delete'), findsWidgets);
-    final before = find.text('Delete').evaluate().length;
+    final more = find.byTooltip('More actions');
+    final edit = find.byTooltip('Edit');
+    final editPosition = tester.getCenter(edit);
+    final fields = find.byType(TextField).evaluate().length;
+    for (final outside in [
+      tester.getCenter(more),
+      editPosition,
+      const Offset(200, 40),
+    ]) {
+      await tester.tap(more);
+      await tester.pumpAndSettle();
+      expect(find.text('Delete'), findsOneWidget);
+      await tester.tapAt(outside);
+      await tester.pumpAndSettle();
+      expect(find.text('Delete'), findsNothing);
+      expect(find.byType(NoteDetailSheet), findsOneWidget);
+      expect(edit.hitTestable(), findsOneWidget);
+      expect(find.byType(TextField), findsNWidgets(fields));
+    }
+  });
 
-    await tester.drag(find.text('Delete').last, const Offset(0, 500));
-    await tester.pumpAndSettle();
+  testWidgets('the More menu fits above the RTL toolbar on a short screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 440);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewPadding = const FakeViewPadding(top: 28, bottom: navBar);
+    tester.view.padding = const FakeViewPadding(top: 28, bottom: navBar);
+    addTearDown(tester.view.reset);
 
-    expect(find.text('Delete').evaluate().length, lessThan(before));
-    expect(find.byType(NoteDetailSheet), findsOneWidget);
+    final note = (await services.captureText('یادداشت نمونه'))!;
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('fa'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NoteDetailSheet(
+            services: services,
+            preferences: preferences,
+            noteId: note.id,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(NoteDetailSheet)),
+    );
+    final more = find.byTooltip(l10n.moreActions);
+    final anchor = tester.getRect(more);
+    await tester.tap(more);
+    await tester.pumpAndSettle();
+    expect(find.text('تبدیل به MD'), findsOneWidget);
+    final last = find.ancestor(
+      of: find.text(l10n.delete),
+      matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+    );
+    final scroll = find.ancestor(
+      of: last,
+      matching: find.byType(SingleChildScrollView),
+    );
+    final menu = tester.getRect(scroll);
+    expect(menu.left, closeTo(anchor.left, 1));
+    expect(menu.top, greaterThanOrEqualTo(28));
+    expect(menu.bottom, lessThan(anchor.top));
+    await tester.ensureVisible(last);
+    await tester.pumpAndSettle();
+    expect(last.hitTestable(), findsOneWidget);
   });
 }

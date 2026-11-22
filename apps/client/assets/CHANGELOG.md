@@ -4,6 +4,17 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.14
+
+- **Cycle calendar and logging.** Log today’s flow in one tap, see estimates in upcoming months and correct past periods without losing the edit if dates overlap.
+- **Clearer Cycle reports.** See the last period’s start, the next expected period and recent cycle lengths. Invalid temperature entries are flagged before saving.
+- **Rest days for habits.** Take a day or a longer break without breaking your streak. Rest days stay out of completion rates, and reminders resume after the break.
+- **Clearer habit progress.** See how often you kept a habit over 7, 30 and 90 days. The editor also includes ideas for daily prayers, Quran reading and weekly charity.
+- **Pause at your pace.** Choose a short, standard or long breathing session. Pause holds the session when sound is interrupted, and screen readers announce breath changes.
+- **Smoother timeline groups.** Date, note-type and tag groups open and close faster in the list and grid.
+- **A compact note actions menu.** More actions opens above its button, keeping the note visible. Tap outside to close the menu.
+- **Consistent caption labels.** The hold menu and its settings now use “Caption”, matching note details and AI actions.
+
 ## v2.8.13
 
 - **Family fund improvements.** Change the monthly share from a chosen month, draw and redraw in one sheet, view member history and overdue contributions, and copy or share a monthly report.

@@ -51,7 +51,8 @@ class _PinnedToolsState extends State<PinnedTools> with WidgetsBindingObserver {
   String get _currentSignature {
     final p = widget.preferences;
     return '${p.pinnedTools.join(',')}|'
-        '${nexModulesOn(p).map((m) => m.id).join(',')}|${p.pauseMode}|'
+        '${nexModulesOn(p).map((m) => m.id).join(',')}|'
+        '${p.pauseMode}|${p.pauseLength}|'
         '${p.cycleSetUp}|${p.cycleMode}|${p.cycleTypicalLength}|'
         '${p.cycleTypicalPeriod}|${p.cyclePregnancyStart}';
   }

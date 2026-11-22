@@ -34,6 +34,9 @@ const habitIcons = <String, IconData>{
   'tidy': Icons.cleaning_services_rounded,
   'save': Icons.savings_rounded,
   'plant': Icons.local_florist_rounded,
+  'prayer': Icons.mosque,
+  'quran': Icons.auto_stories_rounded,
+  'charity': Icons.volunteer_activism_rounded,
 };
 
 /// A habit's colour: [base] for marks and fills, [deep] behind white words.
@@ -233,9 +236,13 @@ class _DayRingPainter extends CustomPainter {
       return;
     }
     final n = pieces.length;
-    // A gap between pieces wide enough for the round caps to stay apart.
-    final gap = n == 1 ? 0.0 : (stroke * 1.6) / (rect.width / 2);
     final span = math.pi * 2 / n;
+    // A gap between pieces wide enough for the round caps to stay apart —
+    // and never more than a third of a piece, so a day with many habits
+    // still draws every arc instead of turning them inside out.
+    final gap = n == 1
+        ? 0.0
+        : math.min((stroke * 1.6) / (rect.width / 2), span * 0.34);
     final sign = rtl ? -1 : 1;
     for (final (i, piece) in pieces.indexed) {
       final start = -math.pi / 2 + sign * (i * span + gap / 2);
@@ -259,9 +266,8 @@ class _DayRingPainter extends CustomPainter {
       old.grow != grow ||
       old.rtl != rtl ||
       old.pieces.length != pieces.length ||
-      [
-        for (var i = 0; i < pieces.length; i++) old.pieces[i] != pieces[i],
-      ].any((changed) => changed);
+      [for (var i = 0; i < pieces.length; i++) old.pieces[i] != pieces[i]]
+          .any((changed) => changed);
 }
 
 /// One day as a small mark: a filled dot kept, a half-filled one partly

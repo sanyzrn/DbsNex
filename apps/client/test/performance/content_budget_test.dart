@@ -387,9 +387,8 @@ void main() {
       reason: 'the heavy group is on screen to be folded',
     );
 
-    // Fold it closed: the rows stay for one 400ms animation while they
-    // shrink away. Pumps, not pumpAndSettle, so what is measured is CPU —
-    // the whole animation, and the one frame that does the work.
+    // Measure the work over the fold and the frame that costs the most.
+    // The visible portion shrinks while the off-screen rows stay lazy.
     await tester.tap(header);
     var watch = Stopwatch()..start();
     var worstClosedFrame = 0;
@@ -406,9 +405,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(timeline.collapsedGroups, contains('week'));
 
-    // Open it again: every row of the group is inserted and built inside the
-    // fold animation — the burst that used to freeze the list for the better
-    // part of a second with this content.
+    // Open it again: the lazy group lays out rows as they come into view.
     await tester.tap(header);
     watch = Stopwatch()..start();
     var worstOpenFrame = 0;
@@ -428,12 +425,9 @@ void main() {
       'worst frames $worstClosedFrame / $worstOpenFrame ms',
     );
 
-    // Calibrated against the fixed path in this VM: the fold is animation
-    // frames plus the two that do the work — the insert burst on the tap,
-    // and the cleanup rebuild the 400ms timer fires. A long note's card
-    // paying its whole text again on each of them is what these ceilings
-    // are for: uncapped, the same fold measured a frame and a half again
-    // as much CPU.
+    // These debug-mode budgets catch a group building its whole set of
+    // heavy cards at once. They leave headroom for differences between CI
+    // machines.
     expect(closedMs, lessThan(1000), reason: 'closing the heavy group');
     expect(openMs, lessThan(800), reason: 'opening the heavy group');
     expect(
@@ -444,7 +438,7 @@ void main() {
     expect(
       worstOpenFrame,
       lessThan(400),
-      reason: 'the insert burst — every heavy row built in one frame',
+      reason: 'the most expensive reveal frame',
     );
     expect(
       find.byType(NoteCard).evaluate(),

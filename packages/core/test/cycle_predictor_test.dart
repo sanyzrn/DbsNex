@@ -181,6 +181,47 @@ void main() {
     expect(p.stageOn(p.nextStart.addDays(-2)), CycleStage.luteal);
   });
 
+  test('forecasts reach the months past the three on the page', () {
+    final periods = history(d(2026, 6, 1), [28, 28, 28]);
+    final p = CyclePredictor.predict(periods: periods, today: d(2026, 8, 26))!;
+    // January is four predicted cycles beyond the next start, so `upcoming`
+    // no longer covers it.
+    final january = p.forecastBetween(d(2027, 1, 1), d(2027, 1, 31));
+    expect(january, isNotEmpty);
+    expect(january.map((f) => f.period.start), contains(d(2027, 1, 11)));
+    // The fertile window that opens at the end of the month belongs to the
+    // following cycle, whose period falls in February — the calendar needs
+    // that window in January too.
+    final next = january.singleWhere((f) => f.period.start == d(2027, 2, 8));
+    expect(next.fertile.start, d(2027, 1, 20));
+    expect(next.period.start.isAfter(d(2027, 1, 31)), isTrue);
+    // Earlier calendar pages have no calculated windows before the forecast.
+    final back = p.forecastBetween(d(2025, 12, 20), d(2025, 12, 31));
+    expect(back, isEmpty);
+  });
+
+  test('a forecast range that is backwards is empty, not a walk', () {
+    final p = CyclePredictor.predict(
+      periods: history(d(2026, 6, 1), [28, 28]),
+      today: d(2026, 8, 1),
+    )!;
+    expect(p.forecastBetween(d(2026, 9, 1), d(2026, 8, 1)), isEmpty);
+  });
+
+  test('the interval chart agrees with the average above it', () {
+    final periods = history(d(2026, 1, 1), [28, 30, 27]);
+    expect(CyclePredictor.intervals(periods), [28, 30, 27]);
+    expect(CyclePredictor.intervals(periods, limit: 2), [30, 27]);
+    // A mistyped year, or a gap the predictor reads as a missed log, is not
+    // drawn as a cycle either.
+    final odd = [...periods, period(periods.last.start.addDays(100), 5)];
+    final short = [...periods, period(periods.last.start.addDays(10), 5)];
+    expect(CyclePredictor.intervals(odd), [28, 30, 27]);
+    expect(CyclePredictor.intervals(short), [28, 30, 27]);
+    final missed = history(d(2026, 1, 1), [28, 28, 28, 56]);
+    expect(CyclePredictor.intervals(missed), [28, 28, 28]);
+  });
+
   test('today ended early is no longer the period stage', () {
     final p = CyclePredictor.predict(
       periods: [

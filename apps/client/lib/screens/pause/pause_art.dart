@@ -191,10 +191,14 @@ class PauseArtPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(PauseArtPainter old) =>
-      old.fullness != fullness ||
-      old.seconds != seconds ||
       old.mode != mode ||
-      old.color != color;
+      old.fullness != fullness ||
+      old.color != color ||
+      old.stroke != stroke ||
+      // Only Relax's globe turns with the clock; for the other modes a new
+      // [seconds] paints the same picture, and holding still through a hold
+      // is free (2.8.14).
+      (mode == PauseMode.relax && old.seconds != seconds);
 }
 
 /// A mode's card, still: the sky and its drawing as each one is best seen.

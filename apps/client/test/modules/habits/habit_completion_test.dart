@@ -50,7 +50,7 @@ class MemoryHabits implements NexModuleStore {
     required String title,
     required String body,
   }) async {
-    await put('__reminder', key, {'at': at.toIso8601String()});
+    await put('__reminder', key, {'at': at.toIso8601String(), 'body': body});
     return true;
   }
 
@@ -156,6 +156,33 @@ void main() {
       DateTime(2026, 10, 31, 20),
     );
   });
+
+  test(
+    'notification amounts are only used on the day that was logged',
+    () async {
+      final store = MemoryHabits();
+      final h = habit();
+      final checks = [check('2026-10-29', amount: 5)];
+      await store.put('remind', 'h', {'on': true, 'minutes': 20 * 60});
+      await habitArmReminder(store, l10n, h, now: now, checks: checks);
+      expect(
+        (await store.get('__reminder', 'habit:h'))?['body'],
+        'Water: 5 of 8 times.',
+      );
+
+      await habitArmReminder(
+        store,
+        l10n,
+        h,
+        now: DateTime(2026, 10, 29, 21),
+        checks: checks,
+      );
+      expect(
+        (await store.get('__reminder', 'habit:h'))?['body'],
+        'Time for Water.',
+      );
+    },
+  );
 
   test(
     'daily legacy reminder migrates before replacement and survives rearming',

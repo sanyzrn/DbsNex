@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_client/modules/habits/habit_model.dart';
 import 'package:nex_client/modules/habits/module.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/module_registry.dart';
@@ -309,6 +310,32 @@ void main() {
       });
       final wanted = await services.restoreModuleReminders();
       expect(wanted, contains(NexModuleAlarms.moduleId('habits', 'habit:one')));
+    });
+
+    test('restored habit alarms stay quiet during a saved rest', () async {
+      await harness.preferences.setModuleOn('habits', true);
+      final services = harness.services;
+      final now = DateTime.now();
+      final at = now.add(const Duration(hours: 2));
+      final habit = Habit.fromBody('walk', {'name': 'Walking'});
+      await services.modulePut(
+        'habits',
+        'habit',
+        habit.id,
+        habit.pauseUntil(now, at).toJson(),
+      );
+      await services.worker.modulePut('habits', '__reminder', 'habit:walk', {
+        'sourceKind': 'habit',
+        'sourceId': 'walk',
+        'at': at.toUtc().toIso8601String(),
+        'title': 'Habit',
+        'body': 'Time for Walking.',
+      });
+      final id = NexModuleAlarms.moduleId('habits', 'habit:walk');
+      expect(await services.restoreModuleReminders(), isNot(contains(id)));
+
+      await services.modulePut('habits', 'habit', habit.id, habit.toJson());
+      expect(await services.restoreModuleReminders(), contains(id));
     });
   });
 

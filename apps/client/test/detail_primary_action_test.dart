@@ -9,7 +9,7 @@ import 'support/nex_harness.dart';
 /// The short toolbar carries the note's own primary action: a link's Open, a
 /// text's Edit. It used to pick its actions by comparing translated labels
 /// and icon codes, so anything it did not literally name — a link's Open
-/// being the whole point — fell into the More sheet.
+/// being the whole point — fell into the More menu.
 void main() {
   Future<void> show(
     WidgetTester tester,
@@ -76,9 +76,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('the More sheet keeps the secondaries, without the primary', (
-    tester,
-  ) async {
+  testWidgets('the More menu keeps secondary actions in order', (tester) async {
     final h = await NexTestHarness.create();
     addTearDown(h.dispose);
     final note = (await h.services.captureLink('https://example.com/recipe'))!;
@@ -87,17 +85,32 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.more_horiz));
     await tester.pumpAndSettle();
-    // A modal bottom sheet keeps the toolbar mounted underneath it. Check
-    // the menu itself for duplicates, rather than assuming the toolbar is
-    // offstage while the non-opaque modal route is open.
-    final moreSheet = find.byType(BottomSheet);
-    expect(moreSheet, findsOneWidget);
+    final menuItems = find.byWidgetPredicate(
+      (widget) => widget is PopupMenuItem,
+    );
     Finder inMore(String label) =>
-        find.descendant(of: moreSheet, matching: find.text(label));
+        find.descendant(of: menuItems, matching: find.text(label));
     expect(inMore(l.openLink), findsNothing);
     expect(find.text(l.openLink, skipOffstage: false), findsOneWidget);
     expect(inMore(l.details), findsOneWidget);
     expect(inMore(l.delete), findsOneWidget);
+    final orderedActions = [
+      l.markUrgent,
+      l.pin,
+      l.setAside,
+      l.threads,
+      l.details,
+      l.delete,
+    ];
+    expect(
+      orderedActions.map((label) => tester.getTopLeft(inMore(label)).dy),
+      orderedEquals(
+        orderedActions
+            .map((label) => tester.getTopLeft(inMore(label)).dy)
+            .toList()
+          ..sort(),
+      ),
+    );
     await tester.pumpWidget(const SizedBox());
   });
 }

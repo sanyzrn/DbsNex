@@ -45,6 +45,15 @@ enum CycleStage { period, follicular, fertile, luteal }
 /// A predicted period or fertile window: [start] to [end], inclusive.
 typedef CycleSpan = ({CycleDate start, CycleDate end});
 
+/// One predicted cycle: its period, the fertile window round ovulation, and
+/// the ovulation day itself. What the calendar draws for any month it is
+/// turned to.
+typedef CycleForecast = ({
+  CycleSpan period,
+  CycleSpan fertile,
+  CycleDate ovulation,
+});
+
 /// Everything the cycle screen shows, computed from what was logged.
 class CyclePrediction {
   const CyclePrediction({
@@ -98,11 +107,45 @@ class CyclePrediction {
   final CycleConfidence confidence;
   final Set<CycleAlert> alerts;
 
-  /// The next three predicted periods and fertile windows, for the calendar.
+  /// The next three predicted periods and fertile windows.
   final List<({CycleSpan period, CycleSpan fertile})> upcoming;
 
   /// Days until [nextStart]; negative when it is late.
   int get daysUntilNext => nextStart.daysSince(today);
+
+  /// Every predicted cycle that shares a day with [from]..[to].
+  ///
+  /// [upcoming] stops after three cycles, which is enough for the page's
+  /// lines and not enough for a calendar someone turns a year ahead. This
+  /// counts on from the same anchor [upcoming] uses — today while the
+  /// period is late, otherwise the next start — and is bounded so that a
+  /// malformed average cannot make it walk for years.
+  List<CycleForecast> forecastBetween(CycleDate from, CycleDate to) {
+    if (to.isBefore(from) || averageCycle < 1) return const [];
+    final anchor = nextStart.isBefore(today) ? today : nextStart;
+    // The earliest start whose period can still reach `from`, and the
+    // latest whose fertile window can still begin before `to`.
+    final before = from.addDays(-math.max(averagePeriod - 1, 13));
+    final after = to.addDays(19);
+    var first = math.max(0, _ceilDiv(before.daysSince(anchor), averageCycle));
+    final last = _floorDiv(after.daysSince(anchor), averageCycle);
+    if (last < first) return const [];
+    if (last - first > 240) first = last - 240;
+    final out = <CycleForecast>[];
+    for (var k = first; k <= last; k++) {
+      final start = anchor.addDays(averageCycle * k);
+      final ovulation = k == 0 ? this.ovulation : start.addDays(-14);
+      final period = (start: start, end: start.addDays(averagePeriod - 1));
+      final fertile = (start: ovulation.addDays(-5), end: ovulation.addDays(1));
+      if (_spans(from, to, period) || _spans(from, to, fertile)) {
+        out.add((period: period, fertile: fertile, ovulation: ovulation));
+      }
+    }
+    return out;
+  }
+
+  static bool _spans(CycleDate from, CycleDate to, CycleSpan span) =>
+      !span.start.isAfter(to) && !span.end.isBefore(from);
 
   /// The phase of [day]: by its place in the cycle that began at
   /// [lastStart], for any day from then until the next period.
@@ -156,17 +199,10 @@ abstract final class CyclePredictor {
     final past = sorted.where((p) => !p.start.isAfter(today)).toList();
     if (past.isEmpty) return null;
 
-    final all = <int>[
-      for (var i = 1; i < past.length; i++)
-        past[i].start.daysSince(past[i - 1].start),
-    ].where((d) => d >= minCycle && d <= maxCycle).toList();
-    // A gap about twice the usual is a period that was never logged — two
-    // cycles, not one long one — and would drag every prediction late.
+    final all = _plausibleLengths(past);
+    // A gap about twice the usual can be a missed entry.
     final usual = _median(all);
-    final lengths = [
-      for (final l in all)
-        if (all.length < 3 || l < usual * 1.75 || l > usual * 2.25) l,
-    ];
+    final lengths = _withoutLikelyMissedLogs(all, usual);
     final recent = lengths.length > window
         ? lengths.sublist(lengths.length - window)
         : lengths;
@@ -265,6 +301,37 @@ abstract final class CyclePredictor {
     );
   }
 
+  /// The lengths between consecutive period starts, oldest first, at most
+  /// [limit] of them.
+  ///
+  /// Shown as a small chart beside the averages: a number is easier to trust
+  /// when the run that produced it is visible. Gaps the predictor would read
+  /// as a mistyped date rather than a cycle are left out for the same reason
+  /// they are left out of the average — a chart that disagrees with the
+  /// number above it teaches nobody anything.
+  static List<int> intervals(List<CyclePeriod> periods, {int limit = 8}) {
+    if (limit <= 0) return const [];
+    final sorted = [...periods]..sort((a, b) => a.start.compareTo(b.start));
+    final all = _plausibleLengths(sorted);
+    final lengths = _withoutLikelyMissedLogs(all, _median(all));
+    return lengths.length > limit
+        ? lengths.sublist(lengths.length - limit)
+        : lengths;
+  }
+
+  static List<int> _plausibleLengths(List<CyclePeriod> periods) => [
+    for (var i = 1; i < periods.length; i++)
+      if (periods[i].start.daysSince(periods[i - 1].start) case final days
+          when days >= minCycle && days <= maxCycle)
+        days,
+  ];
+
+  static List<int> _withoutLikelyMissedLogs(List<int> all, double usual) => [
+    for (final length in all)
+      if (all.length < 3 || length < usual * 1.75 || length > usual * 2.25)
+        length,
+  ];
+
   static double _median(List<int> values) {
     if (values.isEmpty) return 0;
     final sorted = [...values]..sort();
@@ -280,4 +347,13 @@ abstract final class CyclePredictor {
     final sum = values.fold<double>(0, (s, v) => s + (v - mean) * (v - mean));
     return math.sqrt(sum / (values.length - 1));
   }
+}
+
+/// [a] ÷ [b] rounded down, for a negative [a] too.
+int _floorDiv(int a, int b) => (a - a % b) ~/ b;
+
+/// [a] ÷ [b] rounded up, for a negative [a] too.
+int _ceilDiv(int a, int b) {
+  final down = _floorDiv(a, b);
+  return down * b == a ? down : down + 1;
 }
