@@ -199,6 +199,26 @@ void main() {
     expect(find.text('alpha note'), findsOneWidget, reason: 'still home');
   });
 
+  testWidgets('a tap below the list clears all selected cards', (tester) async {
+    await open(tester);
+    await select(tester, 'alpha note');
+    final beta = tester.widget<NoteCard>(card('beta note')).note;
+    await tester.tap(find.byKey(ValueKey('pick-shield-${beta.id}')));
+    await tester.pumpAndSettle();
+    expect(count('2 selected'), findsOneWidget);
+
+    final last = tester.getRect(find.byType(NoteCard).last);
+    final blank = Offset(last.center.dx, last.bottom + 12);
+    await tester.dragFrom(blank, const Offset(0, -60));
+    await tester.pumpAndSettle();
+    expect(count('2 selected'), findsOneWidget);
+    await tester.tapAt(blank);
+    await tester.pumpAndSettle();
+    expect(bar(), findsNothing);
+    expect(selectedOf(tester, 'alpha note'), isNull);
+    expect(selectedOf(tester, 'beta note'), isNull);
+  });
+
   testWidgets('copy puts every picked note on the clipboard', (tester) async {
     await open(tester);
     await select(tester, 'alpha note');
@@ -341,6 +361,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<NexNoteGridCard>(tiles.first).selected, isTrue);
     expect(bar(), findsOneWidget);
+
+    // The third tile starts a new row. Tap the empty slot beside it.
+    final blank = Offset(second.center.dx, tester.getCenter(tiles.last).dy);
+    expect(tester.getRect(tiles.last).contains(blank), isFalse);
+    await tester.tapAt(blank);
+    await tester.pumpAndSettle();
+    expect(bar(), findsNothing);
+    expect(tester.widget<NexNoteGridCard>(tiles.first).selected, isNull);
   });
 
   for (final grid in [false, true]) {
