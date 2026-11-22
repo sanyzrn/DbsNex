@@ -124,6 +124,7 @@ part of '../../platform/nex_services.dart';
           'module_record_bundle.dart',
           // 2.8.4: ModuleDue and ModuleSummary, once copied in every module.
           'module_shared.dart',
+          'money_entry.dart',
           'module_hero.dart',
           'module_plans.dart',
           'module_registry.dart',
@@ -167,6 +168,7 @@ part of '../../platform/nex_services.dart';
           'module_segments.dart',
           'module_record_bundle.dart',
           'module_shared.dart',
+          'money_entry.dart',
           'module_hero.dart',
           'module_reminder_control.dart',
         });

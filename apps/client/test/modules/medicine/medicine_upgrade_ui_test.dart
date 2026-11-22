@@ -57,19 +57,18 @@ void main() {
         find.byKey(const ValueKey('medicine-place-name')),
         'Corner pharmacy',
       );
-      await tester.enterText(
-        find.byKey(const ValueKey('medicine-place-price')),
-        '12,500',
-      );
+      final price = find.byKey(const ValueKey('medicine-place-price'));
+      await tester.enterText(price, '12500.5');
+      expect(tester.widget<TextField>(price).controller!.text, '12,500.5');
       await tester.tap(find.byKey(const ValueKey('medicine-place-save')));
       await tester.pumpAndSettle();
 
       final saved = (await store.list('source')).single;
       expect(saved.body['place'], 'Corner pharmacy');
-      expect(saved.body['priceRial'], 125000);
+      expect(saved.body['priceRial'], 125005);
       expect(MedicineModels.readDay(saved.body, 'at'), isNotNull);
       expect(find.text('Corner pharmacy'), findsOneWidget);
-      expect(find.textContaining('12,500 tomans'), findsOneWidget);
+      expect(find.textContaining('12,500.5 tomans'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 

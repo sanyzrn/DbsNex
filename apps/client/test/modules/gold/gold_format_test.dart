@@ -9,7 +9,7 @@ void main() {
     test('plain decimals at their scale', () {
       expect(parseScaled('3', 3), 3000);
       expect(parseScaled('3.125', 3), 3125);
-      expect(parseScaled('10,000,000'.replaceAll(',', ''), 2), 1000000000);
+      expect(parseScaled('10,000,000', 2), 1000000000);
       expect(parseScaled('1234.5', 2), 123450);
       expect(parseScaled('0.001', 3), 1);
     });
@@ -17,7 +17,7 @@ void main() {
     test('Persian digits and the Persian decimal separator parse the same', () {
       expect(parseScaled('۳٫۱۲۵', 3), 3125);
       expect(parseScaled('۷', 2), 700);
-      expect(parseScaled('۱۰,۰۰۰,۰۰۰'.replaceAll(',', ''), 2), 1000000000);
+      expect(parseScaled('۱۰٬۰۰۰٬۰۰۰٫۵', 2), 1000000050);
     });
 
     test('whitespace and a leading plus are forgiven', () {
@@ -37,11 +37,10 @@ void main() {
       expect(parseScaled('-.', 2), isNull);
     });
 
-    test('a comma is rejected rather than guessed about', () {
-      // Half the world means a decimal point, the other half a thousands
-      // separator. Guessing misprices jewelry; refusing does not.
+    test('commas must be in groups of three', () {
       expect(parseScaled('1,5', 2), isNull);
-      expect(parseScaled('1,234', 0), isNull);
+      expect(parseScaled('1,234', 0), 1234);
+      expect(parseScaled('1,234.5,6', 2), isNull);
     });
 
     test('negatives parse as negative — validation rejects them later', () {

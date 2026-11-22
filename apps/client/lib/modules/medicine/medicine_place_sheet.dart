@@ -26,7 +26,7 @@ class MedicinePlaceSheet extends StatefulWidget {
 
 class _MedicinePlaceSheetState extends State<MedicinePlaceSheet> {
   final _place = TextEditingController();
-  final _price = TextEditingController();
+  final _price = NexMoneyController();
   final _day = TextEditingController();
   bool _busy = false;
   bool _showErrors = false;
@@ -117,6 +117,7 @@ class _MedicinePlaceSheetState extends State<MedicinePlaceSheet> {
               MedicineFields.number(
                 fieldKey: const ValueKey('medicine-place-price'),
                 controller: _price,
+                decimal: true,
                 label: strings(context, 'price'),
                 hint: strings(context, 'priceHint'),
                 helper:

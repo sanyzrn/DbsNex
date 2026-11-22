@@ -34,7 +34,7 @@ class _GoldBudgetSheet extends StatefulWidget {
 }
 
 class _GoldBudgetSheetState extends State<_GoldBudgetSheet> {
-  final _budget = TextEditingController();
+  final _budget = NexMoneyController();
 
   @override
   void dispose() {

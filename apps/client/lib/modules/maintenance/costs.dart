@@ -9,6 +9,8 @@
 /// tomans (1 toman = 10 rials = 1000 minor units).
 library;
 
+import '../module_api.dart' show nexUngroupMoney;
+
 import 'local_values.dart';
 import 'units.dart' show groupDigits, persianDigits;
 
@@ -82,7 +84,9 @@ CostAmountResult parseCostAmount(String input, CostCurrency currency) =>
 CostAmountResult parseTomanCost(String input) => _parse(input, 3);
 
 CostAmountResult _parse(String input, int exponent) {
-  final text = LocalValues.ascii(input.trim());
+  final text = LocalValues.ascii(
+    nexUngroupMoney(input, decimalComma: true).trim(),
+  );
   if (text.isEmpty) return (minor: null, error: CostAmountError.empty);
   if (!RegExp(r'^([0-9]+([.,][0-9]*)?|[.,][0-9]+)$').hasMatch(text)) {
     return (minor: null, error: CostAmountError.notANumber);

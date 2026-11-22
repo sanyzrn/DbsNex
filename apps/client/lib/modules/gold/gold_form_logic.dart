@@ -3,14 +3,14 @@ part of 'gold_form.dart';
 mixin _GoldFormLogic on State<GoldForm> {
   final _weight = TextEditingController();
   final _gross = TextEditingController();
-  final _rate = TextEditingController();
+  final _rate = NexMoneyController();
   final _makingPercent = TextEditingController();
-  final _makingPerGram = TextEditingController();
-  final _makingFixed = TextEditingController();
+  final _makingPerGram = NexMoneyController();
+  final _makingFixed = NexMoneyController();
   final _profit = TextEditingController();
   final _vat = TextEditingController();
-  final _commission = TextEditingController();
-  final _shopQuote = TextEditingController();
+  final _commission = NexMoneyController();
+  final _shopQuote = NexMoneyController();
 
   final List<GoldExtraControllers> _extras = [];
 
@@ -267,7 +267,7 @@ mixin _GoldFormLogic on State<GoldForm> {
   }
 
   void _addExtra({String label = '', int amountCenti = 0, bool notify = true}) {
-    final amountController = TextEditingController(
+    final amountController = NexMoneyController(
       text: amountCenti == 0 ? '' : inputScaled(amountCenti, 2),
     );
     amountController.addListener(_changed);

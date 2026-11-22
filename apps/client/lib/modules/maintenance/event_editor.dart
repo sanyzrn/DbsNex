@@ -64,7 +64,8 @@ class _EventEditorSheetState extends State<EventEditorSheet> {
   late final TextEditingController _task = TextEditingController(
     text: _seed?.task ?? '',
   );
-  late final TextEditingController _cost = TextEditingController(
+  late final _cost = NexMoneyController(
+    decimalComma: true,
     text: () {
       final seed = _seed;
       if (seed == null ||

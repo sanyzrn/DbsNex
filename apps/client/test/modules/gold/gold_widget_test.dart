@@ -95,6 +95,9 @@ void main() {
     await tester.pumpWidget(goldScreen());
     await tester.pumpAndSettle();
     await enterReferenceExample(tester);
+    final rate = find.byKey(const ValueKey('gold-rate'));
+    final field = find.descendant(of: rate, matching: find.byType(TextField));
+    expect(tester.widget<TextField>(field).controller!.text, '10,000,000');
     await downTo(tester, find.text('How this is calculated'));
     expect(find.text('How this is calculated'), findsOneWidget);
     await downTo(tester, find.text('Metal value'));
