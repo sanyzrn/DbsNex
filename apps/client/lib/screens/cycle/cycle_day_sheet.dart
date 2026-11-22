@@ -135,6 +135,14 @@ class _DaySheetState extends State<_DaySheet> {
     final theme = Theme.of(context);
     final rose = cyclePeriodColor(theme.brightness);
     final period = _period;
+    final temperatureText = _temperature.text.trim();
+    // Said beside the field rather than swallowed on save: a number that is
+    // mistyped, or in Fahrenheit, used to be written as "no temperature".
+    final temperatureInvalid =
+        temperatureText.isNotEmpty && _parsedTemperature == null;
+    final periodDay = period == null
+        ? 0
+        : CycleDate.of(widget.day).daysSince(period.start) + 1;
     Widget heading(String text) => Padding(
       padding: const EdgeInsets.only(top: NexSpacing.md, bottom: NexSpacing.xs),
       child: Text(text, style: theme.textTheme.titleSmall),
@@ -152,6 +160,14 @@ class _DaySheetState extends State<_DaySheet> {
               ),
               style: theme.textTheme.titleLarge,
             ),
+            if (period != null)
+              Text(
+                l10n.cyclePeriodDay(cycleDigits(context, periodDay)),
+                key: const ValueKey('cycle-period-day'),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             const SizedBox(height: NexSpacing.sm),
             if (period == null)
               OutlinedButton.icon(
@@ -174,6 +190,7 @@ class _DaySheetState extends State<_DaySheet> {
               children: [
                 for (final flow in <CycleFlow?>[null, ...CycleFlow.values])
                   ChoiceChip(
+                    key: ValueKey('cycle-day-flow-${flow?.name ?? 'none'}'),
                     label: Text(cycleFlowLabel(l10n, flow)),
                     selected: _log.flow == flow,
                     selectedColor: flow == null
@@ -272,8 +289,14 @@ class _DaySheetState extends State<_DaySheet> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
+                onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   labelText: l10n.cycleTemperature,
+                  helperText: l10n.cycleTemperatureHint,
+                  errorText: temperatureInvalid
+                      ? l10n.cycleTemperatureInvalid
+                      : null,
+                  suffixText: '°C',
                   isDense: true,
                 ),
               ),
@@ -328,7 +351,7 @@ class _DaySheetState extends State<_DaySheet> {
             const SizedBox(height: NexSpacing.md),
             FilledButton(
               key: const ValueKey('cycle-day-save'),
-              onPressed: _save,
+              onPressed: temperatureInvalid ? null : _save,
               child: Text(l10n.save),
             ),
           ],

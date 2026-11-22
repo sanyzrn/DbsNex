@@ -3455,6 +3455,11 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String cyclePeriodDay(String day) {
+    return 'روز $day از این پریود';
+  }
+
+  @override
   String cycleDaysUntil(int count) {
     final intl.NumberFormat countNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -3541,6 +3546,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cycleInsights => 'میانگین‌های شما';
 
   @override
+  String get cycleLengthHistory => 'طول چرخه‌های اخیر';
+
+  @override
   String get cycleAverageCycle => 'چرخه';
 
   @override
@@ -3563,6 +3571,10 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get cycleDeletePeriod => 'حذف این پریود';
+
+  @override
+  String get cycleDeletePeriodConfirm =>
+      'این پریود از سابقه‌تان حذف می‌شود و برگشت‌پذیر نیست. اگر فقط اشتباه ثبت شده، بهتر است تاریخ‌هایش را اصلاح کنید.';
 
   @override
   String get cycleDisclaimer =>
@@ -3870,6 +3882,12 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get cycleReportLmp => 'آخرین پریود';
+
+  @override
+  String get cycleReportNext => 'پریود بعدی (احتمالی)';
+
+  @override
   String get cycleReportPeriods => 'پریودهای اخیر';
 
   @override
@@ -3899,6 +3917,12 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get cycleTemperature => 'دمای بدن هنگام بیدار شدن (°C)';
+
+  @override
+  String get cycleTemperatureHint => 'هنگام بیدار شدن، بین ۳۴ تا ۴۳ درجه';
+
+  @override
+  String get cycleTemperatureInvalid => 'دمایی بین ۳۴ و ۴۳ درجه وارد کنید.';
 
   @override
   String get cycleOvulationTest => 'تست تخمک‌گذاری';

@@ -170,6 +170,54 @@ class CycleQuickMood extends StatelessWidget {
   }
 }
 
+/// Today's flow in one tap. The other half of the quick log: together with
+/// the mood row it covers what most days are noted for, without opening the
+/// day sheet. Tapping the chosen one again takes it back.
+class CycleQuickFlow extends StatelessWidget {
+  const CycleQuickFlow({super.key, required this.flow, required this.onPick});
+
+  final CycleFlow? flow;
+
+  /// The flow picked, or null when the one already picked is tapped again.
+  final ValueChanged<CycleFlow?> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final rose = cyclePeriodColor(theme.brightness);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l10n.cycleFlow,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: NexSpacing.xs),
+        Wrap(
+          spacing: NexSpacing.xs,
+          runSpacing: NexSpacing.xs,
+          children: [
+            for (final value in <CycleFlow?>[null, ...CycleFlow.values])
+              ChoiceChip(
+                key: ValueKey('cycle-quick-flow-${value?.name ?? 'none'}'),
+                label: Text(cycleFlowLabel(l10n, value)),
+                selected: flow == value,
+                selectedColor: value == null
+                    ? null
+                    : rose.withValues(alpha: 0.24),
+                visualDensity: VisualDensity.compact,
+                onSelected: (_) => onPick(flow == value ? null : value),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 /// Asked when a period has stayed open longer than they usually last: most
 /// often the end was simply not logged, and the page should not go on
 /// saying "period, day 12".

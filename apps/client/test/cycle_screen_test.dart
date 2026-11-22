@@ -150,7 +150,9 @@ void main() {
     await scrollTo(tester, find.byKey(const ValueKey('cycle-log-today')));
     await tester.tap(find.byKey(const ValueKey('cycle-log-today')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Heavy'));
+    // The quick row on the page behind the sheet also says "Heavy" now, so
+    // the sheet's own chip is addressed by its key.
+    await tester.tap(find.byKey(const ValueKey('cycle-day-flow-heavy')));
     await tester.tap(find.text('Cramps'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('cycle-day-save')));
@@ -404,6 +406,9 @@ void main() {
     expect(find.byType(CycleReportScreen), findsOneWidget);
     expect(find.text('Cycle report'), findsOneWidget);
     expect(find.text('Recent periods'), findsOneWidget);
+    // The two dates a doctor asks for first.
+    expect(find.textContaining('Last period started'), findsOneWidget);
+    expect(find.textContaining('Next period, likely'), findsOneWidget);
     expect(find.byKey(const ValueKey('cycle-report-save')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -493,5 +498,169 @@ void main() {
     await tester.tapAt(box.center);
     await tester.pumpAndSettle();
     expect(find.text('Back to today'), findsNothing);
+  });
+
+  testWidgets('flow is one tap, and tapping it again takes it back', (
+    tester,
+  ) async {
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true},
+    );
+    await scrollTo(
+      tester,
+      find.byKey(const ValueKey('cycle-quick-flow-medium')),
+    );
+    await tester.tap(find.byKey(const ValueKey('cycle-quick-flow-medium')));
+    await tester.pumpAndSettle();
+    expect(
+      (await harness.services.cycleDays(today(), today())).single.flow,
+      CycleFlow.medium,
+    );
+    // The same tap takes it back, and a day with nothing on it is forgotten.
+    await tester.tap(find.byKey(const ValueKey('cycle-quick-flow-medium')));
+    await tester.pumpAndSettle();
+    expect(await harness.services.cycleDays(today(), today()), isEmpty);
+  });
+
+  testWidgets('a mood and a flow tapped together are both kept', (
+    tester,
+  ) async {
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true},
+    );
+    await scrollTo(tester, find.byKey(const ValueKey('cycle-quick-mood-good')));
+    // Two taps in flight at once: the second must see the first's day log,
+    // not the one that was on screen when the finger landed.
+    await tester.tap(find.byKey(const ValueKey('cycle-quick-flow-medium')));
+    await tester.tap(find.byKey(const ValueKey('cycle-quick-mood-good')));
+    await tester.pumpAndSettle();
+    final log = (await harness.services.cycleDays(today(), today())).single;
+    expect(log.flow, CycleFlow.medium);
+    expect(log.mood, CycleMood.good);
+  });
+
+  testWidgets('a period is deleted only after the question is answered', (
+    tester,
+  ) async {
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true},
+    );
+    final start = today().subtract(const Duration(days: 5));
+    final p = await harness.services.cycleStartPeriod(start);
+    await harness.services.cycleEndPeriod(
+      p.id,
+      start.add(const Duration(days: 2)),
+    );
+    await reopen(tester);
+    await scrollTo(tester, find.byKey(ValueKey('cycle-period-${p.id}')));
+    await tester.tap(find.byKey(ValueKey('cycle-period-${p.id}')));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit period'), findsOneWidget);
+
+    // Backing out of the question leaves the period where it was.
+    await tester.tap(find.byKey(const ValueKey('cycle-edit-delete')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('cycle-edit-delete-confirm')),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(await harness.services.cyclePeriods(), hasLength(1));
+
+    await tester.tap(find.byKey(const ValueKey('cycle-edit-delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('cycle-edit-delete-confirm')));
+    await tester.pumpAndSettle();
+    expect(await harness.services.cyclePeriods(), isEmpty);
+  });
+
+  testWidgets('a temperature that is not one is said, not swallowed', (
+    tester,
+  ) async {
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true, 'cycle.mode': 'conceive'},
+    );
+    final start = today().subtract(const Duration(days: 6));
+    final p = await harness.services.cycleStartPeriod(start);
+    await harness.services.cycleEndPeriod(
+      p.id,
+      start.add(const Duration(days: 4)),
+    );
+    await reopen(tester);
+    await scrollTo(tester, find.byKey(const ValueKey('cycle-log-today')));
+    await tester.tap(find.byKey(const ValueKey('cycle-log-today')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('cycle-temperature')));
+    await tester.enterText(
+      find.byKey(const ValueKey('cycle-temperature')),
+      '99',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Enter a temperature between 34 and 43.'), findsOne);
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const ValueKey('cycle-day-save')))
+          .onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets('the calendar keeps predicting past the next three cycles', (
+    tester,
+  ) async {
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true},
+    );
+    final last = today().subtract(const Duration(days: 10));
+    for (var k = 3; k >= 0; k--) {
+      final start = last.subtract(Duration(days: 28 * k));
+      final p = await harness.services.cycleStartPeriod(start);
+      await harness.services.cycleEndPeriod(
+        p.id,
+        start.add(const Duration(days: 4)),
+      );
+    }
+    await reopen(tester);
+    await scrollTo(tester, find.byKey(const ValueKey('cycle-calendar-next')));
+    for (var i = 0; i < 4; i++) {
+      await tester.tap(find.byKey(const ValueKey('cycle-calendar-next')));
+      await tester.pumpAndSettle();
+    }
+    // Four months on, `upcoming` has run out; the month still shows the
+    // expected days.
+    final expected = find.byWidgetPredicate(
+      (widget) =>
+          widget is Semantics &&
+          (widget.properties.label ?? '').contains('Expected'),
+    );
+    expect(expected, findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('month arrows follow the reading direction', (tester) async {
+    await openCycle(
+      tester,
+      preferences: {
+        'cycle.set_up': true,
+        'appearance.locale': 'fa',
+        'appearance.solar_calendar': true,
+      },
+    );
+    await scrollTo(tester, find.byKey(const ValueKey('cycle-calendar-prev')));
+    final prev = tester.widget<IconButton>(
+      find.byKey(const ValueKey('cycle-calendar-prev')),
+    );
+    final next = tester.widget<IconButton>(
+      find.byKey(const ValueKey('cycle-calendar-next')),
+    );
+    // In Persian a month back is to the right.
+    expect((prev.icon as Icon).icon, Icons.chevron_right);
+    expect((next.icon as Icon).icon, Icons.chevron_left);
   });
 }

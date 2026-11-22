@@ -74,6 +74,19 @@ void main() {
       expect(json['pregnancyStart'], '2026-09-20');
       expect(json.containsKey('nextStart'), isFalse);
     });
+
+    test('pregnant with no day to count from writes none, not "null"', () {
+      final json = NexCycleWidgetSnapshot.build(
+        enabled: true,
+        setUp: true,
+        hidden: false,
+        mode: CycleMode.pregnant,
+        periods: const [],
+        prediction: null,
+      );
+      expect(json['state'], 'ready');
+      expect(json.containsKey('pregnancyStart'), isFalse);
+    });
   });
 
   test(

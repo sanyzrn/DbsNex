@@ -45,6 +45,15 @@ enum CycleStage { period, follicular, fertile, luteal }
 /// A predicted period or fertile window: [start] to [end], inclusive.
 typedef CycleSpan = ({CycleDate start, CycleDate end});
 
+/// One predicted cycle: its period, the fertile window round ovulation, and
+/// the ovulation day itself. What the calendar draws for any month it is
+/// turned to.
+typedef CycleForecast = ({
+  CycleSpan period,
+  CycleSpan fertile,
+  CycleDate ovulation,
+});
+
 /// Everything the cycle screen shows, computed from what was logged.
 class CyclePrediction {
   const CyclePrediction({
@@ -98,11 +107,45 @@ class CyclePrediction {
   final CycleConfidence confidence;
   final Set<CycleAlert> alerts;
 
-  /// The next three predicted periods and fertile windows, for the calendar.
+  /// The next three predicted periods and fertile windows.
   final List<({CycleSpan period, CycleSpan fertile})> upcoming;
 
   /// Days until [nextStart]; negative when it is late.
   int get daysUntilNext => nextStart.daysSince(today);
+
+  /// Every predicted cycle that shares a day with [from]..[to].
+  ///
+  /// [upcoming] stops after three cycles, which is enough for the page's
+  /// lines and not enough for a calendar someone turns a year ahead. This
+  /// counts on from the same anchor [upcoming] uses — today while the
+  /// period is late, otherwise the next start — and is bounded so that a
+  /// malformed average cannot make it walk for years.
+  List<CycleForecast> forecastBetween(CycleDate from, CycleDate to) {
+    if (to.isBefore(from) || averageCycle < 1) return const [];
+    final anchor = nextStart.isBefore(today) ? today : nextStart;
+    // The earliest start whose period can still reach `from`, and the
+    // latest whose fertile window can still begin before `to`.
+    final before = from.addDays(-(averagePeriod > 13 ? averagePeriod - 1 : 13));
+    final after = to.addDays(19);
+    var first = _ceilDiv(before.daysSince(anchor), averageCycle);
+    final last = _floorDiv(after.daysSince(anchor), averageCycle);
+    if (last < first) return const [];
+    if (last - first > 240) first = last - 240;
+    final out = <CycleForecast>[];
+    for (var k = first; k <= last; k++) {
+      final start = anchor.addDays(averageCycle * k);
+      final ovulation = start.addDays(-14);
+      final period = (start: start, end: start.addDays(averagePeriod - 1));
+      final fertile = (start: ovulation.addDays(-5), end: ovulation.addDays(1));
+      if (_spans(from, to, period) || _spans(from, to, fertile)) {
+        out.add((period: period, fertile: fertile, ovulation: ovulation));
+      }
+    }
+    return out;
+  }
+
+  static bool _spans(CycleDate from, CycleDate to, CycleSpan span) =>
+      !span.start.isAfter(to) && !span.end.isBefore(from);
 
   /// The phase of [day]: by its place in the cycle that began at
   /// [lastStart], for any day from then until the next period.
@@ -265,6 +308,24 @@ abstract final class CyclePredictor {
     );
   }
 
+  /// The lengths between consecutive period starts, oldest first, at most
+  /// [limit] of them.
+  ///
+  /// Shown as a small chart beside the averages: a number is easier to trust
+  /// when the run that produced it is visible. Gaps the predictor would read
+  /// as a mistyped date rather than a cycle are left out for the same reason
+  /// they are left out of the average — a chart that disagrees with the
+  /// number above it teaches nobody anything.
+  static List<int> intervals(List<CyclePeriod> periods, {int limit = 8}) {
+    final sorted = [...periods]..sort((a, b) => a.start.compareTo(b.start));
+    final out = <int>[];
+    for (var i = 1; i < sorted.length; i++) {
+      final days = sorted[i].start.daysSince(sorted[i - 1].start);
+      if (days >= minCycle && days <= maxCycle) out.add(days);
+    }
+    return out.length > limit ? out.sublist(out.length - limit) : out;
+  }
+
   static double _median(List<int> values) {
     if (values.isEmpty) return 0;
     final sorted = [...values]..sort();
@@ -280,4 +341,13 @@ abstract final class CyclePredictor {
     final sum = values.fold<double>(0, (s, v) => s + (v - mean) * (v - mean));
     return math.sqrt(sum / (values.length - 1));
   }
+}
+
+/// [a] ÷ [b] rounded down, for a negative [a] too.
+int _floorDiv(int a, int b) => (a - a % b) ~/ b;
+
+/// [a] ÷ [b] rounded up, for a negative [a] too.
+int _ceilDiv(int a, int b) {
+  final down = _floorDiv(a, b);
+  return down * b == a ? down : down + 1;
 }

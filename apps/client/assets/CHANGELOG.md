@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Flow in one tap.** Today's flow now sits beside the mood row on the Cycle page, so the most common note of a period day no longer needs the day sheet. Tapping the chosen flow again takes it back.
+- **A steadier Cycle page.** It reads your history once instead of five times, and logging a mood no longer re-arms every reminder. The calendar keeps showing expected periods and fertile windows for every month you turn to, with month arrows that follow the way Persian is read. A past period's dates can be corrected when they overlap another one — the sheet says so and stays open — and deleting a period asks first.
+- **Clearer for a doctor.** The report adds the last period's start and the next expected one, recent cycle lengths are drawn as a small chart under the averages, and a temperature outside 34–43 °C is pointed out instead of being saved as no temperature.
+
 ## v2.7.2
 
 - **Warranties is here.** A new module for what you bought and who stands behind it: the warranty company, its support number and card number beside the shop, what ends in the next 30 days at the top, a reminder offered while you save, and a service file a repair centre can use. Add it from **Tools → Modules**.
