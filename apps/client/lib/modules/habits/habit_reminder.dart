@@ -65,7 +65,9 @@ DateTime? habitNextReminder(
     for (final entry in logged.entries)
       if (entry.value >= habit.goal) entry.key,
   };
-  for (var ahead = 0; ahead <= 60; ahead++) {
+  // A rest can be a year long, and the alarm should still land on the first
+  // day after it rather than be dropped.
+  for (var ahead = 0; ahead <= 400; ahead++) {
     final day = DateTime(now.year, now.month, now.day + ahead);
     final at = DateTime(
       day.year,
@@ -77,6 +79,8 @@ DateTime? habitNextReminder(
     if (!at.isAfter(now)) continue;
     final civil = DateTime.utc(day.year, day.month, day.day);
     if (done.contains(civil)) continue;
+    // A rest day is silent: the reminder waits for the first day after it.
+    if (habit.pauses.isNotEmpty && habit.isPausedOn(civil)) continue;
     if (habit.weekly) {
       final week = HabitMath.weekStartOf(civil, firstDay: firstDay);
       final count = done
@@ -125,11 +129,12 @@ Future<bool> habitArmReminder(
           if (record.body['habit'] == habit.id) HabitCheck.fromRecord(record),
       ];
   final week = firstDay ?? _firstDayOf(await store.get('settings', 'week'));
+  final nowAt = now ?? DateTime.now();
   final at = habitNextReminder(
     habit,
     mine.where((c) => c.habitId == habit.id),
     minutes: reminder.minutes,
-    now: now ?? DateTime.now(),
+    now: nowAt,
     firstDay: week,
   );
   if (at == null) {
@@ -138,7 +143,9 @@ Future<bool> habitArmReminder(
         : store.clearReminder(key));
     return true;
   }
-  final standing = HabitMath.fromChecks(habit, mine, at, firstDay: week);
+  // The words say how far today has come, not the (usually empty) day the
+  // alarm is set for: «Water: 5 of 8 glasses» is the useful line.
+  final standing = HabitMath.fromChecks(habit, mine, nowAt, firstDay: week);
   final name = habit.name.isEmpty
       ? habitsStrings.text(l10n, 'untitled')
       : habit.name;

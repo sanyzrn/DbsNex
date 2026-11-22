@@ -49,9 +49,14 @@ class HabitLog {
       if (existing != null) await store.delete('check', id);
     } else {
       await store.put('check', id, {
+        // Unknown fields of the record survive an amount change, and the
+        // moment the day was first logged stays the moment it happened.
+        ...?existing,
         'habit': habit.id,
         'date': day,
-        'at': DateTime.now().toIso8601String(),
+        'at': existing?['at'] is String
+            ? existing!['at']
+            : DateTime.now().toIso8601String(),
         'amount': amount.clamp(0, 99999),
       });
     }

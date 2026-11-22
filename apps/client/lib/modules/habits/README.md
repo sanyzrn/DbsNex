@@ -61,6 +61,14 @@ Kind `settings`, stable ID `week`:
 The default preserves old summaries in both languages. It is explicitly chosen
 inside this module and does not read/change any Nex preference.
 
+A habit may also carry `pauses`: an array of `{"from":"YYYY-MM-DD","to":"YYYY-MM-DD"}`
+inclusive rest stretches, at most 40 (older ones fold away). A rest day is not
+due, not missed and not in any rate; a weekly target's week that holds a rest
+day is left out of its streak and rate; the reminder waits for the first day
+after the rest. A check-in made during a rest still counts. Fields this
+version does not know are kept in the record and written back on edit,
+archive, pause and amount changes (2.9.0).
+
 Drafts are stored under kind `draft`, IDs `<editor>:<record-id>` or
 `<editor>:new`, with `{v: 1, base: <JSON string of original body>, fields: {...}}`.
 Field values are strings from the editors plus typed choices described below.
@@ -120,19 +128,41 @@ by the kit: the recovery journal is the bounded offline fallback.
   Habits and check-ins order newest-first with an id/timestamp tiebreak, so
   equal or legacy records keep one stable order instead of shuffling per load.
 
+## Rest days and everyday ideas (2.9.0)
+
+A habit can rest: **Take a rest…** on its page offers today, 3, 7, 14 or 30
+days, or a chosen last day. The rest is stored on the habit as inclusive
+civil dates, so it is part of its history rather than a setting that moves.
+While it lasts the habit leaves Today's to-do list for a visible **Rest days**
+section, its reminder is silent, and its streak, best streak, consistency and
+rates walk past those days. Ending early trims the rest to yesterday, so
+today is a habit day again; ending one that began today removes it.
+
+The editor's ideas open with the everyday Iranian ones — the five daily
+prayers (an amount of 5), a few pages of the Quran (3) and a weekly charity —
+beside water, reading, walking, exercise, language, sleep, screen time,
+tidying and journaling. A habit's page also shows how often it was kept over
+the last 7, 30 and 90 days (12 finished weeks for a weekly target), and a day
+with many habits draws every arc of its ring instead of folding the gaps
+inside out.
+
 ## 4. Guide
 
 **English:** Add one small habit, daily or with a weekly target, then check it
 off with one tap. Your streak counts what you completed and can forgive one
 missed day or week, clearly labelled. Choose your week start in the module's
-settings. Archive to take a break without losing history. Delete has Undo;
+settings. Take a rest for a day or a chosen stretch — travel, illness, a hard
+week — and those days neither count nor break a streak, and the reminder
+waits. Archive to take a break without losing history. Delete has Undo;
 leaving an unfinished editor keeps a local draft.
 
 **فارسی:** یک عادت کوچک با برنامهٔ روزانه یا هدف هفتگی بسازید و با یک لمس
 انجامش را ثبت کنید. آمار تداوم فقط کارهای انجام‌شده را می‌شمارد و برای یک
 روز یا هفتهٔ جاافتاده، فرصت جبران مشخصی دارد. روز شروع هفته را از تنظیمات
-ماژول انتخاب کنید. بایگانی، تاریخچه را نگه می‌دارد؛ حذف با بازگردانی همراه
-است و ورودیِ فرم ناتمام به‌صورت پیش‌نویس محلی می‌ماند.
+ماژول انتخاب کنید. برای یک روز یا چند روز — سفر، بیماری، هفته‌ای سخت —
+استراحت بگذارید؛ آن روزها نه در تداوم شمرده می‌شوند نه آن را می‌شکنند و
+یادآور هم تا پایان استراحت ساکت می‌ماند. بایگانی، تاریخچه را نگه می‌دارد؛
+حذف با بازگردانی همراه است و ورودیِ فرم ناتمام به‌صورت پیش‌نویس محلی می‌ماند.
 
 ## 5. Changelog
 
@@ -149,6 +179,12 @@ leaving an unfinished editor keeps a local draft.
   original record — the day and the moment it was first made.
 - FA: عادت‌ها: برداشتن ثبتِ روز حالا با «بازگردانی» همراه است و همان ثبتِ
   اصلی — با همان روز و همان لحظهٔ نخست — برمی‌گردد.
+- EN: Habits 2.9.0: rest days (today, a few days, or until a chosen day) that
+  neither count nor break a streak, everyday ideas for prayers, the Quran and
+  charity, rates over 7/30/90 days, and a ring that draws every habit.
+- FA: عادت‌ها ۲٫۹٫۰: روزهای استراحت (امروز، چند روز یا تا روزی مشخص) که نه در
+  تداوم شمرده می‌شوند نه آن را می‌شکنند، ایده‌های نماز و قرآن و صدقه، درصد
+  هفت‌روزه و ماهانه و سه‌ماهه، و حلقه‌ای که همهٔ عادت‌ها را می‌کشد.
 
 ## 6. Platform requests
 

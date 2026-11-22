@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/habits/habits_screen.dart';
+
 import '../../support/nex_harness.dart';
 
 void main() {
@@ -133,7 +135,9 @@ void main() {
           await tester.pumpAndSettle();
           await tester.tap(find.byKey(const ValueKey('habits-new')));
           await tester.pumpAndSettle();
-          await tester.tap(find.byKey(const ValueKey('habit-template-water')));
+          // The ideas open with the everyday Iranian ones, so the first
+          // chip is the prayers.
+          await tester.tap(find.byKey(const ValueKey('habit-template-prayer')));
           await tester.pumpAndSettle();
           FocusManager.instance.primaryFocus?.unfocus();
           await tester.pumpAndSettle();

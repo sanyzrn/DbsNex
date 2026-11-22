@@ -4,6 +4,9 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Habits: rest days.** Take a rest for a day, a week or until a chosen day — travel, illness, a hard week. Rest days neither count for nor against a streak, stay out of the rates, and the reminder waits until the rest is over.
+- **Habits: everyday ideas and clearer numbers.** The editor now also starts from the five daily prayers, a few pages of the Quran or a weekly charity, each habit's page shows how often you kept it over the last week, month and three months, and a day with many habits draws every arc of its ring.
+
 ## v2.8.13
 
 - **Family fund improvements.** Change the monthly share from a chosen month, draw and redraw in one sheet, view member history and overdue contributions, and copy or share a monthly report.

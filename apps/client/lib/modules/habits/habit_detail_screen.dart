@@ -9,6 +9,7 @@ import 'habit_visuals.dart';
 import 'habit_edit_sheet.dart';
 import 'habit_math.dart';
 import 'habit_model.dart';
+import 'habit_pause.dart';
 import 'habit_reminder.dart';
 import 'habit_stats.dart';
 import 'module.dart';
@@ -300,6 +301,12 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
             onSelected: (value) {
               if (value == 'archive') unawaited(_setArchived(true));
               if (value == 'unarchive') unawaited(_setArchived(false));
+              if (value == 'pause') {
+                unawaited(showHabitPauseSheet(context, widget.store, habit));
+              }
+              if (value == 'resume') {
+                unawaited(habitEndRest(context, widget.store, habit));
+              }
               if (value == 'delete') unawaited(_delete());
             },
             itemBuilder: (context) => [
@@ -314,6 +321,18 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
                   value: 'unarchive',
                   icon: Icons.unarchive_outlined,
                   label: strings(context, 'unarchive'),
+                ),
+              if (habit.pauseOn(DateTime.now()) == null)
+                nexMenuItem(
+                  value: 'pause',
+                  icon: Icons.pause_circle_outline_rounded,
+                  label: strings(context, 'pauseMenu'),
+                )
+              else
+                nexMenuItem(
+                  value: 'resume',
+                  icon: Icons.play_circle_outline_rounded,
+                  label: strings(context, 'pauseResumeMenu'),
                 ),
               nexMenuItem(
                 value: 'delete',
@@ -383,6 +402,15 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
                 ],
               ],
             ),
+            if (habit.pauseOn(DateTime.now()) != null) ...[
+              const SizedBox(height: NexSpacing.md),
+              HabitPauseBanner(
+                habit: habit,
+                color: color,
+                onEnd: () =>
+                    unawaited(habitEndRest(context, widget.store, habit)),
+              ),
+            ],
             const SizedBox(height: NexSpacing.md),
             HabitStatTiles(
               habit: habit,
@@ -399,6 +427,15 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
               color: color,
               firstDay: _firstDay,
             ),
+            if (amounts.isNotEmpty) ...[
+              const SizedBox(height: NexSpacing.md),
+              HabitRatePanel(
+                habit: habit,
+                dateKeys: amounts.keys,
+                amounts: amounts,
+                firstDay: _firstDay,
+              ),
+            ],
             const SizedBox(height: NexSpacing.md),
             HabitCalendarPanel(
               habit: habit,

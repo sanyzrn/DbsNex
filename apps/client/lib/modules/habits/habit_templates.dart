@@ -28,7 +28,20 @@ class HabitTemplate {
 }
 
 /// The ideas, in the order the editor shows them.
+///
+/// The first three are the everyday shape of an Iranian week — the five
+/// daily prayers, a few pages of the Quran, a weekly charity — and the rest
+/// are the small physical, learning and screen habits people already keep.
 const habitTemplates = <HabitTemplate>[
+  HabitTemplate(id: 'prayer', icon: 'prayer', hue: 4, goal: 5),
+  HabitTemplate(id: 'quran', icon: 'quran', hue: 1, goal: 3),
+  HabitTemplate(
+    id: 'charity',
+    icon: 'charity',
+    hue: 3,
+    plan: HabitPlan.weekly,
+    target: 1,
+  ),
   HabitTemplate(id: 'water', icon: 'water', hue: 5, goal: 8),
   HabitTemplate(id: 'read', icon: 'book', hue: 1, goal: 20),
   HabitTemplate(id: 'walk', icon: 'walk', hue: 4),

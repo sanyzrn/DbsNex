@@ -199,6 +199,10 @@ class _HabitEditSheetState extends State<_HabitEditSheet> {
       unit: _counted ? _unit.text.trim() : '',
       icon: _icon,
       hue: _hue,
+      // An edit never drops a rest already taken, nor a field a later
+      // version put in the record.
+      pauses: old?.pauses ?? const [],
+      extra: old?.extra ?? const {},
     );
     final saved = await storeWrite(context, () async {
       await widget.store.put('habit', habit.id, habit.toJson());

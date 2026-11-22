@@ -3,6 +3,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'habit_math.dart';
 import 'habit_model.dart';
+import 'habit_pause.dart';
 import 'habit_visuals.dart';
 import 'module.dart';
 
@@ -66,8 +67,11 @@ class HabitTile extends StatelessWidget {
     final persian = NexModuleStrings.persian(context);
     final name = habit.name.isEmpty ? strings(context, 'untitled') : habit.name;
 
+    final pause = habit.pauseOn(DateTime.now());
     final String status;
-    if (habit.counted) {
+    if (pause != null) {
+      status = habitPauseLabel(context, pause);
+    } else if (habit.counted) {
       status = strings(context, 'amountProgress', {
         'done': standing.todayAmount,
         'goal': habit.goal,
@@ -137,7 +141,9 @@ class HabitTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        resting
+                        pause != null
+                            ? status
+                            : resting
                             ? strings(context, 'restToday')
                             : weekMet
                             ? strings(context, 'weekMet')
@@ -148,7 +154,10 @@ class HabitTile extends StatelessWidget {
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
-                      if (standing.graceNow && !done && !resting)
+                      if (standing.graceNow &&
+                          !done &&
+                          !resting &&
+                          pause == null)
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
                           child: Text(
