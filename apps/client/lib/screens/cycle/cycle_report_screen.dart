@@ -260,6 +260,7 @@ class _ReportPage extends StatelessWidget {
     }
 
     final p = data.prediction;
+    final lastPeriod = data.periods.isEmpty ? null : data.periods.last;
     final recent = data.periods.reversed.take(8).toList();
     Widget heading(String s) => Padding(
       padding: const EdgeInsets.only(top: 14, bottom: 6),
@@ -288,142 +289,168 @@ class _ReportPage extends StatelessWidget {
         height: 842,
         color: Colors.white,
         padding: const EdgeInsets.fromLTRB(40, 36, 40, 28),
-        child: DefaultTextStyle(
-          style: text.bodyMedium!,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
+        // A summary, not a page that can spill: a long history or wide
+        // Persian wording scales down to the sheet instead of overflowing
+        // it. The page is captured as it is drawn, so an overflow here
+        // would land in the doctor's PDF.
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            width: 515,
+            child: DefaultTextStyle(
+              style: text.bodyMedium!,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.water_drop, color: rose, size: 22),
-                  const SizedBox(width: NexSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      l10n.cycleReportTitle,
-                      style: text.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+                  Row(
+                    children: [
+                      Icon(Icons.water_drop, color: rose, size: 22),
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.cycleReportTitle,
+                          style: text.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
-                    ),
+                      Text(
+                        l10n.cycleReportMade(
+                          '${day(CycleDate.of(data.today))} '
+                          '${year(CycleDate.of(data.today))}',
+                        ),
+                        style: text.bodySmall?.copyWith(color: Colors.black54),
+                      ),
+                    ],
                   ),
-                  Text(
-                    l10n.cycleReportMade(
-                      '${day(CycleDate.of(data.today))} '
-                      '${year(CycleDate.of(data.today))}',
+                  const Divider(height: 20),
+                  Text('${l10n.cycleMode}: ${cycleModeLabel(l10n, mode)}'),
+                  // The two dates a clinician asks for first: where the last
+                  // period began, and when the next is expected.
+                  if (lastPeriod != null)
+                    Text(
+                      '${l10n.cycleReportLmp}: '
+                      '${day(lastPeriod.start)} ${year(lastPeriod.start)}',
                     ),
+                  if (p != null && mode.predicts)
+                    Text(
+                      '${l10n.cycleReportNext}: '
+                      '${day(p.nextStart)} ${year(p.nextStart)}',
+                    ),
+                  if (p != null) ...[
+                    heading(l10n.cycleInsights),
+                    Wrap(
+                      spacing: 28,
+                      runSpacing: 6,
+                      children: [
+                        Text(
+                          '${l10n.cycleReportCycleLength}: '
+                          '${digits(l10n.cycleDays(p.averageCycle))}',
+                        ),
+                        Text(
+                          '${l10n.cycleLegendPeriod}: '
+                          '${digits(l10n.cycleDays(p.averagePeriod))}',
+                        ),
+                        Text(
+                          '${l10n.cycleReportVariation}: '
+                          '± ${digits(p.variability.toStringAsFixed(1))}',
+                        ),
+                        Text(
+                          '${l10n.cycleCyclesCounted}: ${digits(p.cyclesUsed)}',
+                        ),
+                      ],
+                    ),
+                    if (p.alerts.isNotEmpty) ...[
+                      const SizedBox(height: NexSpacing.sm),
+                      for (final alert in p.alerts)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            '• ${cycleAlertText(l10n, alert)}',
+                            style: text.bodySmall,
+                          ),
+                        ),
+                    ],
+                  ],
+                  heading(l10n.cycleReportPeriods),
+                  if (recent.isEmpty)
+                    Text(l10n.cycleNothingLogged)
+                  else
+                    Table(
+                      border: TableBorder(
+                        horizontalInside: BorderSide(color: Colors.black12),
+                      ),
+                      children: [
+                        TableRow(
+                          children: [
+                            cell(l10n.cycleStart, bold: true),
+                            cell(l10n.cycleEnd, bold: true),
+                            cell(l10n.cycleLegendPeriod, bold: true),
+                            cell(l10n.cycleReportCycleLength, bold: true),
+                          ],
+                        ),
+                        for (var i = 0; i < recent.length; i++)
+                          TableRow(
+                            children: [
+                              cell(
+                                '${day(recent[i].start)} ${year(recent[i].start)}',
+                              ),
+                              cell(
+                                recent[i].end == null
+                                    ? l10n.cycleOngoing
+                                    : day(recent[i].end!),
+                              ),
+                              cell(
+                                recent[i].length == null
+                                    ? '—'
+                                    : digits(l10n.cycleDays(recent[i].length!)),
+                              ),
+                              cell(
+                                i == 0
+                                    ? '—'
+                                    : digits(
+                                        l10n.cycleDays(
+                                          recent[i - 1].start.daysSince(
+                                            recent[i].start,
+                                          ),
+                                        ),
+                                      ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  heading(l10n.cycleReportSymptoms),
+                  if (data.symptoms.isEmpty)
+                    Text(l10n.cycleNothingLogged)
+                  else
+                    Wrap(
+                      spacing: 18,
+                      runSpacing: 4,
+                      children: [
+                        for (final entry in data.symptoms.take(10))
+                          Text(
+                            '${cycleSymptomLabel(l10n, entry.key)}: '
+                            '${digits(l10n.cycleDays(entry.value))}',
+                          ),
+                      ],
+                    ),
+                  if (data.patterns.isNotEmpty) ...[
+                    heading(l10n.cyclePatterns),
+                    for (final pattern in data.patterns.take(6))
+                      Text('• ${cyclePatternText(context, pattern)}'),
+                  ],
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  Text(
+                    l10n.cycleDisclaimer,
                     style: text.bodySmall?.copyWith(color: Colors.black54),
                   ),
                 ],
               ),
-              const Divider(height: 20),
-              Text('${l10n.cycleMode}: ${cycleModeLabel(l10n, mode)}'),
-              if (p != null) ...[
-                heading(l10n.cycleInsights),
-                Wrap(
-                  spacing: 28,
-                  runSpacing: 6,
-                  children: [
-                    Text(
-                      '${l10n.cycleReportCycleLength}: '
-                      '${digits(l10n.cycleDays(p.averageCycle))}',
-                    ),
-                    Text(
-                      '${l10n.cycleLegendPeriod}: '
-                      '${digits(l10n.cycleDays(p.averagePeriod))}',
-                    ),
-                    Text(
-                      '${l10n.cycleReportVariation}: '
-                      '± ${digits(p.variability.toStringAsFixed(1))}',
-                    ),
-                    Text('${l10n.cycleCyclesCounted}: ${digits(p.cyclesUsed)}'),
-                  ],
-                ),
-                if (p.alerts.isNotEmpty) ...[
-                  const SizedBox(height: NexSpacing.sm),
-                  for (final alert in p.alerts)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text(
-                        '• ${cycleAlertText(l10n, alert)}',
-                        style: text.bodySmall,
-                      ),
-                    ),
-                ],
-              ],
-              heading(l10n.cycleReportPeriods),
-              if (recent.isEmpty)
-                Text(l10n.cycleNothingLogged)
-              else
-                Table(
-                  border: TableBorder(
-                    horizontalInside: BorderSide(color: Colors.black12),
-                  ),
-                  children: [
-                    TableRow(
-                      children: [
-                        cell(l10n.cycleStart, bold: true),
-                        cell(l10n.cycleEnd, bold: true),
-                        cell(l10n.cycleLegendPeriod, bold: true),
-                        cell(l10n.cycleReportCycleLength, bold: true),
-                      ],
-                    ),
-                    for (var i = 0; i < recent.length; i++)
-                      TableRow(
-                        children: [
-                          cell(
-                            '${day(recent[i].start)} ${year(recent[i].start)}',
-                          ),
-                          cell(
-                            recent[i].end == null
-                                ? l10n.cycleOngoing
-                                : day(recent[i].end!),
-                          ),
-                          cell(
-                            recent[i].length == null
-                                ? '—'
-                                : digits(l10n.cycleDays(recent[i].length!)),
-                          ),
-                          cell(
-                            i == 0
-                                ? '—'
-                                : digits(
-                                    l10n.cycleDays(
-                                      recent[i - 1].start.daysSince(
-                                        recent[i].start,
-                                      ),
-                                    ),
-                                  ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              heading(l10n.cycleReportSymptoms),
-              if (data.symptoms.isEmpty)
-                Text(l10n.cycleNothingLogged)
-              else
-                Wrap(
-                  spacing: 18,
-                  runSpacing: 4,
-                  children: [
-                    for (final entry in data.symptoms.take(10))
-                      Text(
-                        '${cycleSymptomLabel(l10n, entry.key)}: '
-                        '${digits(l10n.cycleDays(entry.value))}',
-                      ),
-                  ],
-                ),
-              if (data.patterns.isNotEmpty) ...[
-                heading(l10n.cyclePatterns),
-                for (final pattern in data.patterns.take(6))
-                  Text('• ${cyclePatternText(context, pattern)}'),
-              ],
-              const Spacer(),
-              const Divider(),
-              Text(
-                l10n.cycleDisclaimer,
-                style: text.bodySmall?.copyWith(color: Colors.black54),
-              ),
-            ],
+            ),
           ),
         ),
       ),

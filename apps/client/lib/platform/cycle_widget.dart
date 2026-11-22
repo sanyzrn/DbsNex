@@ -41,12 +41,16 @@ abstract final class NexCycleWidgetSnapshot {
     if (!setUp) return only('setup');
     final last = periods.isEmpty ? null : periods.last;
     final p = mode.predicts ? prediction : null;
+    final pregnancyFrom = pregnancyStart ?? last?.start;
     return {
       'version': version,
       'state': 'ready',
       'mode': mode.name,
-      if (mode == CycleMode.pregnant)
-        'pregnancyStart': '${pregnancyStart ?? last?.start}',
+      // Only when there is a day to count from. The interpolation of a
+      // null used to write the word "null" into the file, which the widget
+      // then read as no date at all — the same outcome, by way of a lie.
+      if (mode == CycleMode.pregnant && pregnancyFrom != null)
+        'pregnancyStart': '$pregnancyFrom',
       if (last != null) ...{
         'lastStart': '${last.start}',
         if (last.end case final end?) 'periodEnd': '$end',

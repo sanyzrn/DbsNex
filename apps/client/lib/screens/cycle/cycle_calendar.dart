@@ -18,7 +18,6 @@ class CycleCalendar extends StatefulWidget {
     required this.logged,
     required this.solar,
     required this.onDay,
-    required this.onMonth,
     this.today,
   });
 
@@ -31,10 +30,6 @@ class CycleCalendar extends StatefulWidget {
 
   /// A past day, or today, was tapped.
   final ValueChanged<DateTime> onDay;
-
-  /// The page turned: the first and last day now on screen, so the caller
-  /// can load what was noted on them.
-  final void Function(DateTime from, DateTime to) onMonth;
 
   final DateTime? today;
 
@@ -83,8 +78,6 @@ class _CycleCalendarState extends State<CycleCalendar> {
         _anchor = DateTime(_anchor.year, _anchor.month + direction);
       }
     });
-    final (from, to) = _range;
-    widget.onMonth(from, to);
   }
 
   DateTime _weekStart(DateTime day) {
@@ -97,27 +90,17 @@ class _CycleCalendarState extends State<CycleCalendar> {
     (p) => p.contains(day) && (!p.isOpen || !day.isAfter(CycleDate.of(_today))),
   );
 
-  bool _inPredicted(CycleDate day) {
-    final p = widget.prediction;
-    if (p == null) return false;
-    return p.upcoming.any(
-      (u) => !day.isBefore(u.period.start) && !day.isAfter(u.period.end),
-    );
-  }
+  bool _inSpan(CycleDate day, CycleSpan span) =>
+      !day.isBefore(span.start) && !day.isAfter(span.end);
 
-  bool _inFertile(CycleDate day) {
-    final p = widget.prediction;
-    if (p == null) return false;
-    final windows = [p.fertile, ...p.upcoming.skip(1).map((u) => u.fertile)];
-    return windows.any((w) => !day.isBefore(w.start) && !day.isAfter(w.end));
-  }
+  bool _inPredicted(CycleDate day, List<CycleForecast> forecast) =>
+      forecast.any((f) => _inSpan(day, f.period));
 
-  bool _isOvulation(CycleDate day) {
-    final p = widget.prediction;
-    if (p == null) return false;
-    return day == p.ovulation ||
-        p.upcoming.skip(1).any((u) => day == u.fertile.end.addDays(-1));
-  }
+  bool _inFertile(CycleDate day, List<CycleForecast> forecast) =>
+      forecast.any((f) => _inSpan(day, f.fertile));
+
+  bool _isOvulation(CycleDate day, List<CycleForecast> forecast) =>
+      forecast.any((f) => day == f.ovulation);
 
   @override
   Widget build(BuildContext context) {
@@ -125,6 +108,14 @@ class _CycleCalendarState extends State<CycleCalendar> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final (from, to) = _range;
+    // Whatever month the page is on — a year ahead included — not only the
+    // three cycles the page's own lines carry.
+    final forecast =
+        widget.prediction?.forecastBetween(
+          CycleDate.of(from),
+          CycleDate.of(to),
+        ) ??
+        const <CycleForecast>[];
     final start = _weekStart(from);
     final days = <DateTime>[
       for (
@@ -148,8 +139,14 @@ class _CycleCalendarState extends State<CycleCalendar> {
         Row(
           children: [
             IconButton(
+              key: const ValueKey('cycle-calendar-prev'),
               tooltip: nexLabel(context, 'Previous', 'قبلی'),
-              icon: const Icon(Icons.chevron_left),
+              // A month back is to the right of the page in Persian.
+              icon: Icon(
+                Directionality.of(context) == TextDirection.rtl
+                    ? Icons.chevron_right
+                    : Icons.chevron_left,
+              ),
               onPressed: () => _step(-1),
             ),
             Expanded(
@@ -160,8 +157,13 @@ class _CycleCalendarState extends State<CycleCalendar> {
               ),
             ),
             IconButton(
+              key: const ValueKey('cycle-calendar-next'),
               tooltip: nexLabel(context, 'Next', 'بعدی'),
-              icon: const Icon(Icons.chevron_right),
+              icon: Icon(
+                Directionality.of(context) == TextDirection.rtl
+                    ? Icons.chevron_left
+                    : Icons.chevron_right,
+              ),
               onPressed: () => _step(1),
             ),
           ],
@@ -189,7 +191,13 @@ class _CycleCalendarState extends State<CycleCalendar> {
                 Expanded(
                   child: day.isBefore(from) || day.isAfter(to)
                       ? const SizedBox(height: 48)
-                      : _cell(context, day, rose: rose, teal: teal),
+                      : _cell(
+                          context,
+                          day,
+                          rose: rose,
+                          teal: teal,
+                          forecast: forecast,
+                        ),
                 ),
             ],
           ),
@@ -214,6 +222,7 @@ class _CycleCalendarState extends State<CycleCalendar> {
     DateTime day, {
     required Color rose,
     required Color teal,
+    required List<CycleForecast> forecast,
   }) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -221,9 +230,12 @@ class _CycleCalendarState extends State<CycleCalendar> {
     final isToday = DateUtils.isSameDay(day, _today);
     final future = day.isAfter(_today);
     final logged = _inLogged(date);
-    final predicted = !logged && future && _inPredicted(date);
-    final fertile = !logged && !predicted && _inFertile(date);
-    final ovulation = fertile && _isOvulation(date);
+    // Today counts too: a period that is due and not logged shows as
+    // expected on its own day, not only on the days after it.
+    final predicted =
+        !logged && !day.isBefore(_today) && _inPredicted(date, forecast);
+    final fertile = !logged && !predicted && _inFertile(date, forecast);
+    final ovulation = fertile && _isOvulation(date, forecast);
     final hasNote = widget.logged.contains(date);
     final number = widget.solar ? nexPersianDate(day).day : day.day;
 
