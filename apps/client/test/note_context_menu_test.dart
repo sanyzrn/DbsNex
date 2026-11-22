@@ -23,6 +23,7 @@ void main() {
               NoteContextMenu(
                 entries: [
                   NoteMenuEntry(NexHoldAction.copy, () {}),
+                  NoteMenuEntry(NexHoldAction.caption, () {}),
                   NoteMenuEntry(NexHoldAction.delete, () {}),
                 ],
                 child: const SizedBox(
@@ -45,6 +46,7 @@ void main() {
     await tester.longPress(find.text('A note'));
     await tester.pumpAndSettle();
     expect(find.text('Copy'), findsOneWidget);
+    expect(find.text('Caption'), findsOneWidget);
     // Every item carries an icon now, Delete included.
     expect(
       find.descendant(

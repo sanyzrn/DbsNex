@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.14
+
+- **Consistent caption labels.** The hold menu and its settings now use “Caption”, matching note details and AI actions.
+
 ## v2.8.13
 
 - **Family fund improvements.** Change the monthly share from a chosen month, draw and redraw in one sheet, view member history and overdue contributions, and copy or share a monthly report.
