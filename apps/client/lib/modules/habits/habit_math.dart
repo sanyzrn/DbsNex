@@ -130,12 +130,16 @@ class HabitMath {
 
   /// Whether [day] is one of [habit]'s days (2.4.0). A weekly target may be
   /// met on any day, so every day is one of its days; a habit kept every N
-  /// days counts them from the day it began.
-  static bool dueOn(Habit habit, DateTime day) => switch (habit.plan) {
-    HabitPlan.daily || HabitPlan.weekly => true,
-    HabitPlan.days => habit.days.contains(day.weekday),
-    HabitPlan.every => _everyDue(habit, day),
-  };
+  /// days counts them from the day it began. A rest day (2.8.14) is nobody's
+  /// due day: it is neither kept nor missed, and a streak walks past it.
+  static bool dueOn(Habit habit, DateTime day) {
+    if (habit.pauses.isNotEmpty && habit.isPausedOn(day)) return false;
+    return switch (habit.plan) {
+      HabitPlan.daily || HabitPlan.weekly => true,
+      HabitPlan.days => habit.days.contains(day.weekday),
+      HabitPlan.every => _everyDue(habit, day),
+    };
+  }
 
   static bool _everyDue(Habit habit, DateTime day) {
     final start = _startDay(habit);
@@ -308,36 +312,74 @@ class HabitMath {
     return _bestRun(kept);
   }
 
-  static int _bestWeekly(Habit habit, Set<DateTime> done, int firstDay) {
+  static Map<DateTime, int> _weeklyCounts(Set<DateTime> done, int firstDay) {
     final counts = <DateTime, int>{};
     for (final day in done) {
       final week = weekStartOf(day, firstDay: firstDay);
       counts[week] = (counts[week] ?? 0) + 1;
     }
-    final met = [
-      for (final entry in counts.entries)
-        if (entry.value >= habit.target)
-          entry.key.difference(_epoch).inDays ~/ 7,
-    ]..sort();
-    return _bestRun(met);
+    return counts;
   }
 
-  static final _epoch = DateTime.utc(2000, 1, 1);
+  static int _bestWeekly(Habit habit, Set<DateTime> done, int firstDay) {
+    if (done.isEmpty) return 0;
+    final counts = _weeklyCounts(done, firstDay);
+    final newest = counts.keys.reduce((a, b) => a.isAfter(b) ? a : b);
+    final since = _since(habit, done);
+    if (since == null) return 0;
+    final weeks = _weeksBetween(habit, since, newest, firstDay);
+    return _bestRun([
+      for (final (i, week) in weeks.indexed)
+        if ((counts[week] ?? 0) >= habit.target) i,
+    ]);
+  }
+
+  /// Weeks between the given dates that contribute to streaks and rates.
+  static Iterable<DateTime> _weeksBetween(
+    Habit habit,
+    DateTime since,
+    DateTime last,
+    int firstDay,
+  ) sync* {
+    final first = weekStartOf(since, firstDay: firstDay);
+    for (
+      var week = first;
+      !week.isAfter(last);
+      week = week.add(const Duration(days: 7))
+    ) {
+      if (!_pausedWeek(habit, week)) yield week;
+    }
+  }
+
+  /// Whether any day of the week starting at [weekStart] is a rest day.
+  static bool _pausedWeek(Habit habit, DateTime weekStart) {
+    if (habit.pauses.isEmpty) return false;
+    final first = dateKeyOf(weekStart);
+    final last = dateKeyOf(weekStart.add(const Duration(days: 6)));
+    return habit.pauses.any(
+      (pause) =>
+          pause.from.compareTo(last) <= 0 && pause.to.compareTo(first) >= 0,
+    );
+  }
 
   /// Longest run of indices with at most one missing index forgiven inside
   /// it, as [_run] counts a run.
   static int _bestRun(List<int> kept) {
     if (kept.isEmpty) return 0;
     var best = 1;
-    for (var end = 0; end < kept.length; end++) {
-      var count = 1;
-      var graceUsed = false;
-      for (var i = end; i > 0; i--) {
-        final gap = kept[i] - kept[i - 1];
-        if (gap > 2 || (gap == 2 && graceUsed)) break;
-        if (gap == 2) graceUsed = true;
-        count++;
+    var start = 0;
+    var lastGraceEnd = 0;
+    for (var end = 1; end < kept.length; end++) {
+      final gap = kept[end] - kept[end - 1];
+      if (gap > 2) {
+        start = end;
+        lastGraceEnd = end;
+      } else if (gap == 2) {
+        // Keep only the newest forgiven gap inside the window.
+        start = lastGraceEnd;
+        lastGraceEnd = end;
       }
+      final count = end - start + 1;
       if (count > best) best = count;
     }
     return best;
@@ -364,20 +406,15 @@ class HabitMath {
       final since = _since(habit, days.done);
       if (since == null) return 0;
       final thisWeek = weekStartOf(todayUtc, firstDay: firstDay);
-      for (
-        var week = weekStartOf(since, firstDay: firstDay);
-        week.isBefore(thisWeek);
-        week = week.add(const Duration(days: 7))
-      ) {
-        final count = days.done
-            .where((d) => weekStartOf(d, firstDay: firstDay) == week)
-            .length;
-        values.add((count / habit.target).clamp(0.0, 1.0));
+      final counts = _weeklyCounts(days.done, firstDay);
+      for (final week in _weeksBetween(habit, since, thisWeek, firstDay)) {
+        final count = counts[week] ?? 0;
+        if (week == thisWeek) {
+          if (count >= habit.target) values.add(1);
+        } else {
+          values.add((count / habit.target).clamp(0.0, 1.0));
+        }
       }
-      final now = days.done
-          .where((d) => weekStartOf(d, firstDay: firstDay) == thisWeek)
-          .length;
-      if (now >= habit.target) values.add(1);
     } else {
       for (final day in _occurrences(habit, days.done, todayUtc)) {
         final logged = days.logged[day] ?? 0;
@@ -408,6 +445,9 @@ class HabitMath {
     final amount = logged[at] ?? 0;
     if (amount >= habit.goal) return HabitDayState.done;
     if (amount > 0) return HabitDayState.partial;
+    if (habit.pauses.isNotEmpty && habit.isPausedOn(at)) {
+      return HabitDayState.off;
+    }
     final start = _startDay(habit);
     if (start != null && at.isBefore(start)) return HabitDayState.off;
     if (!habit.weekly && !dueOn(habit, at)) return HabitDayState.off;
@@ -432,40 +472,36 @@ class HabitMath {
   }
 
   /// The weekly rule, the same shape: weeks that met the target, one
-  /// forgiven unmet week between them.
+  /// forgiven unmet week between them. A week holding a rest day is left
+  /// out entirely (2.8.14), so a trip neither adds to nor breaks a run.
   static ({int streak, bool graceNow, bool graceInside}) _weeklyStreak(
     Habit habit,
     Set<DateTime> done,
     DateTime todayUtc,
     int firstDay,
   ) {
-    final counts = <DateTime, int>{};
-    for (final day in done) {
-      final week = weekStartOf(day, firstDay: firstDay);
-      counts[week] = (counts[week] ?? 0) + 1;
+    final counts = _weeklyCounts(done, firstDay);
+    final since = _since(habit, done);
+    if (since == null) {
+      return (streak: 0, graceNow: false, graceInside: false);
     }
-    final metWeeks = [
-      for (final entry in counts.entries)
-        if (entry.value >= habit.target) entry.key,
-    ]..sort();
-    if (metWeeks.isEmpty) {
+    final thisWeek = weekStartOf(todayUtc, firstDay: firstDay);
+    var weeks = 0;
+    final kept = <int>[];
+    for (final week in _weeksBetween(habit, since, thisWeek, firstDay)) {
+      if ((counts[week] ?? 0) >= habit.target) kept.add(weeks);
+      weeks++;
+    }
+    if (kept.isEmpty) {
       return (streak: 0, graceNow: false, graceInside: false);
     }
 
-    final newestMet = metWeeks.last;
-    final weeksSinceMet =
-        weekStartOf(
-          todayUtc,
-          firstDay: firstDay,
-        ).difference(newestMet).inDays ~/
-        7;
     // The current week is still being written. What a streak cannot survive
     // is two finished weeks since the last one that met its target.
-    if (weeksSinceMet > 2) {
-      return (streak: 0, graceNow: false, graceInside: false);
-    }
+    final age = weeks - 1 - kept.last;
+    if (age > 2) return (streak: 0, graceNow: false, graceInside: false);
 
-    return _run(metWeeks, weeksSinceMet, 7);
+    return _run([for (final i in kept) DateTime.utc(2000, 1, 1 + i)], age, 1);
   }
 
   // Exactly one grace interval in the whole displayed run, including an
@@ -532,7 +568,7 @@ class HabitMath {
       day = DateTime.utc(day.year, day.month, day.day + 1)
     ) {
       final kept = done.contains(day);
-      if (!dueOn(habit, day) && !kept) continue;
+      if (!dueOn(habit, day) && (!kept || habit.isPausedOn(day))) continue;
       if (day == todayUtc && !kept) continue;
       possible++;
       if (kept) met++;
@@ -562,13 +598,13 @@ class HabitMath {
         ? sinceWeek
         : sinceWeek.add(const Duration(days: 7));
     if (firstFull.isAfter(week)) week = firstFull;
+    final counts = _weeklyCounts(done, firstDay);
     var possible = 0, met = 0;
     for (; week.isBefore(thisWeek); week = week.add(const Duration(days: 7))) {
+      // A week with a rest day in it was not owed, so it is not a miss.
+      if (_pausedWeek(habit, week)) continue;
       possible++;
-      final count = done
-          .where((d) => weekStartOf(d, firstDay: firstDay) == week)
-          .length;
-      if (count >= habit.target) met++;
+      if ((counts[week] ?? 0) >= habit.target) met++;
     }
     return HabitRate(met, possible);
   }

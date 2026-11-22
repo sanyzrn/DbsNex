@@ -6,6 +6,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.8.14
 
+- **Rest days for habits.** Take a day or a longer break without breaking your streak. Rest days stay out of completion rates, and reminders resume after the break.
+- **Clearer habit progress.** See how often you kept a habit over 7, 30 and 90 days. The editor also includes ideas for daily prayers, Quran reading and weekly charity.
 - **Pause at your pace.** Choose a short, standard or long breathing session. Pause holds the session when sound is interrupted, and screen readers announce breath changes.
 - **Smoother timeline groups.** Date, note-type and tag groups open and close faster in the list and grid.
 - **A compact note actions menu.** More actions opens above its button, keeping the note visible. Tap outside to close the menu.

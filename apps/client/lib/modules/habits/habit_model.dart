@@ -8,6 +8,68 @@ import 'package:nex_client/modules/module_api.dart';
 ///  * every — every N days, counted from the day it began.
 enum HabitPlan { daily, weekly, days, every }
 
+/// A stretch of rest days for a habit: travel, illness, a hard week, the
+/// days around Nowruz. Inclusive civil dates stored as `YYYY-MM-DD`; a
+/// paused day is neither due nor missed, so a rest never breaks a streak.
+class HabitPause {
+  const HabitPause({required this.from, required this.to});
+
+  /// First day of the rest, `YYYY-MM-DD`.
+  final String from;
+
+  /// Last day of the rest, `YYYY-MM-DD`.
+  final String to;
+
+  bool contains(String key) =>
+      key.compareTo(from) >= 0 && key.compareTo(to) <= 0;
+
+  Map<String, Object?> toJson() => {'from': from, 'to': to};
+
+  @override
+  bool operator ==(Object other) =>
+      other is HabitPause && other.from == from && other.to == to;
+
+  @override
+  int get hashCode => Object.hash(from, to);
+}
+
+/// The fields this version knows. Anything else in a stored body is kept in
+/// [Habit.extra] and written back untouched — a later version, or the
+/// platform, may have put it there.
+const _knownHabitKeys = {
+  'v',
+  'name',
+  'note',
+  'schedule',
+  'weekly',
+  'target',
+  'days',
+  'every',
+  'goal',
+  'unit',
+  'icon',
+  'hue',
+  'archived',
+  'createdAt',
+  'pauses',
+};
+
+/// How many rest stretches a habit keeps; older ones are folded away so a
+/// record cannot grow without bound.
+const habitMaxPauses = 40;
+
+/// Whether two stretches are the same, overlap, or sit next to each other —
+/// in which case they are one rest, not two.
+bool _touches(HabitPause a, HabitPause b) {
+  final aFrom = tryParseDateKey(a.from), aTo = tryParseDateKey(a.to);
+  final bFrom = tryParseDateKey(b.from), bTo = tryParseDateKey(b.to);
+  if (aFrom == null || aTo == null || bFrom == null || bTo == null) {
+    return false;
+  }
+  return !aFrom.isAfter(bTo.add(const Duration(days: 1))) &&
+      !bFrom.isAfter(aTo.add(const Duration(days: 1)));
+}
+
 /// One habit a person is building: a name, an optional note, how often it is
 /// meant to happen, and what counts as done — a tick, or an amount (eight
 /// glasses, twenty pages).
@@ -34,6 +96,8 @@ class Habit {
     this.unit = '',
     this.icon = '',
     this.hue = 0,
+    this.pauses = const [],
+    this.extra = const {},
   });
 
   /// From the store; every field is read defensively.
@@ -45,11 +109,14 @@ class Habit {
     int whole(Object? value, int fallback) =>
         value is num && value.isFinite ? value.toInt() : fallback;
     final rawTarget = whole(body['target'], 3);
+    // `schedule` is the v2 spelling; a record written before it said
+    // `weekly: true` instead and must still open as the weekly habit it was.
     final plan = switch (body['schedule']) {
       'weekly' => HabitPlan.weekly,
       'days' => HabitPlan.days,
       'every' => HabitPlan.every,
-      _ => HabitPlan.daily,
+      'daily' => HabitPlan.daily,
+      _ => body['weekly'] == true ? HabitPlan.weekly : HabitPlan.daily,
     };
     final rawDays = body['days'];
     final days = <int>{
@@ -78,7 +145,49 @@ class Habit {
       unit: rawUnit is String ? rawUnit.trim() : '',
       icon: rawIcon is String ? rawIcon : '',
       hue: whole(body['hue'], 0).clamp(0, 7),
+      pauses: _readPauses(body['pauses']),
+      extra: {
+        for (final entry in body.entries)
+          if (!_knownHabitKeys.contains(entry.key)) entry.key: entry.value,
+      },
     );
+  }
+
+  /// Rest stretches, read defensively: a malformed one is dropped rather
+  /// than read as a wrong day, and only the newest [habitMaxPauses] stay.
+  static List<HabitPause> _readPauses(Object? raw) {
+    if (raw is! List) return const [];
+    final pauses = <HabitPause>[];
+    for (final entry in raw) {
+      if (entry is! Map) continue;
+      final a = tryParseDateKey('${entry['from'] ?? ''}');
+      final b = tryParseDateKey('${entry['to'] ?? ''}');
+      if (a == null || b == null) continue;
+      final first = dateKeyOf(a), last = dateKeyOf(b);
+      pauses.add(
+        first.compareTo(last) <= 0
+            ? HabitPause(from: first, to: last)
+            : HabitPause(from: last, to: first),
+      );
+    }
+    return _mergePauses(pauses);
+  }
+
+  static List<HabitPause> _mergePauses(List<HabitPause> pauses) {
+    pauses.sort((a, b) => a.from.compareTo(b.from));
+    final merged = <HabitPause>[];
+    for (final pause in pauses) {
+      if (merged.isNotEmpty && _touches(merged.last, pause)) {
+        final last = merged.last;
+        if (pause.to.compareTo(last.to) > 0) {
+          merged[merged.length - 1] = HabitPause(from: last.from, to: pause.to);
+        }
+      } else {
+        merged.add(pause);
+      }
+    }
+    final from = (merged.length - habitMaxPauses).clamp(0, merged.length);
+    return List.unmodifiable(merged.skip(from));
   }
 
   final String id;
@@ -125,10 +234,62 @@ class Habit {
   /// Its colour, an index into [habitHues].
   final int hue;
 
+  /// Rest stretches already taken (2.8.14). Their days are neither due nor
+  /// missed, so a rest leaves every streak and rate untouched.
+  final List<HabitPause> pauses;
+
+  /// Fields this version does not know, kept so editing, archiving or
+  /// pausing never drops a later version's data.
+  final Map<String, Object?> extra;
+
   /// Whether a day is done by reaching an amount rather than by a tick.
   bool get counted => goal > 1;
 
+  /// Whether [day] falls inside a rest stretch.
+  bool isPausedOn(DateTime day) => pauseOn(day) != null;
+
+  /// The rest stretch [day] falls in, or null.
+  HabitPause? pauseOn(DateTime day) {
+    if (pauses.isEmpty) return null;
+    final key = dateKeyOf(day);
+    for (final pause in pauses) {
+      if (pause.contains(key)) return pause;
+    }
+    return null;
+  }
+
+  /// The same habit resting from [from] to [to] inclusive. A stretch that
+  /// touches or overlaps this one is merged, so pausing twice extends one
+  /// rest instead of leaving two records of it.
+  Habit pauseUntil(DateTime from, DateTime to) {
+    final fromKey = dateKeyOf(from), toKey = dateKeyOf(to);
+    if (toKey.compareTo(fromKey) < 0) return this;
+    return withFields(
+      pauses: _mergePauses([...pauses, HabitPause(from: fromKey, to: toKey)]),
+    );
+  }
+
+  /// Ends the rest covering [today]: a rest that began today disappears, an
+  /// earlier one stops yesterday, so the day itself is a habit day again.
+  Habit endPause(DateTime today) {
+    if (pauses.isEmpty) return this;
+    final key = dateKeyOf(today);
+    final yesterday = dateKeyOf(
+      DateTime.utc(today.year, today.month, today.day - 1),
+    );
+    final kept = <HabitPause>[];
+    for (final pause in pauses) {
+      if (!pause.contains(key)) {
+        kept.add(pause);
+      } else if (key != pause.from) {
+        kept.add(HabitPause(from: pause.from, to: yesterday));
+      }
+    }
+    return withFields(pauses: kept);
+  }
+
   Map<String, Object?> toJson() => {
+    ...extra,
     'v': 2,
     'name': name,
     'note': note,
@@ -142,6 +303,8 @@ class Habit {
     'hue': hue,
     'archived': archived,
     'createdAt': createdAt.toIso8601String(),
+    if (pauses.isNotEmpty)
+      'pauses': [for (final pause in pauses) pause.toJson()],
   };
 
   Habit withFields({
@@ -156,6 +319,8 @@ class Habit {
     String? unit,
     String? icon,
     int? hue,
+    List<HabitPause>? pauses,
+    Map<String, Object?>? extra,
   }) {
     final nextPlan =
         plan ??
@@ -180,6 +345,8 @@ class Habit {
       unit: unit ?? this.unit,
       icon: icon ?? this.icon,
       hue: (hue ?? this.hue).clamp(0, 7),
+      pauses: pauses ?? this.pauses,
+      extra: extra ?? this.extra,
     );
   }
 }
@@ -200,12 +367,16 @@ class HabitCheck {
     required this.dateKey,
     required this.at,
     this.amount,
+    this.extra = const {},
   });
 
-  factory HabitCheck.fromRecord(ModuleRecord record) {
-    final body = record.body;
+  factory HabitCheck.fromRecord(ModuleRecord record) =>
+      HabitCheck.fromBody(record.id, record.body);
+
+  /// From a record's body directly, for the screens that already hold it.
+  factory HabitCheck.fromBody(String id, Map<String, Object?> body) {
     return HabitCheck(
-      id: record.id,
+      id: id,
       habitId: body['habit'] is String ? body['habit'] as String : '',
       dateKey: _normaliseDateKey('${body['date'] ?? ''}'),
       at:
@@ -214,6 +385,16 @@ class HabitCheck {
       amount: body['amount'] is num && (body['amount'] as num).isFinite
           ? (body['amount'] as num).toInt().clamp(0, 99999)
           : null,
+      // A check-in written by a later version keeps its own fields when
+      // this one rewrites the amount.
+      extra: {
+        for (final entry in body.entries)
+          if (entry.key != 'habit' &&
+              entry.key != 'date' &&
+              entry.key != 'at' &&
+              entry.key != 'amount')
+            entry.key: entry.value,
+      },
     );
   }
 
@@ -234,11 +415,15 @@ class HabitCheck {
   /// is a plain check-in — the whole day done, as every version-1 record is.
   final int? amount;
 
+  /// Fields this version does not know, written back untouched.
+  final Map<String, Object?> extra;
+
   /// What the day counts towards [goal]: the logged amount, or the whole
   /// goal for a plain check-in.
   int progressFor(int goal) => amount ?? goal;
 
   Map<String, Object?> toJson() => {
+    ...extra,
     'habit': habitId,
     'date': dateKey,
     'at': at.toIso8601String(),

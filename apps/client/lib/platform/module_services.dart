@@ -77,6 +77,11 @@ extension NexModuleServices on NexServices {
     }
     final source = await worker.moduleRecord(module, sourceKind, sourceId);
     if (source == null || source.body['archived'] == true) return false;
+    if (module == 'habits' &&
+        sourceKind == 'habit' &&
+        Habit.fromRecord(source).isPausedOn(at.toLocal())) {
+      return false;
+    }
     await worker.modulePut(module, '__reminder', key, {
       'sourceKind': sourceKind,
       'sourceId': sourceId,
@@ -183,6 +188,14 @@ extension NexModuleServices on NexServices {
     );
     if (source == null || source.body['archived'] == true) {
       await reminders.cancelModule(module, record.id);
+      return;
+    }
+    if (module == 'habits' &&
+        b['sourceKind'] == 'habit' &&
+        Habit.fromRecord(source).isPausedOn(at.toLocal())) {
+      // Keep the stored preferences available for a legacy daily reminder.
+      // Habits re-arms the next eligible alarm after the rest is saved.
+      await reminders.withdrawModule(module, record.id);
       return;
     }
     if (module == 'habits') {

@@ -216,11 +216,16 @@ class HabitRatePanel extends StatelessWidget {
     required this.habit,
     required this.dateKeys,
     required this.firstDay,
+    this.amounts,
   });
 
   final Habit habit;
   final Iterable<String> dateKeys;
   final int firstDay;
+
+  /// The amount logged on each day, so a part-filled day is not read as a
+  /// completed one.
+  final Map<String, int>? amounts;
 
   @override
   Widget build(BuildContext context) {
@@ -234,6 +239,7 @@ class HabitRatePanel extends StatelessWidget {
         dateKeys,
         now,
         firstDay: firstDay,
+        amounts: amounts,
       );
       if (rate.possible > 0) {
         lines.add(
@@ -245,16 +251,22 @@ class HabitRatePanel extends StatelessWidget {
         );
       }
     } else {
+      HabitRate? previous;
       for (final days in const [7, 30, 90]) {
-        final rate = HabitMath.dailyRate(habit, dateKeys, now, days);
-        // A window longer than the habit's life repeats the shorter one;
-        // say it once.
-        if (rate.possible == 0 || (lines.isNotEmpty && rate.possible < days)) {
-          continue;
-        }
+        final rate = HabitMath.dailyRate(
+          habit,
+          dateKeys,
+          now,
+          days,
+          amounts: amounts,
+        );
+        // A longer window can include more due days even when its
+        // denominator is smaller than its number of calendar days.
+        if (rate.possible == 0 || rate.possible == previous?.possible) continue;
+        previous = rate;
         lines.add(
           strings(context, 'rateDays', {
-            'n': rate.possible < days ? rate.possible : days,
+            'n': days,
             'done': rate.done,
             'days': rate.possible,
             'pct': rate.percent,

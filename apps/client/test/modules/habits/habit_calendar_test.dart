@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_client/modules/habits/habit_calendar.dart';
 import 'package:nex_client/modules/habits/habit_detail_screen.dart';
 import 'package:nex_client/modules/habits/habit_math.dart';
 import 'package:nex_client/modules/habits/habit_model.dart';
@@ -24,6 +25,37 @@ Habit habit({
 String key(DateTime d) => dateKeyOf(d);
 
 void main() {
+  testWidgets('rates use calendar windows for a habit on chosen days', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final scheduled = Habit.fromBody('h', {
+      'schedule': 'days',
+      'days': [DateTime.monday],
+      'createdAt': DateTime(
+        now.year,
+        now.month,
+        now.day - 100,
+      ).toIso8601String(),
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: HabitRatePanel(
+            habit: scheduled,
+            dateKeys: const [],
+            firstDay: DateTime.saturday,
+          ),
+        ),
+      ),
+    );
+    for (final days in [7, 30, 90]) {
+      expect(find.textContaining('Last $days days'), findsOneWidget);
+    }
+  });
+
   group('NexModuleMonth: a month in the calendar the reader uses', () {
     test('Mehr 1405 starts on 23 September 2026 and has 30 days', () {
       final month = NexModuleMonth.of(DateTime(2026, 10, 20), solar: true);
