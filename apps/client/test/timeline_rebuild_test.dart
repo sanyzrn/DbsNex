@@ -578,10 +578,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('More actions'));
     await tester.pumpAndSettle();
-    final pinAction = tester.widget<ListTile>(
-      find.ancestor(of: find.text('Pin'), matching: find.byType(ListTile)),
-    );
-    expect(pinAction.onTap, isNotNull);
+    expect(find.text('Pin').hitTestable(), findsOneWidget);
     await tester.tap(find.text('Pin'));
     await tester.pumpAndSettle();
     Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();

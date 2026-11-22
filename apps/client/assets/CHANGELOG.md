@@ -6,6 +6,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.8.14
 
+- **A compact note actions menu.** More actions opens above its button, keeping the note visible. Tap outside to close the menu.
 - **Consistent caption labels.** The hold menu and its settings now use “Caption”, matching note details and AI actions.
 
 ## v2.8.13
