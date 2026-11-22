@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/gold/gold_screen.dart';
 import 'package:nex_client/modules/gold/gold_compare_page.dart';
+import 'package:nex_client/modules/gold/gold_form.dart';
+import 'package:nex_client/modules/gold/gold_math.dart';
 import 'package:nex_client/modules/gold/gold_models.dart';
 import 'package:nex_client/modules/gold/gold_quotes_page.dart';
 import 'package:nex_client/platform/nex_services.dart';
@@ -449,6 +451,86 @@ void main() {
     expect(await harness.services.moduleRecords('gold', 'quote'), hasLength(1));
     expect(await harness.services.moduleRecords('words', 'quote'), isEmpty);
     expect(await harness.services.moduleRecords('other', 'quote'), isEmpty);
+  });
+
+  testWidgets('loading a simpler quote clears the fields it does not use', (
+    tester,
+  ) async {
+    GoldQuote quoteOf(GoldInput input) {
+      final result = GoldMath.calculate(input);
+      return GoldQuote(
+        id: 'quote',
+        title: '',
+        shop: '',
+        savedAtIso: '2026-01-01T00:00:00Z',
+        quoteDateIso: '2026-01-01',
+        notes: '',
+        input: input,
+        metalValueRial: result.metalValueRial,
+        makingChargeRial: result.makingChargeRial,
+        sellerProfitRial: result.sellerProfitRial,
+        commissionRial: result.commissionRial,
+        vatBaseRial: result.vatBaseRial,
+        vatRial: result.vatRial,
+        extrasRial: result.extrasRial,
+        estimatedTotalRial: result.estimatedTotalRial,
+      );
+    }
+
+    // A per-gram quote with a gross weight, a commission, the seller's total
+    // and an extra: every optional field filled.
+    const fuller = GoldInput(
+      weightMg: 3000,
+      grossWeightMg: 3500,
+      finenessPpt: 750,
+      rateCentiPerG: 1000000000,
+      rateRefPpt: 750,
+      makingMode: GoldMakingMode.perGram,
+      makingPerGramCenti: 5000,
+      commissionRial: 20000,
+      shopQuoteRial: 36000000,
+      extras: [('Warranty', 5000)],
+    );
+    const simpler = GoldInput(
+      weightMg: 3000,
+      finenessPpt: 750,
+      rateCentiPerG: 1000000000,
+      rateRefPpt: 750,
+      makingPercentBp: 1000,
+    );
+
+    await tester.pumpWidget(
+      host(
+        Scaffold(
+          body: SingleChildScrollView(
+            child: GoldForm(
+              store: NexModuleStore(harness.services, 'gold'),
+              metadata: const <String, TextEditingController>{},
+              recordId: 'test',
+              busy: () => false,
+              onInputChanged: (_) {},
+              initialQuote: quoteOf(fuller),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Editing a saved quote reloads the form from another one, and the old
+    // numbers must not stay behind where switching mode would pick them up.
+    final state = tester.state<GoldFormState>(find.byType(GoldForm));
+    state.loadQuote(quoteOf(simpler));
+    await tester.pump();
+
+    final input = state.buildInput(validate: false)!;
+    expect(input.makingMode, GoldMakingMode.percent);
+    expect(input.makingPercentBp, 1000);
+    expect(input.grossWeightMg, 0);
+    expect(input.makingPerGramCenti, 0);
+    expect(input.commissionRial, 0);
+    expect(input.shopQuoteRial, 0);
+    expect(input.extras, isEmpty);
   });
 }
 

@@ -32,6 +32,55 @@ void main() {
     expect((decoded.width, decoded.height), (900, 1500));
   });
 
+  test('a crop past the edge is clamped, not thrown', () {
+    final source = img.encodePng(img.Image(width: 40, height: 20));
+    final exported = img.decodePng(
+      cropPhoto(
+        source,
+        turns: 0,
+        flip: false,
+        x: -5,
+        y: 15,
+        width: 100,
+        height: 100,
+      ),
+    )!;
+
+    expect(exported.width, lessThanOrEqualTo(40));
+    expect(exported.height, lessThanOrEqualTo(20));
+    expect(exported.width, greaterThan(0));
+    expect(exported.height, greaterThan(0));
+  });
+
+  test('turns count as quarter turns past four and below zero', () {
+    final source = img.encodePng(img.Image(width: 40, height: 20));
+    final six = img.decodePng(
+      cropPhoto(
+        source,
+        turns: 6,
+        flip: false,
+        x: 0,
+        y: 0,
+        width: 40,
+        height: 20,
+      ),
+    )!;
+    expect((six.width, six.height), (40, 20));
+
+    final minusOne = img.decodePng(
+      cropPhoto(
+        source,
+        turns: -1,
+        flip: false,
+        x: 0,
+        y: 0,
+        width: 20,
+        height: 40,
+      ),
+    )!;
+    expect((minusOne.width, minusOne.height), (20, 40));
+  });
+
   test('preview and export agree on all EXIF orientations', () async {
     for (var orientation = 1; orientation <= 8; orientation++) {
       final source = img.Image(width: 32, height: 16);

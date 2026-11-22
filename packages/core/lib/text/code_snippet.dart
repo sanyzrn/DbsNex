@@ -167,8 +167,10 @@ final class NexCodeSnippet {
       final closing = closer.matchAsPrefix(source, lineStart);
       if (closing == null) continue;
       // A closing fence followed by more Markdown ends the first block,
-      // even if a later line could also close the fence.
-      if (closing.end != source.length) return null;
+      // even if a later line could also close the fence. Only blank lines
+      // after it are allowed — a fence a file was pasted with a trailing
+      // newline or two is still the same block.
+      if (!_onlyBlank(source, closing.end)) return null;
 
       var codeEnd = closing.start;
       if (codeEnd > codeStart) {
@@ -197,7 +199,7 @@ final class NexCodeSnippet {
       }
     }
     final code = source.substring(codeStart, previewEnd);
-    final id = info.isEmpty ? '' : info.split(RegExp(r'\s+')).first;
+    final id = info.isEmpty ? '' : info.split(_whitespace).first;
     final known = NexCodeLanguage.fromId(id);
     return _Read(
       code: code,
@@ -225,8 +227,21 @@ final class NexCodeSnippet {
   static bool _isHighSurrogate(int unit) => unit >= 0xD800 && unit <= 0xDBFF;
 
   static final _opening = RegExp(r' {0,3}(`{3,}|~{3,})');
+  static final _whitespace = RegExp(r'\s+');
+
   static final _backtickClose = RegExp(r' {0,3}`{3,}[ \t]*(?:\r?\n|$)');
   static final _tildeClose = RegExp(r' {0,3}~{3,}[ \t]*(?:\r?\n|$)');
+
+  /// Nothing but spaces, tabs and line endings left in [source].
+  static bool _onlyBlank(String source, int from) {
+    for (var i = from; i < source.length; i++) {
+      final unit = source.codeUnitAt(i);
+      if (unit != 0x20 && unit != 0x09 && unit != 0x0A && unit != 0x0D) {
+        return false;
+      }
+    }
+    return true;
+  }
 }
 
 final class _Read {

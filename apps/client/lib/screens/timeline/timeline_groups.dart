@@ -184,13 +184,15 @@ class _FoldingRowState extends State<_FoldingRow>
       return widget.open ? widget.child : const SizedBox.shrink();
     }
     final start = (widget.order * 0.07).clamp(0.0, 0.35);
-    final curved = CurvedAnimation(
-      parent: _controller,
+    // A driven curve, not a [CurvedAnimation]: that one attaches a listener
+    // to the controller, and this is created in build — one leaked listener
+    // per rebuild, kept until the row is disposed.
+    final curved = _controller.drive(
       // Every row ends with the fold, and the later ones start later — so
       // opening, the run fans out from the top; closing, every row starts at
       // once and the lower ones, with less time, are gone first. Nothing
       // waits before it moves.
-      curve: Interval(start, 1, curve: NexMotion.moveCurve),
+      CurveTween(curve: Interval(start, 1, curve: NexMotion.moveCurve)),
     );
     // The size and the look move apart: the space opens on the whole curve,
     // while the card fades and settles in over its second half — drifting

@@ -347,8 +347,10 @@ class _AdaptiveGridLayout extends SliverGridLayout {
 
   @override
   double computeMaxScrollOffset(int childCount) {
-    if (childCount == 0) return 0.0;
-    final lastRow = (childCount - 1) ~/ columns;
+    if (childCount == 0 || heights.isEmpty) return 0.0;
+    // The guard is local rather than an incident of layout and children
+    // always being computed from the same list.
+    final lastRow = math.min((childCount - 1) ~/ columns, heights.length - 1);
     return offsets[lastRow] + heights[lastRow];
   }
 }

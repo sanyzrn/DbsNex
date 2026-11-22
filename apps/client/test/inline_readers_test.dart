@@ -156,6 +156,7 @@ void main() {
     double scale = 1,
     bool dark = false,
     bool animations = false,
+    bool settle = true,
   }) async {
     tester.view.physicalSize = const Size(380, 900);
     tester.view.devicePixelRatio = 1;
@@ -177,7 +178,7 @@ void main() {
         home: Scaffold(body: SingleChildScrollView(child: child)),
       ),
     );
-    await settleReader(tester);
+    if (settle) await settleReader(tester);
   }
 
   readerTest(
@@ -357,6 +358,33 @@ void main() {
       expect(find.text(counter(1)), findsOneWidget);
     });
   }
+
+  readerTest('a new document opens at its own size, without the last zoom', (
+    tester,
+  ) async {
+    await show(tester, NexPdfReader(path: '/first.pdf', onOpen: () {}));
+    await tester.tap(find.byTooltip('Zoom in'));
+    await settleReader(tester);
+    expect(find.byTooltip('Reset zoom'), findsOneWidget);
+
+    // The replacement page has not arrived yet: the view state must already
+    // belong to the new document, not wait for its first render.
+    final next = Completer<Object?>();
+    messenger.setMockMethodCallHandler(channel, (_) => next.future);
+    await show(
+      tester,
+      NexPdfReader(path: '/second.pdf', onOpen: () {}),
+      settle: false,
+    );
+    expect(
+      find.byTooltip('Zoom in'),
+      findsOneWidget,
+      reason: 'a zoom belongs to the page it was made on',
+    );
+    next.complete({'bytes': png, 'pageCount': 3});
+    await settleReader(tester);
+    expect(find.text('1 / 3'), findsOneWidget);
+  });
 
   readerTest('PDF late result cannot overwrite a different path', (
     tester,

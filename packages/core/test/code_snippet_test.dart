@@ -52,6 +52,18 @@ void main() {
       expect(parsed.language, NexCodeLanguage.json);
     });
 
+    test('blank lines after the closing fence are still the same block', () {
+      for (final tail in ['\n', '\n\n', '  \n', '\n\n  \n']) {
+        final parsed = NexCodeSnippet.parse('```dart\nvar x = 1;\n```$tail');
+
+        expect(parsed, isNotNull, reason: tail);
+        expect(parsed!.code, 'var x = 1;', reason: tail);
+        expect(parsed.language, NexCodeLanguage.dart, reason: tail);
+      }
+      // Prose after the fence is still an ordinary note, not a snippet.
+      expect(NexCodeSnippet.parse('```dart\nvar x = 1;\n```\n\nProse'), isNull);
+    });
+
     test('a language this build does not know is kept, not renamed', () {
       final parsed = NexCodeSnippet.parse('```kotlin\nval x = 1\n```');
 

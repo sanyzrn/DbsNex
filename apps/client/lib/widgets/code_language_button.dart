@@ -197,7 +197,14 @@ final _languageHints = <NexCodeLanguage, RegExp>{
 };
 
 NexCodeLanguage? _suggestLanguage(String source) {
-  final prefix = source.substring(0, math.min(768, source.length)).trimLeft();
+  var end = math.min(768, source.length);
+  // Never cut between the halves of a surrogate pair.
+  if (end < source.length &&
+      end > 0 &&
+      (source.codeUnitAt(end - 1) & 0xFC00) == 0xD800) {
+    end--;
+  }
+  final prefix = source.substring(0, end).trimLeft();
   if (prefix.isEmpty) return null;
   for (final entry in _languageHints.entries) {
     if (entry.value.hasMatch(prefix)) return entry.key;

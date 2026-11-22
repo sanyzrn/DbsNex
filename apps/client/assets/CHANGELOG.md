@@ -4,6 +4,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.13
+
+- **Code colours across a whole snippet.** Template literals that span lines and Dart raw strings keep the right colour, so the rest of the file is no longer coloured as if it were part of them.
+- **Code notes in the home-screen widget.** The Text and Code filters now match what each card shows, and a long preview never cuts a character in half.
+- **Smaller fixes.** A reminder set while writing code is kept if the sheet closes mid-save, trailing blank lines after a fence still read as a snippet, a new PDF opens unzoomed, rapid taps on a recording leave no second player behind, and loading an older Gold quote clears fields that no longer apply.
+
 ## v2.8.12
 
 - **Save code as a source file.** Save to device uses the language’s file extension and preserves indentation, blank lines and line endings. The suggested name comes from the title or first non-empty line.

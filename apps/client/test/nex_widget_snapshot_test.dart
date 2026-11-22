@@ -74,6 +74,37 @@ void main() {
       expect(snapshot.notes.single.preview, 'final x = 1;');
     });
 
+    test('Text means text notes, not snippets; Code means snippets', () {
+      final plain = note('plain', NoteType.text, 'just words');
+      final snippet = note(
+        'snippet',
+        NoteType.text,
+        '```dart\nfinal x = 1;\n```',
+      );
+
+      expect(NexWidgetSnapshot.filter([plain, snippet], {'text'}), [plain]);
+      expect(NexWidgetSnapshot.filter([plain, snippet], {'code'}), [snippet]);
+    });
+
+    test('a cut never leaves half of a surrogate pair', () {
+      final text =
+          'a' * (NexWidgetSnapshot.maxPreviewLength - 1) + '\u{1F600}' + 'tail';
+      final preview = NexWidgetSnapshot.build(
+        appLock: false,
+        now: now,
+        notes: [note('n1', NoteType.text, text)],
+      ).notes.single.preview;
+
+      expect(
+        preview.length,
+        lessThanOrEqualTo(NexWidgetSnapshot.maxPreviewLength),
+      );
+      expect(
+        preview.codeUnits.any((unit) => unit >= 0xD800 && unit <= 0xDFFF),
+        isFalse,
+      );
+    });
+
     test('keeps the timeline order it was handed', () {
       final snapshot = NexWidgetSnapshot.build(
         appLock: false,

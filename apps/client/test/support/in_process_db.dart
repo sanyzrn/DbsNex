@@ -115,8 +115,15 @@ class InProcessDb implements NexDb {
   Future<List<Note>> search(SearchFilters filters) async =>
       _search.search(filters);
 
+  /// How many times a note has been read back, so a test can tell a write
+  /// that re-armed a reminder (which reads the note) from one that did not.
+  int noteReads = 0;
+
   @override
-  Future<Note?> getById(String id) async => _repo.getById(id);
+  Future<Note?> getById(String id) async {
+    noteReads++;
+    return _repo.getById(id);
+  }
 
   @override
   Future<List<String>> existingNoteIds(List<String> ids) async =>

@@ -93,7 +93,9 @@ extension _DetailActions on _NoteDetailSheetState {
     final uri = note?.mediaUri;
     if (uri == null) return;
     final l10n = AppLocalizations.of(context);
-    if (!File(uri).existsSync()) {
+    // Off the UI isolate: a cold or scoped-storage file can take a moment.
+    if (!await File(uri).exists()) {
+      if (!mounted) return;
       _toast(l10n.mediaUnavailable);
       return;
     }
@@ -185,8 +187,15 @@ extension _DetailActions on _NoteDetailSheetState {
     final url = _note?.linkUrl;
     if (url == null) return;
     final l10n = AppLocalizations.of(context);
+    // A malformed address is a link that cannot be opened, not an exception
+    // thrown before the launcher is even asked.
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      _toast(l10n.cannotOpen);
+      return;
+    }
     final opened = await launchUrl(
-      Uri.parse(url),
+      uri,
       mode: LaunchMode.externalApplication,
     ).catchError((Object _) => false);
     if (!mounted) return;
@@ -210,6 +219,7 @@ extension _DetailActions on _NoteDetailSheetState {
         !items[index].done &&
         items.where((item) => !item.done).length == 1;
     await widget.services.toggleChecklistItem(note.id, index);
+    if (!mounted) return;
     // The tier vocabulary (F-03): one line crossing off is a selection
     // moving — the cheap tick; finishing the whole list is the one
     // completion strong enough to keep the thud it already had.

@@ -394,7 +394,14 @@ class _CaptureSheetState extends State<CaptureSheet>
       // one immediate retry — the services outlive the sheet.
       if (mounted) return;
       try {
-        await widget.services.updateNoteContent(id, wire);
+        // The reminder is part of what was written under the person's eyes;
+        // the retry after the sheet is gone must carry it too, or a reminder
+        // set while the code was being typed is silently lost.
+        await widget.services.updateNoteContent(
+          id,
+          wire,
+          hasReminder: hasReminder,
+        );
         persisted = text;
         _persistedWire = wire;
       } on Object {
@@ -411,6 +418,13 @@ class _CaptureSheetState extends State<CaptureSheet>
   String _conversionKey = newUuidV7();
 
   Future<bool> _settle() => _settling ??= _settleOnce();
+
+  /// Whether what is on screen differs from what has landed: the words, or
+  /// just the fence a language change rewrites around unchanged words.
+  bool _differsFromStored(bool settled) =>
+      !settled ||
+      persisted != _latestText ||
+      _wireContent(_latestText) != _persistedWire;
 
   /// Adds a reminder after the first draft is saved, without blocking capture.
   /// A converted checklist or link inherits that reminder on settlement.
@@ -529,9 +543,7 @@ class _CaptureSheetState extends State<CaptureSheet>
     if (_voiceOn) await _stopVoice(keep: true);
     final settled = await _settle();
     if (!mounted) return;
-    if (!settled ||
-        persisted != _latestText ||
-        _wireContent(_latestText) != _persistedWire) {
+    if (_differsFromStored(settled)) {
       _settling = null;
       setState(() => _closing = false);
       return;
@@ -548,7 +560,7 @@ class _CaptureSheetState extends State<CaptureSheet>
     if (_voiceOn) await _stopVoice(keep: true);
     final settled = await _settle();
     if (!mounted) return;
-    if (!settled || persisted != _latestText) {
+    if (_differsFromStored(settled)) {
       // Kept open over words that are not saved yet, so they can be tried
       // again rather than closed over.
       _settling = null;

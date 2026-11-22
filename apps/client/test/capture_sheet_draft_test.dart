@@ -10,6 +10,7 @@ import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
+import 'package:nex_client/widgets/reminder_wheel.dart';
 
 import 'support/in_process_db.dart';
 
@@ -54,7 +55,11 @@ void main() {
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
 
-  Future<void> showSheet(WidgetTester tester, {VoidCallback? onFile}) async {
+  Future<void> showSheet(
+    WidgetTester tester, {
+    VoidCallback? onFile,
+    CaptureKind initialKind = CaptureKind.note,
+  }) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -66,6 +71,7 @@ void main() {
             onCamera: () {},
             onGallery: () {},
             onFile: onFile ?? () {},
+            initialKind: initialKind,
             onCommitted: committed.add,
           ),
         ),
@@ -292,6 +298,102 @@ void main() {
     expect(notes, hasLength(1));
     expect(notes.single.content, 'once upon a time');
   });
+  testWidgets(
+    'a language change that could not be saved keeps the sheet open',
+    (tester) async {
+      // The words did not change, only the fence around them. Closing used to
+      // compare the two texts alone, so a failed language write closed the
+      // sheet over a note still saved in the old language.
+      await boot();
+      await showSheet(tester, initialKind: CaptureKind.code);
+      final field = find.byType(TextField);
+      await tester.enterText(field, 'void main() {}');
+      await tester.pumpAndSettle(const Duration(milliseconds: 500));
+      expect((await db.timeline()).single.content, contains('void main'));
+
+      // Both writes fail: the one the language picker starts, and the one
+      // closing retries with.
+      db.failUpdates = 2;
+      await tester.tap(find.byKey(const ValueKey('capture-code-language')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Dart').last);
+      await tester.pumpAndSettle(const Duration(milliseconds: 500));
+      expect(
+        (await db.timeline()).single.content,
+        isNot(contains('```dart')),
+        reason: 'the refused write must really have been refused',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('capture-send')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byType(CaptureSheet),
+        findsOneWidget,
+        reason: 'closing over a fence that never landed loses the language',
+      );
+
+      db.failUpdates = 0;
+      await tester.tap(find.byKey(const ValueKey('capture-send')));
+      await tester.pumpAndSettle();
+      expect(find.byType(CaptureSheet), findsNothing);
+      expect((await db.timeline()).single.content, contains('```dart'));
+    },
+  );
+
+  testWidgets(
+    'a reminder is still on the note after the retry once the sheet is gone',
+    (tester) async {
+      // The write after unmount used to retry without the reminder flag, so the
+      // notification kept the words from before the last edit.
+      await boot();
+      await showSheet(tester);
+      final field = find.byType(TextField);
+      await tester.enterText(field, 'pick up the ring');
+      await tester.pumpAndSettle(const Duration(milliseconds: 500));
+
+      final note = (await db.timeline()).single;
+      await db.setDueAt(
+        note.id,
+        DateTime.now().add(const Duration(hours: 2)).toUtc(),
+      );
+      await tester.tap(find.byKey(const ValueKey('capture-remind')));
+      await tester.pumpAndSettle();
+      expect(find.byType(ReminderWheel), findsOneWidget);
+      // Dismissed without changing the time: [_remind] reads the note back and
+      // learns from the note itself that it has a reminder.
+      Navigator.of(tester.element(find.byType(ReminderWheel))).pop();
+      await tester.pumpAndSettle();
+      final alarm = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(const ValueKey('capture-remind')),
+          matching: find.byType(Icon),
+        ),
+      );
+      expect(alarm.icon, Icons.alarm_on);
+
+      db.failUpdates = 1;
+      final reads = db.noteReads;
+      await tester.enterText(field, 'pick up the ring today');
+      await tester.pumpAndSettle(const Duration(milliseconds: 500));
+      expect((await db.timeline()).single.content, 'pick up the ring');
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
+
+      final saved = (await db.timeline()).single;
+      expect(saved.content, 'pick up the ring today');
+      expect(saved.dueAt, isNotNull, reason: 'the reminder outlives the sheet');
+      expect(
+        db.noteReads,
+        reads + 1,
+        reason:
+            'the retry re-reads the note to re-arm its notification with the '
+            'new words; without the flag it writes the text and nothing else',
+      );
+    },
+  );
+
   testWidgets('an edit that failed to save is written again on close', (
     tester,
   ) async {

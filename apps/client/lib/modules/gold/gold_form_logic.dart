@@ -107,34 +107,39 @@ mixin _GoldFormLogic on State<GoldForm> {
   void loadQuote(GoldQuote quote) {
     final input = quote.input;
     _weight.text = inputScaled(input.weightMg, 3);
-    if (input.grossWeightMg > 0) {
-      _gross.text = inputScaled(input.grossWeightMg, 3);
-    }
+    // Every optional field is written, empty when it does not apply: loading
+    // a simpler quote over a fuller form must not leave the old numbers
+    // behind where the next mode change would pick them up.
+    _gross.text = input.grossWeightMg > 0
+        ? inputScaled(input.grossWeightMg, 3)
+        : '';
     _rate.text = inputScaled(input.rateCentiPerG, 2);
     _fineness = input.finenessPpt;
     _rateRef = input.rateRefPpt;
     _mode = input.makingMode;
     _profitBase = input.profitBase;
     _commissionTaxable = input.commissionTaxable;
-    if (input.makingMode == GoldMakingMode.percent ||
-        input.makingMode == GoldMakingMode.mixed) {
-      _makingPercent.text = inputScaled(input.makingPercentBp, 2);
-    }
-    if (input.makingMode == GoldMakingMode.perGram ||
-        input.makingMode == GoldMakingMode.mixed) {
-      _makingPerGram.text = inputScaled(input.makingPerGramCenti, 2);
-    }
-    if (input.makingMode == GoldMakingMode.fixed) {
-      _makingFixed.text = inputScaled(input.makingFixedRial, 1);
-    }
+    _makingPercent.text =
+        input.makingMode == GoldMakingMode.percent ||
+            input.makingMode == GoldMakingMode.mixed
+        ? inputScaled(input.makingPercentBp, 2)
+        : '';
+    _makingPerGram.text =
+        input.makingMode == GoldMakingMode.perGram ||
+            input.makingMode == GoldMakingMode.mixed
+        ? inputScaled(input.makingPerGramCenti, 2)
+        : '';
+    _makingFixed.text = input.makingMode == GoldMakingMode.fixed
+        ? inputScaled(input.makingFixedRial, 1)
+        : '';
     _profit.text = inputScaled(input.profitBp, 2);
     _vat.text = inputScaled(input.vatBp, 2);
-    if (input.commissionRial > 0) {
-      _commission.text = inputScaled(input.commissionRial, 1);
-    }
-    if (input.shopQuoteRial > 0) {
-      _shopQuote.text = inputScaled(input.shopQuoteRial, 1);
-    }
+    _commission.text = input.commissionRial > 0
+        ? inputScaled(input.commissionRial, 1)
+        : '';
+    _shopQuote.text = input.shopQuoteRial > 0
+        ? inputScaled(input.shopQuoteRial, 1)
+        : '';
     for (final extra in _extras) {
       extra.label.dispose();
       extra.amount.dispose();

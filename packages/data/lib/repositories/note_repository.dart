@@ -123,7 +123,9 @@ class SqliteNoteRepository implements NoteRepository {
   /// mistaken for an empty one. No media, private-vault content or AI calls.
   NexNudgeSnapshot nudgeSnapshot(List<NexCommitment> commitments) {
     final candidates = <String, Note>{};
-    final now = DateTime.now().toUtc();
+    // The injected clock, like every other read that stamps a row: a test
+    // that pins "now" must not have one path quietly use the wall clock.
+    final now = _now().toUtc();
     final categories = [
       (where: 'is_urgent = 1', order: 'updated_at DESC', args: <Object?>[]),
       // A repeat's stored start can be years old. Keep a separate budget so
@@ -797,7 +799,7 @@ LIMIT ?
   /// newer `updated_at` to win.
   void softDelete(String noteId) {
     db.together(() {
-      final now = DateTime.now().toUtc().toIso8601String();
+      final now = _now().toUtc().toIso8601String();
       db.execute(
         '''
 UPDATE notes
@@ -1775,10 +1777,17 @@ WHERE id = ?
     required int rev,
     required List<String> tagIds,
   }) {
-    bool sameTime(Object? stored, DateTime? incoming) => incoming == null
-        ? stored == null
-        : stored != null &&
-              DateTime.parse(stored as String) == incoming.toUtc();
+    bool sameTime(Object? stored, DateTime? incoming) {
+      if (incoming == null) return stored == null;
+      if (stored is! String) return false;
+      // Parse defensively and compare instants: a malformed or differently
+      // precise stored timestamp is a mismatch, not an exception.
+      final parsed = DateTime.tryParse(stored);
+      return parsed != null &&
+          parsed.toUtc().millisecondsSinceEpoch ==
+              incoming.toUtc().millisecondsSinceEpoch;
+    }
+
     final rowDeleted = row['deleted_at'] != null;
     if (row['type'] != type.wireName ||
         row['content'] != content ||

@@ -87,6 +87,11 @@ class _NexPdfReaderState extends State<NexPdfReader>
     _index = 0;
     _aheadIndex = null;
     _ahead = null;
+    // A new document opens at its own size and in place: zoom, pan and a
+    // half-swiped offset belong to the page that was being read.
+    _zoomed = false;
+    _transform.value = Matrix4.identity();
+    _drag.value = 0;
     unawaited(_load(0));
   }
 
@@ -124,7 +129,14 @@ class _NexPdfReaderState extends State<NexPdfReader>
     final ahead = _aheadIndex == index ? _ahead : null;
     _aheadIndex = null;
     _ahead = null;
-    var page = await (ahead ?? NexPdfPreview.page(widget.path, index: index));
+    NexPdfPage? page;
+    try {
+      page = await (ahead ?? NexPdfPreview.page(widget.path, index: index));
+    } on Object {
+      // A renderer that throws is a page that cannot be shown; [_failed]
+      // carries it to the retry below instead of leaving the sheet loading.
+      page = null;
+    }
     if (!mounted || generation != _generation) return;
     if (page != null) {
       var decoded = true;
@@ -192,6 +204,16 @@ class _NexPdfReaderState extends State<NexPdfReader>
   /// and the swipe agree about which way "next" is.
   static bool _isRtl(BuildContext context) =>
       Directionality.of(context) == TextDirection.rtl;
+
+  void _onDragCancel() {
+    unawaited(
+      _drag.animateTo(
+        0,
+        duration: NexMotion.of(context, NexMotion.standard),
+        curve: NexMotion.curve,
+      ),
+    );
+  }
 
   void _onDragUpdate(DragUpdateDetails details) {
     final delta = details.primaryDelta ?? 0;
@@ -346,6 +368,7 @@ class _NexPdfReaderState extends State<NexPdfReader>
                           // a sideways drag is for moving around the page.
                           onHorizontalDragUpdate: swipe ? _onDragUpdate : null,
                           onHorizontalDragEnd: swipe ? _onDragEnd : null,
+                          onHorizontalDragCancel: swipe ? _onDragCancel : null,
                           onDoubleTapDown: (details) =>
                               _doubleTapAt = details.localPosition,
                           onDoubleTap: () => _toggleZoom(_doubleTapAt),
