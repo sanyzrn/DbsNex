@@ -317,8 +317,7 @@ class _CaptureSheetState extends State<CaptureSheet>
       await draft;
     }
     await _flushCurrent();
-    if (persisted == _latestText &&
-        _wireContent(_latestText) == _persistedWire) {
+    if (_matchesStored) {
       try {
         widget.services.captureJournal.complete(_draftId);
       } catch (_) {}
@@ -344,7 +343,7 @@ class _CaptureSheetState extends State<CaptureSheet>
           hasReminder = false;
           widget.services.captureJournal.complete(_draftId);
           _draftId = newUuidV7();
-          if (_latestText.isNotEmpty) {
+          if (_latestText.trim().isNotEmpty) {
             unawaited(
               widget.services.captureJournal.write(
                 _draftId,
@@ -419,12 +418,11 @@ class _CaptureSheetState extends State<CaptureSheet>
 
   Future<bool> _settle() => _settling ??= _settleOnce();
 
-  /// Whether what is on screen differs from what has landed: the words, or
-  /// just the fence a language change rewrites around unchanged words.
-  bool _differsFromStored(bool settled) =>
-      !settled ||
-      persisted != _latestText ||
-      _wireContent(_latestText) != _persistedWire;
+  /// A blank field is saved once its draft is gone. Otherwise both the words
+  /// and their stored representation (including a code fence) must match.
+  bool get _matchesStored => _latestText.trim().isEmpty
+      ? noteId == null
+      : persisted == _latestText && _wireContent(_latestText) == _persistedWire;
 
   /// Adds a reminder after the first draft is saved, without blocking capture.
   /// A converted checklist or link inherits that reminder on settlement.
@@ -543,7 +541,7 @@ class _CaptureSheetState extends State<CaptureSheet>
     if (_voiceOn) await _stopVoice(keep: true);
     final settled = await _settle();
     if (!mounted) return;
-    if (_differsFromStored(settled)) {
+    if (!settled || !_matchesStored) {
       _settling = null;
       setState(() => _closing = false);
       return;
@@ -560,7 +558,7 @@ class _CaptureSheetState extends State<CaptureSheet>
     if (_voiceOn) await _stopVoice(keep: true);
     final settled = await _settle();
     if (!mounted) return;
-    if (_differsFromStored(settled)) {
+    if (!settled || !_matchesStored) {
       // Kept open over words that are not saved yet, so they can be tried
       // again rather than closed over.
       _settling = null;

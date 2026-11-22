@@ -94,8 +94,9 @@ extension _DetailActions on _NoteDetailSheetState {
     if (uri == null) return;
     final l10n = AppLocalizations.of(context);
     // Off the UI isolate: a cold or scoped-storage file can take a moment.
-    if (!await File(uri).exists()) {
-      if (!mounted) return;
+    final exists = await File(uri).exists();
+    if (!mounted) return;
+    if (!exists) {
       _toast(l10n.mediaUnavailable);
       return;
     }

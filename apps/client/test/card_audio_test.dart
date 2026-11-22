@@ -64,7 +64,10 @@ class _FakePlayer implements AudioPlayerPlatform {
   ) async => SetAutomaticallyWaitsToMinimizeStallingResponse();
 
   @override
-  Future<PlayResponse> play(PlayRequest request) async => PlayResponse();
+  Future<PlayResponse> play(PlayRequest request) async {
+    if (platform.failPlay) throw StateError('Playback refused');
+    return PlayResponse();
+  }
 
   @override
   Future<PauseResponse> pause(PauseRequest request) async => PauseResponse();
@@ -104,6 +107,7 @@ class _FakePlayer implements AudioPlayerPlatform {
 class _FakeAudioPlatform extends JustAudioPlatform {
   final players = <_FakePlayer>[];
   final disposed = <String>[];
+  bool failPlay = false;
 
   /// Holds every load open until the test says otherwise.
   Completer<void>? holdLoads;
@@ -191,4 +195,26 @@ void main() {
     expect(audio.loading, isFalse);
     expect(audio.isPlaying(note.id), isTrue);
   });
+
+  test(
+    'failed playback clears the released player and allows a retry',
+    () async {
+      final file = File(p.join(tmp.path, 'memo.m4a'))
+        ..writeAsBytesSync(const [1, 2, 3]);
+      final note = recording(file.path);
+      final audio = NexCardAudio.instance;
+      platform.failPlay = true;
+
+      await audio.toggle(note);
+      expect(platform.disposed, [platform.players.single.id]);
+      expect(audio.player, isNull);
+      expect(audio.steady, isNull);
+      expect(audio.noteId, isNull);
+      expect(audio.loading, isFalse);
+
+      platform.failPlay = false;
+      await audio.toggle(note);
+      expect(audio.isPlaying(note.id), isTrue);
+    },
+  );
 }

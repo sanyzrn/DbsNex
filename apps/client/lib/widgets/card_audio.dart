@@ -54,13 +54,18 @@ class NexCardAudio extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> toggle(Note note) async {
     final uri = note.mediaUri;
     if (uri == null) return;
-    if (_noteId == note.id && _player != null) {
-      if (isPlaying(note.id)) {
-        await _player!.pause();
-      } else {
-        await _steady!.play();
+    final loaded = _player;
+    if (_noteId == note.id && loaded != null) {
+      try {
+        if (isPlaying(note.id)) {
+          await loaded.pause();
+        } else {
+          await _steady!.play();
+        }
+        if (identical(_player, loaded)) notifyListeners();
+      } catch (_) {
+        if (identical(_player, loaded)) await stop();
       }
-      notifyListeners();
       return;
     }
     final token = ++_request;
@@ -72,6 +77,7 @@ class NexCardAudio extends ChangeNotifier with WidgetsBindingObserver {
     _loading = true;
     notifyListeners();
     final player = AudioPlayer();
+    var attached = false;
     try {
       // A voice note recorded before 1.99.92 plays from a corrected copy,
       // as it does in the note's own sheet.
@@ -86,6 +92,7 @@ class NexCardAudio extends ChangeNotifier with WidgetsBindingObserver {
       final steady = NexSteadyPosition(player);
       _player = player;
       _steady = steady;
+      attached = true;
       _state = player.playerStateStream.listen((state) {
         if (state.processingState == ProcessingState.completed &&
             state.playing) {
@@ -96,14 +103,10 @@ class NexCardAudio extends ChangeNotifier with WidgetsBindingObserver {
       });
       _loading = false;
       notifyListeners();
-      await steady.play();
+      if (token == _request) await steady.play();
     } catch (_) {
-      await player.dispose();
-      if (token == _request && _noteId == note.id) {
-        _noteId = null;
-        _loading = false;
-        notifyListeners();
-      }
+      if (!attached) await player.dispose();
+      if (token == _request) await stop();
     }
   }
 
@@ -127,13 +130,14 @@ class NexCardAudio extends ChangeNotifier with WidgetsBindingObserver {
   /// request and must not invalidate itself.
   Future<void> _release() async {
     final player = _player;
+    final state = _state;
     final hadOne = _noteId != null;
     _player = null;
     _steady = null;
+    _state = null;
     _noteId = null;
     _loading = false;
-    await _state?.cancel();
-    _state = null;
+    await state?.cancel();
     if (hadOne) notifyListeners();
     if (player != null) {
       try {

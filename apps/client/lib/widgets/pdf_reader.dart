@@ -114,7 +114,15 @@ class _NexPdfReaderState extends State<NexPdfReader>
     if (index < 0 || index >= _count || index == _index) return;
     if (_aheadIndex == index) return;
     _aheadIndex = index;
-    _ahead = NexPdfPreview.page(widget.path, index: index);
+    _ahead = _render(index);
+  }
+
+  Future<NexPdfPage?> _render(int index) async {
+    try {
+      return await NexPdfPreview.page(widget.path, index: index);
+    } on Object {
+      return null;
+    }
   }
 
   bool get _busy => _loading || _turning;
@@ -129,14 +137,7 @@ class _NexPdfReaderState extends State<NexPdfReader>
     final ahead = _aheadIndex == index ? _ahead : null;
     _aheadIndex = null;
     _ahead = null;
-    NexPdfPage? page;
-    try {
-      page = await (ahead ?? NexPdfPreview.page(widget.path, index: index));
-    } on Object {
-      // A renderer that throws is a page that cannot be shown; [_failed]
-      // carries it to the retry below instead of leaving the sheet loading.
-      page = null;
-    }
+    var page = await (ahead ?? _render(index));
     if (!mounted || generation != _generation) return;
     if (page != null) {
       var decoded = true;

@@ -255,6 +255,33 @@ void main() {
     );
   });
 
+  readerTest('a bad prefetched PDF page can be retried', (tester) async {
+    await show(tester, NexPdfReader(path: '/report.pdf', onOpen: () {}));
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      final args = call.arguments as Map;
+      if (args['index'] == 2) return 'invalid native response';
+      return {'bytes': png, 'pageCount': 3};
+    });
+
+    final next = find.byKey(const ValueKey('pdf-next'));
+    await tester.tap(next);
+    await settleReader(tester);
+    expect(find.text('2 / 3'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(next);
+    await settleReader(tester);
+    expect(find.text('2 / 3'), findsOneWidget);
+    expect(find.text('Try again'), findsOneWidget);
+    messenger.setMockMethodCallHandler(
+      channel,
+      (_) async => {'bytes': png, 'pageCount': 3},
+    );
+    await tester.tap(find.text('Try again'));
+    await settleReader(tester);
+    expect(find.text('3 / 3'), findsOneWidget);
+  });
+
   readerTest(
     'PDF pages navigate inline, reset zoom, and render ahead only while reading',
     (tester) async {
