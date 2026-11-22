@@ -4,6 +4,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.15
+
 - **Faster timeline groups.** Open and close date, note-type and tag groups more smoothly in both the list and the grid.
 
 ## v2.8.14
