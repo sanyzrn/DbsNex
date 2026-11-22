@@ -1,6 +1,48 @@
 part of '../timeline_screen.dart';
 
 extension _TimelineListCards on TimelineScreenState {
+  /// Reuse a row while the inputs to its card and wrappers match.
+  Widget _rowWidget(
+    Note note, {
+    required _NoteGroup group,
+    required bool primary,
+    required AppLocalizations l10n,
+    bool grid = false,
+    required Widget Function(String label) build,
+  }) {
+    final prefs = widget.preferences;
+    final density = NexCardDensity.of(context);
+    final expanded = prefs.isNoteExpanded(note.id);
+    final wide =
+        density == NexCardDensity.readable &&
+        (!expanded || _wideTileOnly(note));
+    final age = nexRelativeTimeOf(
+      grid || wide ? note.updatedAt : note.createdAt,
+    );
+    final due = note.dueAt;
+    final inputs = _RowInputs(
+      note: note,
+      l10n: l10n,
+      label: group.shelf != null ? group.label : _dayLabel(note, l10n),
+      expanded: expanded,
+      selected: _selecting ? _selected.contains(note.id) : null,
+      ringing: widget.services.ringing.value.contains(note.id),
+      anchored: _spotlightId == note.id && primary,
+      spotlighted: _spotlightId == note.id && _spotlightReady,
+      landed: landedId == note.id,
+      density: density,
+      haptics: prefs.haptics,
+      leading: prefs.leadingAction,
+      trailing: prefs.trailingAction,
+      age: (age.unit, age.count),
+      dueLabel: due != null && note.dueRepeat == NoteRepeat.once
+          ? nexDueCountdown(l10n, due)
+          : null,
+      clock24h: due != null && MediaQuery.alwaysUse24HourFormatOf(context),
+    );
+    return _rowWidgets.row((grid, group.key, note.id), inputs, build);
+  }
+
   bool _wideTileOnly(Note note) =>
       note.type == NoteType.link ||
       nexTileBackdropOf(note) != NexTileBackdrop.none;

@@ -82,11 +82,11 @@ class NexPhotoTool extends StatelessWidget {
                 const SizedBox(height: NexSpacing.xs),
                 Text(
                   label,
-                  maxLines: 1,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelSmall?.copyWith(color: Colors.white70),
+                  style: Theme.of(context).textTheme.labelSmall
+                      ?.copyWith(color: Colors.white70),
                 ),
               ],
             ),

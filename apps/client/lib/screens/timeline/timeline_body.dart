@@ -555,48 +555,58 @@ extension _TimelineBody on TimelineScreenState {
     builder: (context, row) {
       if (row.moreOf case final group?) return _shelfMore(group, l10n);
       final note = row.note!;
-      final wide = _usesWideListTile(note);
-      return _DayMark(
-        label: group.shelf != null ? group.label : _dayLabel(note, l10n),
-        marks: _dayMarks,
-        child: NoteSpotlight(
-          key: _spotlightId == note.id && row.primary ? _spotlightAnchor : null,
-          active: _spotlightId == note.id && _spotlightReady,
-          radius: wide ? NexRadius.xl : NexRadius.lg,
-          onDone: () {
-            if (mounted && _spotlightId == note.id) {
-              _rebuild(() => _spotlightId = null);
-            }
-          },
-          child: CommitReceipt(
-            key: ValueKey(note.id),
-            active: landedId == note.id,
-            onDone: () {
-              if (mounted && landedId == note.id) {
-                _rebuild(() => landedId = null);
-              }
-            },
-            child: SwipeableNoteCard(
-              haptics: widget.preferences.haptics,
-              controller: _swipe,
-              resolveAction: ({required bool isLeading}) => _selecting
-                  ? null
-                  : nexSwipeSpec(
-                      l10n,
-                      isLeading
-                          ? widget.preferences.leadingAction
-                          : widget.preferences.trailingAction,
-                    ),
-              onAction: (action) => unawaited(_runSwipe(action, note)),
-              child: NoteContextMenu(
-                entriesBuilder: (menuContext, width) =>
-                    _holdEntries(note, menuContext, width),
-                onHold: _selecting ? () => _pickNote(note) : null,
-                child: _pickShield(note, _listCard(note, cardStrings)),
+      return _rowWidget(
+        note,
+        group: group,
+        primary: row.primary,
+        l10n: l10n,
+        build: (label) {
+          final wide = _usesWideListTile(note);
+          return _DayMark(
+            label: label,
+            marks: _dayMarks,
+            child: NoteSpotlight(
+              key: _spotlightId == note.id && row.primary
+                  ? _spotlightAnchor
+                  : null,
+              active: _spotlightId == note.id && _spotlightReady,
+              radius: wide ? NexRadius.xl : NexRadius.lg,
+              onDone: () {
+                if (mounted && _spotlightId == note.id) {
+                  _rebuild(() => _spotlightId = null);
+                }
+              },
+              child: CommitReceipt(
+                key: ValueKey(note.id),
+                active: landedId == note.id,
+                onDone: () {
+                  if (mounted && landedId == note.id) {
+                    _rebuild(() => landedId = null);
+                  }
+                },
+                child: SwipeableNoteCard(
+                  haptics: widget.preferences.haptics,
+                  controller: _swipe,
+                  resolveAction: ({required bool isLeading}) => _selecting
+                      ? null
+                      : nexSwipeSpec(
+                          l10n,
+                          isLeading
+                              ? widget.preferences.leadingAction
+                              : widget.preferences.trailingAction,
+                        ),
+                  onAction: (action) => unawaited(_runSwipe(action, note)),
+                  child: NoteContextMenu(
+                    entriesBuilder: (menuContext, width) =>
+                        _holdEntries(note, menuContext, width),
+                    onHold: _selecting ? () => _pickNote(note) : null,
+                    child: _pickShield(note, _listCard(note, cardStrings)),
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       );
     },
   );

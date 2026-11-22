@@ -65,6 +65,9 @@ extension _TimelineGrid on TimelineScreenState {
                       rows: adaptiveRows(group),
                     ),
                     itemCount: group.notes.length,
+                    findChildIndexCallback: (key) => key is ValueKey<String>
+                        ? group.noteIndices[key.value]
+                        : null,
                     itemBuilder: (context, i) =>
                         _gridTile(group.notes[i], strings, l10n, group),
                   ),
@@ -82,62 +85,68 @@ extension _TimelineGrid on TimelineScreenState {
     NexCardStrings strings,
     AppLocalizations l10n,
     _NoteGroup group,
-  ) => _DayMark(
-    // The day passing under the filters, named as the list names it —
-    // or, arranged, the shelf.
-    label: group.shelf != null ? group.label : _dayLabel(note, l10n),
-    marks: _dayMarks,
-    child: NexTapGuarded(
-      controller: _guard,
-      child: NoteContextMenu(
-        key: ValueKey('grid-menu-${note.id}'),
-        entriesBuilder: (menuContext, width) =>
-            _holdEntries(note, menuContext, width),
-        onHold: _selecting ? () => _pickNote(note) : null,
-        // The same two moments the list marks: a note asked for from
-        // outside (a reminder, a widget row) is found by this anchor and
-        // lit, and a note just captured lands with its receipt.
-        child: NoteSpotlight(
-          key: _spotlightId == note.id && !group.echoes.contains(note.id)
-              ? _spotlightAnchor
-              : null,
-          active: _spotlightId == note.id && _spotlightReady,
-          insets: EdgeInsets.zero,
-          radius: NexRadius.xl,
-          onDone: () {
-            if (mounted && _spotlightId == note.id) {
-              _rebuild(() => _spotlightId = null);
-            }
-          },
-          child: CommitReceipt(
-            key: ValueKey('grid-receipt-${note.id}'),
-            active: landedId == note.id,
-            // Off the rounded corners: the bar runs down the tile's
-            // straight edge.
-            insets: const EdgeInsets.symmetric(vertical: NexRadius.xl),
+  ) => _rowWidget(
+    note,
+    group: group,
+    primary: !group.echoes.contains(note.id),
+    l10n: l10n,
+    grid: true,
+    build: (label) => _DayMark(
+      key: ValueKey(note.id),
+      label: label,
+      marks: _dayMarks,
+      child: NexTapGuarded(
+        controller: _guard,
+        child: NoteContextMenu(
+          key: ValueKey('grid-menu-${note.id}'),
+          entriesBuilder: (menuContext, width) =>
+              _holdEntries(note, menuContext, width),
+          onHold: _selecting ? () => _pickNote(note) : null,
+          // The same two moments the list marks: a note asked for from
+          // outside (a reminder, a widget row) is found by this anchor and
+          // lit, and a note just captured lands with its receipt.
+          child: NoteSpotlight(
+            key: _spotlightId == note.id && !group.echoes.contains(note.id)
+                ? _spotlightAnchor
+                : null,
+            active: _spotlightId == note.id && _spotlightReady,
+            insets: EdgeInsets.zero,
+            radius: NexRadius.xl,
             onDone: () {
-              if (mounted && landedId == note.id) {
-                _rebuild(() => landedId = null);
+              if (mounted && _spotlightId == note.id) {
+                _rebuild(() => _spotlightId = null);
               }
             },
-            child: _pickShield(
-              note,
-              NexNoteGridCard(
-                key: ValueKey('grid-${note.id}'),
-                note: note,
-                strings: strings,
-                onTap: () => _tapNote(note),
-                onLeadingTap: () => _pickNote(note),
-                selected: _selecting ? _selected.contains(note.id) : null,
-                ringing: widget.services.ringing.value.contains(note.id),
-                photos: _tilePhotos,
-                // Ticked where it is seen (2.8.2); not while notes are being
-                // picked, when a touch on a tile picks it.
-                onToggleItem: _selecting
-                    ? null
-                    : (index) => unawaited(
-                        widget.services.toggleChecklistItem(note.id, index),
-                      ),
+            child: CommitReceipt(
+              key: ValueKey('grid-receipt-${note.id}'),
+              active: landedId == note.id,
+              // Off the rounded corners: the bar runs down the tile's
+              // straight edge.
+              insets: const EdgeInsets.symmetric(vertical: NexRadius.xl),
+              onDone: () {
+                if (mounted && landedId == note.id) {
+                  _rebuild(() => landedId = null);
+                }
+              },
+              child: _pickShield(
+                note,
+                NexNoteGridCard(
+                  key: ValueKey('grid-${note.id}'),
+                  note: note,
+                  strings: strings,
+                  onTap: () => _tapNote(note),
+                  onLeadingTap: () => _pickNote(note),
+                  selected: _selecting ? _selected.contains(note.id) : null,
+                  ringing: widget.services.ringing.value.contains(note.id),
+                  photos: _tilePhotos,
+                  // Ticked where it is seen (2.8.2); not while notes are being
+                  // picked, when a touch on a tile picks it.
+                  onToggleItem: _selecting
+                      ? null
+                      : (index) => unawaited(
+                          widget.services.toggleChecklistItem(note.id, index),
+                        ),
+                ),
               ),
             ),
           ),

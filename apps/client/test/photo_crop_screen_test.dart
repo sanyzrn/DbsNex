@@ -366,4 +366,39 @@ void main() {
     expect(find.text('Discard'), findsNothing);
     expect(getResult(), isNull);
   });
+
+  for (final language in ['en', 'fa']) {
+    testWidgets('all crop tools fit a narrow phone in $language', (
+      tester,
+    ) async {
+      const surface = Size(320, 720);
+      tester.view.physicalSize = surface;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: Locale(language),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: surface,
+              textScaler: TextScaler.linear(1.4),
+            ),
+            child: PhotoCropScreen(image: _testPng),
+          ),
+        ),
+      );
+      await _waitForCrop(tester);
+      for (final icon in [
+        Icons.rotate_90_degrees_cw_outlined,
+        Icons.flip_outlined,
+        Icons.draw_outlined,
+        Icons.restart_alt,
+      ]) {
+        expect(find.byIcon(icon).hitTestable(), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

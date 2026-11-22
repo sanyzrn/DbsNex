@@ -345,31 +345,41 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                     ),
                   ),
                   const SizedBox(height: NexSpacing.md),
+                  // Give every tool a visible slot on narrow phones in
+                  // both directions. Longer labels may wrap inside it.
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      NexPhotoTool(
-                        icon: Icons.rotate_90_degrees_cw_outlined,
-                        label: l10n.cropRotate,
-                        onPressed: busy ? null : () => unawaited(_rotate()),
+                      Expanded(
+                        child: NexPhotoTool(
+                          icon: Icons.rotate_90_degrees_cw_outlined,
+                          label: l10n.cropRotate,
+                          onPressed: busy ? null : () => unawaited(_rotate()),
+                        ),
                       ),
-                      NexPhotoTool(
-                        icon: Icons.flip_outlined,
-                        label: l10n.cropFlip,
-                        selected: _flipped,
-                        onPressed: busy ? null : () => unawaited(_flip()),
+                      Expanded(
+                        child: NexPhotoTool(
+                          icon: Icons.flip_outlined,
+                          label: l10n.cropFlip,
+                          selected: _flipped,
+                          onPressed: busy ? null : () => unawaited(_flip()),
+                        ),
                       ),
-                      NexPhotoTool(
-                        icon: Icons.draw_outlined,
-                        label: l10n.cropAnnotate,
-                        onPressed: busy
-                            ? null
-                            : () => _startCrop(annotate: true),
+                      Expanded(
+                        child: NexPhotoTool(
+                          icon: Icons.draw_outlined,
+                          label: l10n.cropAnnotate,
+                          onPressed: busy
+                              ? null
+                              : () => _startCrop(annotate: true),
+                        ),
                       ),
-                      NexPhotoTool(
-                        icon: Icons.restart_alt,
-                        label: l10n.cropReset,
-                        onPressed: busy ? null : () => unawaited(_reset()),
+                      Expanded(
+                        child: NexPhotoTool(
+                          icon: Icons.restart_alt,
+                          label: l10n.cropReset,
+                          onPressed: busy ? null : () => unawaited(_reset()),
+                        ),
                       ),
                     ],
                   ),

@@ -391,10 +391,14 @@ class LibraryMaintenance {
   /// three digit sets — so a spelling variant of a word that is there reads
   /// as one.
   Note? nearestMiss(String query) {
-    final needle = _searchWords(query);
+    final needle = _searchWords(nexSearchFold(query).toLowerCase()).toList();
     if (needle.isEmpty) return null;
-    Note? best;
+    String? bestId;
     var score = 0.0;
+    // A word's score against the query is the same on every note. Share
+    // those comparisons across this lookup, with bounded memory for imports
+    // that contain many distinct words.
+    final wordScores = <(String, String), double>{};
     // `INDEXED BY idx_notes_created_at` pins the walk to the newest-first
     // index so the `LIMIT 500` is an early exit, not a sort: the planner on
     // its own served the `deleted_at` prefix from `idx_notes_timeline` and
@@ -413,15 +417,17 @@ class LibraryMaintenance {
       final note = Note.fromRow(row, tags: const []);
       final candidate = _closeness(
         needle,
-        _searchWords(note.searchableDerivedText ?? ''),
+        _candidateWords(note.searchableDerivedText ?? ''),
+        wordScores,
       );
       if (candidate > score) {
         score = candidate;
-        best = note;
+        bestId = note.id;
+        if (score == 1) break;
       }
     }
-    return score >= _minCloseness && best != null
-        ? repo.getById(best.id)
+    return score >= _minCloseness && bestId != null
+        ? repo.getById(bestId)
         : null;
   }
 
@@ -431,42 +437,50 @@ class LibraryMaintenance {
   /// unrelated words around 0.25-0.4 — under the line, which is the point.
   static const _minCloseness = 0.45;
 
-  /// [text] as the words search compares: folded, lower-cased, split on
-  /// everything that is not a letter or a digit.
-  static List<String> _searchWords(String text) => [
-    for (final word in nexSearchFold(text).toLowerCase().split(_wordBreak))
-      if (word.isNotEmpty) word,
-  ];
+  static final _word = RegExp(r'[\p{L}\p{N}]+', unicode: true);
+  static final _asciiWhitespace = RegExp(r'[ \t\r\n]+');
 
-  /// Compiled once, not once per note compared — `nearestMiss` runs it over
-  /// five hundred notes for a keystroke that matched nothing, and a fresh
-  /// unicode `RegExp` each time was a measurable slice of that.
-  static final _wordBreak = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
+  static Iterable<String> _searchWords(String folded) =>
+      _word.allMatches(folded).map((match) => match[0]!);
+
+  static Set<String> _candidateWords(String text) {
+    // Whitespace already separates words. Deduplicate those chunks before
+    // the costlier Unicode word scan, especially for long repetitive notes.
+    final chunks = nexSearchFold(text).toLowerCase().split(_asciiWhitespace);
+    return {for (final chunk in chunks.toSet()) ..._searchWords(chunk)};
+  }
 
   /// The best word of [haystack] for each word of [needle], blended half and
   /// half with their average: a note that shares most of the query's words
   /// scores above one that merely has one word close to one of them, while a
   /// single very close word still clears the bar on its own.
-  static double _closeness(List<String> needle, List<String> haystack) {
+  static double _closeness(
+    List<String> needle,
+    Set<String> haystack,
+    Map<(String, String), double> wordScores,
+  ) {
     if (needle.isEmpty || haystack.isEmpty) return 0;
     var total = 0.0;
     var best = 0.0;
     for (final word in needle) {
-      var wordBest = 0.0;
-      for (final candidate in haystack) {
-        if (candidate == word) {
-          wordBest = 1;
-          break;
+      var wordBest = haystack.contains(word) ? 1.0 : 0.0;
+      if (wordBest == 0) {
+        for (final candidate in haystack) {
+          if (word.length < 2 || candidate.length < 2) continue;
+          // Skip comparisons whose maximum Dice score is below the threshold.
+          final shorter = math.min(word.length, candidate.length);
+          final ceiling =
+              2 * (shorter - 1) / (word.length + candidate.length - 2);
+          if (ceiling < _minCloseness) continue;
+          final key = (word, candidate);
+          var dice = wordScores[key];
+          if (dice == null) {
+            dice = _dice(word, candidate);
+            if (wordScores.length < 4096) wordScores[key] = dice;
+          }
+          if (dice > wordBest) wordBest = dice;
+          if (wordBest == 1) break;
         }
-        if (word.length < 2 || candidate.length < 2) continue;
-        // The dice of any pairing is at most this, however the letters fall:
-        // skip the bigram work when that ceiling is already under the bar.
-        final shorter = math.min(word.length, candidate.length);
-        final ceiling =
-            2 * (shorter - 1) / (word.length + candidate.length - 2);
-        if (ceiling < _minCloseness) continue;
-        final dice = _dice(word, candidate);
-        if (dice > wordBest) wordBest = dice;
       }
       total += wordBest;
       if (wordBest > best) best = wordBest;

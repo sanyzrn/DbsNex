@@ -184,6 +184,91 @@ class _TimelineRowsCache {
   }
 }
 
+/// Values read by a timeline card and its wrappers. Returning the same
+/// widget while these match lets Flutter skip rebuilding unchanged rows.
+class _RowInputs {
+  const _RowInputs({
+    required this.note,
+    required this.l10n,
+    required this.label,
+    required this.expanded,
+    required this.selected,
+    required this.ringing,
+    required this.anchored,
+    required this.spotlighted,
+    required this.landed,
+    required this.density,
+    required this.haptics,
+    required this.leading,
+    required this.trailing,
+    required this.age,
+    required this.dueLabel,
+    required this.clock24h,
+  });
+
+  final Note note;
+  final AppLocalizations l10n;
+  final String label;
+  final bool expanded;
+  final bool? selected;
+  final bool ringing;
+  final bool anchored;
+  final bool spotlighted;
+  final bool landed;
+  final NexCardDensity density;
+  final bool haptics;
+  final SwipeAction leading;
+  final SwipeAction trailing;
+  final (NexRelativeUnit, int) age;
+  final String? dueLabel;
+  final bool clock24h;
+
+  bool matches(_RowInputs other) =>
+      nexSameNote(note, other.note) &&
+      identical(l10n, other.l10n) &&
+      label == other.label &&
+      expanded == other.expanded &&
+      selected == other.selected &&
+      ringing == other.ringing &&
+      anchored == other.anchored &&
+      spotlighted == other.spotlighted &&
+      landed == other.landed &&
+      density == other.density &&
+      haptics == other.haptics &&
+      leading == other.leading &&
+      trailing == other.trailing &&
+      age == other.age &&
+      dueLabel == other.dueLabel &&
+      clock24h == other.clock24h;
+}
+
+/// Each shelf has its own row even when another shelf shows the same note.
+class _RowWidgetCache {
+  static const _capacity = 600;
+
+  final _entries = <(bool, String, String), (_RowInputs, Widget)>{};
+
+  /// Read by timeline performance tests.
+  int hits = 0;
+
+  Widget row(
+    (bool, String, String) key,
+    _RowInputs inputs,
+    Widget Function(String label) build,
+  ) {
+    final cached = _entries.remove(key);
+    if (cached != null && cached.$1.matches(inputs)) {
+      hits++;
+      _entries[key] = cached;
+      return cached.$2;
+    }
+    if (_entries.length == _capacity) _entries.remove(_entries.keys.first);
+    final widget = build(inputs.label);
+    _entries[key] = (inputs, widget);
+    return widget;
+  }
+}
+
 /// Working the flattened rows out of the notes the stream delivered.
 extension _TimelineRows on TimelineScreenState {
   /// The date run a note belongs to — see `_TimelineRowsCache._dayBucket`.
