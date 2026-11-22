@@ -5480,6 +5480,18 @@ class AppLocalizationsFa extends AppLocalizations {
   String get pauseStart => 'شروع';
 
   @override
+  String get pauseLengthShort => 'کوتاه';
+
+  @override
+  String get pauseLengthStandard => 'استاندارد';
+
+  @override
+  String get pauseLengthLong => 'بلند';
+
+  @override
+  String get pauseCardAction => 'برای مکث یا ادامه دوبار بزنید';
+
+  @override
   String get pauseSound => 'صدا';
 
   @override

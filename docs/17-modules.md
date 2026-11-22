@@ -31,8 +31,8 @@ Available now: **Cycle**, and from 2.4.0 **Pause** — a breathing break
 it is first-party rather than a module-kit folder, because it uses what the kit
 keeps out: `just_audio` for its synthesized sound (`pause_synth.dart`, no audio
 assets), haptics, and a window flag that keeps the screen on during a session.
-It stores only three preferences (`module.pause.mode`, `.sound`, `.haptics`), so
-removing it asks nothing.
+It stores only four preferences (`module.pause.mode`, `.sound`, `.haptics` and,
+from 2.8.14, `.length`), so removing it asks nothing.
 
 ## Two layers
 

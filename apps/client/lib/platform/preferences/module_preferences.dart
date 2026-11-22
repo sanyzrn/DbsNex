@@ -31,7 +31,9 @@ mixin _ModulePreferences on _PreferencesStore {
   }
 
   /// Pause (2.4.0): the breathing mode last chosen, and whether a session
-  /// plays its sound and its haptics. Both on until turned off.
+  /// plays its sound and its haptics. Both on until turned off. From 2.8.14 a
+  /// session length is kept too (2.4.0's three settings become four): 'short',
+  /// 'standard' (as before) or 'long'.
   String get pauseMode => _prefs.getString('module.pause.mode') ?? 'calm';
   Future<void> setPauseMode(String mode) =>
       _setBoundedText('module.pause.mode', mode, 16);
@@ -39,4 +41,8 @@ mixin _ModulePreferences on _PreferencesStore {
   Future<void> setPauseSound(bool on) => _setBool('module.pause.sound', on);
   bool get pauseHaptics => _prefs.getBool('module.pause.haptics') ?? true;
   Future<void> setPauseHaptics(bool on) => _setBool('module.pause.haptics', on);
+  String get pauseLength =>
+      _prefs.getString('module.pause.length') ?? 'standard';
+  Future<void> setPauseLength(String length) =>
+      _setBoundedText('module.pause.length', length, 16);
 }

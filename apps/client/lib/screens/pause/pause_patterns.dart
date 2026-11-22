@@ -62,6 +62,7 @@ enum PauseMode {
 
   Duration get roundDuration => Duration(milliseconds: roundMillis);
 
+  /// Breaths in the session of the standard length.
   Duration get sessionDuration => roundDuration * rounds;
 
   /// "5.5 · 5.5", "4 · 4 · 4 · 4", "4 · 7 · 8": the seconds of each part.
@@ -71,6 +72,45 @@ enum PauseMode {
           ? '${p.millis ~/ 1000}'
           : (p.millis / 1000).toStringAsFixed(1),
   ].join(' · ');
+}
+
+/// How long a session runs (2.8.14): a share of the mode's own rounds, so the
+/// short and long of it keeps each pattern's character — a short Relax is
+/// still two 4-7-8 breaths, not a faster one. Kept next to the modes because
+/// the two only mean something together.
+enum PauseLength {
+  /// Half the standard rounds.
+  short('short'),
+
+  /// The rounds each pattern is usually taught with.
+  standard('standard'),
+
+  /// For settling in at the end of the day.
+  long('long');
+
+  const PauseLength(this.id);
+
+  /// Stored in preferences.
+  final String id;
+
+  static PauseLength fromId(String id) =>
+      values.firstWhere((l) => l.id == id, orElse: () => standard);
+
+  /// Breaths in one session of [mode].
+  int roundsFor(PauseMode mode) => switch ((this, mode)) {
+    (PauseLength.short, PauseMode.calm) => 5,
+    (PauseLength.standard, PauseMode.calm) => mode.rounds,
+    (PauseLength.long, PauseMode.calm) => 15,
+    (PauseLength.short, PauseMode.focus) => 3,
+    (PauseLength.standard, PauseMode.focus) => mode.rounds,
+    (PauseLength.long, PauseMode.focus) => 12,
+    (PauseLength.short, PauseMode.relax) => 2,
+    (PauseLength.standard, PauseMode.relax) => mode.rounds,
+    (PauseLength.long, PauseMode.relax) => 8,
+  };
+
+  /// A session of [mode] at this length.
+  Duration durationOf(PauseMode mode) => mode.roundDuration * roundsFor(mode);
 }
 
 /// Where a session is at a moment in its breathing.
@@ -105,13 +145,16 @@ class PauseMoment {
 /// A breath's ease: sine in and out, so the motion never jerks at a turn.
 double pauseEase(double t) => 0.5 - math.cos(math.pi * t.clamp(0.0, 1.0)) / 2;
 
-/// The moment [elapsed] into the breathing of a [mode] session.
-PauseMoment pauseMomentAt(PauseMode mode, Duration elapsed) {
-  final total = mode.roundMillis * mode.rounds;
+/// The moment [elapsed] into the breathing of a [mode] session of [rounds]
+/// breaths. [rounds] defaults to the mode's own, and the sound's round never
+/// depends on it, so a longer or shorter session still loops one round.
+PauseMoment pauseMomentAt(PauseMode mode, Duration elapsed, {int? rounds}) {
+  final breaths = rounds ?? mode.rounds;
+  final total = mode.roundMillis * breaths;
   final at = elapsed.inMilliseconds.clamp(0, total);
   if (at >= total) {
     return PauseMoment(
-      round: mode.rounds - 1,
+      round: breaths - 1,
       phase: mode.phases.last,
       progress: 1,
       fullness: 0,

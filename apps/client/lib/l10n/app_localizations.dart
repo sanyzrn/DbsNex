@@ -8690,6 +8690,30 @@ abstract class AppLocalizations {
   /// **'Start'**
   String get pauseStart;
 
+  /// Pause (breathing break) module: the short session length
+  ///
+  /// In en, this message translates to:
+  /// **'Short'**
+  String get pauseLengthShort;
+
+  /// Pause (breathing break) module: the standard session length
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get pauseLengthStandard;
+
+  /// Pause (breathing break) module: the long session length
+  ///
+  /// In en, this message translates to:
+  /// **'Long'**
+  String get pauseLengthLong;
+
+  /// Pause (breathing break) module: what tapping the session card does
+  ///
+  /// In en, this message translates to:
+  /// **'Double-tap to pause or carry on'**
+  String get pauseCardAction;
+
   /// Pause (breathing break) module
   ///
   /// In en, this message translates to:

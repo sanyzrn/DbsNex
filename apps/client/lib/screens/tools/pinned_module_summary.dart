@@ -42,7 +42,8 @@ Future<NexPinnedSummary?> nexPinnedModuleSummary({
   switch (id) {
     case 'pause':
       final mode = PauseMode.fromId(preferences.pauseMode);
-      final seconds = mode.sessionDuration.inSeconds;
+      final length = PauseLength.fromId(preferences.pauseLength);
+      final seconds = length.durationOf(mode).inSeconds;
       final time = nexDigits(
         '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}',
         persian: l10n.localeName == 'fa',

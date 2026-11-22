@@ -5573,6 +5573,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pauseStart => 'Start';
 
   @override
+  String get pauseLengthShort => 'Short';
+
+  @override
+  String get pauseLengthStandard => 'Standard';
+
+  @override
+  String get pauseLengthLong => 'Long';
+
+  @override
+  String get pauseCardAction => 'Double-tap to pause or carry on';
+
+  @override
   String get pauseSound => 'Sound';
 
   @override

@@ -1,16 +1,20 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/semantics.dart' show SemanticsAction;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/modules/module_registry.dart';
 import 'package:nex_client/screens/modules_screen.dart';
+import 'package:nex_client/screens/pause/pause_art.dart';
 import 'package:nex_client/screens/pause/pause_patterns.dart';
 import 'package:nex_client/screens/pause/pause_screen.dart';
 import 'package:nex_client/screens/pause/pause_session.dart';
 import 'package:nex_client/screens/pause/pause_sound.dart';
 import 'package:nex_client/screens/pause/pause_synth.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
 
@@ -64,6 +68,57 @@ void main() {
       );
     });
 
+    test('a session can run for more or fewer breaths than its pattern', () {
+      // The lengths keep each pattern's own breath; only the count changes.
+      expect(
+        PauseLength.short.durationOf(PauseMode.calm),
+        const Duration(seconds: 55),
+      );
+      expect(
+        PauseLength.standard.durationOf(PauseMode.calm),
+        const Duration(seconds: 110),
+      );
+      expect(
+        PauseLength.long.durationOf(PauseMode.calm),
+        const Duration(seconds: 165),
+      );
+      expect(
+        PauseLength.short.durationOf(PauseMode.focus),
+        const Duration(seconds: 48),
+      );
+      expect(
+        PauseLength.long.durationOf(PauseMode.focus),
+        const Duration(seconds: 192),
+      );
+      expect(
+        PauseLength.short.durationOf(PauseMode.relax),
+        const Duration(seconds: 38),
+      );
+      expect(
+        PauseLength.long.durationOf(PauseMode.relax),
+        const Duration(seconds: 152),
+      );
+      expect(PauseLength.fromId('long'), PauseLength.long);
+      // Anything unknown reads as the length that was always there.
+      expect(PauseLength.fromId('hourlong'), PauseLength.standard);
+      expect(
+        pauseMomentAt(
+          PauseMode.calm,
+          const Duration(seconds: 55),
+          rounds: 5,
+        ).done,
+        isTrue,
+      );
+      expect(
+        pauseMomentAt(
+          PauseMode.calm,
+          const Duration(seconds: 54, milliseconds: 900),
+          rounds: 5,
+        ).done,
+        isFalse,
+      );
+    });
+
     test('the taps come closer as an inhale fills and part as it empties', () {
       List<double> gaps(List<double> marks) => [
         for (var i = 1; i < marks.length; i++) marks[i] - marks[i - 1],
@@ -76,6 +131,60 @@ void main() {
       for (var i = 1; i < exhale.length; i++) {
         expect(exhale[i], greaterThan(exhale[i - 1]));
       }
+    });
+
+    test('only the globe turns with the clock; the other arts hold still', () {
+      // A new second of the same held breath is not a new picture for Calm
+      // and Focus: half of Focus is held still, and those frames are free.
+      final held = PauseArtPainter(
+        mode: PauseMode.focus,
+        fullness: 1,
+        seconds: 4,
+      );
+      expect(
+        held.shouldRepaint(
+          PauseArtPainter(mode: PauseMode.focus, fullness: 1, seconds: 4.2),
+        ),
+        isFalse,
+      );
+      expect(
+        PauseArtPainter(
+          mode: PauseMode.calm,
+          fullness: 0,
+          seconds: 1,
+        ).shouldRepaint(
+          PauseArtPainter(mode: PauseMode.calm, fullness: 0, seconds: 2),
+        ),
+        isFalse,
+      );
+      // Relax's globe is the one drawing that turns.
+      expect(
+        PauseArtPainter(
+          mode: PauseMode.relax,
+          fullness: 1,
+          seconds: 1,
+        ).shouldRepaint(
+          PauseArtPainter(mode: PauseMode.relax, fullness: 1, seconds: 2),
+        ),
+        isTrue,
+      );
+      // A change of stroke or colour is a new picture whatever the mode.
+      expect(
+        PauseArtPainter(
+          mode: PauseMode.calm,
+          fullness: 0,
+          stroke: 2,
+        ).shouldRepaint(PauseArtPainter(mode: PauseMode.calm, fullness: 0)),
+        isTrue,
+      );
+      expect(
+        PauseArtPainter(
+          mode: PauseMode.calm,
+          fullness: 0,
+          color: const Color(0xFF000000),
+        ).shouldRepaint(PauseArtPainter(mode: PauseMode.calm, fullness: 0)),
+        isTrue,
+      );
     });
   });
 
@@ -143,8 +252,9 @@ void main() {
       WidgetTester tester,
       Widget home, {
       String lang = 'en',
+      Size size = const Size(400, 860),
     }) async {
-      tester.view.physicalSize = const Size(400, 860);
+      tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(
@@ -294,5 +404,348 @@ void main() {
       expect(taps, isEmpty);
       await tester.pumpWidget(const SizedBox());
     });
+
+    testWidgets(
+      'leaving during the count pauses it, and the count begins again',
+      (tester) async {
+        await pump(
+          tester,
+          PauseSession(mode: PauseMode.calm, preferences: harness.preferences),
+        );
+        await tester.pump(const Duration(milliseconds: 1100));
+        await tester.pump();
+        expect(find.text('2'), findsOneWidget);
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.inactive,
+        );
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.text('Tap to carry on'), findsOneWidget);
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pump();
+        // Carrying on starts the three seconds again: half a count settles
+        // nobody in.
+        await tester.tap(find.byKey(const ValueKey('pause-card')));
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.text('3'), findsOneWidget);
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+
+    testWidgets(
+      'a stale audio preparation cannot restart an interrupted count',
+      (tester) async {
+        final ready = Completer<void>();
+        final sound = _TakenSound(preparing: ready.future);
+        pauseSoundFactory = () => sound;
+        await pump(
+          tester,
+          PauseSession(mode: PauseMode.calm, preferences: harness.preferences),
+        );
+
+        final binding = tester.binding;
+        binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.text('Tap to carry on'), findsOneWidget);
+        binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        await tester.pump();
+        await tester.tap(find.byKey(const ValueKey('pause-card')));
+        ready.complete();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(sound.countdowns, 1);
+        expect(find.byKey(const ValueKey('pause-count')), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+
+    testWidgets('audio focus loss also holds the countdown', (tester) async {
+      final sound = _TakenSound();
+      pauseSoundFactory = () => sound;
+      await pump(
+        tester,
+        PauseSession(mode: PauseMode.calm, preferences: harness.preferences),
+      );
+      sound.taken();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 4));
+      expect(find.text('Tap to carry on'), findsOneWidget);
+      expect(find.text('Inhale'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('pause-card')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(sound.countdowns, 2);
+      expect(find.text('3'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a window short and wide still holds the card', (tester) async {
+      for (final size in [
+        const Size(1024, 560),
+        const Size(800, 480),
+        const Size(380, 176),
+      ]) {
+        await pump(
+          tester,
+          PauseSession(mode: PauseMode.focus, preferences: harness.preferences),
+          size: size,
+        );
+        // Past the count and into a held breath, the tallest moment.
+        for (var i = 0; i < 16; i++) {
+          await tester.pump(const Duration(milliseconds: 500));
+        }
+        expect(find.text('Hold'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+      }
+    });
+
+    testWidgets('the back gesture holds a breath, and only then leaves', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        Builder(
+          builder: (context) => Center(
+            child: FilledButton(
+              onPressed: () => Navigator.push(
+                context,
+                NexPageRoute<void>(
+                  builder: (_) => PauseSession(
+                    mode: PauseMode.calm,
+                    preferences: harness.preferences,
+                  ),
+                ),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+      expect(find.text('Inhale'), findsOneWidget);
+      // System back during a breath holds it where it is.
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Tap to carry on'), findsOneWidget);
+      expect(find.text('open'), findsNothing);
+      // Back again, with the session held, leaves.
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('open'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('the sound being taken away holds the session', (tester) async {
+      final sound = _TakenSound();
+      pauseSoundFactory = () => sound;
+      await pump(
+        tester,
+        PauseSession(mode: PauseMode.calm, preferences: harness.preferences),
+      );
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+      expect(find.text('Inhale'), findsOneWidget);
+      sound.taken();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Tap to carry on'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('the space bar holds a breath and carries it on', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        PauseSession(mode: PauseMode.calm, preferences: harness.preferences),
+      );
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+      expect(find.text('Inhale'), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Tap to carry on'), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Inhale'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('each part of the breath is said aloud as it changes', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await pump(
+        tester,
+        PauseSession(mode: PauseMode.calm, preferences: harness.preferences),
+      );
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+      final word = tester.getSemantics(find.bySemanticsLabel('Inhale'));
+      expect(word.getSemanticsData().flagsCollection.isLiveRegion, isTrue);
+      // The card itself says what it is and what a double-tap does, and not
+      // the word of the moment again.
+      final card = tester.getSemantics(find.bySemanticsLabel('Calm'));
+      expect(card.getSemanticsData().flagsCollection.isLiveRegion, isFalse);
+      expect(card.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+      semantics.dispose();
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('the session bars are light on the dark screen, and go back', (
+      tester,
+    ) async {
+      // A light app, as the app itself paints its bars in light mode.
+      SystemChrome.setSystemUIOverlayStyle(
+        const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+        ),
+      );
+      await pump(
+        tester,
+        PauseSession(mode: PauseMode.calm, preferences: harness.preferences),
+      );
+      await tester.pump(const Duration(seconds: 1));
+      expect(
+        SystemChrome.latestStyle?.statusBarIconBrightness,
+        Brightness.light,
+      );
+      await tester.pumpWidget(const SizedBox());
+      expect(
+        SystemChrome.latestStyle?.statusBarIconBrightness,
+        Brightness.dark,
+      );
+    });
+
+    testWidgets('the page keeps the chosen length beside the chosen mode', (
+      tester,
+    ) async {
+      await pump(tester, PauseScreen(preferences: harness.preferences));
+      expect(find.text('5.5 · 5.5 s · 10 breaths · 1:50'), findsOneWidget);
+      expect(find.text('Standard'), findsOneWidget);
+
+      await tester.tap(find.text('Long'));
+      await tester.pumpAndSettle();
+      expect(harness.preferences.pauseLength, 'long');
+      expect(find.text('5.5 · 5.5 s · 15 breaths · 2:45'), findsOneWidget);
+
+      await tester.tap(find.text('Short'));
+      await tester.pumpAndSettle();
+      expect(harness.preferences.pauseLength, 'short');
+      expect(find.text('5.5 · 5.5 s · 5 breaths · 0:55'), findsOneWidget);
+    });
+
+    testWidgets('in Persian the lengths are Persian too', (tester) async {
+      await pump(
+        tester,
+        PauseScreen(preferences: harness.preferences),
+        lang: 'fa',
+      );
+      expect(find.text('استاندارد'), findsOneWidget);
+      expect(find.text('۵.۵ · ۵.۵ ثانیه · ۱۰ نفس · ۱:۵۰'), findsOneWidget);
+      await tester.tap(find.text('بلند'));
+      await tester.pumpAndSettle();
+      expect(harness.preferences.pauseLength, 'long');
+      expect(find.text('۵.۵ · ۵.۵ ثانیه · ۱۵ نفس · ۲:۴۵'), findsOneWidget);
+    });
+
+    testWidgets('a short session is five breaths and says so at the end', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        PauseSession(
+          mode: PauseMode.calm,
+          length: PauseLength.short,
+          preferences: harness.preferences,
+        ),
+      );
+      for (var i = 0; i < 58; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Well done'), findsWidgets);
+      expect(find.text('5 breaths · 0:55'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('the arrows page the modes for a keyboard', (tester) async {
+      await pump(tester, PauseScreen(preferences: harness.preferences));
+      expect(find.text('For calm'), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      expect(find.text('For focus'), findsOneWidget);
+      expect(harness.preferences.pauseMode, 'focus');
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pumpAndSettle();
+      expect(find.text('For calm'), findsOneWidget);
+    });
+
+    testWidgets('arrow paging respects reduced motion', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await pump(tester, PauseScreen(preferences: harness.preferences));
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      expect(harness.preferences.pauseMode, 'focus');
+      expect(tester.takeException(), isNull);
+    });
   });
+}
+
+/// A sound that can be taken away on cue, so the session's answer to an
+/// interruption can be tried without a platform.
+class _TakenSound implements PauseSound {
+  _TakenSound({this.preparing});
+
+  final Future<void>? preparing;
+  int countdowns = 0;
+  final _taken = StreamController<void>.broadcast();
+
+  void taken() => _taken.add(null);
+
+  @override
+  Stream<void> get interruptions => _taken.stream;
+
+  @override
+  Future<void> prepare(PauseMode mode) => preparing ?? Future.value();
+
+  @override
+  Future<void> countdown() async {
+    countdowns++;
+  }
+
+  @override
+  Future<void> startBreathing() async {}
+  @override
+  Future<void> finish() async {}
+  @override
+  Future<void> pause() async {}
+  @override
+  Future<void> resume() async {}
+  @override
+  void setMuted(bool muted) {}
+  @override
+  Future<void> dispose() async {
+    await _taken.close();
+  }
 }

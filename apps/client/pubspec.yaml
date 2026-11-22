@@ -66,6 +66,7 @@ dependencies:
   # Official player uses platform decoders; no bundled FFmpeg/codec pack.
   video_player: ^2.14.1
   just_audio: ^0.10.0
+  audio_session: ^0.2.4
   # Endorses the Windows implementation. Without it every playback call throws
   # MissingPluginException on a first-class v1 target.
   just_audio_windows: ^0.2.2

@@ -6,6 +6,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.8.14
 
+- **Pause at your pace.** Choose a short, standard or long breathing session. Pause holds the session when sound is interrupted, and screen readers announce breath changes.
 - **Smoother timeline groups.** Date, note-type and tag groups open and close faster in the list and grid.
 - **A compact note actions menu.** More actions opens above its button, keeping the note visible. Tap outside to close the menu.
 - **Consistent caption labels.** The hold menu and its settings now use “Caption”, matching note details and AI actions.
