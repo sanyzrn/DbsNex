@@ -416,15 +416,6 @@ class _CycleScreenState extends State<CycleScreen> {
 
     final intervals = CyclePredictor.intervals(_periods);
 
-    final todaySummary = _todayLog == null
-        ? l10n.cycleNothingLogged
-        : [
-            if (_todayLog!.flow != null) cycleFlowLabel(l10n, _todayLog!.flow),
-            if (_todayLog!.mood != null) cycleMoodLabel(l10n, _todayLog!.mood!),
-            for (final s in _todayLog!.symptoms.take(3))
-              cycleSymptomLabel(l10n, s),
-          ].join(' · ');
-
     return RefreshIndicator(
       onRefresh: _reload,
       child: ListView(
@@ -652,54 +643,11 @@ class _CycleScreenState extends State<CycleScreen> {
               ),
             ),
           const SizedBox(height: NexSpacing.sm),
-          CycleCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                ListTile(
-                  key: const ValueKey('cycle-log-today'),
-                  contentPadding: const EdgeInsetsDirectional.only(
-                    start: NexSpacing.md,
-                    end: NexSpacing.sm,
-                    top: NexSpacing.xs,
-                    bottom: NexSpacing.xs,
-                  ),
-                  leading: const _Bud(icon: Icons.edit_calendar_outlined),
-                  title: Text(l10n.cycleLogToday),
-                  subtitle: Text(
-                    todaySummary.isEmpty
-                        ? l10n.cycleNothingLogged
-                        : todaySummary,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: Icon(cycleChevronEnd(context)),
-                  onTap: () => _openDay(_today),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    NexSpacing.md,
-                    0,
-                    NexSpacing.md,
-                    NexSpacing.sm,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      CycleQuickMood(
-                        mood: _todayLog?.mood,
-                        onPick: (mood) => unawaited(_quickMood(mood)),
-                      ),
-                      const SizedBox(height: NexSpacing.sm),
-                      CycleQuickFlow(
-                        flow: _todayLog?.flow,
-                        onPick: (flow) => unawaited(_quickFlow(flow)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          _TodayLogCard(
+            log: _todayLog,
+            onOpen: () => _openDay(_today),
+            onMood: (mood) => unawaited(_quickMood(mood)),
+            onFlow: (flow) => unawaited(_quickFlow(flow)),
           ),
           CycleCard(
             padding: const EdgeInsets.all(NexSpacing.sm),
