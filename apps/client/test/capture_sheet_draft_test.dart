@@ -331,18 +331,20 @@ void main() {
       final field = find.byType(TextField);
       await tester.enterText(field, 'void main() {}');
       await tester.pumpAndSettle(const Duration(milliseconds: 500));
-      expect((await db.timeline()).single.content, contains('void main'));
+      const detected = '```dart\nvoid main() {}\n```';
+      const changed = '```python\nvoid main() {}\n```';
+      expect((await db.timeline()).single.content, detected);
 
-      // Both writes fail: the one the language picker starts, and the one
-      // closing retries with.
+      // Pick a different language from the one detected on paste. Both
+      // writes fail: the picker starts one and closing retries it.
       db.failUpdates = 2;
       await tester.tap(find.byKey(const ValueKey('capture-code-language')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Dart').last);
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Python'));
       await tester.pumpAndSettle(const Duration(milliseconds: 500));
       expect(
         (await db.timeline()).single.content,
-        isNot(contains('```dart')),
+        detected,
         reason: 'the refused write must really have been refused',
       );
 
@@ -358,7 +360,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('capture-send')));
       await tester.pumpAndSettle();
       expect(find.byType(CaptureSheet), findsNothing);
-      expect((await db.timeline()).single.content, contains('```dart'));
+      expect((await db.timeline()).single.content, changed);
     },
   );
 
