@@ -138,4 +138,34 @@ void main() {
       reason: 'search over 2001 notes took ${best / 1000}ms against 200ms',
     );
   });
+
+  test('the closest-thing lookup answers inside its budget on long notes', () {
+    // The fuzzy lookup examines the 500 newest notes. Include long mixed
+    // Persian and English bodies with repeated words across notes.
+    for (var i = 0; i < 2000; i++) {
+      capture.submitTextCapture('seeded note $i about groceries and plumbers');
+    }
+    for (var i = 0; i < 60; i++) {
+      capture.submitTextCapture('long note $i ${'کتاب‌های مهم words ' * 800}');
+    }
+    final maintenance = LibraryMaintenance(
+      repo,
+      mediaRoot: p.join(tmp.path, 'media'),
+    );
+
+    // Warm, so the first pass's one-off costs are not charged to the budget.
+    maintenance.nearestMiss('stroopwafell');
+
+    final best = fastest(5, (_) {
+      maintenance.nearestMiss('stroopwafell');
+    });
+
+    expect(
+      best,
+      lessThan(200 * 1000),
+      reason:
+          'closest-thing over 2060 notes took ${best / 1000}ms '
+          'against 200ms',
+    );
+  });
 }

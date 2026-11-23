@@ -4,6 +4,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.16
+
+- **Smoother saves on Home.** The list and grid stay steadier when you add a note, edit it, or save a photo.
+- **Faster search suggestions.** When a search finds no results, Nex can suggest a similar note with less waiting, even with long notes.
+- **Photo tools stay visible.** Rotate, Flip, Draw and Reset fit on narrow screens in Persian and English.
+
 ## v2.8.15
 
 - **Faster timeline groups.** Open and close date, note-type and tag groups more smoothly in both the list and the grid.

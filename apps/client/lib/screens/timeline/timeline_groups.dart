@@ -34,6 +34,10 @@ class _NoteGroup {
   final String label;
   final List<Note> notes;
 
+  late final noteIndices = {
+    for (var i = 0; i < notes.length; i++) notes[i].id: i,
+  };
+
   late final rows = [
     for (final note in notes)
       _TimelineRow.note(note, primary: !echoes.contains(note.id)),

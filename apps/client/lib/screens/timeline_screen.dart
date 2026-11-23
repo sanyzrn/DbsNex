@@ -193,12 +193,21 @@ class TimelineScreenState extends State<TimelineScreen>
 
   /// Groups and their rows, reused when only a group's fold state changes.
   final _rowsCache = _TimelineRowsCache();
+
+  /// Built rows, reused across timeline deliveries that did not change them
+  /// — see [_RowWidgetCache]. One note's save should not rebuild every card
+  /// on the screen for it.
+  final _rowWidgets = _RowWidgetCache();
   final _gridRowLayouts = Expando<NexGridRows>();
   NexGridRowSizing? _gridRowSizing;
 
   /// How many times the rows have been assembled — a test handle only.
   @visibleForTesting
   int get debugRowBuilds => _rowsCache.builds;
+
+  /// How many row rebuilds the row cache skipped — a test handle only.
+  @visibleForTesting
+  int get debugRowReuse => _rowWidgets.hits;
 
   /// Keeps one card open at a time and lets a scroll close it.
   final NexSwipeController _swipe = NexSwipeController();

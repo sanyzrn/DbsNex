@@ -178,6 +178,7 @@ class _TimelineStickyDayState extends State<TimelineStickyDay>
 /// dozen or so rows the lazy list has built are ever registered.
 class _DayMark extends StatefulWidget {
   const _DayMark({
+    super.key,
     required this.label,
     required this.marks,
     required this.child,

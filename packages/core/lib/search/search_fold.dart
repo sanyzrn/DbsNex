@@ -13,45 +13,33 @@
 /// This is the query side, and the word inside [nexSearchIndexText]. It is
 /// never applied to what is shown: the note keeps the letters it was written
 /// with.
-String nexSearchFold(String text) {
-  if (text.isEmpty) return text;
-  final out = StringBuffer();
-  for (final unit in text.runes) {
-    switch (unit) {
-      // Yeh: Arabic yeh and alef maksura. Yeh with hamza (ئ) is a letter of
-      // its own, as in «مسئله», and is left alone.
-      case 0x064A || 0x0649:
-        out.writeCharCode(0x06CC);
-      // Kaf: Arabic kaf.
-      case 0x0643:
-        out.writeCharCode(0x06A9);
-      // Heh with yeh above and teh marbuta read as heh.
-      case 0x06C0 || 0x0629:
-        out.writeCharCode(0x0647);
-      // Alef with hamza above or below, and alef wasla. Alef madda (آ) is a
-      // letter of its own in Persian and is left alone.
-      case 0x0623 || 0x0625 || 0x0671:
-        out.writeCharCode(0x0627);
-      // Waw with hamza.
-      case 0x0624:
-        out.writeCharCode(0x0648);
-      // Harakat, the superscript alef, tatweel, and the joiners and marks
-      // that carry no letter: ZWNJ, ZWJ, LRM, RLM.
-      case >= 0x064B && <= 0x065F:
-      case 0x0670 || 0x0640:
-      case 0x200C || 0x200D || 0x200E || 0x200F:
-        break;
-      // Persian and Arabic-Indic digits, as Latin ones.
-      case >= 0x06F0 && <= 0x06F9:
-        out.writeCharCode(0x30 + unit - 0x06F0);
-      case >= 0x0660 && <= 0x0669:
-        out.writeCharCode(0x30 + unit - 0x0660);
-      default:
-        out.writeCharCode(unit);
-    }
-  }
-  return out.toString();
-}
+String nexSearchFold(String text) => text.replaceAllMapped(
+  _searchFoldChanges,
+  (match) => switch (match[0]!.codeUnitAt(0)) {
+    // Yeh with hamza (ئ) and alef with madda (آ) remain distinct.
+    0x064A || 0x0649 => 'ی',
+    0x0643 => 'ک',
+    0x06C0 || 0x0629 => 'ه',
+    0x0623 || 0x0625 || 0x0671 => 'ا',
+    0x0624 => 'و',
+    final digit && >= 0x06F0 && <= 0x06F9 => String.fromCharCode(
+      0x30 + digit - 0x06F0,
+    ),
+    final digit && >= 0x0660 && <= 0x0669 => String.fromCharCode(
+      0x30 + digit - 0x0660,
+    ),
+    // The other matched code points are harakat, tatweel and joiners.
+    _ => '',
+  },
+);
+
+// Match only code points that need folding, so large blocks of plain text
+// can be copied together and text that needs no folding is returned as-is.
+final _searchFoldChanges = RegExp(
+  r'[\u0623-\u0625\u0629\u0640\u0643\u0649-\u064a'
+  r'\u064b-\u065f\u0660-\u0669\u0670-\u0671\u06c0'
+  r'\u06f0-\u06f9\u200c-\u200f]',
+);
 
 /// What the search index holds for [text]: [nexSearchFold]ed, with each word
 /// that has a ZWNJ in it present twice, split and joined.

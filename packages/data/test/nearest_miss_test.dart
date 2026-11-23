@@ -53,6 +53,12 @@ void main() {
     expect(miss?.id, note.id);
   });
 
+  test('a close word at the end of a long Persian note is offered', () {
+    final note = insert('${'خرید نان و پنیر ' * 240} فیزیک کوانتومی');
+
+    expect(maintenance.nearestMiss('کوانتومي')?.id, note.id);
+  });
+
   test('a typo in the first letter is still offered', () {
     final note = insert('طولانی‌مدت بودجه بندی سالانه');
 
