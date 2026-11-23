@@ -4,6 +4,13 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.18
+
+- **Asset allocation.** See how your holdings' value is split, filter by asset type, and view gold weights in grams and mithqal.
+- **Asset prices.** See when each price was recorded, enter a fresh quote from the book, or record one for a coin or currency you plan to buy. Future-dated quotes are flagged in the history.
+- **Saved parking places.** Browse, star or forget any saved place. Favourites keep their stars when you park there again.
+- **Parking reminders and search.** Reminders reopen with the time you chose, and closing a parking session clears its alert. Search matches Persian and Arabic spellings.
+
 ## v2.8.17
 
 - **Word by Word.** Review a single deck, set a daily goal, and share words as text. Nex remembers how you practise and brings skipped cards back later in the session. Persian search handles alternate spellings and half-spaces.

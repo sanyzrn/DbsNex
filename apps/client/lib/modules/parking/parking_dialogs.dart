@@ -71,6 +71,35 @@ class ParkingDialogs {
     ),
   );
 
+  /// «Forget this place?» — true to remove it from the remembered places.
+  /// Past parking keeps its own words and is never touched.
+  static Future<bool?> confirmDeletePlace(
+    BuildContext context,
+    NexModuleStrings strings,
+  ) => nexShowDialog<bool>(
+    context: context,
+    builder: (dialogContext) => NexAlertDialog(
+      title: Text(strings(dialogContext, 'deletePlaceTitle')),
+      content: NexDialogBody(
+        child: Text(strings(dialogContext, 'deletePlaceBody')),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: Text(AppLocalizations.of(dialogContext).cancel),
+        ),
+        TextButton(
+          key: const ValueKey('parking-place-delete-confirm'),
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(dialogContext).colorScheme.error,
+          ),
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: Text(AppLocalizations.of(dialogContext).delete),
+        ),
+      ],
+    ),
+  );
+
   /// «Clear all past parking?» — true to go ahead.
   static Future<bool?> confirmClearHistory(
     BuildContext context,

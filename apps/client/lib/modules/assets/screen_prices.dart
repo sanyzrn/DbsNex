@@ -2,58 +2,110 @@ part of 'screen.dart';
 
 extension _PriceAndGoalTabs on _AssetsScreenState {
   List<Widget> pricesView() {
-    final markets = <String, AssetMarket>{
-      AssetMarket.gold.key: AssetMarket.gold,
-      AssetMarket.usd.key: AssetMarket.usd,
-      for (final series in valuation.history.values)
-        series.first.market.key: series.first.market,
-      for (final p in valuation.positions)
-        p.holding.market.key: p.holding.market,
-      selected.key: selected,
-    };
+    final known = <AssetMarket>[
+      for (final series in valuation.history.values) series.first.market,
+      for (final position in valuation.positions) position.holding.market,
+      selected,
+    ];
+    final markets = priceCatalogue(known);
+    final byKey = {for (final market in markets) market.key: market};
     final series = valuation.history[selected.key] ?? const <Quote>[];
-    final latest = series.firstOrNull;
+    final today = valuation.asOf;
+    final latest = valuation.latest(selected);
+    final delta = quoteDelta(
+      series.skipWhile((quote) => quote.date.isAfter(today)).take(2).toList(),
+    );
+    final market = marketLabel(context, selected, forQuote: true);
+    final scheme = Theme.of(context).colorScheme;
+    final moved = delta != null && delta.amount != BigInt.zero;
+    final up = delta != null && delta.amount > BigInt.zero;
+    final changeColor = !moved
+        ? scheme.onSurfaceVariant
+        : up
+        ? scheme.tertiary
+        : scheme.error;
+    final changeIcon = !moved
+        ? Icons.horizontal_rule
+        : up
+        ? Icons.trending_up
+        : Icons.trending_down;
     return [
       NexModuleHero(
         moduleId: 'assets',
         icon: Icons.history,
-        eyebrow: s('prices'),
-        headline: marketLabel(context, selected, forQuote: true),
+        eyebrow: market,
+        headline: latest == null
+            ? s('noPriceYet')
+            : cash(BigInt.from(latest.unitRial)),
         caption: latest == null
             ? s('noQuotes')
-            : s('updated', {'date': date(latest.date)}),
+            : '${s('updated', {'date': date(latest.date)})} · '
+                  '${shortAge(context, latest.date, today)}',
+        chips: [
+          if (latest != null &&
+              civilDaysBetween(latest.date, today) >= priceFreshDays)
+            s('staleBadge'),
+        ],
+        semanticsLabel: latest == null
+            ? '$market: ${s('noPriceYet')}'
+            : '$market: ${cash(BigInt.from(latest.unitRial))}',
       ),
       const SizedBox(height: NexSpacing.md),
       DropdownButtonFormField<String>(
         key: ValueKey(selected.key),
-        initialValue: selected.key,
+        initialValue: byKey.containsKey(selected.key) ? selected.key : null,
         isExpanded: true,
         borderRadius: nexDropdownRadius,
         dropdownColor: nexDropdownColor(context),
         decoration: InputDecoration(labelText: s('assetType')),
         items: [
-          for (final m in markets.values)
+          for (final market in markets)
             DropdownMenuItem(
-              value: m.key,
+              value: market.key,
               child: Text(
-                marketLabel(context, m, forQuote: true),
+                marketLabel(context, market, forQuote: true),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
         ],
         onChanged: (key) {
-          if (key != null) selectMarket(markets[key]!);
+          final market = key == null ? null : byKey[key];
+          if (market != null) selectMarket(market);
         },
       ),
       const SizedBox(height: NexSpacing.md),
       if (latest != null)
         NexPanel(
-          title: cash(BigInt.from(latest.unitRial)),
-          child: Text(s('updated', {'date': date(latest.date)})),
+          title: s('priceMovement'),
+          icon: changeIcon,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                delta == null ? s('noEarlierPrice') : priceChange(delta),
+                style: TextStyle(color: changeColor),
+              ),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton.icon(
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => unawaited(
+                    editor(
+                      'quote',
+                      market: latest.market,
+                      original: latest.record,
+                    ),
+                  ),
+                  label: Text(s('updatePrice')),
+                ),
+              ),
+            ],
+          ),
         ),
       Align(
         alignment: AlignmentDirectional.centerStart,
         child: FilledButton.icon(
+          key: const ValueKey('assets-record-price'),
           onPressed: () => unawaited(editor('quote', market: selected)),
           icon: const Icon(Icons.add),
           label: Text(s('newQuote')),
@@ -62,21 +114,47 @@ extension _PriceAndGoalTabs on _AssetsScreenState {
       if (series.isNotEmpty) ...[
         const SizedBox(height: NexSpacing.md),
         NexShelfHeading(icon: Icons.history, title: s('priceHistory')),
-        for (final q in series)
+        for (final quote in series)
           ListTile(
+            key: ValueKey('assets-quote-${quote.record.id}'),
             contentPadding: EdgeInsets.zero,
-            title: Text(cash(BigInt.from(q.unitRial))),
-            subtitle: Text(date(q.date)),
+            title: Text(cash(BigInt.from(quote.unitRial))),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${date(quote.date)} · '
+                  '${shortAge(context, quote.date, today)}',
+                ),
+                if (quote.date.isAfter(today))
+                  Text(
+                    s('futureQuote'),
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(color: Theme.of(context).colorScheme.error),
+                  ),
+              ],
+            ),
+            isThreeLine: quote.date.isAfter(today),
             trailing: entryMenu(
-              q.record,
+              quote.record,
               () => unawaited(
-                editor('quote', market: q.market, original: q.record),
+                editor('quote', market: quote.market, original: quote.record),
               ),
             ),
           ),
       ] else
         Text(s('choosePrice')),
     ];
+  }
+
+  String priceChange(QuoteDelta delta) {
+    if (delta.amount == BigInt.zero) return s('priceChangeSame');
+    final pct = delta.tenths == null
+        ? ''
+        : percentTenthsText(delta.tenths!, fa);
+    return s(delta.amount.isNegative ? 'priceChangeDown' : 'priceChangeUp', {
+      'pct': pct,
+    });
   }
 
   List<Widget> goalsView() {
@@ -88,30 +166,52 @@ extension _PriceAndGoalTabs on _AssetsScreenState {
         eyebrow: s('goals'),
         headline: s('equivalentGold', {'n': number(owned, 3)}),
         caption: s('goalWhy'),
+        chips: [mithqalValue(context, owned)],
+        semanticsLabel:
+            '${s('goals')}: ${s('equivalentGold', {'n': number(owned, 3)})}',
       ),
       const SizedBox(height: NexSpacing.md),
-      if (ledger.goals.isEmpty) Text(s('goalEmpty')),
-      for (final goal in ledger.goals)
-        Padding(
-          padding: const EdgeInsets.only(bottom: NexSpacing.sm),
-          child: goalCard(goal, owned),
+      if (ledger.goals.isEmpty)
+        NexEmptyState(
+          icon: Icons.flag_outlined,
+          message: s('goalEmpty'),
+          action: FilledButton.icon(
+            key: const ValueKey('assets-add-goal'),
+            onPressed: () => unawaited(editor('goal')),
+            icon: const Icon(Icons.add),
+            label: Text(s('newGoal')),
+          ),
+        )
+      else ...[
+        for (final goal in ledger.goals)
+          Padding(
+            padding: const EdgeInsets.only(bottom: NexSpacing.sm),
+            child: goalCard(goal, owned),
+          ),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: FilledButton.icon(
+            key: const ValueKey('assets-add-goal'),
+            onPressed: () => unawaited(editor('goal')),
+            icon: const Icon(Icons.add),
+            label: Text(s('newGoal')),
+          ),
         ),
-      Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: FilledButton.icon(
-          onPressed: () => unawaited(editor('goal')),
-          icon: const Icon(Icons.add),
-          label: Text(s('newGoal')),
-        ),
-      ),
+      ],
     ];
   }
 
   Widget goalCard(AssetGoal goal, BigInt owned) {
     final target = BigInt.from(goal.targetMg);
     final reached = owned >= target;
-    final progress = reached ? 1.0 : owned.toInt() / goal.targetMg;
+    var tenths = BigInt.zero;
+    if (target > BigInt.zero) {
+      tenths = owned * BigInt.from(1000) ~/ target;
+      if (tenths > BigInt.from(1000)) tenths = BigInt.from(1000);
+    }
+    final percent = percentTenthsText(tenths, fa);
     return NexPanel(
+      key: ValueKey('assets-goal-${goal.record.id}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -135,13 +235,34 @@ extension _PriceAndGoalTabs on _AssetsScreenState {
               'target': number(target, 3),
             }),
           ),
-          const SizedBox(height: NexSpacing.sm),
-          LinearProgressIndicator(value: progress),
-          const SizedBox(height: NexSpacing.sm),
           Text(
-            reached
-                ? s('goalMet')
-                : s('goalLeft', {'n': number(target - owned, 3)}),
+            s('targetMithqal', {'n': number(mesghalMilli(target), 3)}),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          Semantics(
+            label: goal.title,
+            value: percent,
+            child: ExcludeSemantics(
+              child: LinearProgressIndicator(
+                value: tenths.toDouble() / 1000,
+                borderRadius: BorderRadius.circular(NexRadius.sm),
+              ),
+            ),
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          Wrap(
+            spacing: NexSpacing.sm,
+            runSpacing: NexSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(percent, style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                reached
+                    ? s('goalMet')
+                    : s('goalLeft', {'n': number(target - owned, 3)}),
+              ),
+            ],
           ),
         ],
       ),

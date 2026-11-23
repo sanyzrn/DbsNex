@@ -58,7 +58,7 @@ class ParkingActiveCard extends StatelessWidget {
     final expiryLeft = ParkingFields.duration(
       context,
       strings,
-      Duration(minutes: expiry.minutes),
+      Duration(seconds: expiry.seconds),
     );
     final expiresAt = ParkingModels.readDate(body, 'expiresAt');
 
@@ -158,7 +158,9 @@ class ParkingActiveCard extends StatelessWidget {
           // (parking_repository.dart). A parking with a paid time counts
           // back from it (ten minutes by default) instead of asking for an
           // arbitrary moment.
-          if (expiresAt != null)
+          if (expiresAt != null &&
+              (ParkingAlarm.minutesOf(body) != null ||
+                  ParkingLogic.canRemind(expiresAt, now)))
             ParkingQuickReminder(
               key: const ValueKey('parking-quick-reminder'),
               store: store,
@@ -168,7 +170,7 @@ class ParkingActiveCard extends StatelessWidget {
               floor: floor,
               minutes: ParkingAlarm.minutesOf(body),
             )
-          else
+          else if (expiresAt == null)
             NexModuleReminderControl(
               key: const ValueKey('parking-reminders'),
               store: store,
@@ -265,6 +267,7 @@ class ParkingPlaceRow extends StatelessWidget {
     required this.record,
     this.onTap,
     this.onFavourite,
+    this.onDelete,
   });
 
   final ModuleRecord record;
@@ -274,6 +277,10 @@ class ParkingPlaceRow extends StatelessWidget {
   /// shortcut: it fills the editor, it never parks the car by itself.
   final ValueChanged<bool>? onFavourite;
 
+  /// Forgets a place that is no longer used. Only the places sheet offers
+  /// this, so a stray tap on the home list can never lose one.
+  final VoidCallback? onDelete;
+
   @override
   Widget build(BuildContext context) {
     final body = record.body;
@@ -281,7 +288,13 @@ class ParkingPlaceRow extends StatelessWidget {
     final place = ParkingModels.readString(body, 'place');
     final floor = ParkingModels.readString(body, 'floor');
     final spot = ParkingModels.readString(body, 'spot');
-    final details = [floor, spot].where((s) => s.isNotEmpty).join(' · ');
+    final landmark = ParkingModels.readString(body, 'landmark').trim();
+    final uses = ParkingModels.readCount(body, 'useCount') ?? 0;
+    final details = [
+      if (floor.isNotEmpty) floor,
+      if (spot.isNotEmpty) spot,
+      if (landmark.isNotEmpty) landmark,
+    ].join(' · ');
     final favourite = ParkingModels.isFavourite(body);
 
     return ListTile(
@@ -292,14 +305,40 @@ class ParkingPlaceRow extends StatelessWidget {
         color: NexHue.sky.of(theme.brightness),
       ),
       title: Text(place, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: details.isEmpty ? null : Text(details, maxLines: 1),
-      trailing: IconButton(
-        key: ValueKey('parking-favourite-${record.id}'),
-        tooltip: parkingStrings(context, 'markFavourite'),
-        isSelected: favourite,
-        icon: const Icon(Icons.star_outline),
-        selectedIcon: const Icon(Icons.star),
-        onPressed: onFavourite == null ? null : () => onFavourite!(!favourite),
+      subtitle: details.isEmpty
+          ? null
+          : Text(
+              [
+                details,
+                if (uses > 1)
+                  parkingStrings(context, 'usedTimes', {'count': uses}),
+              ].join(' · '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (onFavourite != null)
+            IconButton(
+              key: ValueKey('parking-favourite-${record.id}'),
+              tooltip: parkingStrings(
+                context,
+                favourite ? 'removeFavourite' : 'markFavourite',
+              ),
+              isSelected: favourite,
+              icon: const Icon(Icons.star_outline),
+              selectedIcon: const Icon(Icons.star),
+              onPressed: () => onFavourite!(!favourite),
+            ),
+          if (onDelete != null)
+            IconButton(
+              key: ValueKey('parking-place-delete-${record.id}'),
+              tooltip: AppLocalizations.of(context).delete,
+              icon: const Icon(Icons.delete_outline),
+              onPressed: onDelete,
+            ),
+        ],
       ),
     );
   }

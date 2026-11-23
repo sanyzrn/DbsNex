@@ -52,6 +52,11 @@ class ParkingFields {
     NexModuleStrings strings,
     Duration value,
   ) {
+    // A countdown from 40 seconds must not read "0 min": that looks like
+    // the meter is already empty.
+    if (value > Duration.zero && value.inMinutes == 0) {
+      return strings(context, 'underMinute');
+    }
     final t = ParkingLogic.split(value);
     if (t.days > 0) {
       return t.hours > 0

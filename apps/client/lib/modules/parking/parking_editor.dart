@@ -194,6 +194,7 @@ class _ParkingEditorSheetState extends State<ParkingEditorSheet> {
       return;
     }
     final expiry = ParkingParse.expiry(_expiryDate.text, _expiryTime.text);
+    final startedAt = ParkingModels.readDate(_from, 'startedAt') ?? _startedAt;
     final lat = ParkingParse.coordinate(
       _lat.text,
       ParkingModels.latMin,
@@ -222,7 +223,7 @@ class _ParkingEditorSheetState extends State<ParkingEditorSheet> {
       floor: _floor.text,
       spot: _spot.text,
       landmark: _landmark.text,
-      startedAt: ParkingModels.readDate(_from, 'startedAt') ?? _startedAt,
+      startedAt: startedAt,
       foundAt: ParkingModels.readDate(_from, 'foundAt'),
       expiresAt: expiry,
       lat: lat,
@@ -257,7 +258,17 @@ class _ParkingEditorSheetState extends State<ParkingEditorSheet> {
           _vehicle.text,
           parkingStrings,
         );
-        if (close != true || !mounted) {
+        if (!mounted) {
+          return;
+        }
+        if (close == false) {
+          NexBannerHost.of(context)?.show(
+            kind: NexBannerKind.failed,
+            message: parkingStrings(context, 'keptEarlier'),
+          );
+          return;
+        }
+        if (close != true) {
           return;
         }
         await ParkingRepository.save(

@@ -37,6 +37,10 @@ class ParkingQuickReminder extends StatelessWidget {
   final int? minutes;
 
   Future<void> _open(BuildContext context) async {
+    final now = DateTime.now();
+    final suggested = ParkingLogic.suggestedReminderMinutes(expiresAt, now);
+    if (suggested == null) return;
+    final initial = minutes ?? suggested;
     final set = await nexShowSheet<bool>(
       context: context,
       builder: (_) => ParkingReminderSheet(
@@ -45,6 +49,7 @@ class ParkingQuickReminder extends StatelessWidget {
         expiresAt: expiresAt,
         place: place,
         floor: floor,
+        initialMinutes: initial,
       ),
     );
     if (set == true && context.mounted) {
@@ -58,13 +63,14 @@ class ParkingQuickReminder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = parkingStrings;
+    final canSet = ParkingLogic.canRemind(expiresAt, DateTime.now());
     return Wrap(
       spacing: NexSpacing.sm,
       children: [
         // What is set says so, and only what is set can be cleared (2.8.4).
         TextButton.icon(
           key: const ValueKey('parking-quick-remind'),
-          onPressed: () => unawaited(_open(context)),
+          onPressed: canSet ? () => unawaited(_open(context)) : null,
           icon: Icon(
             minutes == null
                 ? Icons.notifications_none_outlined
@@ -97,6 +103,7 @@ class ParkingReminderSheet extends StatefulWidget {
     required this.expiresAt,
     required this.place,
     required this.floor,
+    this.initialMinutes,
   });
 
   final NexModuleStore store;
@@ -105,12 +112,18 @@ class ParkingReminderSheet extends StatefulWidget {
   final String place;
   final String floor;
 
+  /// The lead the sheet opens on: what is already set, or a suggestion that
+  /// fits the time left. Null only for a caller with no fitting lead.
+  final int? initialMinutes;
+
   @override
   State<ParkingReminderSheet> createState() => _ParkingReminderSheetState();
 }
 
 class _ParkingReminderSheetState extends State<ParkingReminderSheet> {
-  final _minutes = TextEditingController(text: '10');
+  late final _minutes = TextEditingController(
+    text: '${widget.initialMinutes ?? 10}',
+  );
   bool _busy = false;
   String? _error;
 
@@ -208,12 +221,21 @@ class _ParkingReminderSheetState extends State<ParkingReminderSheet> {
                     key: ValueKey('parking-remind-$choice'),
                     label: Text(ParkingFields.digits(context, '$choice')),
                     selected: _minutes.text.trim() == '$choice',
-                    onSelected: (_) {
-                      setState(() {
-                        _minutes.text = '$choice';
-                        _error = null;
-                      });
-                    },
+                    // A choice whose moment has already passed would only
+                    // produce an error after saving; it is not offered.
+                    onSelected:
+                        ParkingLogic.reminderFits(
+                          widget.expiresAt,
+                          choice,
+                          DateTime.now(),
+                        )
+                        ? (_) {
+                            setState(() {
+                              _minutes.text = '$choice';
+                              _error = null;
+                            });
+                          }
+                        : null,
                   ),
               ],
             ),

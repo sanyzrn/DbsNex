@@ -110,6 +110,22 @@ void main() {
       expect(ParkingModels.sameVehicle('ماشین', 'موتور'), isFalse);
     });
 
+    test('Arabic yeh and kaf read as their Persian letters', () {
+      expect(ParkingModels.sameVehicle('ماشين', 'ماشین'), isTrue);
+      expect(ParkingModels.sameVehicle('پژو كوچك', 'پژو کوچک'), isTrue);
+    });
+
+    test('one tap uses the car parked most recently, not the last saved', () {
+      final old = session(vehicle: 'Car', started: DateTime.utc(2026, 10, 1));
+      final recent = session(
+        vehicle: 'Bike',
+        started: DateTime.utc(2026, 10, 2),
+      );
+      expect(ParkingLogic.lastVehicle([old, recent]), 'Bike');
+      expect(ParkingLogic.lastVehicle([recent, old]), 'Bike');
+      expect(ParkingLogic.lastVehicle([]), '');
+    });
+
     test('another open parking for that vehicle is found', () {
       final open = session(vehicle: 'Car');
       final closed = session(vehicle: 'Car', found: now);
@@ -122,22 +138,38 @@ void main() {
 
   group('the paid time', () {
     test('none written reads as none', () {
-      expect(ParkingLogic.expiryOf(session(), now), (over: false, minutes: 0));
+      expect(ParkingLogic.expiryOf(session(), now), (
+        over: false,
+        minutes: 0,
+        seconds: 0,
+      ));
     });
 
     test('time still on the meter', () {
       final body = session(expires: DateTime.utc(2026, 10, 12, 11, 30));
-      expect(ParkingLogic.expiryOf(body, now), (over: false, minutes: 90));
+      expect(ParkingLogic.expiryOf(body, now), (
+        over: false,
+        minutes: 90,
+        seconds: 5400,
+      ));
     });
 
     test('past it says so, with the minutes since', () {
       final body = session(expires: DateTime.utc(2026, 10, 12, 9, 30));
-      expect(ParkingLogic.expiryOf(body, now), (over: true, minutes: 30));
+      expect(ParkingLogic.expiryOf(body, now), (
+        over: true,
+        minutes: 30,
+        seconds: 1800,
+      ));
     });
 
     test('the exact moment counts as past, politely', () {
       final body = session(expires: DateTime.utc(2026, 10, 12, 10, 0));
-      expect(ParkingLogic.expiryOf(body, now), (over: true, minutes: 0));
+      expect(ParkingLogic.expiryOf(body, now), (
+        over: true,
+        minutes: 0,
+        seconds: 0,
+      ));
     });
   });
 
@@ -156,6 +188,12 @@ void main() {
         isTrue,
       );
     });
+
+    test('a query typed with Arabic letters finds the Persian place', () {
+      final body = session(place: 'كتابخانه');
+      expect(ParkingLogic.matchesQuery(body, 'کتابخانه'), isTrue);
+      expect(ParkingLogic.matchesQuery(session(place: 'کوچه'), 'كوچه'), isTrue);
+    });
   });
 
   group('history', () {
@@ -173,6 +211,63 @@ void main() {
       final open = session(place: 'open');
       final history = ParkingLogic.historyOf([open, older, newer]);
       expect(history.map((s) => s['place']), ['new', 'old']);
+    });
+  });
+
+  group('reminder suggestions', () {
+    test('ten is the usual lead; short stays get one that fits', () {
+      final now = DateTime(2026, 10, 12, 10);
+      expect(
+        ParkingLogic.suggestedReminderMinutes(
+          now.add(const Duration(hours: 2)),
+          now,
+        ),
+        10,
+      );
+      expect(
+        ParkingLogic.suggestedReminderMinutes(
+          now.add(const Duration(minutes: 8)),
+          now,
+        ),
+        5,
+      );
+      expect(
+        ParkingLogic.suggestedReminderMinutes(
+          now.add(const Duration(minutes: 4)),
+          now,
+        ),
+        3,
+      );
+      expect(
+        ParkingLogic.suggestedReminderMinutes(
+          now.add(const Duration(seconds: 90)),
+          now,
+        ),
+        1,
+      );
+      expect(
+        ParkingLogic.suggestedReminderMinutes(
+          now.add(const Duration(seconds: 60)),
+          now,
+        ),
+        isNull,
+      );
+    });
+
+    test('a reminder needs a whole minute before the end', () {
+      final now = DateTime(2026, 10, 12, 10);
+      expect(
+        ParkingLogic.canRemind(now.add(const Duration(seconds: 90)), now),
+        isTrue,
+      );
+      expect(
+        ParkingLogic.canRemind(now.add(const Duration(seconds: 60)), now),
+        isFalse,
+      );
+      expect(
+        ParkingLogic.canRemind(now.subtract(const Duration(seconds: 5)), now),
+        isFalse,
+      );
     });
   });
 
@@ -211,6 +306,11 @@ void main() {
       expect(kept, ['B', 'a', 'c']);
     });
 
+    test('a Persian query is not duplicated by its Arabic spelling', () {
+      final kept = ParkingLogic.rememberQueries(['کتابخانه'], 'كتابخانه');
+      expect(kept, ['كتابخانه']);
+    });
+
     test('only the newest eight are kept', () {
       // The list holds the queries newest first, so the oldest — the one
       // at the end — is the one that goes.
@@ -230,6 +330,16 @@ void main() {
   });
 
   group('remembered places', () {
+    test('the same place with Arabic letters is still one place', () {
+      expect(
+        ParkingLogic.samePlace(
+          {'place': 'كتابخانه', 'floor': '۱', 'spot': 'A1'},
+          {'place': 'کتابخانه', 'floor': '1', 'spot': 'a1'},
+        ),
+        isTrue,
+      );
+    });
+
     test('same place, floor and spot are the same place', () {
       final a = session(place: 'صبا', floor: '1', spot: 'B2');
       final b = session(place: 'صبا ', floor: '1', spot: 'b2');

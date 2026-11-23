@@ -128,6 +128,61 @@ void main() {
       expect(queries.single.body['query'], 'north');
     });
 
+    testWidgets('an open parking stays an open card while searching', (
+      tester,
+    ) async {
+      final h = await NexTestHarness.create(name: 'parking_search_');
+      addTearDown(h.dispose);
+      final now = DateTime.now();
+      await h.services.modulePut('parking', 'session', 'open', {
+        'v': 1,
+        'vehicle': 'Car',
+        'place': 'North lot',
+        'startedAt': now
+            .subtract(const Duration(minutes: 20))
+            .toUtc()
+            .toIso8601String(),
+      });
+      await h.services.modulePut('parking', 'session', 'closed', {
+        'v': 1,
+        'vehicle': 'Bike',
+        'place': 'South lot',
+        'startedAt': now
+            .subtract(const Duration(days: 1))
+            .toUtc()
+            .toIso8601String(),
+        'foundAt': now
+            .subtract(const Duration(hours: 20))
+            .toUtc()
+            .toIso8601String(),
+      });
+      await pumpScreen(tester, harness: h);
+      await tester.tap(find.byKey(const ValueKey('parking-search')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('parking-field-search')),
+        'north',
+      );
+      await tester.pumpAndSettle();
+
+      // The car that is still parked is shown as parked, not as history.
+      expect(find.byKey(const ValueKey('parking-found')), findsOneWidget);
+      expect(find.byKey(const ValueKey('parking-history-open')), findsNothing);
+      expect(find.text('Past parking'), findsNothing);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('parking-field-search')),
+        'south',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('parking-history-closed')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('parking-found')), findsNothing);
+      expect(find.text('Past parking'), findsOneWidget);
+    });
+
     testWidgets('a query with no matches says so', (tester) async {
       await pumpScreen(tester);
       await createParking(tester, place: 'North lot');

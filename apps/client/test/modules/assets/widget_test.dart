@@ -167,7 +167,7 @@ void main() {
       await tap(t, find.text('Save'));
       expect(await store.list('holding'), isEmpty);
       expect(
-        find.text('Check the amount and required fields.'),
+        find.text('Enter the price paid, or zero if it was a gift.'),
         findsOneWidget,
       );
       await t.enterText(find.byType(TextField).at(2), '۵۰۰۰۰');

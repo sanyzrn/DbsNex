@@ -12,6 +12,7 @@ import 'model.dart';
 import 'money_format.dart';
 import 'presentation.dart';
 import 'strings.dart';
+import 'valuation.dart';
 
 part 'editor_fields.dart';
 
@@ -25,6 +26,7 @@ class AssetEditor extends StatefulWidget {
     required this.initialUnit,
     required this.save,
     this.original,
+    this.quotes = const [],
   });
   final NexModuleStore store;
   final ValueNotifier<bool> revealed;
@@ -33,6 +35,11 @@ class AssetEditor extends StatefulWidget {
   final IrrUnit initialUnit;
   final ModuleRecord? original;
   final Future<void> Function(String id, Fields body) save;
+
+  /// The book's recorded prices, so the sheet can say when a day already has
+  /// one without going back to storage on every keystroke.
+  final List<Quote> quotes;
+
   @override
   State<AssetEditor> createState() => _AssetEditorState();
 }
@@ -66,8 +73,14 @@ class _AssetEditorState extends State<AssetEditor> {
       holding?.bought ?? quote?.date ?? civilDay(DateTime.now());
   late IrrUnit unit = widget.initialUnit;
   late String id = widget.original?.id ?? widget.store.newId();
-  bool loading = true, failed = false, busy = false, committed = false;
+  bool loading = true,
+      failed = false,
+      busy = false,
+      committed = false,
+      detailsOpen = false;
   String? error;
+  String? nameError, quantityError, costError, finenessError, locationError;
+  String? dateError;
   late final draft = NexModuleFormDraft(
     widget.store,
     '${widget.kind}:${widget.original?.id ?? (widget.kind == 'quote' ? '${widget.initialMarket.key}:new' : 'new')}',
@@ -87,12 +100,16 @@ class _AssetEditorState extends State<AssetEditor> {
       'date': date.toIso8601String(),
       'unit': unit.key,
       'recordId': id,
+      'details': detailsOpen ? '1' : '',
     },
   );
 
-  String s(String key) => assetStrings(context, key);
+  String s(String key, [Fields args = const {}]) =>
+      assetStrings(context, key, args);
   bool get isHolding => widget.kind == 'holding';
   bool get isGoal => widget.kind == 'goal';
+  bool get isGold => type == AssetType.gold;
+  bool get fa => NexModuleStrings.persian(context);
   AssetMarket get market => AssetMarket(
     type,
     code: switch (type) {
@@ -106,6 +123,9 @@ class _AssetEditorState extends State<AssetEditor> {
   @override
   void initState() {
     super.initState();
+    // Correcting a saved purchase shows everything; a new one asks for the
+    // two answers it needs and keeps the rest one button away.
+    detailsOpen = holding != null;
     name.text = goal?.title ?? widget.initialMarket.name;
     if (holding case final h?) {
       quantity.text = amountInput(
@@ -145,6 +165,7 @@ class _AssetEditorState extends State<AssetEditor> {
       }
       date = readDay(data['date']) ?? date;
       unit = IrrUnit.fromKey(data['unit']);
+      if (data['details'] == '1') detailsOpen = true;
       if (data['recordId'] case final String savedId) {
         if (widget.original == null && savedId.isNotEmpty) id = savedId;
       }
@@ -157,8 +178,21 @@ class _AssetEditorState extends State<AssetEditor> {
   }
 
   void change(VoidCallback action) {
-    setState(action);
+    setState(() {
+      action();
+      showErrorsClear();
+    });
     draft.changed();
+  }
+
+  void showErrorsClear() {
+    nameError = null;
+    quantityError = null;
+    costError = null;
+    finenessError = null;
+    locationError = null;
+    dateError = null;
+    error = null;
   }
 
   @override
@@ -170,13 +204,95 @@ class _AssetEditorState extends State<AssetEditor> {
     super.dispose();
   }
 
+  /// A price for the same asset and day that is not the record being edited.
+  Quote? get sameDayQuote {
+    if (isHolding || isGoal) return null;
+    final current = market;
+    return widget.quotes
+        .where(
+          (q) =>
+              q.market.key == current.key &&
+              q.date == date &&
+              q.record.id != (widget.original?.id ?? ''),
+        )
+        .firstOrNull;
+  }
+
+  String quoteUnitHint() => switch (market.type) {
+    AssetType.gold => s('quoteUnitGold'),
+    AssetType.coin => s('quoteUnitCoin'),
+    AssetType.currency => s('quoteUnitCurrency', {
+      'code': currencyName(context, market.code),
+    }),
+    AssetType.other => s('quoteUnitOther'),
+  };
+
+  bool validate() {
+    nameError = null;
+    quantityError = null;
+    costError = null;
+    finenessError = null;
+    locationError = null;
+    dateError = null;
+    error = null;
+    if (isGoal) {
+      if (!validName(name.text.trim())) nameError = 'enterName';
+      final target = parseMoney(quantity.text, 3);
+      if (!positive(target, 1000000000)) quantityError = 'enterTarget';
+      setState(() {});
+      return nameError == null && quantityError == null;
+    }
+
+    final current = market;
+    final publishedMarket = {
+      ...current.fields,
+      if (!current.custom) 'name': '',
+    };
+    if (AssetMarket.read(publishedMarket) == null) {
+      nameError = 'enterName';
+    }
+    final price = parseAmount(cost.text, 'IRR', 0, unit);
+    if (isHolding) {
+      final amount = parseMoney(quantity.text, current.digits);
+      if (!positive(amount, 1000000000)) quantityError = 'enterQuantity';
+      if (isGold && !positive(parseMoney(fineness.text, 0), 1000)) {
+        finenessError = 'enterFineness';
+      } else if (isGold) {
+        final ppt = parseMoney(fineness.text, 0)!;
+        if (ppt < 100) finenessError = 'enterFineness';
+      }
+      if (price == null || price < 0) {
+        costError = 'enterCost';
+      }
+      if (custody == Custody.platform && !validName(location.text.trim())) {
+        locationError = 'enterLocation';
+      }
+      if (date.isAfter(civilDay(DateTime.now()))) {
+        dateError = 'invalidDate';
+        detailsOpen = true;
+      }
+    } else if (!positive(price)) {
+      costError = 'enterPrice';
+    } else if (date.isAfter(civilDay(DateTime.now()))) {
+      dateError = 'invalidDate';
+    }
+    if (locationError != null || dateError != null) detailsOpen = true;
+    setState(() {});
+    return nameError == null &&
+        quantityError == null &&
+        costError == null &&
+        finenessError == null &&
+        locationError == null &&
+        dateError == null;
+  }
+
   Fields? values() {
     if (isGoal) {
-      final qty = parseMoney(quantity.text, 3);
-      if (!validName(name.text.trim()) || !positive(qty, 1000000000)) {
+      final target = parseMoney(quantity.text, 3);
+      if (!validName(name.text.trim()) || !positive(target, 1000000000)) {
         return null;
       }
-      return {'title': name.text.trim(), 'targetMg': qty};
+      return {'title': name.text.trim(), 'targetMg': target};
     }
     final m = market;
     final publishedMarket = {...m.fields, if (!m.custom) 'name': ''};
@@ -193,18 +309,20 @@ class _AssetEditorState extends State<AssetEditor> {
         'unitRial': price,
       };
     }
-    final qty = parseMoney(quantity.text, m.digits);
-    final ppt = type == AssetType.gold ? parseMoney(fineness.text, 0) : 750;
-    if (!positive(qty, 1000000000) ||
+    final amount = parseMoney(quantity.text, m.digits);
+    final ppt = isGold ? parseMoney(fineness.text, 0) : 750;
+    if (!positive(amount, 1000000000) ||
         !positive(ppt, 1000) ||
+        (isGold && ppt! < 100) ||
         price == null ||
+        price < 0 ||
         !validName(location.text.trim(), empty: custody != Custody.platform)) {
       return null;
     }
     return {
       ...publishedMarket,
-      'quantity': type == AssetType.currency ? null : qty,
-      'amount': type == AssetType.currency ? qty : null,
+      'quantity': type == AssetType.currency ? null : amount,
+      'amount': type == AssetType.currency ? amount : null,
       'currency': type == AssetType.currency ? m.code : null,
       'bought': date.toIso8601String(),
       'fineness': ppt,
@@ -216,6 +334,10 @@ class _AssetEditorState extends State<AssetEditor> {
 
   Future<void> submit() async {
     if (busy || !widget.revealed.value) return;
+    if (!committed && !validate()) {
+      setState(() => error = 'invalid');
+      return;
+    }
     final data = committed ? const <String, Object?>{} : values();
     if (data == null) {
       setState(() => error = 'invalid');
@@ -278,8 +400,19 @@ class _AssetEditorState extends State<AssetEditor> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(s(title), style: Theme.of(context).textTheme.titleLarge),
+        if (!isHolding && !isGoal) ...[
+          const SizedBox(height: NexSpacing.xs),
+          Text(
+            marketLabel(context, market, forQuote: true),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          Text(quoteUnitHint(), style: Theme.of(context).textTheme.bodySmall),
+        ],
         if (loading)
-          const LinearProgressIndicator()
+          const Padding(
+            padding: EdgeInsets.only(top: NexSpacing.md),
+            child: LinearProgressIndicator(),
+          )
         else if (failed) ...[
           Text(s('loadError')),
           TextButton(
@@ -307,7 +440,7 @@ class _AssetEditorState extends State<AssetEditor> {
               ),
             ),
           ),
-          if (error != null)
+          if (error != null && error != 'invalid')
             Padding(
               padding: const EdgeInsets.only(top: NexSpacing.sm),
               child: Text(

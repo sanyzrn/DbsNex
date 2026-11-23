@@ -79,6 +79,15 @@ class ParkingRepository {
           ),
       (kind: ParkingModels.session, id: id, body: next),
     ]);
+    // A parking closed by this save is over; an alert set for its paid time
+    // must not ring afterwards. Best-effort, like closing one by hand.
+    if (ParkingLogic.isActive(next)) {
+      for (final r in others) {
+        try {
+          await store.clearReminder('${ParkingModels.session}:${r.id}');
+        } catch (_) {}
+      }
+    }
   });
   static Future<void> found(NexModuleStore store, String id) =>
       LocalWrites.serial(store, () async {

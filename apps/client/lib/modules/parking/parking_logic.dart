@@ -50,16 +50,38 @@ class ParkingLogic {
   /// by: the place, the vehicle, the floor, the spot and the landmark note.
   /// An empty or blank query matches everything.
   static bool matchesQuery(Map<String, Object?> session, String query) {
-    final q = query.trim().toLowerCase();
+    final q = ParkingModels.fold(query);
     if (q.isEmpty) {
       return true;
     }
     for (final key in const ['place', 'vehicle', 'floor', 'spot', 'landmark']) {
-      if (ParkingModels.readString(session, key).toLowerCase().contains(q)) {
+      if (ParkingModels.fold(ParkingModels.readString(session, key))
+          .contains(q)) {
         return true;
       }
     }
     return false;
+  }
+
+  /// The vehicle of the parking that began most recently, for «I parked».
+  /// The store lists the most recently *saved* record first, so a corrected
+  /// old entry would otherwise make one tap pick the wrong car.
+  static String lastVehicle(Iterable<Map<String, Object?>> sessions) {
+    String? latest;
+    DateTime? at;
+    for (final session in sessions) {
+      final name = ParkingModels.readString(session, 'vehicle').trim();
+      if (name.isEmpty) {
+        continue;
+      }
+      final started = ParkingModels.readDate(session, 'startedAt');
+      if (latest == null ||
+          started != null && (at == null || started.isAfter(at))) {
+        latest = name;
+        at = started;
+      }
+    }
+    return latest ?? '';
   }
 
   /// Closed sessions, the most recently started first. The store's own
@@ -86,21 +108,21 @@ class ParkingLogic {
   /// parking ends. `remaining` is minutes still on the meter; `over` is
   /// minutes past it. Nothing fires in the background: this is read while
   /// the screen is open, from a time the person typed themselves.
-  static ({bool over, int minutes}) expiryOf(
+  static ({bool over, int minutes, int seconds}) expiryOf(
     Map<String, Object?> session,
     DateTime now,
   ) {
     final expires = ParkingModels.readDate(session, 'expiresAt');
     if (expires == null) {
-      return (over: false, minutes: 0);
+      return (over: false, minutes: 0, seconds: 0);
     }
     final diff = expires.difference(now);
     // The exact end moment counts as past: "may have ended just now" is
     // the honest thing to say when the time written has arrived.
     if (diff <= Duration.zero) {
-      return (over: true, minutes: -diff.inMinutes);
+      return (over: true, minutes: -diff.inMinutes, seconds: -diff.inSeconds);
     }
-    return (over: false, minutes: diff.inMinutes);
+    return (over: false, minutes: diff.inMinutes, seconds: diff.inSeconds);
   }
 
   // ---------------------------------------------------------- reminders
@@ -115,6 +137,23 @@ class ParkingLogic {
   /// [now]: a positive lead time whose moment is still ahead.
   static bool reminderFits(DateTime expiresAt, int minutes, DateTime now) =>
       minutes > 0 && reminderAt(expiresAt, minutes).isAfter(now);
+
+  /// Whether a whole-minute reminder can still be offered: the end is more
+  /// than a minute away, so at least a one-minute lead exists.
+  static bool canRemind(DateTime expiresAt, DateTime now) =>
+      reminderFits(expiresAt, 1, now);
+
+  /// The lead a paid parking's reminder should open on. A familiar ten when
+  /// it fits, five when ten is too long, and the largest whole minute left
+  /// for a short stay; null when the end is a minute away or less.
+  static int? suggestedReminderMinutes(DateTime expiresAt, DateTime now) {
+    for (final minutes in const [10, 5]) {
+      if (reminderFits(expiresAt, minutes, now)) return minutes;
+    }
+    final micros = expiresAt.difference(now).inMicroseconds;
+    final max = (micros - 1) ~/ Duration.microsecondsPerMinute;
+    return max < 1 ? null : max;
+  }
 
   // ------------------------------------------------ duration formatting
 
@@ -143,10 +182,11 @@ class ParkingLogic {
     if (q.isEmpty) {
       return old.toList();
     }
+    final key = ParkingModels.fold(q);
     return [
       q,
       for (final query in old)
-        if (query.toLowerCase() != q.toLowerCase()) query,
+        if (ParkingModels.fold(query) != key) query,
     ].take(limit).toList();
   }
 
@@ -157,8 +197,8 @@ class ParkingLogic {
   /// between visits; the parking spot is what identifies it.
   static bool samePlace(Map<String, Object?> a, Map<String, Object?> b) {
     bool same(String key) =>
-        ParkingModels.readString(a, key).trim().toLowerCase() ==
-        ParkingModels.readString(b, key).trim().toLowerCase();
+        ParkingModels.fold(ParkingModels.readString(a, key)) ==
+        ParkingModels.fold(ParkingModels.readString(b, key));
     return same('place') && same('floor') && same('spot');
   }
 }
