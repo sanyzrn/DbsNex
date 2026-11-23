@@ -139,7 +139,8 @@ extension _ParkingDetailBody on _ParkingDetailPageState {
                   // a paid time it counts back from the end; without one it
                   // asks for a moment.
                   if (ParkingModels.readDate(body, 'expiresAt')
-                      case final expiresAt?)
+                      case final expiresAt?
+                      when ParkingLogic.canRemind(expiresAt, DateTime.now()))
                     ParkingQuickReminder(
                       key: const ValueKey('parking-quick-reminder'),
                       store: widget.store,
@@ -149,7 +150,7 @@ extension _ParkingDetailBody on _ParkingDetailPageState {
                       floor: ParkingModels.readString(body, 'floor'),
                       minutes: ParkingAlarm.minutesOf(body),
                     )
-                  else
+                  else if (ParkingModels.readDate(body, 'expiresAt') == null)
                     NexModuleReminderControl(
                       key: const ValueKey('parking-reminders'),
                       store: widget.store,

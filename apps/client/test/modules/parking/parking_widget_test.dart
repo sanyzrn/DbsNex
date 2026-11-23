@@ -208,6 +208,11 @@ void main() {
           fieldText(tester, const ValueKey('parking-field-place')),
           'East lot',
         );
+        // The answer used to leave the editor open without a word.
+        expect(
+          find.text('The earlier parking stays open; this one was not saved.'),
+          findsOneWidget,
+        );
       },
     );
 

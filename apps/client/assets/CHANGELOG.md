@@ -4,6 +4,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.18
+
+- **Parking that stays put.** A favourite place keeps its star when you park there again, a saved reminder reopens on the lead you chose, and closing a car with a new parking also clears its alarm. One-tap parking now uses the car you parked most recently, even after correcting an old record.
+- **Find every place.** An All places sheet reaches the places the home shelves do not show, with star, forget and Undo. Places are ordered by recent use and show their landmark and how often you have used them.
+- **Clearer search and short stays.** Persian and Arabic spellings find the same place, an open car stays an open card while searching, and a countdown under a minute says “under a minute” instead of “0 min”.
+
 ## v2.8.17
 
 - **Word by Word.** Review a single deck, set a daily goal, and share words as text. Nex remembers how you practise and brings skipped cards back later in the session. Persian search handles alternate spellings and half-spaces.

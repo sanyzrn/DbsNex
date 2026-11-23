@@ -38,6 +38,16 @@ const parkingStrings = NexModuleStrings(
     'addWhere': 'Add where it is',
     'favouritePlaces': 'Favourites',
     'markFavourite': 'Favourite',
+    'removeFavourite': 'Remove from favourites',
+    'usedTimes': 'Used {count} times',
+    'allPlaces': 'All places',
+    'placesTitle': 'Your places',
+    'placesCount': '{count} places',
+    'placesEmpty': 'Places you park at are remembered here.',
+    'deletePlaceTitle': 'Forget this place?',
+    'deletePlaceBody':
+        'It leaves your places. Past parking that happened there is untouched.',
+    'placeDeleted': 'Place removed',
     'timeLeft': 'Left on the meter',
     'timeLeftOver': 'Past the paid time',
     'quickRemind': 'Remind me before it ends',
@@ -101,6 +111,7 @@ const parkingStrings = NexModuleStrings(
         'now, or keep it open?',
     'closeEarlier': 'Close it',
     'keepEarlier': 'Keep it open',
+    'keptEarlier': 'The earlier parking stays open; this one was not saved.',
 
     // Leaving without saving.
     'discardTitle': 'Leave without saving?',
@@ -144,6 +155,7 @@ const parkingStrings = NexModuleStrings(
     'days': '{count} d',
     'hoursMinutes': '{h} h {m} min',
     'daysHours': '{d} d {h} h',
+    'underMinute': 'under a minute',
     'justNow': 'today',
 
     // A search with nothing to show.
@@ -160,6 +172,7 @@ const parkingStrings = NexModuleStrings(
     'glanceMinutes': '{m} min',
     'glanceLeft': '{time} left',
     'glanceOver': 'Ended {time} ago',
+    'glanceUnderMinute': 'under a minute',
     'glanceFor': 'Parked {time} ago',
     'glanceVehicle': 'Vehicle',
     'glancePlace': 'Place',
@@ -204,6 +217,15 @@ const parkingStrings = NexModuleStrings(
     'addWhere': 'بنویسید کجاست',
     'favouritePlaces': 'مورد علاقه',
     'markFavourite': 'علاقه‌مندی',
+    'removeFavourite': 'حذف از مورد علاقه',
+    'usedTimes': '{count} بار استفاده شده',
+    'allPlaces': 'همهٔ جاها',
+    'placesTitle': 'جاهای شما',
+    'placesCount': '{count} محل',
+    'placesEmpty': 'جاهایی که در آن‌ها پارک می‌کنید اینجا یادشان می‌ماند.',
+    'deletePlaceTitle': 'این محل فراموش شود؟',
+    'deletePlaceBody': 'از فهرست جاهای شما می‌رود. پارک‌های گذشته‌ای که آن‌جا بوده‌اند دست‌نخورده می‌مانند.',
+    'placeDeleted': 'محل حذف شد',
     'timeLeft': 'مانده روی پارکینگ',
     'timeLeftOver': 'بیشتر از زمان پرداختی',
     'quickRemind': 'پیش از پایان یادآوری کن',
@@ -266,6 +288,7 @@ const parkingStrings = NexModuleStrings(
         'باز بماند؟',
     'closeEarlier': 'ببند',
     'keepEarlier': 'باز بماند',
+    'keptEarlier': 'پارک قبلی باز ماند؛ این یکی ذخیره نشد.',
 
     // خروج بدون ذخیره.
     'discardTitle': 'بدون ذخیره خارج شویم؟',
@@ -308,6 +331,7 @@ const parkingStrings = NexModuleStrings(
     'days': '{count} روز',
     'hoursMinutes': '{h} ساعت و {m} دقیقه',
     'daysHours': '{d} روز و {h} ساعت',
+    'underMinute': 'کمتر از یک دقیقه',
     'justNow': 'امروز',
 
     // جست‌وجویی که چیزی پیدا نکرد.
@@ -324,6 +348,7 @@ const parkingStrings = NexModuleStrings(
     'glanceMinutes': '{m} دقیقه',
     'glanceLeft': '{time} مانده',
     'glanceOver': '{time} پیش تمام شد',
+    'glanceUnderMinute': 'کمتر از یک دقیقه',
     'glanceFor': 'پارک از {time} پیش',
     'glanceVehicle': 'خودرو',
     'glancePlace': 'مکان',
