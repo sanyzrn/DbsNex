@@ -49,6 +49,11 @@ class ParkingWrites {
       landmark: ParkingModels.readString(body, 'landmark'),
       useCount: count >= LocalValues.maxExact ? count : count + 1,
       lastUsedAt: DateTime.now(),
+      // Parking here again is not the same as un-starring the place. A
+      // place's favourite mark belongs to the person, not to this visit.
+      favourite: existing == null
+          ? false
+          : ParkingModels.isFavourite(existing.body),
       lat: ParkingModels.readCoord(body, 'lat', min: -90, max: 90),
       lng: ParkingModels.readCoord(body, 'lng', min: -180, max: 180),
     );
@@ -74,23 +79,23 @@ class ParkingWrites {
       return;
     }
     final records = await store.list(ParkingModels.search);
+    final key = ParkingModels.fold(q);
     final existing = records
         .where(
           (r) =>
-              ParkingModels.readString(r.body, 'query').toLowerCase() ==
-              q.toLowerCase(),
+              ParkingModels.fold(ParkingModels.readString(r.body, 'query')) ==
+              key,
         )
         .firstOrNull;
-    final seen = <String>{q.toLowerCase()};
+    final seen = <String>{key};
     final keep = <String>{};
     for (final r in records) {
-      final key = ParkingModels.readString(
-        r.body,
-        'query',
-      ).trim().toLowerCase();
-      if (key.isNotEmpty &&
+      final folded = ParkingModels.fold(
+        ParkingModels.readString(r.body, 'query'),
+      );
+      if (folded.isNotEmpty &&
           seen.length < ParkingModels.searchHistoryLimit &&
-          seen.add(key)) {
+          seen.add(folded)) {
         keep.add(r.id);
       }
     }

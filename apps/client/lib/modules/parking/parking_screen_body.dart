@@ -3,21 +3,25 @@ part of 'parking_screen.dart';
 extension _ParkingScreenBody on _ParkingScreenState {
   Widget _view(BuildContext context) {
     final strings = parkingStrings;
+    final query = _query.text.trim();
+    final searching = _searching && query.isNotEmpty;
     final active = _sessions
         .where((record) => ParkingLogic.isActive(record.body))
+        .where(
+          (record) =>
+              !searching || ParkingLogic.matchesQuery(record.body, query),
+        )
         .toList();
     final historyAll = ParkingLogic.historyOf(
       _sessions.map((record) => record.body),
     );
-    final query = _query.text.trim();
-    final searching = _searching && query.isNotEmpty;
-    final history = searching
-        ? _sessions
-              .where((record) => ParkingLogic.matchesQuery(record.body, query))
-              .toList()
-        : _sessions
-              .where((record) => !ParkingLogic.isActive(record.body))
-              .toList();
+    final history = _sessions
+        .where((record) => !ParkingLogic.isActive(record.body))
+        .where(
+          (record) =>
+              !searching || ParkingLogic.matchesQuery(record.body, query),
+        )
+        .toList();
     final favourites = _places
         .where((record) => ParkingModels.isFavourite(record.body))
         .toList();
@@ -25,6 +29,12 @@ extension _ParkingScreenBody on _ParkingScreenState {
         .where((record) => !ParkingModels.isFavourite(record.body))
         .toList();
 
+    int recentFirst(ModuleRecord a, ModuleRecord b) =>
+        (ParkingModels.readDate(b.body, 'lastUsedAt') ?? DateTime(0)).compareTo(
+          ParkingModels.readDate(a.body, 'lastUsedAt') ?? DateTime(0),
+        );
+    favourites.sort(recentFirst);
+    recentPlaces.sort(recentFirst);
     history.sort(
       (a, b) => (ParkingModels.readDate(b.body, 'startedAt') ?? DateTime(0))
           .compareTo(
@@ -198,7 +208,9 @@ extension _ParkingScreenBody on _ParkingScreenState {
         Wrap(
           spacing: NexSpacing.sm,
           children: [
-            for (final record in _queries.take(6))
+            for (final record in _queries.take(
+              ParkingModels.searchHistoryLimit,
+            ))
               ActionChip(
                 label: Text(ParkingModels.readString(record.body, 'query')),
                 onPressed: () {
@@ -214,25 +226,24 @@ extension _ParkingScreenBody on _ParkingScreenState {
         ),
         const SizedBox(height: NexSpacing.md),
       ],
-      if (!searching)
-        for (final record in active)
-          Padding(
-            padding: const EdgeInsets.only(bottom: NexSpacing.md),
-            child: ParkingActiveCard(
-              key: ValueKey('parking-active-${record.id}'),
-              store: widget.store,
-              record: record,
-              onFound: () => unawaited(_foundCar(record)),
-              onEdit: () => unawaited(_editParking(record)),
-            ),
+      for (final record in active)
+        Padding(
+          padding: const EdgeInsets.only(bottom: NexSpacing.md),
+          child: ParkingActiveCard(
+            key: ValueKey('parking-active-${record.id}'),
+            store: widget.store,
+            record: record,
+            onFound: () => unawaited(_foundCar(record)),
+            onEdit: () => unawaited(_editParking(record)),
           ),
+        ),
       if (!searching && favourites.isNotEmpty) ...[
         NexShelfHeading(
           icon: Icons.star_outline,
           title: strings(context, 'favouritePlaces'),
         ),
         const SizedBox(height: NexSpacing.sm),
-        for (final place in favourites.take(4))
+        for (final place in favourites.take(6))
           ParkingPlaceRow(
             record: place,
             onTap: () => unawaited(_newParking(place)),
@@ -246,7 +257,7 @@ extension _ParkingScreenBody on _ParkingScreenState {
           title: strings(context, 'recentPlaces'),
         ),
         const SizedBox(height: NexSpacing.sm),
-        for (final place in recentPlaces.take(4))
+        for (final place in recentPlaces.take(6))
           ParkingPlaceRow(
             record: place,
             onTap: () => unawaited(_newParking(place)),
@@ -254,14 +265,26 @@ extension _ParkingScreenBody on _ParkingScreenState {
           ),
         const SizedBox(height: NexSpacing.md),
       ],
-      if (searching || history.isNotEmpty) ...[
+      if (!searching && _places.isNotEmpty) ...[
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: TextButton.icon(
+            key: const ValueKey('parking-places-all'),
+            onPressed: _busy ? null : () => unawaited(_openPlaces()),
+            icon: const Icon(Icons.tune),
+            label: Text(strings(context, 'allPlaces')),
+          ),
+        ),
+        const SizedBox(height: NexSpacing.xs),
+      ],
+      if (history.isNotEmpty) ...[
         NexShelfHeading(
           icon: Icons.history,
           title: strings(context, 'history'),
         ),
         const SizedBox(height: NexSpacing.sm),
       ],
-      if (searching && history.isEmpty)
+      if (searching && active.isEmpty && history.isEmpty)
         Padding(
           padding: const EdgeInsets.only(bottom: NexSpacing.md),
           child: Text(

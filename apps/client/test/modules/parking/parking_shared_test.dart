@@ -140,6 +140,18 @@ void main() {
         ...?await store.get('session', 's'),
         'expiresAt': later.toUtc().toIso8601String(),
       });
+      expect(
+        await ParkingAlarm.arm(
+          context,
+          store,
+          's',
+          expiresAt: end,
+          minutes: 15,
+          place: 'North lot',
+        ),
+        isFalse,
+      );
+      expect(store.set, hasLength(1));
       await ParkingAlarm.follow(context, store, 's');
       expect(
         store.set.last.$2.difference(
@@ -162,6 +174,24 @@ void main() {
         (await store.get('session', 's'))!.containsKey('remindMinutes'),
         isFalse,
       );
+
+      await store.put('session', 's', {
+        ...?await store.get('session', 's'),
+        'expiresAt': later.toUtc().toIso8601String(),
+        'foundAt': DateTime.now().toUtc().toIso8601String(),
+      });
+      expect(
+        await ParkingAlarm.arm(
+          context,
+          store,
+          's',
+          expiresAt: later,
+          minutes: 15,
+          place: 'North lot',
+        ),
+        isFalse,
+      );
+      expect(store.set, hasLength(2));
     });
   });
 }

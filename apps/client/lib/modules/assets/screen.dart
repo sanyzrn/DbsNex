@@ -30,6 +30,7 @@ class _AssetsScreenState extends State<AssetsScreen>
   int tab = 0;
   bool ready = false, secureFailed = false, leased = false;
   bool loading = false, loadFailed = false, writing = false;
+  bool _reloadQueued = false;
   AssetMarket selected = AssetMarket.gold;
   AssetType? typeFilter;
 
@@ -94,15 +95,25 @@ class _AssetsScreenState extends State<AssetsScreen>
   }
 
   Future<void> load() async {
-    if (loading || !mounted) return;
+    if (!mounted || !revealed.value) return;
+    if (loading) {
+      _reloadQueued = true;
+      return;
+    }
     setState(() {
       loading = true;
       loadFailed = false;
     });
     try {
-      await ledger.load();
-    } on Object {
-      if (mounted) setState(() => loadFailed = true);
+      do {
+        _reloadQueued = false;
+        try {
+          await ledger.load();
+          loadFailed = false;
+        } on Object {
+          loadFailed = true;
+        }
+      } while (mounted && revealed.value && _reloadQueued);
     } finally {
       if (mounted) {
         setState(() {

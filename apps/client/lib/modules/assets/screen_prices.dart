@@ -10,24 +10,21 @@ extension _PriceAndGoalTabs on _AssetsScreenState {
     final markets = priceCatalogue(known);
     final byKey = {for (final market in markets) market.key: market};
     final series = valuation.history[selected.key] ?? const <Quote>[];
-    final latest = series.firstOrNull;
-    final today = civilDay(DateTime.now());
-    final future = latest != null && latest.date.isAfter(today);
-    final delta = future ? null : quoteDelta(series);
+    final today = valuation.asOf;
+    final latest = valuation.latest(selected);
+    final delta = quoteDelta(
+      series.skipWhile((quote) => quote.date.isAfter(today)).take(2).toList(),
+    );
     final market = marketLabel(context, selected, forQuote: true);
     final scheme = Theme.of(context).colorScheme;
     final moved = delta != null && delta.amount != BigInt.zero;
     final up = delta != null && delta.amount > BigInt.zero;
-    final changeColor = future
-        ? scheme.error
-        : !moved
+    final changeColor = !moved
         ? scheme.onSurfaceVariant
         : up
         ? scheme.tertiary
         : scheme.error;
-    final changeIcon = future
-        ? Icons.event_busy_outlined
-        : !moved
+    final changeIcon = !moved
         ? Icons.horizontal_rule
         : up
         ? Icons.trending_up
@@ -43,12 +40,11 @@ extension _PriceAndGoalTabs on _AssetsScreenState {
         caption: latest == null
             ? s('noQuotes')
             : '${s('updated', {'date': date(latest.date)})} · '
-                  '${shortAge(context, latest.date, DateTime.now())}',
+                  '${shortAge(context, latest.date, today)}',
         chips: [
           if (latest != null &&
               civilDaysBetween(latest.date, today) >= priceFreshDays)
             s('staleBadge'),
-          if (future) s('futureBadge'),
         ],
         semanticsLabel: latest == null
             ? '$market: ${s('noPriceYet')}'
@@ -86,11 +82,7 @@ extension _PriceAndGoalTabs on _AssetsScreenState {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                future
-                    ? s('futureQuote')
-                    : delta == null
-                    ? s('noEarlierPrice')
-                    : priceChange(delta),
+                delta == null ? s('noEarlierPrice') : priceChange(delta),
                 style: TextStyle(color: changeColor),
               ),
               Align(
@@ -132,7 +124,7 @@ extension _PriceAndGoalTabs on _AssetsScreenState {
               children: [
                 Text(
                   '${date(quote.date)} · '
-                  '${shortAge(context, quote.date, DateTime.now())}',
+                  '${shortAge(context, quote.date, today)}',
                 ),
                 if (quote.date.isAfter(today))
                   Text(

@@ -30,7 +30,25 @@ abstract final class ParkingAlarm {
     required DateTime expiresAt,
     required int minutes,
     required String place,
-  }) async {
+  }) => LocalWrites.serial(store, () async {
+    final end = _activeEnd(await store.get(ParkingModels.session, id));
+    if (!context.mounted ||
+        end == null ||
+        !end.isAtSameMomentAs(expiresAt) ||
+        !ParkingLogic.reminderFits(end, minutes, DateTime.now())) {
+      return false;
+    }
+    return _arm(context, store, id, end, minutes, place);
+  });
+
+  static Future<bool> _arm(
+    BuildContext context,
+    NexModuleStore store,
+    String id,
+    DateTime expiresAt,
+    int minutes,
+    String place,
+  ) async {
     final where = place.trim().isEmpty
         ? parkingStrings(context, 'detailsTitle')
         : place.trim();
@@ -43,64 +61,80 @@ abstract final class ParkingAlarm {
       title: parkingStrings(context, 'reminderTitle', {'minutes': minutes}),
       body: parkingStrings(context, 'reminderBody', {'place': where}),
     );
-    if (ok) await _remember(store, id, minutes);
-    return ok;
+    if (!ok) return false;
+    if (await _remember(store, id, minutes, expectedEnd: expiresAt)) {
+      return true;
+    }
+    // A backup or another writer can replace the session while the device
+    // is asking for permission. Do not leave the stale alarm scheduled.
+    await store.clearReminder(key(id));
+    return false;
   }
 
   /// Takes the reminder back, and forgets its minutes.
-  static Future<void> disarm(NexModuleStore store, String id) async {
-    await store.clearReminder(key(id));
-    await _remember(store, id, null);
-  }
+  static Future<void> disarm(NexModuleStore store, String id) =>
+      LocalWrites.serial(store, () async {
+        await store.clearReminder(key(id));
+        await _remember(store, id, null);
+      });
 
-  /// After [id] was saved with a new paid time: the reminder moves with it,
-  /// or goes when it no longer fits. A parking whose reminder was set for a
-  /// moment of its own (no minutes kept) is left as it is.
+  /// Moves a paid-time reminder after its parking was edited.
   static Future<void> follow(
     BuildContext context,
     NexModuleStore store,
     String id,
-  ) async {
+  ) => LocalWrites.serial(store, () async {
     final body = await store.get(ParkingModels.session, id);
     if (body == null) return;
     final minutes = minutesOf(body);
     if (minutes == null) return;
-    final expiresAt = ParkingModels.readDate(body, 'expiresAt');
-    if (expiresAt == null ||
-        !ParkingLogic.isActive(body) ||
-        !ParkingLogic.reminderFits(expiresAt, minutes, DateTime.now())) {
-      await disarm(store, id);
-      return;
+    final expiresAt = _activeEnd(body);
+    if (expiresAt != null &&
+        ParkingLogic.reminderFits(expiresAt, minutes, DateTime.now())) {
+      if (!context.mounted) return;
+      final ok = await _arm(
+        context,
+        store,
+        id,
+        expiresAt,
+        minutes,
+        ParkingModels.readString(body, 'place'),
+      );
+      if (ok) return;
     }
-    if (!context.mounted) return;
-    final ok = await arm(
-      context,
-      store,
-      id,
-      expiresAt: expiresAt,
-      minutes: minutes,
-      place: ParkingModels.readString(body, 'place'),
-    );
-    if (!ok) await disarm(store, id);
-  }
+    await store.clearReminder(key(id));
+    await _remember(store, id, null);
+  });
 
-  static Future<void> _remember(
+  static DateTime? _activeEnd(Map<String, Object?>? body) =>
+      body == null || !ParkingLogic.isActive(body)
+      ? null
+      : ParkingModels.readDate(body, 'expiresAt');
+
+  /// Called only while this store's writes are serialized.
+  static Future<bool> _remember(
     NexModuleStore store,
     String id,
-    int? minutes,
-  ) => LocalWrites.serial(store, () async {
+    int? minutes, {
+    DateTime? expectedEnd,
+  }) async {
     final raw = await store.get(ParkingModels.session, id);
-    if (raw == null) return;
+    if (raw == null) return false;
+    if (expectedEnd != null &&
+        _activeEnd(raw)?.isAtSameMomentAs(expectedEnd) != true) {
+      return false;
+    }
     final next = {...raw};
     if (minutes == null) {
-      if (!next.containsKey('remindMinutes')) return;
+      if (!next.containsKey('remindMinutes')) return true;
       next.remove('remindMinutes');
     } else {
-      if (next['remindMinutes'] == minutes) return;
+      if (next['remindMinutes'] == minutes) return true;
       next['remindMinutes'] = minutes;
     }
     await LocalWrites.apply(store, [
       (kind: ParkingModels.session, id: id, body: next),
     ]);
-  });
+    return true;
+  }
 }

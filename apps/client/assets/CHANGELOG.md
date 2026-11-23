@@ -6,9 +6,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.8.18
 
-- **A clearer Asset book.** See how the book's value is split between gold, coins and currency, filter a long book, and read gold in grams and mithqal. Each price says how old it is and can be refreshed in one tap; holdings still waiting for a price are called out.
-- **Safer editing.** Common gold karats show their 18-karat equivalent as you type, errors appear beside the field that needs them, and deleting an entry says what is removed and what stays.
-- **Prices before you buy.** Record any common coin or currency price even before you own it; a price dated in the future is shown with a warning instead of disappearing.
+- **Asset allocation.** See how your holdings' value is split, filter by asset type, and view gold weights in grams and mithqal.
+- **Asset prices.** See when each price was recorded, enter a fresh quote from the book, or record one for a coin or currency you plan to buy. Future-dated quotes are flagged in the history.
+- **Saved parking places.** Browse, star or forget any saved place. Favourites keep their stars when you park there again.
+- **Parking reminders and search.** Reminders reopen with the time you chose, and closing a parking session clears its alert. Search matches Persian and Arabic spellings.
 
 ## v2.8.17
 

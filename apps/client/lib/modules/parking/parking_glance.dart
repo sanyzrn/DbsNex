@@ -32,20 +32,23 @@ Future<ModuleGlance?> parkingGlance(
       .join(l10n.localeName.startsWith('fa') ? '، ' : ' · ');
   final expires = ParkingModels.readDate(session, 'expiresAt');
   final expiry = ParkingLogic.expiryOf(session, now);
-  final parked = ParkingLogic.split(ParkingLogic.elapsedOf(session, now));
-  String span(({int days, int hours, int minutes}) s) => s.days > 0
-      ? t('glanceDaysHours', {'d': s.days, 'h': s.hours})
-      : s.hours > 0
-      ? t('glanceHoursMinutes', {'h': s.hours, 'm': s.minutes})
-      : t('glanceMinutes', {'m': s.minutes});
+  final parked = ParkingLogic.elapsedOf(session, now);
+  String span(Duration value) {
+    if (value > Duration.zero && value.inMinutes == 0) {
+      return t('glanceUnderMinute');
+    }
+    final s = ParkingLogic.split(value);
+    return s.days > 0
+        ? t('glanceDaysHours', {'d': s.days, 'h': s.hours})
+        : s.hours > 0
+        ? t('glanceHoursMinutes', {'h': s.hours, 'm': s.minutes})
+        : t('glanceMinutes', {'m': s.minutes});
+  }
+
   final left = expires == null
       ? null
-      : expiry.over
-      ? t('glanceOver', {
-          'time': span(ParkingLogic.split(Duration(minutes: expiry.minutes))),
-        })
-      : t('glanceLeft', {
-          'time': span(ParkingLogic.split(Duration(minutes: expiry.minutes))),
+      : t(expiry.over ? 'glanceOver' : 'glanceLeft', {
+          'time': span(Duration(seconds: expiry.seconds)),
         });
   return ModuleGlance(
     headline: where.isEmpty ? t('glanceParked') : where,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +9,23 @@ import 'package:nex_client/modules/module_api.dart';
 
 import '../../support/nex_harness.dart';
 import 'fixtures.dart';
+
+class _HeldReadStore extends NexModuleStore {
+  _HeldReadStore(NexTestHarness harness) : super(harness.services, 'assets');
+
+  final holdingSnapshotRead = Completer<void>();
+  final releaseHoldingSnapshot = Completer<void>();
+
+  @override
+  Future<List<ModuleRecord>> list(String kind) async {
+    final records = await super.list(kind);
+    if (kind == 'holding' && !holdingSnapshotRead.isCompleted) {
+      holdingSnapshotRead.complete();
+      await releaseHoldingSnapshot.future;
+    }
+    return records;
+  }
+}
 
 void main() {
   late NexTestHarness harness;
@@ -198,6 +217,26 @@ void main() {
     expect(find.text('1 waiting for a price'), findsOneWidget);
   });
 
+  testWidgets('a store update during load refreshes the snapshot', (t) async {
+    final held = _HeldReadStore(harness);
+    store = held;
+    await show(t);
+    await t.tap(find.text('Reveal holdings'));
+    await t.pump();
+    await held.holdingSnapshotRead.future;
+
+    const euro = AssetMarket(AssetType.currency, code: 'EUR');
+    await store.put('holding', 'euro', {
+      'v': 1,
+      ...holdingBody(euro, 100, today, price: 500),
+    });
+    await t.pump();
+    held.releaseHoldingSnapshot.complete();
+    await t.pumpAndSettle();
+
+    expect(find.text('1 waiting for a price'), findsOneWidget);
+  });
+
   testWidgets('a future price is kept, warned about and still editable', (
     t,
   ) async {
@@ -217,6 +256,20 @@ void main() {
       findsWidgets,
     );
     expect(find.text('10,000,000 tomans'), findsWidgets);
+    expect(
+      find.descendant(
+        of: find.byType(NexModuleHero),
+        matching: find.text('9,500,000 tomans'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(NexModuleHero),
+        matching: find.text('10,000,000 tomans'),
+      ),
+      findsNothing,
+    );
     await tap(t, find.byType(NexPopupMenuButton<String>).first);
     await tap(t, find.text('Edit'));
     expect(find.text('Edit price'), findsOneWidget);

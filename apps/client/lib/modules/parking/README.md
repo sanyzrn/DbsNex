@@ -2,10 +2,10 @@
 
 ## Audit (upgrade pass)
 
-Parking is a **Soon** module: its code exists, people do not have it yet, so
-records may gain fields but nothing already written may change meaning. The
-upgrade kept every kind, kept the storage, recovery, drafts and Undo, and
-changed what the brief asked for.
+Parking has been available since 2.8.4. Records from every earlier build still
+open and save as they were; the upgrade kept every kind, the storage, recovery,
+drafts and Undo, and changed what the brief asked for. A second audit (2.8.18)
+is recorded in [`docs/36-parking-audit.md`](../../../../docs/36-parking-audit.md).
 
 What the module did before, screen by screen:
 
@@ -34,6 +34,39 @@ What was below the brief and is now fixed:
 | Favourite places (home, work, the usual mall) to fill in one tap | Recent places only, in save order | A star on every remembered place; favourites get their own heading above the rest, and tapping one still fills the editor in one tap |
 | One-handed and fast | Place first, required, and the primary action led to a long form | The thumb-sized `I parked` button is the primary action; the long form is optional and reachable from the app bar, the empty state and a card |
 | No location, no camera, no fetching | Already true | Still true: coordinates are typed, no map SDK, no network, no photo |
+
+### Audit 2.8.18 — what real use exposed
+
+- **The star survived the next visit.** `rememberPlace` rebuilt a place with
+  `favourite: false` and merged it over the old body, so every return to a
+  favourite un-starred it. The rebuilt body now carries the existing mark.
+- **A reminder reopened on the lead it was given.** The quick sheet always
+  started its field at `10`, so opening a 30-minute reminder and saving changed
+  it to 10. It now opens on the saved minutes (or a lead that fits a short
+  stay); chips that cannot fit are disabled.
+- **Closing an earlier car cleared its alarm.** `save(closeEarlier: true)`
+  wrote `foundAt` but left the earlier reminder key behind. It is cleared after
+  the group commits, best-effort like «I'm back».
+- **One tap used the car parked most recently.** The old code took the first
+  non-empty vehicle in store order, which is *saved* order; correcting an old
+  record could make the next «I parked» use the wrong car. `lastVehicle`
+  compares `startedAt`.
+- **Persian and Arabic spellings meet.** Vehicle identity, place identity,
+  search and query de-duplication fold yeh/kaf, Arabic-Indic digits, half-spaces
+  and whitespace through `ParkingModels.fold`.
+- **Search keeps an open car open.** Active matches stay as cards; only closed
+  matches become history, and “nothing matches” considers both lists.
+- **Under a minute is in words.** A countdown of 40 seconds no longer reads
+  “0 min” on the card, history, detail or glance.
+- **A reminder is not offered when it cannot fit.** Once the end is under a
+  minute away, the control is gone rather than failing after a save. The same
+  applies after the paid time has ended.
+- **Keep it open now says so.** The conflict answer still leaves the earlier
+  parking open and writes nothing new, but a banner explains that the new one
+  was not saved instead of returning in silence.
+- **Every place is reachable.** Six per shelf, ordered by `lastUsedAt`, with an
+  **All places** sheet that can star, forget with Undo, or fill the editor.
+  Rows show the landmark and use count; the star's tooltip changes when set.
 
 Not done, and why:
 
@@ -76,15 +109,18 @@ typed by the person: no GPS, no map, no camera, no network.
 Screens:
 
 - **Where I parked** — hero line, open parking cards, favourites, other
-  remembered places, search with recent queries, closed history, and the one
-  floating action.
+  remembered places, search with recent queries, closed history, an **All
+  places** entry, and the one floating action.
 - **Parking editor** (sheet) — place first, the rest behind More details,
   typed coordinates, paid-until date/time on the shared calendar, Save,
   Keep draft & close. Nothing in it is required.
 - **One parking** (page) — every field as written, started/found/duration,
   the paid-until with its reminder, share, edit and delete.
 - **Reminder before the end** (sheet) — minutes before the paid time ends,
-  with 5/10/15/30 and an editable number; refuses a moment in the past.
+  with 5/10/15/30 and an editable number; opens on the saved lead, offers only
+  leads that still fit, and refuses a moment in the past.
+- **All places** (sheet) — every remembered place, recently used first, with
+  star, tap-to-fill and forget-with-Undo.
 - **Dialogs** — earlier parking for the same vehicle, discard, delete and
   clear history; deletes and clearing use the app banner with Undo.
 
@@ -104,8 +140,9 @@ delete-data policy.
   UTC `lastUsedAt`, optional validated coordinates, and **`favorite`**
   (added: a boolean, missing on old records and read as false). Unknown
   fields are kept, so marking a favourite never drops anything.
-- **search v1** — `query`, `at`, case-insensitive de-duplication, stored cap
-  eight.
+- **search v1** — `query`, `at`, letter/number-folded de-duplication
+  (`ParkingModels.fold`: case, Arabic/Persian yeh and kaf, Arabic-Indic digits,
+  half-spaces), stored cap eight.
 - **draft v1** — the raw editor fields, a base fingerprint and a stable
   target id, including a new parking's initial `startedAt`. Kept drafts
   resume; failed reads block replacement; stale drafts do not apply.
@@ -115,7 +152,8 @@ delete-data policy.
 ## Decisions
 
 - **One tap means one record, not a half-saved one.** `I parked` writes a
-  complete session with the last used vehicle and today's start. It does not
+  complete session with the vehicle parked most recently (by `startedAt`, not
+  by save order) and today's start. It does not
   guess a place: a wrong place remembered silently is worse than an empty one,
   and the card asks for it in one more tap only if the person has time.
 - **Everything is optional, including the place.** The brief says so, and a
@@ -135,8 +173,14 @@ delete-data policy.
 - **Favourites are shortcuts, not automation.** A star only sorts a place
   into its own heading and marks the row; tapping it fills the editor, exactly
   as any remembered place does. It never parks by itself.
-- **Search, history, drafts, recovery and Undo are unchanged**, including the
-  rule that history is ordered by when a parking began, not when it was saved.
+- **Search, history, drafts, recovery and Undo keep their rules**, including
+  history ordered by when a parking began, not when it was saved. Search now
+  folds Persian/Arabic spellings and keeps an open car as an open card; it
+  still covers sessions, not the places sheet.
+- **A remembered place belongs to the person, not the visit.** Parking there
+  again updates its use count, landmark and last-used time without changing its
+  star. Forgetting it is deliberate (All places), confirmed, and undoable;
+  past sessions keep their own copy of the place text.
 - **No location, camera, map link generation beyond a typed coordinate pair,
   or network.** Coordinates are validated by range, never rounded into place.
 
@@ -188,27 +232,46 @@ local, and no permission beyond the opt-in notification is requested.
 **English:** When you leave the car, tap **I parked** — that is enough. If you
 have a moment, tap **Park with details**, or the add-where action on the card,
 and write the place, floor, pillar or a clue; a remembered place fills all of
-it in one tap, and a star keeps your usual places under **Favourites**. If the
-parking is paid, add the paid-until date and time; the card then shows the
-time left in large type, and **Remind me before it ends** rings ten minutes
-before (change it to 5, 15, 30 or any number of minutes). When you come back,
-tap **I'm back**: the parking moves to history, where it can be edited,
-deleted and brought back with Undo. Nothing is found by GPS: you type where
-the car is.
+it in one tap, and a star keeps your usual places under **Favourites**. **All
+places** reaches the ones the shelves do not show and can forget an old one
+with Undo. If the parking is paid, add the paid-until date and time; the card
+then shows the time left in large type (in words under a minute), and
+**Remind me before it ends** rings ten minutes before (change it to 5, 15, 30
+or any number of minutes; a short stay opens on a lead that fits). When you
+come back, tap **I'm back**: the parking moves to history, where it can be
+edited, deleted and brought back with Undo. Nothing is found by GPS: you type
+where the car is.
 
 **فارسی:** وقتی از ماشین پیاده می‌شوید، **«پارک کردم»** را بزنید؛ همین کافی
 است. اگر وقت داشتید، **«پارک با جزئیات»** یا دکمهٔ «بنویسید کجاست» روی کارت را
 بزنید و آدرس، طبقه، ستون یا یک نشانه را بنویسید؛ یک جای آشنا همه را با یک لمس
-پر می‌کند و ستاره، جاهای همیشگی را زیر **«مورد علاقه»** نگه می‌دارد. اگر
-پارکینگ پرداختی است، تاریخ و ساعت پایان را بنویسید تا کارت زمان مانده را
-درشت نشان دهد؛ **«پیش از پایان یادآوری کن»** ده دقیقه قبل خبر می‌دهد (۵، ۱۵،
-۳۰ یا هر تعداد دقیقهٔ دیگر). وقتی برگشتید **«برگشتم»** را بزنید تا پارک به
-تاریخچه برود؛ همان‌جا می‌شود ویرایش کرد، حذف کرد و با «بازگردانی» برگرداند.
-هیچ چیزی با موقعیت‌یابی پیدا نمی‌شود؛ جا را خودتان می‌نویسید.
+پر می‌کند و ستاره، جاهای همیشگی را زیر **«مورد علاقه»** نگه می‌دارد.
+**«همهٔ جاها»** جاهایی را که در فهرست اصلی جا نمی‌شوند نشان می‌دهد و می‌شود
+یک جای قدیمی را با «بازگردانی» فراموش کرد. اگر پارکینگ پرداختی است، تاریخ و
+ساعت پایان را بنویسید تا کارت زمان مانده را درشت نشان دهد (کمتر از یک دقیقه
+با حرف)؛ **«پیش از پایان یادآوری کن»** ده دقیقه قبل خبر می‌دهد (۵، ۱۵، ۳۰ یا
+هر تعداد دقیقهٔ دیگر؛ برای پارک کوتاه، عددی که جا شود). وقتی برگشتید
+**«برگشتم»** را بزنید تا پارک به تاریخچه برود؛ همان‌جا می‌شود ویرایش کرد، حذف
+کرد و با «بازگردانی» برگرداند. هیچ چیزی با موقعیت‌یابی پیدا نمی‌شود؛ جا را
+خودتان می‌نویسید.
 
 ## Changelog
 
-EN: Parking can now be saved in one tap, with every detail optional and
+2.8.18 — EN: A favourite place keeps its star when you park there again; a
+reminder reopens on the lead you set instead of ten; closing an earlier car
+clears its alarm; one-tap parking uses the car you parked most recently;
+Arabic and Persian spellings find each other; an open car stays an open card
+while searching; under a minute reads in words; and **All places** reaches
+every remembered place with star, forget and Undo.
+
+2.8.18 — FA: جای مورد علاقه بعد از پارک دوباره ستاره‌اش را نگه می‌دارد؛
+یادآوری با همان تعداد دقیقهٔ قبلی باز می‌شود، نه ده؛ بستن پارک قبلی هشدارش را
+هم پاک می‌کند؛ «پارک کردم» ماشینی را برمی‌دارد که آخرین بار پارک شده؛ نوشتار
+فارسی و عربی هم را پیدا می‌کنند؛ پارکِ باز هنگام جست‌وجو کارت باز می‌ماند؛
+کمتر از یک دقیقه با حرف نوشته می‌شود؛ و **همهٔ جاها** با ستاره، فراموش‌کردن و
+بازگردانی در دسترس است.
+
+2.8.4 — EN: Parking can now be saved in one tap, with every detail optional and
 addable later; the time left on a paid parking is shown large; a reminder can
 ring a chosen number of minutes before it ends (ten by default); usual places
 can be starred as favourites; and coming back is the single «I'm back» action.
@@ -255,15 +318,18 @@ FA: پارک کردن حالا با یک لمس انجام می‌شود و هم
 6. Tap **Remind me before it ends**, keep 10 minutes, allow notifications:
    the alert arrives ten minutes before, names the place, and disappears if
    you tap **I'm back** first.
-7. Try 5 and 30 minutes and a moment already past: the past one is refused
-   with words, not silence.
+7. Try 5 and 30 minutes; a short paid time offers only leads that fit and the
+   control disappears under a minute. The sheet itself still refuses a past
+   moment with words, not silence.
 8. Tap **I'm back**: the parking moves to history with its duration; delete
    it and use Undo.
 9. Park the same vehicle twice without coming back: the earlier-parking
    question appears, and both answers behave as before.
 10. Persian and English, light and dark, text scale 2.0, and a 320×480 phone:
-    the card, the favourites row, the reminder sheet and the editor all stay
-    usable and the primary action reachable with a thumb.
+    the card, the favourites row, the reminder sheet, the All places sheet and
+    the editor all stay usable and the primary action reachable with a thumb.
+11. Open All places, forget a stale place, and Undo: the place returns with
+    its star; past parking that named it is unchanged.
 
 ## Open questions
 
@@ -294,14 +360,15 @@ flutter test
 
 Results on this pass: `dart format` clean on the touched files;
 `flutter analyze --fatal-infos` over the whole client — "No issues found!";
-the gate with the shared rules and the module — **212 passed** (the module
-alone is **114**, all old tests still green, plus the upgrade's own); and one
-full `flutter test` run, with its last lines in the final reply. No file is
-over 400 lines.
+the gate with the shared rules and the module — **251 passed**, of which the
+module alone is **135** (all old tests still green plus eighteen regression
+tests from the 2.8.18 audit); and the full `flutter test` run reported in the
+final reply. No parking file is over 400 lines.
 
-Only `lib/modules/parking/` and `test/modules/parking/` changed;
-`module_rollout.dart` and the central shared-rules test are untouched, so
-parking stays **Soon** and stays on the pending lists.
+Only `lib/modules/parking/`, `test/modules/parking/`, this README, the audit
+doc, `CHANGELOG.md` and the client version changed. Parking was already in
+`module_rollout.dart` (available since 2.8.4); the earlier “Soon” note here was
+stale and is corrected.
 
 Screens in `review/`: the main screen in Persian dark and English light,
 including an open paid parking and a favourite place, plus the reminder sheet.

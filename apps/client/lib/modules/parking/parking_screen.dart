@@ -11,6 +11,7 @@ import 'parking_dialogs.dart';
 import 'parking_editor.dart';
 import 'parking_logic.dart';
 import 'parking_models.dart';
+import 'parking_places_sheet.dart';
 import 'parking_strings.dart';
 import 'parking_widgets.dart';
 import 'parking_writes.dart';
@@ -181,14 +182,11 @@ class _ParkingScreenState extends State<ParkingScreen>
     }
     setState(() => _busy = true);
     try {
-      var vehicle = '';
-      for (final record in _sessions) {
-        final name = ParkingModels.readString(record.body, 'vehicle').trim();
-        if (name.isNotEmpty) {
-          vehicle = name;
-          break;
-        }
-      }
+      // The car parked most recently, by when that parking began — not
+      // whichever old record happened to be saved (or corrected) last.
+      final vehicle = ParkingLogic.lastVehicle(
+        _sessions.map((record) => record.body),
+      );
       final body = ParkingModels.sessionBody(
         vehicle: vehicle,
         place: '',
@@ -216,7 +214,17 @@ class _ParkingScreenState extends State<ParkingScreen>
           vehicle,
           parkingStrings,
         );
-        if (close != true || !mounted) {
+        if (!mounted) {
+          return;
+        }
+        if (close == false) {
+          NexBannerHost.of(context)?.show(
+            kind: NexBannerKind.failed,
+            message: parkingStrings(context, 'keptEarlier'),
+          );
+          return;
+        }
+        if (close != true) {
           return;
         }
         await write(closeEarlier: true);
@@ -244,6 +252,21 @@ class _ParkingScreenState extends State<ParkingScreen>
   Future<void> _toggleFavourite(ModuleRecord record, bool favourite) => _work(
     () => ParkingWrites.setFavourite(widget.store, record.id, favourite),
   );
+
+  /// Every remembered place, including the ones the home shelves do not
+  /// reach, with a way to forget a place that is no longer used.
+  Future<void> _openPlaces() async {
+    if (_busy) {
+      return;
+    }
+    final picked = await nexShowSheet<ModuleRecord>(
+      context: context,
+      builder: (_) => ParkingPlacesSheet(store: widget.store),
+    );
+    if (picked != null && mounted) {
+      await _newParking(picked);
+    }
+  }
 
   // -------------------------------------------------------------- saving
 

@@ -143,7 +143,6 @@ const assetStrings = NexModuleStrings(
     'deleteQuoteBody':
         'This price leaves the history. The holding and its cost stay.',
     'deleteGoalBody': 'This goal is removed. Your holdings stay as they are.',
-    'futureBadge': 'Future date',
     'futureQuote':
         'This price is dated in the future; it does not value the book.',
     'priceSameDay': 'A price for this day is already recorded. Saving this one makes it the latest for the day.',
@@ -315,7 +314,6 @@ const assetStrings = NexModuleStrings(
     'deleteQuoteBody':
         'این قیمت از تاریخچه حذف می‌شود. دارایی و هزینهٔ خریدش می‌مانند.',
     'deleteGoalBody': 'این هدف حذف می‌شود؛ دارایی‌هایتان دست‌نخورده می‌مانند.',
-    'futureBadge': 'تاریخ آینده',
     'futureQuote': 'تاریخ این قیمت در آینده است؛ در ارزش دفتر حساب نمی‌شود.',
     'priceSameDay': 'برای این روز قیمتی ثبت شده است. با ذخیره، این یکی تازه‌ترین قیمت آن روز می‌شود.',
     'paidGramLine': 'هر گرم {price}',

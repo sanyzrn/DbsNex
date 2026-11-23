@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
@@ -10,6 +11,7 @@ import 'package:nex_client/modules/parking/parking_parse.dart';
 import 'package:nex_client/modules/parking/parking_models.dart';
 import 'package:nex_client/modules/parking/local_values.dart';
 import 'package:nex_client/modules/parking/local_writes.dart';
+
 import '../../support/nex_harness.dart';
 
 import 'parking_fault_store.dart';
@@ -293,56 +295,53 @@ void main() {
     expect(date, '${local.year}/${local.month}/${local.day}');
     expect(time, '${local.hour}:${local.minute.toString().padLeft(2, '0')}');
   });
-  test(
-    'editing vehicle conflicts; closing old and starting new rolls back on failure',
-    () async {
-      await inner.put('session', 'old', {
-        'vehicle': 'Car',
-        'place': 'Old',
-        'startedAt': '2026-10-13T12:00:00',
-        'future': true,
-      });
-      await inner.put('session', 'new', {
-        'vehicle': 'Bike',
-        'place': 'New',
-        'startedAt': '2026-10-13T13:00:00',
-      });
-      await expectLater(
-        ParkingRepository.save(
-          store,
-          'new',
-          {'vehicle': ' Car '},
-          ['vehicle'],
-          existing: true,
-        ),
-        throwsA(isA<ParkingConflict>()),
-      );
-      store.failPut = 'session';
-      await expectLater(
-        ParkingRepository.save(
-          store,
-          'new',
-          {'vehicle': 'Car'},
-          ['vehicle'],
-          existing: true,
-          closeEarlier: true,
-        ),
-        throwsStateError,
-      );
-      expect((await inner.get('session', 'old'))!['foundAt'], isNull);
-      expect((await inner.get('session', 'new'))!['vehicle'], 'Bike');
-      await ParkingRepository.save(
+  test('editing vehicle conflicts; closing old and starting new rolls back on failure', () async {
+    await inner.put('session', 'old', {
+      'vehicle': 'Car',
+      'place': 'Old',
+      'startedAt': '2026-10-13T12:00:00',
+      'future': true,
+    });
+    await inner.put('session', 'new', {
+      'vehicle': 'Bike',
+      'place': 'New',
+      'startedAt': '2026-10-13T13:00:00',
+    });
+    await expectLater(
+      ParkingRepository.save(
+        store,
+        'new',
+        {'vehicle': ' Car '},
+        ['vehicle'],
+        existing: true,
+      ),
+      throwsA(isA<ParkingConflict>()),
+    );
+    store.failPut = 'session';
+    await expectLater(
+      ParkingRepository.save(
         store,
         'new',
         {'vehicle': 'Car'},
         ['vehicle'],
         existing: true,
         closeEarlier: true,
-      );
-      expect((await inner.get('session', 'old'))!['future'], isTrue);
-      expect((await inner.get('session', 'old'))!['foundAt'], isNotNull);
-    },
-  );
+      ),
+      throwsStateError,
+    );
+    expect((await inner.get('session', 'old'))!['foundAt'], isNull);
+    expect((await inner.get('session', 'new'))!['vehicle'], 'Bike');
+    await ParkingRepository.save(
+      store,
+      'new',
+      {'vehicle': 'Car'},
+      ['vehicle'],
+      existing: true,
+      closeEarlier: true,
+    );
+    expect((await inner.get('session', 'old'))!['future'], isTrue);
+    expect((await inner.get('session', 'old'))!['foundAt'], isNotNull);
+  });
   test(
     'Undo of deleted active parking cannot create a second active session',
     () async {
@@ -370,6 +369,87 @@ void main() {
       );
     },
   );
+  test(
+    'reusing a favourite place keeps its star and counts the visit',
+    () async {
+      await inner.put('place', 'p1', {
+        'v': 1,
+        'place': 'Saba mall',
+        'floor': '-1',
+        'spot': 'B12',
+        'useCount': 2,
+        'favorite': true,
+        'lastUsedAt': '2024-01-01T10:00:00.000Z',
+      });
+      await ParkingWrites.rememberPlace(store, const [], {
+        'place': 'Saba mall',
+        'floor': '-1',
+        'spot': 'B12',
+        'landmark': 'By the lift',
+      });
+
+      final place = (await inner.get('place', 'p1'))!;
+      expect(place['favorite'], isTrue);
+      expect(place['useCount'], 3);
+      expect(place['landmark'], 'By the lift');
+    },
+  );
+
+  test(
+    'reusing a place written with Arabic letters updates one record',
+    () async {
+      await inner.put('place', 'p1', {
+        'v': 1,
+        'place': 'كتابخانه',
+        'floor': '1',
+        'spot': 'A1',
+        'useCount': 1,
+      });
+      await ParkingWrites.rememberPlace(store, const [], {
+        'place': 'کتابخانه',
+        'floor': '1',
+        'spot': 'a1',
+      });
+
+      final places = await inner.list('place');
+      expect(places, hasLength(1));
+      expect(places.single.body['useCount'], 2);
+    },
+  );
+
+  test('closing an earlier parking cancels its device reminder', () async {
+    await inner.put('session', 'old', {
+      'v': 1,
+      'vehicle': 'Car',
+      'place': 'Old',
+      'startedAt': '2026-10-13T12:00:00.000Z',
+    });
+    await h.db.modulePut('parking', '__reminder', 'session:old', {
+      'sourceKind': 'session',
+      'sourceId': 'old',
+      'at': '2026-10-13T14:00:00.000Z',
+      'title': 'Parking',
+      'body': 'Paid time',
+    });
+
+    await ParkingRepository.save(
+      store,
+      'new',
+      {
+        'v': 1,
+        'vehicle': 'Car',
+        'place': 'New',
+        'startedAt': '2026-10-13T13:00:00.000Z',
+      },
+      ['vehicle', 'place', 'startedAt'],
+      existing: false,
+      closeEarlier: true,
+    );
+
+    expect((await inner.get('session', 'old'))!['foundAt'], isNotNull);
+    expect(await inner.get('__reminder', 'session:old'), isNull);
+  });
+
   test('cleared coordinates do not survive in a remembered template', () async {
     await ParkingWrites.rememberPlace(store, const [], {
       'place': 'Example',

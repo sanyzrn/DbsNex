@@ -105,13 +105,10 @@ class Valuation {
     for (final quote in sortedQuotes) {
       history.putIfAbsent(quote.market.key, () => []).add(quote);
     }
-    final usable = <String, List<Quote>>{};
     for (final quote in sortedQuotes) {
-      if (quote.date.isAfter(this.asOf)) continue;
-      usable.putIfAbsent(quote.market.key, () => []).add(quote);
-    }
-    for (final entry in usable.entries) {
-      _latest[entry.key] = entry.value.first;
+      if (!quote.date.isAfter(this.asOf)) {
+        _latest.putIfAbsent(quote.market.key, () => quote);
+      }
     }
 
     // A stable order inside the book: the same lot stays in the same place

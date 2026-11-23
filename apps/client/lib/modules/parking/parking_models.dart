@@ -140,9 +140,19 @@ class ParkingModels {
     required DateTime at,
   }) => {'v': 1, 'query': query.trim(), 'at': at.toUtc().toIso8601String()};
 
-  /// Case and folded whitespace match; there is no transliteration.
-  static bool sameVehicle(String a, String b) =>
-      _vehicleKey(a) == _vehicleKey(b);
-  static String _vehicleKey(String value) =>
-      value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+  /// The form two written names are compared in: case-blind, Arabic yeh and
+  /// kaf read as their Persian letters, and runs of spaces or a half-space
+  /// read as one space. It is only for matching — what the person wrote is
+  /// what the screen shows.
+  static String fold(String value) =>
+      LocalValues.ascii(value)
+          .trim()
+          .toLowerCase()
+          .replaceAll('ي', 'ی')
+          .replaceAll('ك', 'ک')
+          .replaceAll('ة', 'ه')
+          .replaceAll(RegExp(r'[\s\u200c]+'), ' ');
+
+  /// Case, letter and folded whitespace match; there is no transliteration.
+  static bool sameVehicle(String a, String b) => fold(a) == fold(b);
 }
