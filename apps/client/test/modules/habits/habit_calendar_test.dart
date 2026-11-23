@@ -31,7 +31,9 @@ void main() {
     final now = DateTime.now();
     final scheduled = Habit.fromBody('h', {
       'schedule': 'days',
-      'days': [DateTime.monday],
+      // With two scheduled weekdays, the 7-day window contains a past
+      // scheduled day even when today is still pending.
+      'days': [DateTime.monday, DateTime.thursday],
       'createdAt': DateTime(
         now.year,
         now.month,
