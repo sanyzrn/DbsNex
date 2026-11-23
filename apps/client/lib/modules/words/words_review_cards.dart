@@ -23,9 +23,12 @@ extension _ReviewCards on _WordsReviewPageState {
 
   Widget _pill(BuildContext context, String text) {
     const white = Colors.white;
+    // A dark tint, not a light one: the gradient is already bright at its
+    // violet end, and white text on white-washed violet loses its
+    // contrast.
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: white.withValues(alpha: 0.18),
+        color: Colors.black.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(NexRadius.pill),
       ),
       child: Padding(
@@ -135,7 +138,7 @@ extension _ReviewCards on _WordsReviewPageState {
                               Icon(
                                 Icons.touch_app_outlined,
                                 size: 18,
-                                color: white.withValues(alpha: 0.8),
+                                color: white.withValues(alpha: 0.92),
                               ),
                               const SizedBox(width: NexSpacing.xs),
                               Flexible(
@@ -143,7 +146,7 @@ extension _ReviewCards on _WordsReviewPageState {
                                   strings(context, 'tapToReveal'),
                                   textAlign: TextAlign.center,
                                   style: theme.textTheme.bodySmall?.copyWith(
-                                    color: white.withValues(alpha: 0.8),
+                                    color: white.withValues(alpha: 0.92),
                                   ),
                                 ),
                               ),

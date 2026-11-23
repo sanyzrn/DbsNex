@@ -1,9 +1,6 @@
-/// Choosing, making, renaming and removing a deck. One sheet does all of
-/// it, from the word page, the paste sheet and the home page, so a deck is
-/// never created in one place and unreachable in another.
-///
-/// A deck that is removed takes nothing with it: its words go back to «no
-/// deck», with their review history untouched (docs/18, rule 5).
+/// Choosing, making, renaming and removing a deck — one sheet for the word
+/// page, the paste sheet and the home page. A removed deck takes nothing:
+/// its words go back to «no deck» with their history (docs/18, rule 5).
 library;
 
 import 'dart:async';
@@ -17,9 +14,10 @@ import 'words_models.dart';
 import 'words_store.dart';
 import 'words_strings.dart';
 
-/// The deck a word is in, as one row on the word's page: what it is now,
-/// and the way to change it.
-class WordsDeckField extends StatelessWidget {
+/// The deck a word is in, as one row on the word's page. The decks are read
+/// once and again when the sheet closes, not on every rebuild: a field that
+/// re-read them under every keystroke would flicker its own name.
+class WordsDeckField extends StatefulWidget {
   const WordsDeckField({
     super.key,
     required this.repository,
@@ -34,25 +32,36 @@ class WordsDeckField extends StatelessWidget {
   final ValueChanged<String> onChanged;
 
   @override
+  State<WordsDeckField> createState() => _WordsDeckFieldState();
+}
+
+class _WordsDeckFieldState extends State<WordsDeckField> {
+  late Future<List<WordsDeck>> _decks = widget.repository.loadDecks();
+
+  Future<void> _open() async {
+    await showWordsDeckPicker(
+      context,
+      widget.repository,
+      selectedId: widget.deckId,
+      onPicked: widget.onChanged,
+    );
+    // A deck made or renamed in the sheet has to show its name here.
+    if (mounted) setState(() => _decks = widget.repository.loadDecks());
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return FutureBuilder<List<WordsDeck>>(
-      future: repository.loadDecks(),
+      future: _decks,
       builder: (context, snapshot) {
         final decks = snapshot.data ?? const <WordsDeck>[];
-        final name = wordsDeckName(decks, deckId);
+        final name = wordsDeckName(decks, widget.deckId);
         return InkWell(
           key: const ValueKey('words-deck-field'),
           borderRadius: BorderRadius.circular(NexRadius.md),
-          onTap: () => unawaited(
-            showWordsDeckPicker(
-              context,
-              repository,
-              selectedId: deckId,
-              onPicked: onChanged,
-            ),
-          ),
+          onTap: () => unawaited(_open()),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: NexSpacing.sm),
             child: Row(

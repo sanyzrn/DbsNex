@@ -76,11 +76,15 @@ const Map<String, String> wordsStringsEn = {
   'dueNowCount': '{count} due now',
   'newTodayCount': '{count} new today',
   'startReview': 'Start review',
+  'startReviewDeck': 'Review this deck',
   'nothingToReview':
       'Nothing to review right now. Words come back on their own days.',
   'dailyCap': 'New per day',
   'dailyPerDay': '{count} a day',
   'dailyCapOff': 'No cap',
+  'dailyGoal': 'Daily goal',
+  'goalPerDayCount': '{count} reviews a day',
+  'goalNone': 'No goal',
   'reverseTip': 'Ask the meaning first',
   'reverseOnTip': 'Back to word first',
   'reverseHint':
@@ -147,6 +151,9 @@ const Map<String, String> wordsStringsEn = {
   'sessionDone': 'That is the session — {count} cards reviewed.',
   'sessionDoneOne': 'That is the session — one card reviewed.',
   'sessionDoneCalm': 'Come back tomorrow; a few will be waiting.',
+  'sessionDoneNone': 'No cards were reviewed this time.',
+  'sessionDoneLeftOut': '{count} left for next time',
+  'reviewDeck': 'Review · {name}',
   'scheduleHow': 'How the schedule works',
   'scheduleHowBody':
       'A fixed ladder: 1, 3, 7, 14, 30 and 60 days. «Again» starts over at '

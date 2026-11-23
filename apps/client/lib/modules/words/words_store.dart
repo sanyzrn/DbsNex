@@ -1,7 +1,5 @@
-/// The module's one shelf in the library, wrapped: cards, settings, and
-/// a reload that listens to the store's change stream. Everything a
-/// screen does to data goes through here, so the record shapes have one
-/// reader and one writer.
+/// The module's one shelf in the library: cards, settings and the reload
+/// that listens to the store. Every record shape is read and written here.
 library;
 
 import 'dart:async';
@@ -43,10 +41,9 @@ class WordsRepository {
   /// Fires after this module's records change — what a list rebuilds on.
   Stream<void> get changes => _store.changes;
 
-  /// Every card, newest first as the store keeps them. The parse is cached
-  /// against each record's stamp (see `words_deck_cache.dart`): this runs on
-  /// every screen reload, every `keepUp` at launch and resume, and behind
-  /// `dues` and `glance`, and the deck is almost always the same deck.
+  /// Every card, newest first. The parse is cached against each record's
+  /// stamp (`words_deck_cache.dart`), because this runs on every reload,
+  /// `keepUp`, `dues` and `glance`, and the deck is almost always the same.
   Future<List<WordCard>> loadCards() async {
     await RecordBundle.recover(_store);
     final records = await _store.list(cardKind);
@@ -171,8 +168,7 @@ class WordsRepository {
       });
       return (status: WordsAnswerStatus.saved, card: next);
     } catch (_) {
-      // A provider can report a failure after committing. Confirm this event
-      // before a retry could apply the same grade twice.
+      // A provider can fail after committing: confirm this event first.
       try {
         final body = await _store.get(cardKind, expected.id);
         if (body?['lastReviewId'] == eventId) {
@@ -216,8 +212,7 @@ class WordsRepository {
     }
   });
 
-  /// A brand-new card, today-stamped, with the ladder's first day as its
-  /// due date (new cards are picked up by the session, not by «due»).
+  /// A brand-new card, today-stamped, due on the ladder's first day.
   Future<WordCard> newCard({
     required String headword,
     required String language,
@@ -267,6 +262,8 @@ class WordsRepository {
     int? newPerDay,
     int? sessionLimit,
     int? goalPerDay,
+    String? exercise,
+    bool? reverse,
   }) => _serial(() async {
     try {
       final body = await _store.get(settingsKind, WordsSettings.recordId);
@@ -275,6 +272,8 @@ class WordsRepository {
         newPerDay: newPerDay ?? current.newPerDay,
         sessionLimit: sessionLimit ?? current.sessionLimit,
         goalPerDay: goalPerDay ?? current.goalPerDay,
+        exercise: exercise ?? current.exercise,
+        reverse: reverse ?? current.reverse,
       );
       await _store.put(settingsKind, WordsSettings.recordId, {
         ...?body,
@@ -286,7 +285,9 @@ class WordsRepository {
     }
   });
 
-  /// The words of the day's session, and how many are waiting.
+  /// The words of the day's session and how many wait. [deckId] narrows it
+  /// to one deck (empty: the words outside every deck); the day's
+  /// introduction allowance is counted across all cards, not the deck's.
   Future<
     ({
       List<WordCard> due,
@@ -295,14 +296,24 @@ class WordsRepository {
       int sessionLimit,
     })
   >
-  loadSession() async {
+  loadSession({String? deckId}) async {
     final settings = await loadSettings();
     final cards = await loadCards();
+    final today = isoDay(DateTime.now());
+    var inScope = cards;
+    if (deckId != null) {
+      final decks = await loadDecks();
+      inScope = [
+        for (final card in cards)
+          if (wordsCardDeck(decks, card) == deckId) card,
+      ];
+    }
     final session = buildSession(
-      cards: cards,
-      todayIso: isoDay(DateTime.now()),
+      cards: inScope,
+      todayIso: today,
       newPerDay: settings.newPerDay,
       sessionLimit: settings.sessionLimit,
+      introducedToday: wordsIntroducedOn(cards, today),
     );
     return (
       due: session.due,
@@ -322,8 +333,7 @@ class WordsRepository {
     );
   }
 
-  /// Makes a deck, or hands back the one already carrying this name — two
-  /// cases of one book never become two decks.
+  /// Makes a deck, or hands back the one with this name (case folded).
   Future<WordsDeck?> createDeck(String name) => _serial(() async {
     final clean = foldWhitespace(name);
     if (clean.isEmpty) return null;
@@ -359,9 +369,8 @@ class WordsRepository {
     }
   });
 
-  /// Removes a deck and leaves its words where they are, without a deck.
-  /// The cards are written one by one so an interrupted delete cannot take
-  /// a word with it.
+  /// Removes a deck and leaves its words without one, written card by card
+  /// so an interrupted delete cannot take a word with it.
   Future<bool> deleteDeck(String id) => _serial(() async {
     try {
       final cards = await _store.list(cardKind);
@@ -376,8 +385,7 @@ class WordsRepository {
     }
   });
 
-  /// Puts one card in a deck, or takes it out of every deck with an empty
-  /// [deckId]. The review history is left exactly as it was.
+  /// Puts one card in a deck (empty [deckId]: no deck), history untouched.
   Future<bool> setCardDeck(String cardId, String deckId) => _serial(() async {
     try {
       final body = await _store.get(cardKind, cardId);

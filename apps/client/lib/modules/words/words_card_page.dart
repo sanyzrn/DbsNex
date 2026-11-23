@@ -13,7 +13,9 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'words_deck_picker.dart';
+import 'words_decks.dart';
 import 'words_fields.dart';
+import 'words_share.dart';
 import 'words_models.dart';
 import 'words_scheduler.dart';
 import 'words_store.dart';
@@ -52,6 +54,13 @@ class _WordsCardPageState extends State<WordsCardPage> with _WordsCardLogic {
           appBar: NexAppBar(
             title: Text(strings(context, existing ? 'wordLabel' : 'addWord')),
             actions: [
+              if (existing)
+                IconButton(
+                  key: const ValueKey('words-card-share'),
+                  tooltip: AppLocalizations.of(context).share,
+                  onPressed: _saving ? null : () => unawaited(_share()),
+                  icon: const Icon(Icons.share_outlined),
+                ),
               if (existing)
                 IconButton(
                   key: const ValueKey('words-card-delete'),

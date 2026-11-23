@@ -223,6 +223,8 @@ class WordsSettings {
     required this.newPerDay,
     this.sessionLimit = 20,
     this.goalPerDay = defaultGoalPerDay,
+    this.exercise = defaultExercise,
+    this.reverse = false,
   });
   final int sessionLimit;
 
@@ -234,8 +236,17 @@ class WordsSettings {
   /// missed day costs nothing — no streak is kept anywhere.
   final int goalPerDay;
 
+  /// How the cards are asked — «flashcard», «type» or «choose» — kept so
+  /// the way a person practises survives closing the review. A record
+  /// written before this existed reads as flashcards.
+  final String exercise;
+
+  /// Whether the meaning is asked first. Also remembered between sessions.
+  final bool reverse;
+
   static const defaultPerDay = 10;
   static const defaultGoalPerDay = 10;
+  static const defaultExercise = 'flashcard';
   static const String recordId = 'settings';
 
   factory WordsSettings.fromRecord(Map<String, Object?> body) {
@@ -244,12 +255,19 @@ class WordsSettings {
       return value != null && value >= 0 && value <= 200 ? value : fallback;
     }
 
+    final exercise = '${body['exercise'] ?? defaultExercise}';
     return WordsSettings(
       newPerDay: read('newPerDay', defaultPerDay),
       sessionLimit: read('sessionLimit', 20),
       // A settings record written before the goal existed has no key: the
       // goal then starts at its default instead of reading as «none».
       goalPerDay: read('goalPerDay', defaultGoalPerDay),
+      // An unknown way of asking falls back to the card rather than making
+      // the review fail to open.
+      exercise: const {'flashcard', 'type', 'choose'}.contains(exercise)
+          ? exercise
+          : defaultExercise,
+      reverse: body['reverse'] is bool ? body['reverse'] as bool : false,
     );
   }
   Map<String, Object?> toRecord() => {
@@ -257,6 +275,8 @@ class WordsSettings {
     'newPerDay': newPerDay,
     'sessionLimit': sessionLimit,
     'goalPerDay': goalPerDay,
+    'exercise': exercise,
+    'reverse': reverse,
   };
 }
 

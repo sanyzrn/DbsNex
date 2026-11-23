@@ -32,8 +32,9 @@ class _WordsBatchSheet extends StatefulWidget {
 }
 
 class _WordsBatchSheetState extends State<_WordsBatchSheet> {
+  static const _defaultLanguage = 'English';
   final _text = TextEditingController();
-  final _language = TextEditingController(text: 'English');
+  final _language = TextEditingController(text: _defaultLanguage);
   late final FormDraft _draft;
   bool _adding = false;
   bool _restoring = true;
@@ -67,6 +68,18 @@ class _WordsBatchSheetState extends State<_WordsBatchSheet> {
     if (body != null) {
       _draft.apply(body);
       if (body['deckId'] is String) _deckId = body['deckId'] as String;
+    } else if (_language.text == _defaultLanguage) {
+      // A fresh list takes the language the collection already speaks —
+      // Persian for a Persian list, English for an English one — instead
+      // of asking every time.
+      try {
+        final cards = await widget.repository.loadCards();
+        if (!mounted) return;
+        final suggested = wordsSuggestedLanguage(cards);
+        if (suggested != _defaultLanguage) _language.text = suggested;
+      } catch (_) {
+        /* The default stands; the field is editable anyway. */
+      }
     }
     _draft.resume();
     setState(() {

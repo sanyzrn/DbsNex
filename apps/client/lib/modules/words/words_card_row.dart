@@ -18,11 +18,16 @@ class WordsCardRow extends StatelessWidget {
     required this.card,
     required this.todayIso,
     required this.onTap,
+    this.deckName = '',
   });
 
   final WordCard card;
   final String todayIso;
   final VoidCallback onTap;
+
+  /// The deck this word belongs to, when it has one: the list is often read
+  /// with a filter off, and a word's book is worth seeing beside its tag.
+  final String deckName;
 
   @override
   Widget build(BuildContext context) {
@@ -88,11 +93,14 @@ class WordsCardRow extends StatelessWidget {
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
-                    if (card.tag.isNotEmpty || card.language.isNotEmpty)
+                    if (card.tag.isNotEmpty ||
+                        card.language.isNotEmpty ||
+                        deckName.isNotEmpty)
                       Text(
                         [
                           if (card.language.isNotEmpty) card.language,
                           if (card.tag.isNotEmpty) card.tag,
+                          if (deckName.isNotEmpty) deckName,
                         ].join(' · '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

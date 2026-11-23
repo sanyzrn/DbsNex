@@ -4,6 +4,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Word by Word, sharper.** Review only the deck you picked, share a word as text, search with the Persian and Arabic letter forms and half-spaces forgiven, and keep the practice mode you chose. A skipped card comes back before the session ends, the daily goal is yours to set, and each word shows its deck in the list.
+
 ## v2.8.16
 
 - **Smoother saves on Home.** The list and grid stay steadier when you add a note, edit it, or save a photo.

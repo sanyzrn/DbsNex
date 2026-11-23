@@ -74,11 +74,15 @@ const Map<String, String> wordsStringsFa = {
   'dueNowCount': '{count} واژه سررسید',
   'newTodayCount': '{count} تازه امروز',
   'startReview': 'شروع مرور',
+  'startReviewDeck': 'مرور این دسته',
   'nothingToReview':
       'الان چیزی برای مرور نیست. واژه‌ها در روزِ خودشان برمی‌گردند.',
   'dailyCap': 'تازه در روز',
   'dailyPerDay': '{count} در روز',
   'dailyCapOff': 'بی‌سقف',
+  'dailyGoal': 'هدف روزانه',
+  'goalPerDayCount': '{count} مرور در روز',
+  'goalNone': 'بدون هدف',
   'reverseTip': 'اول معنی را بپرس',
   'reverseOnTip': 'برگشت به واژه‌اول',
   'reverseHint': 'اول معنی: معنی را می‌بینید و واژه را به یاد می‌آورید.',
@@ -142,6 +146,9 @@ const Map<String, String> wordsStringsFa = {
   'sessionDone': 'جلسه همین بود — {count} کارت مرور شد.',
   'sessionDoneOne': 'جلسه همین بود — یک کارت مرور شد.',
   'sessionDoneCalm': 'فردا بیایید؛ چندتایی منتظر خواهند بود.',
+  'sessionDoneNone': 'این بار کارتی مرور نشد.',
+  'sessionDoneLeftOut': '{count} برای بعد ماند',
+  'reviewDeck': 'مرور · {name}',
   'scheduleHow': 'برنامه‌ریزی چگونه کار می‌کند',
   'scheduleHowBody':
       'نردبانِ ثابت: ۱ و ۳ و ۷ و ۱۴ و ۳۰ و ۶۰ روز. «دوباره» از یک روز شروع '

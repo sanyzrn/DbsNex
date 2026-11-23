@@ -14,6 +14,7 @@ import 'words_card_row.dart';
 import 'words_daily_cap.dart';
 import 'words_deck_picker.dart';
 import 'words_decks.dart';
+import 'words_goal.dart';
 import 'words_models.dart';
 import 'words_practice.dart';
 import 'words_progress_sheet.dart';
@@ -114,7 +115,9 @@ class _WordsScreenState extends State<WordsScreen>
                     _reviewPanel(context, due, fresh),
                     const SizedBox(height: NexSpacing.md),
                   ],
-                  _searchAndFilters(context, theme),
+                  // No words yet means nothing to search or filter: the
+                  // page stays as quiet as the empty state deserves.
+                  if (_cards.isNotEmpty) _searchAndFilters(context, theme),
                   if (_cards.isEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: NexSpacing.xl),
@@ -155,6 +158,7 @@ class _WordsScreenState extends State<WordsScreen>
                         child: WordsCardRow(
                           card: card,
                           todayIso: _todayIso,
+                          deckName: wordsDeckName(_decks, card.deckId) ?? '',
                           onTap: () => unawaited(
                             Navigator.of(context).push(
                               NexPageRoute<void>(
@@ -181,7 +185,9 @@ class _WordsScreenState extends State<WordsScreen>
                         ),
                       ),
                   ],
-                  const SizedBox(height: NexSpacing.xl * 2),
+                  // Clear of the floating button and the phone's own
+                  // bottom bar: the last word must not sit under either.
+                  SizedBox(height: NexSpacing.xl * 3 + nexBottomInset(context)),
                 ],
               ),
             ),
@@ -217,15 +223,31 @@ class _WordsScreenState extends State<WordsScreen>
                     backgroundColor: white,
                     foregroundColor: wordsDeckFrom,
                   ),
+                  // A deck chosen on the home page is the deck the
+                  // session draws from: the words of one book, course or
+                  // trip, with the person's own daily allowance.
                   onPressed: () => unawaited(
                     Navigator.of(context).push(
                       NexPageRoute<void>(
-                        builder: (_) => WordsReviewPage(store: widget.store),
+                        builder: (_) => WordsReviewPage(
+                          store: widget.store,
+                          deckId: _deckFilter,
+                          deckName: _deckReviewName(context),
+                        ),
                       ),
                     ),
                   ),
                   icon: const Icon(Icons.play_arrow_rounded),
-                  label: Text(strings(context, 'startReview')),
+                  // Says what the session will cover: every waiting word, or
+                  // the deck the chips narrowed to.
+                  label: Text(
+                    strings(
+                      context,
+                      _deckFilter == null || _deckFilter!.isEmpty
+                          ? 'startReview'
+                          : 'startReviewDeck',
+                    ),
+                  ),
                 )
               : Text(
                   strings(context, 'nothingToReview'),
@@ -257,6 +279,7 @@ class _WordsScreenState extends State<WordsScreen>
                   repository: _repository,
                   session: true,
                 ),
+                WordsGoalRow(settings: _settings, repository: _repository),
                 const Divider(),
                 WordsReminderRow(store: widget.store),
               ],

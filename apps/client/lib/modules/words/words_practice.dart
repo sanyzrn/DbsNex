@@ -83,6 +83,61 @@ final _senseBreak = RegExp(r'[\r\n;؛,،/]+');
 
 String _gapless(String text) => text.replaceAll(' ', '');
 
+/// Whether [card] matches a search for [query], with the same forgiving
+/// reading a typed answer gets: the Arabic and Persian forms of ی and ک are
+/// one letter, harakat and the zero-width non-joiner do not split a word,
+/// Persian and Arabic digits are digits, case and punctuation are folded,
+/// and a space where a half-space belongs is still the same word. A search
+/// for «کتاب» finds «كتاب», and «می روم» finds «می‌روم» — the two misses a
+/// Persian reader meets most often.
+bool wordsMatchesQuery(WordCard card, String query) {
+  final needle = wordsNormalize(query);
+  if (needle.isEmpty) return true;
+  final haystack = wordsNormalize(
+    [
+      card.headword,
+      card.language,
+      card.meaning,
+      card.example,
+      card.note,
+      card.tag,
+    ].join('\n'),
+  );
+  if (haystack.contains(needle)) return true;
+  // Only gaps *between Persian or Arabic letters* are folded, so a Latin
+  // word is never glued to its neighbour by the search. This is the
+  // «می روم» / «می‌روم» case, where a phone keyboard typed a space for the
+  // half-space.
+  return _compactPersian(haystack).contains(_compactPersian(needle));
+}
+
+bool _isPersianLetter(int rune) =>
+    (rune >= 0x0620 && rune <= 0x064A) ||
+    (rune >= 0x066E && rune <= 0x06D3) ||
+    (rune >= 0x06F0 && rune <= 0x06FF) ||
+    (rune >= 0x0750 && rune <= 0x077F);
+
+/// [text] with the spaces between two Persian or Arabic letters removed —
+/// the half-space and the space read as the same gap.
+String _compactPersian(String text) {
+  final runes = text.runes.toList();
+  final out = StringBuffer();
+  var last = -1;
+  for (var i = 0; i < runes.length; i++) {
+    final rune = runes[i];
+    if (rune == 0x20 &&
+        last != -1 &&
+        i + 1 < runes.length &&
+        _isPersianLetter(last) &&
+        _isPersianLetter(runes[i + 1])) {
+      continue;
+    }
+    out.writeCharCode(rune);
+    last = rune;
+  }
+  return out.toString();
+}
+
 /// The side of [card] that is asked for: the meaning, or the word itself
 /// when the meaning is shown first.
 String wordsAnswerOf(WordCard card, {required bool reverse}) =>
