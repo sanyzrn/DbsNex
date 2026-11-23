@@ -205,6 +205,87 @@ void main() {
     expect(find.text('Second'), findsOneWidget);
   });
 
+  testWidgets('consecutive actions and errors keep their full turn', (
+    tester,
+  ) async {
+    final restored = <int>[];
+    NexBannerHandle? second;
+    await tester.pumpWidget(
+      host(
+        onTap: (context) {
+          for (var i = 1; i <= 2; i++) {
+            second = nexShowBanner(
+              context,
+              message: 'Removed',
+              actionLabel: 'Undo',
+              onAction: () => restored.add(i),
+              haptics: false,
+            );
+          }
+          for (var i = 1; i <= 5; i++) {
+            nexShowBanner(
+              context,
+              message: 'Failure $i',
+              kind: NexBannerKind.failed,
+              haptics: false,
+            );
+          }
+          nexShowBanner(context, message: 'Saved', haptics: false);
+        },
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
+    expect(second!.isShowing, isFalse);
+    expect(find.text('+7'), findsOneWidget);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(second!.isShowing, isTrue);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(restored, [1, 2]);
+
+    for (var i = 1; i <= 5; i++) {
+      final message = find.text('Failure $i');
+      expect(message, findsOneWidget);
+      await tester.tap(message);
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Saved'), findsOneWidget);
+  });
+
+  testWidgets('one grouped Undo runs every action in the batch', (
+    tester,
+  ) async {
+    final restored = <int>[];
+    await tester.pumpWidget(
+      host(
+        onTap: (context) {
+          for (var i = 1; i <= 3; i++) {
+            nexShowBanner(
+              context,
+              message: 'One note set aside',
+              actionLabel: 'Undo',
+              group: NexBannerGroup(
+                key: 'archive',
+                count: 1,
+                message: (count) => '$count notes set aside',
+              ),
+              onAction: () => restored.add(i),
+              haptics: false,
+            );
+          }
+        },
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
+    expect(find.text('3 notes set aside'), findsOneWidget);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(restored, [1, 2, 3]);
+  });
+
   testWidgets('a replaced banner leaves through the edge, not by vanishing', (
     tester,
   ) async {

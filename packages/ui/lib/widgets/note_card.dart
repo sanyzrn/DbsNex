@@ -1018,7 +1018,7 @@ class _Leading extends StatelessWidget {
         ),
       );
     }
-    if (note.type == NoteType.file ||
+    if (note.hasNamedFile ||
         note.type == NoteType.link ||
         note.snippetPreview != null) {
       return _IconBox.note(note);

@@ -96,10 +96,15 @@ void main() {
       expect(page.text, '<p>x</p>');
 
       final unknown = nexSaveTargetFor(
-        _note(NoteType.text, content: '```kotlin\nval x = 1\n```'),
+        _note(NoteType.text, content: '```zig\nconst x = 1;\n```'),
       )!;
       expect(unknown.name, endsWith('.txt'));
-      expect(unknown.text, 'val x = 1');
+      expect(unknown.text, 'const x = 1;');
+      final kotlin = nexSaveTargetFor(
+        _note(NoteType.text, content: '```kotlin\nval x = 1\n```'),
+      )!;
+      expect(kotlin.name, endsWith('.kt'));
+      expect(kotlin.mimeType, 'text/plain');
     });
 
     test(

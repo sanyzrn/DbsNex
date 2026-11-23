@@ -1196,6 +1196,8 @@ class AppLocalizationsFa extends AppLocalizations {
       'text': 'متن',
       'voice': 'صدا',
       'photo': 'عکس',
+      'video': 'ویدئو',
+      'media': 'رسانه',
       'file': 'فایل',
       'checklist': 'چک‌لیست',
       'link': 'لینک',
@@ -3490,6 +3492,13 @@ class AppLocalizationsFa extends AppLocalizations {
   String cycleLikelyBetween(String from, String to) {
     return 'احتمالاً بین $from تا $to';
   }
+
+  @override
+  String get cycleForecastPaused =>
+      'بازهٔ تخمینی گذشته است. با ثبت شروع پریود بعدی، پیش‌بینی تقویم دوباره محاسبه می‌شود.';
+
+  @override
+  String get cycleStageUnknown => 'زمان‌بندی نامشخص';
 
   @override
   String get cycleConfidenceLow => 'هنوز در حال شناختن چرخهٔ شما';
@@ -6451,7 +6460,7 @@ class AppLocalizationsFa extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(type, {
       'text': 'نوشته‌ها',
       'voice': 'صداها',
-      'photo': 'عکس‌ها',
+      'photo': 'رسانه',
       'file': 'فایل‌ها',
       'checklist': 'چک‌لیست‌ها',
       'link': 'لینک‌ها',
@@ -6918,6 +6927,45 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get codeSuggestedLanguage => 'انتخاب زبان پیشنهادی';
+
+  @override
+  String bannerPending(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString پیام در صف';
+  }
+
+  @override
+  String get codeShowMore => 'نمایش کد بیشتر';
+
+  @override
+  String get codeShowLess => 'نمایش کد کمتر';
+
+  @override
+  String get codeLineNumbers => 'شمارهٔ خط';
+
+  @override
+  String get codeShareFile => 'اشتراک‌گذاری کد به‌صورت فایل';
+
+  @override
+  String get codeShareFailed => 'اشتراک‌گذاری فایل کد انجام نشد';
+
+  @override
+  String get codeFind => 'جست‌وجو در کد';
+
+  @override
+  String get codeNoMatches => 'عبارت در این کد پیدا نشد';
+
+  @override
+  String codeFirstMatches(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return 'نمایش $countString نتیجهٔ اول';
+  }
 
   @override
   String get codeWrap => 'شکستن خط‌های بلند';

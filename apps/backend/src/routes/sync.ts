@@ -61,6 +61,7 @@ export const NOTE_TYPES = [
   "file",
   "checklist",
   "link",
+  "video",
 ] as const;
 
 const incomingNote = z.object({

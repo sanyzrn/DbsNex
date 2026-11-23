@@ -147,6 +147,7 @@ part of '../../platform/nex_services.dart';
                 .map((m) => m.group(1)!)
                 .toSet();
         expect(exports, {
+          'package:nex_core/nex_core.dart',
           'package:nex_data/nex_data.dart',
           'package:nex_ui/nex_ui.dart',
           '../l10n/app_localizations.dart',

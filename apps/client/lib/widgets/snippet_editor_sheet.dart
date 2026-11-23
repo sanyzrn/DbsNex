@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import 'code_editing_controller.dart';
+import 'code_input.dart';
 import 'code_language_button.dart';
 import 'draft_guard.dart';
 import 'keyboard_dismisser.dart';
@@ -223,27 +225,39 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
                         borderRadius: BorderRadius.circular(NexRadius.md),
                         border: Border.all(color: scheme.outlineVariant),
                       ),
-                      child: NexTextField(
-                        controller: _code,
-                        useNativeEditor: false,
-                        focusNode: _focus,
-                        autofocus: true,
-                        expands: true,
-                        minLines: null,
-                        maxLines: null,
-                        textDirection: TextDirection.ltr,
-                        monospace: true,
-                        keyboardType: TextInputType.multiline,
-                        textCapitalization: TextCapitalization.none,
-                        autocorrect: false,
-                        textInputAction: TextInputAction.newline,
-                        decoration: InputDecoration(
-                          hintText: l10n.codeHint,
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          filled: false,
-                          contentPadding: EdgeInsets.zero,
+                      child: CallbackShortcuts(
+                        bindings: {
+                          const SingleActivator(LogicalKeyboardKey.tab): () =>
+                              nexIndentCode(_code, remove: false),
+                          const SingleActivator(
+                            LogicalKeyboardKey.tab,
+                            shift: true,
+                          ): () =>
+                              nexIndentCode(_code, remove: true),
+                        },
+                        child: NexTextField(
+                          controller: _code,
+                          inputFormatters: const [NexCodeInputFormatter()],
+                          useNativeEditor: false,
+                          focusNode: _focus,
+                          autofocus: true,
+                          expands: true,
+                          minLines: null,
+                          maxLines: null,
+                          textDirection: TextDirection.ltr,
+                          monospace: true,
+                          keyboardType: TextInputType.multiline,
+                          textCapitalization: TextCapitalization.none,
+                          autocorrect: false,
+                          textInputAction: TextInputAction.newline,
+                          decoration: InputDecoration(
+                            hintText: l10n.codeHint,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            filled: false,
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
                       ),
                     ),

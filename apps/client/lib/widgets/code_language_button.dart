@@ -16,6 +16,7 @@ class NexCodeToolbar extends StatelessWidget {
     required this.controller,
     required this.focus,
     required this.onSelected,
+    this.onEdited,
     this.rawLanguage,
     this.showIndentation = true,
     this.enabled = true,
@@ -26,6 +27,7 @@ class NexCodeToolbar extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focus;
   final ValueChanged<NexCodeLanguage> onSelected;
+  final ValueChanged<String>? onEdited;
   final bool showIndentation;
   final bool enabled;
 
@@ -42,56 +44,8 @@ class NexCodeToolbar extends StatelessWidget {
   }
 
   void _indent(bool remove) {
-    final before = controller.value;
-    final text = before.text;
-    final selection = before.selection.isValid
-        ? before.selection
-        : TextSelection.collapsed(offset: text.length);
-    final start = selection.start;
-    final end = selection.end;
-    final first = start == 0 ? 0 : text.lastIndexOf('\n', start - 1) + 1;
-    final changes = <(int, int)>[];
-    var line = first;
-    do {
-      final delta = !remove
-          ? 2
-          : text.startsWith('\t', line)
-          ? -1
-          : text.startsWith('  ', line)
-          ? -2
-          : text.startsWith(' ', line)
-          ? -1
-          : 0;
-      if (delta != 0) changes.add((line, delta));
-      final next = text.indexOf('\n', line);
-      if (next < 0) break;
-      line = next + 1;
-    } while (line < end);
-    if (changes.isEmpty) return;
-    final output = StringBuffer();
-    var cursor = 0;
-    for (final (index, delta) in changes) {
-      output.write(text.substring(cursor, index));
-      if (delta > 0) output.write('  ');
-      cursor = delta < 0 ? index - delta : index;
-    }
-    output.write(text.substring(cursor));
-    int mapped(int offset) {
-      var result = offset;
-      for (final (index, delta) in changes) {
-        if (index > offset) break;
-        result += delta < 0 ? delta.clamp(index - offset, 0) : delta;
-      }
-      return result;
-    }
-
-    controller.value = TextEditingValue(
-      text: output.toString(),
-      selection: selection.copyWith(
-        baseOffset: mapped(selection.baseOffset),
-        extentOffset: mapped(selection.extentOffset),
-      ),
-    );
+    nexIndentCode(controller, remove: remove);
+    onEdited?.call(controller.text);
     focus.requestFocus();
   }
 
@@ -123,7 +77,7 @@ class NexCodeToolbar extends StatelessWidget {
               builder: (context, value, picker) {
                 final suggestion =
                     language == NexCodeLanguage.plainText && rawLanguage == null
-                    ? _suggestLanguage(value.text)
+                    ? nexSuggestCodeLanguage(value.text)
                     : null;
                 return Row(
                   children: [
@@ -173,6 +127,60 @@ class NexCodeToolbar extends StatelessWidget {
   }
 }
 
+/// Indent or outdent the cursor's line or all selected lines.
+void nexIndentCode(TextEditingController controller, {required bool remove}) {
+  final before = controller.value;
+  final text = before.text;
+  final selection = before.selection.isValid
+      ? before.selection
+      : TextSelection.collapsed(offset: text.length);
+  final start = selection.start;
+  final end = selection.end;
+  final first = start == 0 ? 0 : text.lastIndexOf('\n', start - 1) + 1;
+  final changes = <(int, int)>[];
+  var line = first;
+  do {
+    final delta = !remove
+        ? 2
+        : text.startsWith('\t', line)
+        ? -1
+        : text.startsWith('  ', line)
+        ? -2
+        : text.startsWith(' ', line)
+        ? -1
+        : 0;
+    if (delta != 0) changes.add((line, delta));
+    final next = text.indexOf('\n', line);
+    if (next < 0) break;
+    line = next + 1;
+  } while (line < end);
+  if (changes.isEmpty) return;
+  final output = StringBuffer();
+  var cursor = 0;
+  for (final (index, delta) in changes) {
+    output.write(text.substring(cursor, index));
+    if (delta > 0) output.write('  ');
+    cursor = delta < 0 ? index - delta : index;
+  }
+  output.write(text.substring(cursor));
+  int mapped(int offset) {
+    var result = offset;
+    for (final (index, delta) in changes) {
+      if (index > offset) break;
+      result += delta < 0 ? delta.clamp(index - offset, 0) : delta;
+    }
+    return result;
+  }
+
+  controller.value = TextEditingValue(
+    text: output.toString(),
+    selection: selection.copyWith(
+      baseOffset: mapped(selection.baseOffset),
+      extentOffset: mapped(selection.extentOffset),
+    ),
+  );
+}
+
 // A hint only: ambiguous input keeps its chosen language. Match a bounded
 // prefix so a large paste never makes the keyboard wait for a full scan.
 final _languageHints = <NexCodeLanguage, RegExp>{
@@ -187,6 +195,29 @@ final _languageHints = <NexCodeLanguage, RegExp>{
   NexCodeLanguage.python: RegExp(
     r'^(?:(?:async\s+)?def\s+\w+\s*\(|from\s+\S+\s+import\s|#![^\n]*python)',
   ),
+  NexCodeLanguage.typescript: RegExp(
+    r'^(?:(?:export\s+)?(?:interface|type)\s+\w+\s*[={]|(?:const|let)\s+\w+\s*:\s*\w+)',
+  ),
+  NexCodeLanguage.kotlin: RegExp(r'^(?:fun\s+\w+\s*\(|data\s+class\s+)'),
+  NexCodeLanguage.java: RegExp(r'^(?:import\s+java\.|public\s+class\s+)'),
+  NexCodeLanguage.swift: RegExp(r'^import\s+(?:Foundation|SwiftUI|UIKit)\b'),
+  NexCodeLanguage.cpp: RegExp(
+    r'^(?:#include\s*<(?:iostream|vector|string|memory)>|(?:using\s+namespace\s+)?std::)',
+  ),
+  NexCodeLanguage.c: RegExp(r'^#include\s*<\w+\.h>'),
+  NexCodeLanguage.csharp: RegExp(
+    r'^(?:using\s+System[.;]|namespace\s+[\w.]+\s*;)',
+  ),
+  NexCodeLanguage.go: RegExp(r'^package\s+main\s*(?:\n|$)'),
+  NexCodeLanguage.rust: RegExp(r'^(?:pub\s+)?(?:fn\s+\w+\s*\(|use\s+[\w:]+::)'),
+  NexCodeLanguage.sql: RegExp(
+    r'^(?:select\s+[^;]+\s+from\s+\w|create\s+table|insert\s+into|update\s+\w+\s+set)\b',
+    caseSensitive: false,
+  ),
+  NexCodeLanguage.bash: RegExp(r'^#![^\n]*\b(?:bash|sh|zsh)\b'),
+  NexCodeLanguage.yaml: RegExp(r'^---\s*\n[\w-]+:\s'),
+  NexCodeLanguage.xml: RegExp(r'^<\?xml\b', caseSensitive: false),
+  NexCodeLanguage.markdown: RegExp(r'^#{1,6}\s+[^\n]+\n\s*\n'),
   NexCodeLanguage.javascript: RegExp(
     r'^(?:(?:export\s+)?(?:async\s+)?function\s+\w+\s*\(|(?:const|let)\s+\w+\s*=)',
   ),
@@ -196,7 +227,7 @@ final _languageHints = <NexCodeLanguage, RegExp>{
   ),
 };
 
-NexCodeLanguage? _suggestLanguage(String source) {
+NexCodeLanguage? nexSuggestCodeLanguage(String source) {
   var end = math.min(768, source.length);
   // Never cut between the halves of a surrogate pair.
   if (end < source.length &&
@@ -279,5 +310,6 @@ String nexCodeLanguageLabel(
     NexCodeLanguage.html => l10n.codeLanguageHtml,
     NexCodeLanguage.css => l10n.codeLanguageCss,
     NexCodeLanguage.php => l10n.codeLanguagePhp,
+    _ => language.label,
   };
 }

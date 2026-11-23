@@ -129,6 +129,25 @@ Future<bool> nexShareNote(
   return true;
 }
 
+/// Shares the source of a code note under the same name used for saving.
+Future<bool> nexShareCodeFile(Note note) async {
+  final target = nexSaveTargetFor(note);
+  final text = target?.text;
+  if (target == null || text == null) return false;
+  try {
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile.fromData(utf8.encode(text), mimeType: target.mimeType)],
+        fileNameOverrides: [target.name],
+      ),
+    );
+    return true;
+  } catch (error) {
+    unawaited(NexCrashLog.handled('share.code', error));
+    return false;
+  }
+}
+
 String _noteShareText(Note note) {
   if (note.type == NoteType.link) return _linkShareText(note);
   final snippet = note.type == NoteType.text
@@ -356,7 +375,7 @@ NoteSaveTarget? nexSaveTargetFor(Note note) {
   if (uri != null && uri.isNotEmpty) {
     final ext = fileExtensionOf(uri.split(Platform.pathSeparator).last);
     final mime = note.mimeType ?? _mimeFor(ext);
-    if (note.type == NoteType.file) {
+    if (note.hasNamedFile) {
       final own = note.originalFilename?.trim() ?? '';
       final ownExt = fileExtensionOf(own);
       final name =
@@ -385,7 +404,7 @@ NoteSaveTarget? nexSaveTargetFor(Note note) {
       final extension = _sourceExtensionOf(snippet.language);
       return (
         name: _sourceFileNameFor(note, snippet, extension),
-        mimeType: _mimeFor(extension),
+        mimeType: _sourceMimeFor(extension),
         sourcePath: null,
         text: snippet.code,
       );
@@ -405,15 +424,15 @@ NoteSaveTarget? nexSaveTargetFor(Note note) {
 
 /// The file extension a snippet is saved under, by the language it is in.
 /// A language this build does not know keeps the neutral `.txt`.
-String _sourceExtensionOf(NexCodeLanguage language) => switch (language) {
-  NexCodeLanguage.dart => '.dart',
-  NexCodeLanguage.javascript => '.js',
-  NexCodeLanguage.python => '.py',
-  NexCodeLanguage.json => '.json',
-  NexCodeLanguage.html => '.html',
-  NexCodeLanguage.css => '.css',
-  NexCodeLanguage.php => '.php',
-  NexCodeLanguage.plainText => '.txt',
+String _sourceExtensionOf(NexCodeLanguage language) => '.${language.extension}';
+
+String _sourceMimeFor(String extension) => switch (_mimeFor(extension)) {
+  'application/octet-stream' => switch (extension) {
+    '.xml' => 'application/xml',
+    '.yaml' => 'application/yaml',
+    _ => 'text/plain',
+  },
+  final mime => mime,
 };
 
 /// The name a snippet is saved under: its title, or the first code line.
@@ -450,6 +469,7 @@ String? _markdownOf(Note note) {
     case NoteType.voice:
     case NoteType.photo:
     case NoteType.file:
+    case NoteType.video:
       final words = note.displayText?.trim() ?? '';
       return words.isEmpty ? null : '$words\n';
   }

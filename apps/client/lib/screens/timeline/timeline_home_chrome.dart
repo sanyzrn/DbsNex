@@ -90,7 +90,11 @@ extension _TimelineHomeChrome on TimelineScreenState {
                 if (_model.selectedType != null)
                   _model.onlyCode
                       ? l10n.code
-                      : l10n.noteType(_model.selectedType!.wireName),
+                      : l10n.noteType(
+                          _model.selectedType == NoteType.photo
+                              ? 'media'
+                              : _model.selectedType!.wireName,
+                        ),
                 if (_model.onlyReminders) l10n.filterHasReminder,
               ].join(' · '),
               onOpenActiveFilter: () => unawaited(_pickFilters()),

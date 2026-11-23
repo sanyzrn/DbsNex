@@ -69,7 +69,9 @@ class NexDatabase {
   /// one. An older build's index writes key rows by label instead, so an
   /// older APK writing into a re-keyed library would strand rows the newer
   /// build can no longer address — the build refuses the library instead.
-  static const schemaVersion = 3;
+  ///
+  /// 4 (2.8.20): video is a distinct note type. Older builds cannot read it.
+  static const schemaVersion = 4;
 
   void _migrate() {
     final stamped = db.select('PRAGMA user_version').first.values.first as int;
@@ -664,8 +666,31 @@ CREATE TABLE IF NOT EXISTS memory_records (
     _seedStarterTags();
     _foldSearchIndex();
     _alignFtsRowids();
-    if (stamped != schemaVersion) {
-      db.execute('PRAGMA user_version = $schemaVersion');
+    if (stamped < 4) _migrateVideoNotes();
+  }
+
+  void _migrateVideoNotes() {
+    db.beginImmediate();
+    try {
+      for (final row in db.select(
+        "SELECT id, content, media_uri, mime_type FROM notes WHERE type = 'file'",
+      )) {
+        final type = NoteType.forFile(
+          path: row['media_uri'] as String?,
+          originalFilename: row['content'] as String?,
+          mimeType: row['mime_type'] as String?,
+        );
+        if (type == NoteType.video) {
+          db.execute("UPDATE notes SET type = 'video' WHERE id = ?", [
+            row['id'],
+          ]);
+        }
+      }
+      db.execute('PRAGMA user_version = 4');
+      db.execute('COMMIT');
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
     }
   }
 
@@ -774,7 +799,9 @@ FROM notes_fts f INNER JOIN notes n ON n.id = f.note_id
       // Stamp inside the same transaction as the re-key. If the app is
       // interrupted, an older APK must never see a re-keyed FTS index
       // still labelled schema 2.
-      db.execute('PRAGMA user_version = $schemaVersion');
+      final stamped =
+          db.select('PRAGMA user_version').first.values.first as int;
+      if (stamped < 3) db.execute('PRAGMA user_version = 3');
       db.execute('COMMIT');
     } catch (_) {
       db.execute('ROLLBACK');

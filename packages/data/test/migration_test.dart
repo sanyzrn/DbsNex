@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
@@ -18,6 +19,47 @@ void main() {
     path = p.join(tmp.path, 'nex.sqlite');
   });
   tearDown(() => tmp.deleteSync(recursive: true));
+
+  test('schema 3 videos migrate in place and share the media count', () {
+    final old = NexDatabase.open(path);
+    final repo = SqliteNoteRepository(old);
+    final capture = CaptureService(repo, deviceId: 'migration-test');
+    final video = capture.submitFileCapture(
+      mediaUri: '/media/clip.mp4',
+      mediaHash: 'video-hash',
+      originalFilename: 'clip.MP4',
+    );
+    final document = capture.submitFileCapture(
+      mediaUri: '/media/document.pdf',
+      mediaHash: 'pdf-hash',
+      originalFilename: 'document.pdf',
+    );
+    capture.submitPhotoCapture(
+      mediaUri: '/media/image.jpg',
+      mediaHash: 'image',
+    );
+    expect(video.type, NoteType.video);
+    old.db.execute("UPDATE notes SET type = 'file' WHERE id = ?", [video.id]);
+    old.db.execute('PRAGMA user_version = 3');
+    old.close();
+
+    final upgraded = NexDatabase.open(path);
+    try {
+      final notes = SqliteNoteRepository(upgraded);
+      final migrated = notes.getById(video.id)!;
+      expect(migrated.type, NoteType.video);
+      expect(migrated.originalFilename, 'clip.MP4');
+      expect(migrated.mediaUri, video.mediaUri);
+      expect(migrated.updatedAt, video.updatedAt);
+      expect(migrated.rev, video.rev);
+      expect(notes.getById(document.id)!.type, NoteType.file);
+      expect(notes.timelineShelfCounts()['type:photo'], 2);
+      expect(notes.timelineShelfCounts()['type:file'], 1);
+      expect(upgraded.db.select('PRAGMA user_version').first.values.first, 4);
+    } finally {
+      upgraded.close();
+    }
+  });
 
   /// The v1 layout: four note types pinned by a CHECK, the plain FTS table,
   /// tags and nothing else — no meta table, no receipts, no embeddings.

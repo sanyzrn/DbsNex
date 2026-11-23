@@ -52,7 +52,10 @@ void main() {
       expect(foldExpenseSearch('علي'), 'علی');
       expect(foldExpenseSearch('مصطفى'), 'مصطفی');
       expect(foldExpenseSearch('أمر'), 'امر');
-      expect(foldExpenseSearch('مسئله'), 'مسیله');
+      expect(foldExpenseSearch('مسئله'), 'مسئله');
+      expect(foldExpenseSearch('آرد'), 'آرد');
+      expect(foldExpenseSearch('خانۀ'), 'خانه');
+      expect(foldExpenseSearch('ٱمر'), 'امر');
       expect(foldExpenseSearch('کتـــاب'), 'کتاب');
       expect(foldExpenseSearch('کتاب‌ها'), 'کتابها');
       expect(foldExpenseSearch('مُهَمّ'), 'مهم');
@@ -60,10 +63,11 @@ void main() {
       expect(foldExpenseSearch('٢٠٢٥'), '2025');
     });
 
-    test('a bakery written either way is found', () {
+    test('keyboard variants match and distinct letters stay distinct', () {
       final txs = [
-        tx('a', DateTime(2026, 11, 5), note: 'نانوائي'),
+        tx('a', DateTime(2026, 11, 5), note: 'نانوايي'),
         tx('b', DateTime(2026, 11, 6), note: 'سوپر'),
+        tx('c', DateTime(2026, 11, 7), note: 'نانوائی خانۀ ما'),
       ];
       expect(
         filterTxs(txs, query: 'نانوایی', categoryName: nameOf).map((t) => t.id),
@@ -71,7 +75,11 @@ void main() {
       );
       expect(
         filterTxs(txs, query: 'نانوائی', categoryName: nameOf).map((t) => t.id),
-        ['a'],
+        ['c'],
+      );
+      expect(
+        filterTxs(txs, query: 'خانه', categoryName: nameOf).map((t) => t.id),
+        ['c'],
       );
     });
   });
@@ -645,7 +653,7 @@ void main() {
         'amountRial': 12000,
         'date': DateTime.now().toIso8601String(),
         'category': 'cat-food',
-        'note': 'نانوائي',
+        'note': 'نانوايي',
       });
       await pumpScreen(tester, locale: const Locale('fa'));
       await tester.tap(find.byTooltip('جست‌وجوی پرداخت‌ها'));
@@ -655,7 +663,7 @@ void main() {
         'نانوایی',
       );
       await tester.pumpAndSettle();
-      expect(find.text('نانوائي'), findsOneWidget);
+      expect(find.text('نانوايي'), findsOneWidget);
     });
   });
 }

@@ -132,13 +132,19 @@ extension _DetailFacts on _NoteDetailSheetState {
           ),
         ];
       case NoteType.file:
+      case NoteType.video:
         final uri = note.mediaUri;
-        final name = note.title ?? (uri == null ? null : p.basename(uri));
+        final name =
+            note.title ??
+            note.originalFilename ??
+            (uri == null ? null : p.basename(uri));
         if (name == null || name.isEmpty) return const [];
         return [
           _Fact(
-            icon: Icons.insert_drive_file_outlined,
-            label: l10n.detailsFile,
+            icon: nexNoteTypeIcon(note.type.wireName),
+            label: note.type == NoteType.video
+                ? l10n.noteType(note.type.wireName)
+                : l10n.detailsFile,
             value: name,
           ),
         ];

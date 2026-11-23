@@ -2,6 +2,34 @@ part of 'capture_sheet.dart';
 
 /// The microphone and the field: the two things the box can hold.
 extension _CaptureModes on _CaptureSheetState {
+  /// Switches what the words become. The field, its text and the keyboard
+  /// stay; only the kind changes.
+  void _select(CaptureKind kind) {
+    if (_closing) return;
+    if (kind == CaptureKind.voice) {
+      if (!_voiceOn) unawaited(_startVoice());
+      return;
+    }
+    // While recording, the recorder's own two buttons decide what happens
+    // to it — a tap on another kind is not a decision to keep or to lose it.
+    if (_voiceOn || kind == _kind) return;
+    final wasCode = _kind == CaptureKind.code;
+    if (widget.preferences.haptics) unawaited(HapticFeedback.selectionClick());
+    _set(() {
+      _kind = kind;
+      controller.language = kind == CaptureKind.code
+          ? _codeLanguage
+          : NexCodeLanguage.plainText;
+    });
+    // Crossing into or out of Code changes what the note is, not just what
+    // the box calls itself: the same words are now wrapped in a fence, or no
+    // longer are. Walk the ordinary write path so the timeline shows the kind
+    // the box shows before the sheet closes.
+    if ((wasCode || kind == CaptureKind.code) && controller.text.isNotEmpty) {
+      changed(controller.text);
+    }
+  }
+
   /// The link field's own way out. Paste when the box is empty, as
   /// everywhere; once it holds words — a paste that missed is the usual way
   /// that happens — the same slot turns into Clear, because a one-line link
@@ -218,7 +246,11 @@ extension _CaptureModes on _CaptureSheetState {
         offset: selection.start + pasted.length,
       ),
     );
-    changed(text);
+    if (_kind == CaptureKind.code) {
+      _codeChanged(text);
+    } else {
+      changed(text);
+    }
     // The native editor owns a child focus node. Re-requesting the parent
     // steals that focus and briefly drops the IME before restoring it.
     if (!_fieldFocus.hasFocus) _fieldFocus.requestFocus();
@@ -256,6 +288,18 @@ extension _CaptureModes on _CaptureSheetState {
         // button, physical Enter still needs catching here. Shift+Enter is
         // the escape hatch to actually start a new line while this is on.
         onKeyEvent: (node, event) {
+          if (code &&
+              !_closing &&
+              event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.tab &&
+              !_hardwareCodeModifier) {
+            nexIndentCode(
+              controller,
+              remove: HardwareKeyboard.instance.isShiftPressed,
+            );
+            changed(controller.text);
+            return KeyEventResult.handled;
+          }
           final submits =
               !code && (link || (kind == CaptureKind.note && enterSends));
           if (!submits || event is! KeyDownEvent) {
@@ -289,6 +333,8 @@ extension _CaptureModes on _CaptureSheetState {
           // something the person writing a snippet has to see or maintain.
           textDirection: code ? TextDirection.ltr : null,
           monospace: code,
+          useNativeEditor: !code,
+          inputFormatters: code ? const [NexCodeInputFormatter()] : null,
           // The same keyboard for every kind. A URL keyboard has no
           // suggestion strip, so switching to Link and back made the keyboard
           // change height under the sheet each time — the jump that made the
@@ -319,7 +365,7 @@ extension _CaptureModes on _CaptureSheetState {
             contentPadding: const EdgeInsets.symmetric(vertical: NexSpacing.sm),
           ),
           textInputAction: action,
-          onChanged: changed,
+          onChanged: code ? _codeChanged : changed,
           onSubmitted: action == TextInputAction.newline
               ? null
               : (_) => _submit(),

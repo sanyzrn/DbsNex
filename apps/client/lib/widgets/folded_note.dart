@@ -143,13 +143,41 @@ class _FoldedNoteState extends State<FoldedNote> {
   /// never a boundary, so a fence stays whole inside one slice.
   static final RegExp _fence = RegExp(r'^ {0,3}(`{3,}|~{3,})');
 
-  // A pasted HTML document is source. The Markdown renderer consumes
-  // raw HTML blocks, including a doctype and the rest of their lines.
-  static final _htmlDocumentStart = RegExp(
-    r'^[\s\uFEFF]*(?:<!--[\s\S]*?-->[\s\uFEFF]*)*'
+  static final _htmlStart = RegExp(
     r'(?:<!doctype\s+html(?=[\s>])|<html(?=[\s>]))',
     caseSensitive: false,
   );
+  static final _leadingWhitespace = RegExp(r'[\s\uFEFF]*');
+
+  /// HTML source can have a BOM and comments before its opening tag.
+  /// Scan each comment once, without backtracking through the document.
+  static bool _isHtmlDocument(String text) {
+    var offset = 0;
+    while (true) {
+      offset = _leadingWhitespace.matchAsPrefix(text, offset)!.end;
+      if (!text.startsWith('<!--', offset)) {
+        return _htmlStart.matchAsPrefix(text, offset) != null;
+      }
+      final close = text.indexOf('-->', offset + 4);
+      if (close < 0) return false;
+      offset = close + 3;
+    }
+  }
+
+  /// An exact preview, without splitting or counting the rest of the note.
+  static String? _preview(String text) {
+    var lines = 1;
+    var count = 0;
+    var end = 0;
+    for (final character in text.characters) {
+      if (++count > _foldCharacters ||
+          (character.endsWith('\n') && ++lines > _foldLines)) {
+        return '${text.substring(0, end)}…';
+      }
+      end += character.length;
+    }
+    return null;
+  }
 
   void _prepare() {
     final text = widget.text;
@@ -157,21 +185,12 @@ class _FoldedNoteState extends State<FoldedNote> {
     if (_preparedFor == text && _preparedMarkdown == markdown) return;
     _preparedFor = text;
     _preparedMarkdown = markdown;
-    final lines = text.split('\n');
-    // Code units are the cheap fence: when they fit inside the fold, the
-    // characters do too, and a document need not pay a per-grapheme walk to
-    // learn it is short.
-    _long = text.length > _foldCharacters
-        ? text.characters.length > _foldCharacters || lines.length > _foldLines
-        : lines.length > _foldLines;
-    final firstPage = lines.take(_foldLines).join('\n');
-    _foldedText = _long
-        ? '${firstPage.characters.take(_foldCharacters)}…'
-        : text;
-    _literalHtml =
-        widget.contentBuilder == null && _htmlDocumentStart.hasMatch(text);
-    // Use one source body so both line breaks and selection across lines
-    // remain exact when the user expands the preview.
+    final preview = _preview(text);
+    _long = preview != null;
+    _foldedText = preview ?? text;
+    _literalHtml = widget.contentBuilder == null && _isHtmlDocument(text);
+    // One selection delegate preserves the exact line breaks and copied
+    // source, including a selection over several paragraphs.
     _sliceTexts = _literalHtml ? [text] : _splitSlices(text);
     _sliceWidgets.clear();
     _sliceMarkdown =

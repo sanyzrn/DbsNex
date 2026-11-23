@@ -52,12 +52,18 @@ extension _TimelineBody on TimelineScreenState {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
-            for (final type in <NoteType?>[null, ...NoteType.values])
+            for (final type in <NoteType?>[null, ...nexShelfTypeOrder])
               ListTile(
-                leading: Icon(nexNoteTypeIcon(type?.wireName)),
-                title: Text(
-                  type == null ? l10n.all : l10n.noteType(type.wireName),
+                leading: Icon(
+                  nexNoteTypeIcon(
+                    type == NoteType.photo ? 'media' : type?.wireName,
+                  ),
                 ),
+                title: Text(switch (type) {
+                  null => l10n.all,
+                  NoteType.photo => l10n.noteType('media'),
+                  _ => l10n.noteType(type.wireName),
+                }),
                 trailing: !_model.onlyCode && _model.selectedType == type
                     ? const Icon(Icons.check)
                     : null,

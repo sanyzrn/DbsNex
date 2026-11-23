@@ -49,7 +49,7 @@ class NexCycleTodayTest {
     /** A five-day period that ran its course: the shape every non-period
      * phase is reached from. */
     private fun pastPeriod(lastStart: LocalDate, days: Int = 5): LocalDate? =
-        lastStart.plusDays(days)
+        lastStart.plusDays(days.toLong())
 
     @Test
     fun noSnapshotIsOff() {
@@ -116,6 +116,18 @@ class NexCycleTodayTest {
         assertEquals(NexCycleToday.Phase.FERTILE, today.phase)
         assertEquals(14, today.cycleDay)
         assertEquals(1, today.ovulationIn)
+    }
+
+    @Test
+    fun overdueWidgetClearsTheFertilityArcOnItsOwn() {
+        val start = LocalDate.of(2026, 11, 1)
+        val snapshot = ready(start).copy(nextLatest = start.plusDays(30))
+        val today = NexCycleToday.of(snapshot, start.plusDays(31))
+        assertEquals(NexCycleToday.Phase.LATE, today.phase)
+        assertEquals(0f, today.fertileFrom, 0f)
+        assertEquals(0f, today.fertileTo, 0f)
+        assertEquals(null, today.ovulationIn)
+        assertEquals(null, today.fertileIn)
     }
 
     @Test

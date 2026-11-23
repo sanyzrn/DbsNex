@@ -290,7 +290,7 @@ class _Body extends StatelessWidget {
           );
         }
 
-        final fileCaption = flowing && note.type == NoteType.file
+        final fileCaption = flowing && note.hasNamedFile
             ? NexMarkdownText.preview(note.caption ?? '').trim()
             : '';
         final rest = flowing && snippet != null
@@ -341,7 +341,7 @@ class _Body extends StatelessWidget {
         }
 
         if (flowing) {
-          final file = note.type == NoteType.file;
+          final file = note.hasNamedFile;
           return preview(
             file ? 2 : 1,
             file

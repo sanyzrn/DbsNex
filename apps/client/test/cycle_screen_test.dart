@@ -115,6 +115,30 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('the overdue page explains why calendar estimates have paused', (
+    tester,
+  ) async {
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true},
+    );
+    final start = today().subtract(const Duration(days: 40));
+    final period = await harness.services.cycleStartPeriod(start);
+    await harness.services.cycleEndPeriod(
+      period.id,
+      start.add(const Duration(days: 4)),
+    );
+    await reopen(tester);
+
+    expect(find.text('12 days late'), findsOneWidget);
+    expect(
+      find.textContaining('The expected range has passed'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Likely between'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a calendar day says what it is, and opens with TalkBack '
       '(LOC-02, LOC-13)', (tester) async {
     final semantics = tester.ensureSemantics();

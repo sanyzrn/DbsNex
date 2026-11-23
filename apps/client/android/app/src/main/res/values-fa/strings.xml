@@ -38,6 +38,7 @@
     <string name="widget_type_text">متن</string>
     <string name="widget_type_voice">صدا</string>
     <string name="widget_type_photo">عکس</string>
+    <string name="widget_type_video">ویدئو</string>
     <string name="widget_type_file">فایل</string>
     <string name="widget_type_checklist">چک‌لیست</string>
     <string name="widget_type_link">لینک</string>

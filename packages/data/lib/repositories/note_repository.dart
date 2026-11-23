@@ -577,6 +577,9 @@ WHERE id = ? AND deleted_at IS NULL
               ).first['c']
               as int,
     };
+    if (counts.remove('type:video') case final videos?) {
+      counts['type:photo'] = (counts['type:photo'] ?? 0) + videos;
+    }
     if (counts['type:text'] case final textCount?) {
       // Fences may be preceded by up to three spaces. Only pass candidates
       // to the parser so shelf counts don't transfer every note's content.
@@ -3421,6 +3424,7 @@ WHERE id = ?
           buffer.writeln('OCR: ${note.ocrText}');
         }
       case NoteType.file:
+      case NoteType.video:
         buffer.writeln('_File attachment_');
         if (media != null) buffer.writeln('File: $media');
       // Written out as the markdown task list it already is, so an exported

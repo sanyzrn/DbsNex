@@ -336,8 +336,10 @@ class _ReportPage extends StatelessWidget {
                     ),
                   if (p != null && mode.predicts)
                     Text(
-                      '${l10n.cycleReportNext}: '
-                      '${day(p.nextStart)} ${year(p.nextStart)}',
+                      p.forecastExpired
+                          ? l10n.cycleForecastPaused
+                          : '${l10n.cycleReportNext}: '
+                                '${day(p.nextStart)} ${year(p.nextStart)}',
                     ),
                   if (p != null) ...[
                     heading(l10n.cycleInsights),

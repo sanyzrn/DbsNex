@@ -14,9 +14,14 @@ extension _CaptureCode on _CaptureSheetState {
   }
 
   void _selectLanguage(NexCodeLanguage language) {
-    if (_closing || language == _codeLanguage) return;
+    if (_closing) return;
+    _codeLanguageChosen = true;
+    if (language == _codeLanguage) return;
     if (widget.preferences.haptics) unawaited(HapticFeedback.selectionClick());
-    _set(() => _codeLanguage = language);
+    _set(() {
+      _codeLanguage = language;
+      controller.language = language;
+    });
     // The journal is what a relaunch recovers from; it has to carry the
     // language too, or a snippet recovered after a crash reopens in the
     // language it had before the picker moved.
@@ -29,6 +34,21 @@ extension _CaptureCode on _CaptureSheetState {
     if (controller.text.trim().isNotEmpty) unawaited(flush());
   }
 
+  void _codeChanged(String text) {
+    if (!_codeLanguageChosen &&
+        _codeLanguage == NexCodeLanguage.plainText &&
+        _latestText.trim().isEmpty &&
+        text.length > 1) {
+      if (nexSuggestCodeLanguage(text) case final language?) {
+        _set(() {
+          _codeLanguage = language;
+          controller.language = language;
+        });
+      }
+    }
+    changed(text);
+  }
+
   Widget _codeToolbar() => NexCodeToolbar(
     key: const ValueKey('capture-code-toolbar'),
     pickerKey: const ValueKey('capture-code-language'),
@@ -36,7 +56,14 @@ extension _CaptureCode on _CaptureSheetState {
     controller: controller,
     focus: _fieldFocus,
     enabled: !_closing,
-    showIndentation: false,
+    onEdited: changed,
     onSelected: _selectLanguage,
   );
+}
+
+bool get _hardwareCodeModifier {
+  final keyboard = HardwareKeyboard.instance;
+  return keyboard.isControlPressed ||
+      keyboard.isAltPressed ||
+      keyboard.isMetaPressed;
 }

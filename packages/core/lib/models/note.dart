@@ -16,9 +16,24 @@ enum NoteType {
   photo,
   file,
   checklist,
-  link;
+  link,
+  video;
 
   String get wireName => name;
+
+  /// File-based captures use their original name and media MIME to
+  /// distinguish a video from a document or another downloadable file.
+  static NoteType forFile({
+    String? path,
+    String? originalFilename,
+    String? mimeType,
+  }) {
+    final stored = NexFileKinds.of(path: path, mimeType: mimeType);
+    final kind = stored == NexFileKind.other
+        ? NexFileKinds.of(path: originalFilename, mimeType: mimeType)
+        : stored;
+    return kind == NexFileKind.video ? video : file;
+  }
 
   static NoteType fromWire(String value) {
     return NoteType.values.firstWhere(
@@ -231,8 +246,10 @@ class Note {
 
   bool get isDeleted => deletedAt != null;
 
-  /// Display filename for file notes (stored in [content]).
-  String? get originalFilename => type == NoteType.file ? content : null;
+  /// A file or video whose original filename is stored in [content].
+  bool get hasNamedFile => type == NoteType.file || type == NoteType.video;
+
+  String? get originalFilename => hasNamedFile ? content : null;
 
   /// A link note's target, or null on every other type.
   String? get linkUrl => type == NoteType.link ? content?.trim() : null;
@@ -265,7 +282,8 @@ class Note {
         for (final item in checklistItems) item.text,
       ]),
       NoteType.link => _joinSearchable([content, linkExcerpt, caption]),
-      NoteType.file => _joinSearchable([ocrText, transcriptText, caption]),
+      NoteType.file ||
+      NoteType.video => _joinSearchable([ocrText, transcriptText, caption]),
       _ => null,
     };
   }
@@ -280,6 +298,7 @@ class Note {
       case NoteType.photo:
         return _joinSearchable([title, ocrText, caption]);
       case NoteType.file:
+      case NoteType.video:
         return _joinSearchable([
           title,
           content,
@@ -336,6 +355,7 @@ class Note {
       case NoteType.photo:
         return _firstNonEmpty([caption, ocrText]);
       case NoteType.file:
+      case NoteType.video:
         return _firstNonEmpty([caption, content]);
       // The items themselves, in order, on one line — the card renders its own
       // ticked/unticked view, and this is what search results and screen
@@ -382,7 +402,7 @@ class Note {
       NoteType.text || NoteType.checklist => _firstNonEmpty([content]),
       NoteType.voice => _firstNonEmpty([caption, transcriptText]),
       NoteType.photo => _firstNonEmpty([caption, ocrText]),
-      NoteType.file => _firstNonEmpty([caption, content]),
+      NoteType.file || NoteType.video => _firstNonEmpty([caption, content]),
       NoteType.link => _firstNonEmpty([content, caption]),
     };
   }

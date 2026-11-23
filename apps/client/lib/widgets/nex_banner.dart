@@ -3,7 +3,12 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:nex_core/nex_core.dart' show nexDigits;
 import 'package:nex_ui/nex_ui.dart';
+
+import '../l10n/app_localizations.dart';
+
+part 'nex_banner_queue.dart';
 
 /// Which mark a banner leads with.
 ///
@@ -36,15 +41,8 @@ enum NexBannerKind {
 /// SnackBar cannot be positioned at the top, and a MaterialBanner pushes the
 /// page's content down instead of passing over it.
 ///
-/// One at a time — with one exception. A plain banner arriving while an
-/// actionable one is still up does not replace it: the Undo it is carrying is
-/// a promise with a countdown, and swallowing it to say "Saved" is trading
-/// something the user might need for something they can guess. The plain
-/// banner waits its turn instead, and shows when the actionable one leaves.
-/// Everything else still replaces what came before — a queue of receipts
-/// would mean the message you are reading is about something you did several
-/// actions ago. A replaced banner is drawn back into the edge it came from
-/// rather than vanishing mid-sentence: the exit animation always runs.
+/// Errors and actions wait for their own display time. Only the latest
+/// ordinary receipt is kept when a more important message is ahead of it.
 ///
 /// Returns a [NexBannerHandle] naming the banner this call put up, so a
 /// screen whose promise expires with it — an Undo that only works while the
@@ -60,6 +58,7 @@ NexBannerHandle? nexShowBanner(
   Key? actionKey,
   Duration? duration,
   bool haptics = true,
+  NexBannerGroup? group,
 }) => NexBannerHost.of(context)?.show(
   message: message,
   kind: kind,
@@ -68,6 +67,7 @@ NexBannerHandle? nexShowBanner(
   actionKey: actionKey,
   duration: duration,
   haptics: haptics,
+  group: group,
 );
 
 /// A handle to the overlay a banner will be shown in, captured before an
@@ -100,248 +100,22 @@ class NexBannerHost {
     Key? actionKey,
     Duration? duration,
     bool haptics = true,
+    NexBannerGroup? group,
   }) {
     if (!_overlay.mounted) return null;
-    return _show(
-      _overlay,
-      message: message,
-      kind: kind,
-      actionLabel: actionLabel,
-      onAction: onAction,
-      actionKey: actionKey,
-      duration: duration,
-      haptics: haptics,
+    return _queueFor(_overlay).show(
+      _BannerRequest(
+        message: message,
+        kind: kind,
+        actionLabel: actionLabel,
+        onAction: onAction,
+        actionKey: actionKey,
+        duration: duration,
+        haptics: haptics,
+        group: group,
+      ),
     );
   }
-}
-
-NexBannerHandle _show(
-  OverlayState overlay, {
-  required String message,
-  required NexBannerKind kind,
-  required String? actionLabel,
-  required VoidCallback? onAction,
-  required Key? actionKey,
-  required Duration? duration,
-  required bool haptics,
-}) {
-  final current = _current;
-  final actionable = actionLabel != null;
-
-  // An actionable banner that is still up keeps its place: only another
-  // actionable banner may take it, because only another one is carrying a
-  // promise of the same weight. A plain receipt — "Saved", "Copied" — waits
-  // behind it rather than eating the Undo a finger might still be travelling
-  // toward. At most one waits: a newer plain banner replaces a queued one,
-  // exactly as shown banners replace each other.
-  if (current != null &&
-      current.actionable &&
-      !current.leaving &&
-      !actionable) {
-    _pending = _PendingBanner(
-      overlay,
-      message: message,
-      kind: kind,
-      actionLabel: actionLabel,
-      onAction: onAction,
-      actionKey: actionKey,
-      duration: duration,
-      haptics: haptics,
-    );
-    return NexBannerHandle._waiting(_pending!);
-  }
-
-  // Whatever else is up makes way — with its exit animation, not by
-  // vanishing. The capsule is drawn back into the edge it dripped from while
-  // the new one drips out of it.
-  _retire(current);
-  return _insert(
-    overlay,
-    message: message,
-    kind: kind,
-    actionLabel: actionLabel,
-    onAction: onAction,
-    actionKey: actionKey,
-    duration: duration,
-    haptics: haptics,
-  );
-}
-
-/// The banner on screen right now, if any — see the one-at-a-time note on
-/// [nexShowBanner].
-_BannerSession? _current;
-
-/// The one plain banner waiting behind an actionable one, if any. One slot,
-/// newest wins: a queue of stale receipts is worse than a dropped one.
-_PendingBanner? _pending;
-
-/// Begins a session's exit. With an animation when there is anything on
-/// screen to animate — the capsule is sucked back into the top edge — and
-/// instantly when the entry was never built, which is two banners in one
-/// frame.
-void _retire(_BannerSession? session) {
-  if (session == null || session.leaving) return;
-  session.leaving = true;
-  final state = session.state;
-  if (state != null) {
-    unawaited(state._dismiss());
-  } else {
-    session.remove();
-  }
-}
-
-NexBannerHandle _insert(
-  OverlayState overlay, {
-  required String message,
-  required NexBannerKind kind,
-  required String? actionLabel,
-  required VoidCallback? onAction,
-  required Key? actionKey,
-  required Duration? duration,
-  required bool haptics,
-}) {
-  final session = _BannerSession(actionable: actionLabel != null);
-  late final OverlayEntry entry;
-  entry = OverlayEntry(
-    builder: (context) => _NexBanner(
-      session: session,
-      message: message,
-      kind: kind,
-      actionLabel: actionLabel,
-      onAction: onAction,
-      actionKey: actionKey,
-      duration: duration,
-      haptics: haptics,
-      onGone: () {
-        // Called once, after the exit animation has finished (or instantly,
-        // for a banner that never animated): the entry leaves the overlay
-        // here and only here, so nothing removes it twice. The module state
-        // moves on only if this is still the showing session — a replacement
-        // has already taken the slot, and a hidden one has cleaned up itself.
-        session.remove();
-        if (identical(_current, session)) {
-          _current = null;
-          _drainPending();
-        }
-      },
-    ),
-  );
-  session.entry = entry;
-  _current = session;
-  overlay.insert(entry);
-  return NexBannerHandle._(session);
-}
-
-/// Shows the banner that was waiting, if any — called when the banner ahead
-/// of it is gone for good.
-void _drainPending() {
-  final pending = _pending;
-  if (pending == null) return;
-  _pending = null;
-  if (!pending.overlay.mounted) return;
-  _insert(
-    pending.overlay,
-    message: pending.message,
-    kind: pending.kind,
-    actionLabel: pending.actionLabel,
-    onAction: pending.onAction,
-    actionKey: pending.actionKey,
-    duration: pending.duration,
-    haptics: pending.haptics,
-  );
-}
-
-/// A banner that is up or on its way up, from the module's point of view.
-class _BannerSession {
-  _BannerSession({required this.actionable});
-
-  /// Whether the banner carries an action whose window dies with the banner.
-  final bool actionable;
-
-  /// Set once the banner starts leaving, by whoever started it — its own
-  /// timer, a tap, or a replacement — so a plain banner arriving during the
-  /// exit animation takes the slot instead of queueing behind a ghost.
-  bool leaving = false;
-
-  late final OverlayEntry entry;
-  _NexBannerState? state;
-  final closed = Completer<void>();
-  bool _removed = false;
-
-  void remove() {
-    if (_removed) return;
-    _removed = true;
-    entry.remove();
-    if (!closed.isCompleted) closed.complete();
-  }
-}
-
-/// The parameters of a banner waiting for its turn, held as-is so what shows
-/// later is exactly what was asked for then.
-class _PendingBanner {
-  _PendingBanner(
-    this.overlay, {
-    required this.message,
-    required this.kind,
-    required this.actionLabel,
-    required this.onAction,
-    required this.actionKey,
-    required this.duration,
-    required this.haptics,
-  });
-
-  final OverlayState overlay;
-  final String message;
-  final NexBannerKind kind;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-  final Key? actionKey;
-  final Duration? duration;
-  final bool haptics;
-}
-
-/// The one banner a specific [nexShowBanner] call put up.
-///
-/// [hide] is a no-op once that banner has already gone — dismissed, acted
-/// on, or replaced by a newer one — so taking down an expired promise can
-/// never take down somebody else's message with it. For a banner still
-/// waiting behind an actionable one, [hide] takes it out of the queue, and
-/// [isShowing] reads false until it is actually up.
-class NexBannerHandle {
-  NexBannerHandle._(this._session) : _waiting = null;
-
-  NexBannerHandle._waiting(this._waiting) : _session = null;
-
-  final _BannerSession? _session;
-  final _PendingBanner? _waiting;
-
-  /// Completes after an inserted banner leaves the overlay. Queued plain
-  /// banners have no action window and return null.
-  Future<void>? get closed => _session?.closed.future;
-
-  bool get isShowing => _session != null && identical(_current, _session);
-
-  void hide() {
-    final waiting = _waiting;
-    if (waiting != null) {
-      if (identical(_pending, waiting)) _pending = null;
-      return;
-    }
-    final session = _session;
-    if (session == null) return;
-    if (identical(_current, session)) _current = null;
-    session.remove();
-  }
-}
-
-/// Removes whatever banner is showing — and whatever is waiting behind it,
-/// since a message cannot outlive the thing it was about either. Called when
-/// a screen that raised one goes away.
-void nexHideBanner() {
-  final current = _current;
-  _current = null;
-  _pending = null;
-  current?.remove();
 }
 
 class _NexBanner extends StatefulWidget {
@@ -355,9 +129,15 @@ class _NexBanner extends StatefulWidget {
     this.duration,
     required this.haptics,
     required this.onGone,
+    required this.pendingCount,
+    required this.nextMessage,
+    required this.repetitions,
   });
 
   final _BannerSession session;
+  final int pendingCount;
+  final String? nextMessage;
+  final int repetitions;
   final String message;
   final NexBannerKind kind;
   final String? actionLabel;
@@ -515,6 +295,18 @@ class _NexBannerState extends State<_NexBanner>
   }
 
   @override
+  void didUpdateWidget(_NexBanner old) {
+    super.didUpdateWidget(old);
+    if (widget.repetitions != old.repetitions && !_leaving) {
+      _lifeMs = _life.inMilliseconds;
+      if (!_holding && !_keepActionUntilDismissed && _controller.isCompleted) {
+        _timer?.cancel();
+        _scheduleLife(_life);
+      }
+    }
+  }
+
+  @override
   void dispose() {
     widget.session.state = null;
     _timer?.cancel();
@@ -525,9 +317,6 @@ class _NexBannerState extends State<_NexBanner>
   Future<void> _dismiss() async {
     if (_leaving || !mounted) return;
     _leaving = true;
-    // The module learns this the moment leaving begins, so a plain banner
-    // arriving during the exit takes the slot instead of queueing behind a
-    // capsule that is already on its way into the edge.
     widget.session.leaving = true;
     _timer?.cancel();
     await _controller.reverse();
@@ -537,8 +326,9 @@ class _NexBannerState extends State<_NexBanner>
   void _act() {
     // The action runs before the exit animation, not after it: an Undo that
     // waits for a slide-out is an Undo that looks like it missed.
-    widget.onAction?.call();
+    if (_leaving) return;
     unawaited(_dismiss());
+    widget.onAction?.call();
   }
 
   @override
@@ -561,16 +351,34 @@ class _NexBannerState extends State<_NexBanner>
     final top = MediaQuery.paddingOf(context).top;
     const gap = NexSpacing.sm;
 
+    final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
+    String digits(int value) =>
+        nexDigits('$value', persian: l10n?.localeName == 'fa');
     final message = Semantics(
       liveRegion: true,
       child: Text(
-        widget.message,
+        widget.repetitions > 1 && widget.session.request.group == null
+            ? '${widget.message} (×${digits(widget.repetitions)})'
+            : widget.message,
         style: theme.textTheme.bodyMedium?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w600,
         ),
       ),
     );
+    final pending = widget.pendingCount;
+    final count = pending == 0
+        ? null
+        : Semantics(
+            label: l10n?.bannerPending(pending) ?? '$pending waiting',
+            excludeSemantics: true,
+            child: Text(
+              '+${digits(pending)}',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: Colors.white70,
+              ),
+            ),
+          );
     final action = widget.actionLabel == null
         ? null
         : TextButton(
@@ -594,82 +402,125 @@ class _NexBannerState extends State<_NexBanner>
       top: top + gap,
       left: NexSpacing.md,
       right: NexSpacing.md,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480, minWidth: 140),
-          child: GestureDetector(
-            onTap: _dismiss,
-            // Hold to keep it: the countdown pauses under the finger — an
-            // Undo being thought about is an Undo still on the table. The
-            // countdown continues where it left off, not from the top.
-            onLongPressStart: (_) => _pauseLife(),
-            onLongPressEnd: (_) => _resumeLife(),
-            onLongPressCancel: _resumeLife,
-            // Up, not down. A downward flick is how a phone opens the
-            // notification shade, and this is sitting exactly where that
-            // gesture starts.
-            onVerticalDragEnd: (details) {
-              if ((details.primaryVelocity ?? 0) < -80) {
-                unawaited(_dismiss());
-              }
-            },
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                final t = _controller.value;
-                return CustomPaint(
-                  painter: _CapsulePainter(
-                    t: t,
-                    color: capsule,
-                    // From the capsule's top edge to the top of the screen:
-                    // where the island it drips from sits.
-                    lift: top + gap,
-                    hairline: Colors.white.withValues(alpha: dark ? .16 : 0),
-                  ),
-                  child: Opacity(
-                    // The words used to wait until the capsule was 55–90% of
-                    // the way in — unreadable for most of an entrance whose
-                    // whole job is to be read. They surface from 30% and are
-                    // solid by two thirds.
-                    opacity: _CapsulePainter.span(t, .3, .65),
-                    child: child,
-                  ),
-                );
-              },
-              child: Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(
-                  10,
-                  NexSpacing.sm,
-                  14,
-                  NexSpacing.sm,
-                ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    if (MediaQuery.textScalerOf(context).scale(1) > 1.4 ||
-                        constraints.maxWidth < 260) {
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [message, ?action],
-                      );
-                    }
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _Glyph(kind: widget.kind, accent: accent),
-                        const SizedBox(width: 10),
-                        Flexible(child: message),
-                        if (action != null) ...[
-                          const SizedBox(width: NexSpacing.xs),
-                          action,
-                        ],
-                      ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480, minWidth: 140),
+              child: GestureDetector(
+                onTap: _dismiss,
+                // Hold to keep it: the countdown pauses under the finger — an
+                // Undo being thought about is an Undo still on the table. The
+                // countdown continues where it left off, not from the top.
+                onLongPressStart: (_) => _pauseLife(),
+                onLongPressEnd: (_) => _resumeLife(),
+                onLongPressCancel: _resumeLife,
+                // Up, not down. A downward flick is how a phone opens the
+                // notification shade, and this is sitting exactly where that
+                // gesture starts.
+                onVerticalDragEnd: (details) {
+                  if ((details.primaryVelocity ?? 0) < -80) {
+                    unawaited(_dismiss());
+                  }
+                },
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    final t = _controller.value;
+                    return CustomPaint(
+                      painter: _CapsulePainter(
+                        t: t,
+                        color: capsule,
+                        // From the capsule's top edge to the top of the screen:
+                        // where the island it drips from sits.
+                        lift: top + gap,
+                        hairline: Colors.white.withValues(
+                          alpha: dark ? .16 : 0,
+                        ),
+                      ),
+                      child: Opacity(
+                        // The words used to wait until the capsule was 55–90% of
+                        // the way in — unreadable for most of an entrance whose
+                        // whole job is to be read. They surface from 30% and are
+                        // solid by two thirds.
+                        opacity: _CapsulePainter.span(t, .3, .65),
+                        child: child,
+                      ),
                     );
                   },
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.fromSTEB(
+                      10,
+                      NexSpacing.sm,
+                      14,
+                      NexSpacing.sm,
+                    ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (MediaQuery.textScalerOf(context).scale(1) > 1.4 ||
+                            constraints.maxWidth < 260) {
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [message, ?action, ?count],
+                          );
+                        }
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _Glyph(kind: widget.kind, accent: accent),
+                            const SizedBox(width: 10),
+                            Flexible(child: message),
+                            if (count != null) ...[
+                              const SizedBox(width: NexSpacing.xs),
+                              count,
+                            ],
+                            if (action != null) ...[
+                              const SizedBox(width: NexSpacing.xs),
+                              action,
+                            ],
+                          ],
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+          if (widget.nextMessage case final next?)
+            IgnorePointer(
+              child: ExcludeSemantics(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: capsule,
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(NexRadius.md),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.fromSTEB(
+                      NexSpacing.sm,
+                      NexSpacing.xs,
+                      NexSpacing.sm,
+                      NexSpacing.xs,
+                    ),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 360),
+                      child: Text(
+                        next,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

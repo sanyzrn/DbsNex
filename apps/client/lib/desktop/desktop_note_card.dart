@@ -168,6 +168,7 @@ class _NexDesktopNoteCardState extends State<NexDesktopNoteCard> {
       }
       return (title: '', body: text);
     case NoteType.file:
+    case NoteType.video:
       return (
         title: note.originalFilename ?? strings.noteOfType(note.type.name),
         body: note.mimeType ?? '',
@@ -214,7 +215,7 @@ class _Title extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 20),
       child: Row(
         children: [
-          if (note.type == NoteType.file ||
+          if (note.hasNamedFile ||
               note.type == NoteType.link ||
               note.snippetPreview != null)
             Padding(

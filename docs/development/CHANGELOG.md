@@ -34,6 +34,20 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.20 — media, notices, code, and reading fixes
+
+- Video is an independent note type. The timeline combines photos and videos
+  under Media, and existing files are classified when the library is upgraded.
+- Errors and action banners keep their own display time. Consecutive set-aside
+  actions with the same return time can share one Undo.
+- Code capture and details add language detection, editing shortcuts, a folded
+  preview, source search, line numbers and sharing with a source extension.
+- Folded HTML prepares only the visible prefix. Expanded source keeps a single
+  selection delegate so copying across paragraphs preserves the original text.
+- Expenses uses the same Persian character folding as the note index.
+- Cycle forecasts share one anchor and expire after the predicted period range.
+  The calendar, ring, widget, report and assistant follow that state.
+
 ### 2.8.19 — review of 2.8.8–2.8.18
 
 - Gold: `parseScaled`/`parseScaledDetailed` ungroup only with `grouped:`

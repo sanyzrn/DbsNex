@@ -10,7 +10,8 @@
 ///   the person can fix it, but it is excluded from totals.
 library;
 
-import 'package:nex_client/modules/module_api.dart' show NexModuleMonth;
+import 'package:nex_client/modules/module_api.dart'
+    show NexModuleMonth, nexSearchFold;
 
 import 'models.dart';
 import 'money.dart';
@@ -225,46 +226,9 @@ Iterable<ExpenseTx> txsInMonth(
 bool _inMonth(DateTime day, NexModuleMonth month) =>
     !day.isBefore(month.first) && day.isBefore(month.shift(1).first);
 
-/// Text folded for search, the way Nex folds a note: the letters an Iranian
-/// keyboard writes two ways become one (Arabic «ي»/«ك» and Persian «ی»/«ک»),
-/// the hamza forms of alef meet plain alef, te marbuta meets he, the zero
-/// width non-joiner and tatweel disappear, harakat are dropped, and Persian
-/// and Arabic digits become Latin. «نانوائی», «نانوایی», «نانوایی» and
-/// «نانوايي» are then the same word, and «۱۴۰۴» finds «1404».
-///
-/// The app-wide fold (`nexSearchFold`) lives behind the module API's
-/// boundary; this module keeps its own copy, as `money_input.dart` keeps
-/// its grouping, until the kit provides one.
-String foldExpenseSearch(String text) {
-  final buffer = StringBuffer();
-  for (final rune in text.runes) {
-    switch (rune) {
-      case 0x064A || 0x0649 || 0x06CC: // ي ى ی
-        buffer.write('ی');
-      case 0x0643 || 0x06A9: // ك ک
-        buffer.write('ک');
-      case 0x0629: // ة
-        buffer.write('ه');
-      case 0x0623 || 0x0625 || 0x0622 || 0x0627: // أ إ آ ا
-        buffer.write('ا');
-      case 0x0624: // ؤ
-        buffer.write('و');
-      case 0x0626: // ئ
-        buffer.write('ی');
-      case 0x200C || 0x200D || 0x200E || 0x200F || 0x0640:
-        break; // ZWNJ, ZWJ, marks, tatweel: layout, not a letter
-      case >= 0x064B && <= 0x065F || 0x0670:
-        break; // harakat
-      case >= 0x06F0 && <= 0x06F9:
-        buffer.writeCharCode(rune - 0x06F0 + 0x30);
-      case >= 0x0660 && <= 0x0669:
-        buffer.writeCharCode(rune - 0x0660 + 0x30);
-      default:
-        buffer.writeCharCode(rune);
-    }
-  }
-  return buffer.toString().toLowerCase();
-}
+/// Use the same spelling rules as note search. Lowercase here because
+/// expense fields are matched directly rather than through SQLite FTS.
+String foldExpenseSearch(String text) => nexSearchFold(text).toLowerCase();
 
 /// Text search across note, merchant, account and the category's own name,
 /// plus an optional category and amount range — the three ways the brief

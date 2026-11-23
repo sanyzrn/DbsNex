@@ -1210,6 +1210,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'text': 'Text',
       'voice': 'Voice',
       'photo': 'Photo',
+      'video': 'Video',
+      'media': 'Media',
       'file': 'File',
       'checklist': 'Checklist',
       'link': 'Link',
@@ -3532,6 +3534,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String cycleLikelyBetween(String from, String to) {
     return 'Likely between $from and $to';
   }
+
+  @override
+  String get cycleForecastPaused =>
+      'The expected range has passed. Calendar estimates will resume after you log the next start.';
+
+  @override
+  String get cycleStageUnknown => 'Timing uncertain';
 
   @override
   String get cycleConfidenceLow => 'Still learning your cycle';
@@ -6549,7 +6558,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(type, {
       'text': 'Writing',
       'voice': 'Voice notes',
-      'photo': 'Photos',
+      'photo': 'Media',
       'file': 'Files',
       'checklist': 'Checklists',
       'link': 'Links',
@@ -7020,6 +7029,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get codeSuggestedLanguage => 'Use suggested language';
+
+  @override
+  String bannerPending(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString in the queue';
+  }
+
+  @override
+  String get codeShowMore => 'Show more code';
+
+  @override
+  String get codeShowLess => 'Show less code';
+
+  @override
+  String get codeLineNumbers => 'Line numbers';
+
+  @override
+  String get codeShareFile => 'Share code as file';
+
+  @override
+  String get codeShareFailed => 'Could not share the code file';
+
+  @override
+  String get codeFind => 'Find in code';
+
+  @override
+  String get codeNoMatches => 'No matches in this code';
+
+  @override
+  String codeFirstMatches(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return 'Showing the first $countString matches';
+  }
 
   @override
   String get codeWrap => 'Wrap long lines';

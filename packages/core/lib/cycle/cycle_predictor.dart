@@ -40,7 +40,7 @@ enum CycleAlert {
 /// the body builds up again; the fertile window round the estimated
 /// ovulation; and the days after it until the next period. Estimates, like
 /// everything here, and said as such.
-enum CycleStage { period, follicular, fertile, luteal }
+enum CycleStage { period, follicular, fertile, luteal, unknown }
 
 /// A predicted period or fertile window: [start] to [end], inclusive.
 typedef CycleSpan = ({CycleDate start, CycleDate end});
@@ -64,15 +64,12 @@ class CyclePrediction {
     required this.nextStart,
     required this.nextEarliest,
     required this.nextLatest,
-    required this.ovulation,
-    required this.fertile,
     required this.averageCycle,
     required this.averagePeriod,
     required this.cyclesUsed,
     required this.variability,
     required this.confidence,
     required this.alerts,
-    required this.upcoming,
   });
 
   final CycleDate today;
@@ -90,12 +87,6 @@ class CyclePrediction {
   final CycleDate nextEarliest;
   final CycleDate nextLatest;
 
-  /// Estimated, about fourteen days before the next period.
-  final CycleDate ovulation;
-
-  /// The five days before ovulation, the day itself and the day after.
-  final CycleSpan fertile;
-
   final int averageCycle;
   final int averagePeriod;
 
@@ -107,38 +98,55 @@ class CyclePrediction {
   final CycleConfidence confidence;
   final Set<CycleAlert> alerts;
 
-  /// The next three predicted periods and fertile windows.
-  final List<({CycleSpan period, CycleSpan fertile})> upcoming;
+  /// After the projected range has passed, another logged start is needed
+  /// before either period or fertility dates can be estimated again.
+  bool get forecastExpired => today.isAfter(nextLatest);
+
+  /// The current cycle's calendar estimate, which ends at [nextStart].
+  CycleForecast? get nextForecast => forecastExpired ? null : _forecast(0);
+
+  /// The next three forecast entries from the same dates the calendar uses.
+  List<CycleForecast> get upcoming =>
+      forecastExpired ? const [] : [for (var i = 0; i < 3; i++) _forecast(i)];
+
+  CycleForecast _forecast(int index) {
+    final start = nextStart.addDays(averageCycle * index);
+    final ovulation = start.addDays(-14);
+    return (
+      period: (start: start, end: start.addDays(averagePeriod - 1)),
+      fertile: (start: ovulation.addDays(-5), end: ovulation.addDays(1)),
+      ovulation: ovulation,
+    );
+  }
 
   /// Days until [nextStart]; negative when it is late.
   int get daysUntilNext => nextStart.daysSince(today);
 
   /// Every predicted cycle that shares a day with [from]..[to].
   ///
-  /// [upcoming] stops after three cycles, which is enough for the page's
-  /// lines and not enough for a calendar someone turns a year ahead. This
-  /// counts on from the same anchor [upcoming] uses — today while the
-  /// period is late, otherwise the next start — and is bounded so that a
-  /// malformed average cannot make it walk for years.
+  /// [upcoming] stops after three cycles. The calendar can look further
+  /// ahead from the same fixed anchor while the forecast is current.
   List<CycleForecast> forecastBetween(CycleDate from, CycleDate to) {
-    if (to.isBefore(from) || averageCycle < 1) return const [];
-    final anchor = nextStart.isBefore(today) ? today : nextStart;
+    if (forecastExpired || to.isBefore(from) || averageCycle < 1) {
+      return const [];
+    }
     // The earliest start whose period can still reach `from`, and the
     // latest whose fertile window can still begin before `to`.
     final before = from.addDays(-math.max(averagePeriod - 1, 13));
     final after = to.addDays(19);
-    var first = math.max(0, _ceilDiv(before.daysSince(anchor), averageCycle));
-    final last = _floorDiv(after.daysSince(anchor), averageCycle);
+    var first = math.max(
+      0,
+      _ceilDiv(before.daysSince(nextStart), averageCycle),
+    );
+    final last = _floorDiv(after.daysSince(nextStart), averageCycle);
     if (last < first) return const [];
     if (last - first > 240) first = last - 240;
     final out = <CycleForecast>[];
     for (var k = first; k <= last; k++) {
-      final start = anchor.addDays(averageCycle * k);
-      final ovulation = k == 0 ? this.ovulation : start.addDays(-14);
-      final period = (start: start, end: start.addDays(averagePeriod - 1));
-      final fertile = (start: ovulation.addDays(-5), end: ovulation.addDays(1));
-      if (_spans(from, to, period) || _spans(from, to, fertile)) {
-        out.add((period: period, fertile: fertile, ovulation: ovulation));
+      final forecast = _forecast(k);
+      if (_spans(from, to, forecast.period) ||
+          _spans(from, to, forecast.fertile)) {
+        out.add(forecast);
       }
     }
     return out;
@@ -156,6 +164,8 @@ class CyclePrediction {
         ? inPeriod
         : day.daysSince(lastStart) < averagePeriod;
     if (bleeding) return CycleStage.period;
+    final fertile = nextForecast?.fertile;
+    if (fertile == null) return CycleStage.unknown;
     if (!day.isBefore(fertile.start) && !day.isAfter(fertile.end)) {
       return CycleStage.fertile;
     }
@@ -237,7 +247,6 @@ abstract final class CyclePredictor {
 
     final last = past.last;
     final nextStart = last.start.addDays(averageCycle);
-    final ovulation = nextStart.addDays(-14);
     final inPeriod =
         last.contains(today) &&
         (last.end != null || today.daysSince(last.start) < 15);
@@ -276,28 +285,12 @@ abstract final class CyclePredictor {
       nextStart: nextStart,
       nextEarliest: nextStart.addDays(-spread),
       nextLatest: latest,
-      ovulation: ovulation,
-      fertile: (start: ovulation.addDays(-5), end: ovulation.addDays(1)),
       averageCycle: averageCycle,
       averagePeriod: averagePeriod,
       cyclesUsed: recent.length,
       variability: variability,
       confidence: confidence,
       alerts: alerts,
-      upcoming: [
-        for (var k = 0; k < 3; k++)
-          () {
-            // A period that is late is still to come: the calendar counts
-            // on from today rather than marking days already gone.
-            final from = nextStart.isBefore(today) ? today : nextStart;
-            final start = from.addDays(averageCycle * k);
-            final ov = start.addDays(-14);
-            return (
-              period: (start: start, end: start.addDays(averagePeriod - 1)),
-              fertile: (start: ov.addDays(-5), end: ov.addDays(1)),
-            );
-          }(),
-      ],
     );
   }
 

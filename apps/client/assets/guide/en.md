@@ -13,7 +13,7 @@ The first time you open Nex, four short pages show what it does, and a last one 
 
 Tap **+** at the centre of the bottom bar to write. The kinds sit at the top of the box — **Note**, **Checklist**, **Link** and **Code** — and switch in place: what you typed stays, so a note becomes a list line by line, and a pasted address (with a line about it if you like) becomes a link. **Voice** turns the box into a recorder: the square keeps the recording, the bin throws it away. Below the box, **Voice**, **Camera**, **Gallery** and **File** each have their own button. Nothing has a Save button: what you write is kept from the first letter and is turned into the kind you chose when you close the box; words that are not a link stay a note.
 
-**Code.** Choose **Code**, type or paste the source, then pick **Plain text**, **Dart**, **JavaScript**, **Python**, **JSON**, **HTML**, **CSS** or **PHP** above the field. Tap a suggested language to accept it. In details, code reads left to right with syntax colours. Long lines wrap and the whole file scrolls continuously. **Copy code** keeps the original spacing. **Save to device** writes the source with its language’s extension, or `.txt` for plain text and unrecognised languages. **Edit** lets you change the language and indent selected lines. If your assistant is available, you can ask it to explain the code or suggest tests.
+**Code.** Choose **Code** and type or paste. Nex detects common languages on paste, and the language menu always lets you choose. Enter carries the current indentation to the next line, brackets and quotes can pair as you type, and Tab and Shift+Tab indent or outdent. Long snippets open with a preview and **Show more code**. Use the line-number and wrap buttons to change the view, or **Find in code** to see matching lines. **Copy code** preserves the source. **Save to device** and **Share code as file** give it the language’s extension. If the assistant is available, you can ask it to explain the code, review it or suggest tests.
 
 The small clipboard icon in the editor’s corner pastes into an empty **Note**, **Code**, **Checklist** or **Link**. It appears only when the clipboard holds text — Nex checks that without reading what you copied — fades once you start writing, and returns when you clear the field. An address pasted this way into an empty **Note** turns it into a **Link**, so it is saved with the page’s title; tap **Note** to keep it as plain text. The keyboard’s normal paste controls remain available while editing.
 
@@ -30,6 +30,8 @@ Without opening Nex first: add the **Nex capture** tile to your Quick Settings (
 **From a text selection.** In compatible Android apps, select words and choose **Save to Nex** from the selection menu (it may be inside **⋮**). Nex saves them through quick capture and returns you to the source app, without replacing the original text. Availability and placement depend on the source app's selection menu.
 
 ## The home timeline
+
+Photos and videos share the **Media** filter and shelf on Home. Files you already saved as videos appear there too.
 
 Reminder, urgent and attachment indicators occupy a separate area beside the preview. The group follows the interface language, independently of the note’s text direction. Only present indicators appear, packed in that order without empty slots; on narrow screens or with large text, the group can wrap within the same card.
 
@@ -221,6 +223,8 @@ In **Private saved messages**, the **+** beside the box attaches a voice message
 
 Your **Profile** is at the top of Settings. Tap the picture to choose one from the gallery, take one, or remove it; the name and bio show at the top as you type them, over a small sky of stars drawn from the name — a star for each letter — that drifts, twinkles and now and then sends a spark along its lines, and once your birthday is set the page counts the days to the next one — by the Persian calendar when you use it.
 
+If the expected period range passes, Cycle pauses calendar estimates until you log a new start. Your recorded dates stay visible on the calendar.
+
 **Your writing portrait** sits at the foot of the profile. Once you have 30 notes written on at least 7 different days, it shows when in the day you write most, how many of the last 30 days you wrote on (as a row of bars, today on the end), your current streak of days and your longest run, how much of your checklists you tick, the kinds of notes you keep and your most used tags — counted on the phone, nothing sent. Before that, a ring shows how many notes and days are still to go. With an AI provider chosen, **Write my portrait** asks it for a portrait in words: a headline, a few sentences, five traits with a bar for how strongly each shows and why, your strengths and one thing to try. It is read from a sample of up to 80 notes spread across your library, sent once when you tap and listed under **What left this device**; the portrait is kept on the phone until you tap **Write again** (which is always there; without a provider it tells you where to choose one). The card assembles itself as you scroll to it, and the five traits are also drawn as a shape. It is a reflection of your notes, not a personality test or a diagnosis.
 
 **Cycle** is a module: it is not part of the app until you add it in **Tools → Modules**, where its card says what it does. Once added, **Tools → Cycle** keeps track of your menstrual cycle, in a quiet space of its own: soft blush and lavender light, a greeting, and a gentle line for where you are in your cycle. The first time, it asks when your last period started and how long your periods and cycles usually are; answer what you know, or **I don't know**, and Nex learns the rest from what you log.
@@ -256,7 +260,7 @@ Settings opens as a page of its own, like Tools and the Library, on a list of ca
 
 ## Notices inside the app
 
-Confirmations and warnings arrive as a small capsule that drips down from the top of the screen and is drawn back up when it leaves. Tap it or swipe it upwards to dismiss it early. When it offers **Undo**, it stays a little longer so there is time to reach it.
+Confirmations and warnings arrive from the top. Tap a notice or swipe it upward to dismiss it. Errors and notices with **Undo** get their own turn. The small count shows how many are waiting. Consecutive set-aside actions with the same return time can share one **Undo**.
 
 ![A notice with Undo](notices.webp)
 

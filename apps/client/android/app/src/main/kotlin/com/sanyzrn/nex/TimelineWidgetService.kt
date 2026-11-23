@@ -96,7 +96,7 @@ class TimelineWidgetService : RemoteViewsService() {
 
         private fun iconFor(type: String): Int = when (type) {
             "voice" -> R.drawable.nex_widget_ic_type_voice
-            "photo" -> R.drawable.nex_widget_ic_type_photo
+            "photo", "video" -> R.drawable.nex_widget_ic_type_photo
             "file" -> R.drawable.nex_widget_ic_type_file
             "checklist" -> R.drawable.nex_widget_ic_type_checklist
             "link" -> R.drawable.nex_widget_ic_type_link
@@ -111,6 +111,7 @@ class TimelineWidgetService : RemoteViewsService() {
             when (type) {
                 "voice" -> R.string.widget_type_voice
                 "photo" -> R.string.widget_type_photo
+                "video" -> R.string.widget_type_video
                 "file" -> R.string.widget_type_file
                 "checklist" -> R.string.widget_type_checklist
                 "link" -> R.string.widget_type_link

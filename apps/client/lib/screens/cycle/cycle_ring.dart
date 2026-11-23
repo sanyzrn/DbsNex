@@ -81,8 +81,11 @@ class _CycleRingState extends State<CycleRing> {
     final brightness = theme.brightness;
     final p = widget.prediction;
     final length = _length;
-    final fertileFrom = p.fertile.start.daysSince(p.lastStart);
-    final fertileTo = p.fertile.end.daysSince(p.lastStart) + 1;
+    final fertile = p.nextForecast?.fertile;
+    final fertileFrom = fertile?.start.daysSince(p.lastStart) ?? 0;
+    final fertileTo = fertile == null
+        ? 0
+        : fertile.end.daysSince(p.lastStart) + 1;
     final progress = (p.cycleDay - 0.5) / length;
     final picked = _picked;
     final day = p.lastStart.addDays(picked ?? p.cycleDay - 1);

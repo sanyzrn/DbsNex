@@ -13,6 +13,7 @@ import 'package:nex_client/widgets/code_editing_controller.dart';
 import 'package:nex_client/widgets/nex_dialog.dart';
 import 'package:nex_client/widgets/nex_text_field.dart';
 import 'package:nex_client/widgets/snippet_editor_sheet.dart';
+import 'package:nex_client/widgets/code_input.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -30,6 +31,38 @@ void main() {
   late NexTestHarness harness;
   late NexServices services;
   late NexPreferences preferences;
+
+  test(
+    'code input indents and pairs typed characters without altering a paste',
+    () {
+      const formatter = NexCodeInputFormatter();
+      const old = TextEditingValue(
+        text: '  print',
+        selection: TextSelection.collapsed(offset: 7),
+      );
+      const newline = TextEditingValue(
+        text: '  print\n',
+        selection: TextSelection.collapsed(offset: 8),
+      );
+      final indented = formatter.formatEditUpdate(old, newline);
+      expect(indented.text, '  print\n  ');
+      expect(indented.selection.extentOffset, 10);
+
+      const insertion = TextEditingValue(
+        text: '  print(',
+        selection: TextSelection.collapsed(offset: 8),
+      );
+      final paired = formatter.formatEditUpdate(old, insertion);
+      expect(paired.text, '  print()');
+      expect(paired.selection.extentOffset, 8);
+
+      const pasted = TextEditingValue(
+        text: '  print(\narg)',
+        selection: TextSelection.collapsed(offset: 13),
+      );
+      expect(formatter.formatEditUpdate(old, pasted), pasted);
+    },
+  );
 
   setUp(() async {
     harness = await NexTestHarness.create(name: 'nex_code_snippet_');
@@ -142,41 +175,40 @@ void main() {
     expect(note.content, '```python\nprintln("hi")\n```');
   });
 
-  testWidgets(
-    'capture puts Code last and keeps language hints without indentation buttons',
-    (tester) async {
-      await preferences.setLocale('en');
-      await openComposer(tester);
-      const source = 'def draw():\n  return 1\n';
-      await tester.enterText(_field, source);
-      await tester.pumpAndSettle();
-      final l10n = AppLocalizations.of(tester.element(_field));
-      final modeCenters =
-          [l10n.captureKindNote, l10n.checklist, l10n.link, l10n.code].map((
-            label,
-          ) {
-            final chip = find.descendant(
-              of: find.byType(CaptureSheet),
-              matching: find.text(label),
-            );
-            return tester.getCenter(chip).dx;
-          }).toList();
-      expect(modeCenters, orderedEquals([...modeCenters]..sort()));
-      expect(find.byTooltip(l10n.codeIndent), findsNothing);
-      expect(find.byTooltip(l10n.codeOutdent), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('code-language-suggestion')));
-      await tester.pumpAndSettle();
-      await tester.binding.handlePopRoute();
-      await tester.pumpAndSettle();
-      final note = (await services.timeline(limit: 1)).single;
-      expect(note.snippetPreview?.language, NexCodeLanguage.python);
-      expect(note.copyText, source);
-      final glyph = tester.widget<NexCodeLanguageGlyph>(
-        find.byType(NexCodeLanguageGlyph).first,
-      );
-      expect(glyph.language, NexCodeLanguage.python);
-    },
-  );
+  testWidgets('capture puts Code last and detects the pasted language', (
+    tester,
+  ) async {
+    await preferences.setLocale('en');
+    await openComposer(tester);
+    const source = 'def draw():\n  return 1\n';
+    await tester.enterText(_field, source);
+    await tester.pumpAndSettle();
+    final l10n = AppLocalizations.of(tester.element(_field));
+    final modeCenters =
+        [l10n.captureKindNote, l10n.checklist, l10n.link, l10n.code].map((
+          label,
+        ) {
+          final chip = find.descendant(
+            of: find.byType(CaptureSheet),
+            matching: find.text(label),
+          );
+          return tester.getCenter(chip).dx;
+        }).toList();
+    expect(modeCenters, orderedEquals([...modeCenters]..sort()));
+    expect(find.byTooltip(l10n.codeIndent), findsOneWidget);
+    expect(find.byTooltip(l10n.codeOutdent), findsOneWidget);
+    expect(find.text(l10n.codeLanguagePython), findsOneWidget);
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    final note = (await services.timeline(limit: 1)).single;
+    expect(note.snippetPreview?.language, NexCodeLanguage.python);
+    expect(note.copyText, source);
+    final glyph = tester.widget<NexCodeLanguageGlyph>(
+      find.byType(NexCodeLanguageGlyph).first,
+    );
+    expect(glyph.language, NexCodeLanguage.python);
+  });
 
   testWidgets(
     'the Persian language palette fits above a phone keyboard and returns to the same caret',
@@ -220,7 +252,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('HTML'), findsOneWidget);
     expect(find.text('CSS'), findsOneWidget);
-    await tester.tap(find.text('PHP'));
+    await tester.tap(find.widgetWithText(ChoiceChip, 'PHP'));
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
@@ -325,6 +357,15 @@ void main() {
       NexCodeSnippet(code: edited, language: NexCodeLanguage.python).markdown,
     );
 
+    await tester.tap(find.byTooltip(l10n.codeFind));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'سلام');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('print("سلام")'), findsWidgets);
+    expect(tester.takeException(), isNull);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
     // Change only the language while the same detail sheet is open.
     expect(
       tester.widget<NexCodeText>(find.byType(NexCodeText)).spans,
@@ -421,6 +462,8 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('snippet-expand')));
     await tester.pumpAndSettle();
     Finder chunkContaining(String text) => find.byWidgetPredicate(
       (widget) => widget is NexCodeText && widget.code.contains(text),
@@ -558,6 +601,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      final more = find.byKey(const ValueKey('snippet-expand'));
+      final preview = tester.widget<NexCodeText>(find.byType(NexCodeText));
+      expect(preview.code.length, lessThan(500));
+      expect(preview.maxLines, 8);
+      await tester.tap(more);
+      await tester.pumpAndSettle();
       final source = find.byType(NexCodeText);
       final context = tester.element(source.first);
       final nav = MaterialLocalizations.of(context);
@@ -565,8 +614,14 @@ void main() {
       expect(find.byTooltip(nav.previousPageTooltip), findsNothing);
       expect(
         find.byTooltip(AppLocalizations.of(context).codeWrap),
-        findsNothing,
+        findsOneWidget,
       );
+      final wrap = find.byTooltip(AppLocalizations.of(context).codeWrap);
+      await tester.tap(wrap);
+      await tester.pumpAndSettle();
+      expect(tester.widget<NexCodeText>(source.first).softWrap, isFalse);
+      await tester.tap(wrap);
+      await tester.pumpAndSettle();
       final first = tester.widget<NexCodeText>(source.first);
       expect(first.code, 'a' * 3999);
       expect(first.softWrap, isTrue);
