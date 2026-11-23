@@ -5,6 +5,7 @@ import 'irr_unit.dart';
 import 'model.dart';
 import 'money_format.dart';
 import 'strings.dart';
+import 'valuation.dart';
 
 /// The currencies people in Iran hold most, by name (2.8.4); any other is
 /// shown by its code.
@@ -79,3 +80,41 @@ String moneyLabel(BuildContext c, BigInt rial, IrrUnit unit) {
   }
   return '${fixedNumber(rial, unit.displayDigits, fa)} ${assetStrings(c, unit.key)}';
 }
+
+/// Tenths of a percent as a person says it: 125 → «۱۲٫۵٪». The sign is kept
+/// for a change, where «+» and «−» carry the meaning the colour does not.
+String percentTenthsText(BigInt tenths, bool persian, {bool signed = false}) {
+  final sign = tenths.isNegative
+      ? '−'
+      : signed && tenths > BigInt.zero
+      ? '+'
+      : '';
+  return '$sign${fixedNumber(tenths.abs(), 1, persian)}${persian ? '٪' : '%'}';
+}
+
+/// «today», «yesterday», «12 days ago», or the date once the count stops
+/// being the useful part. Prices are the one place a stale number can quietly
+/// mislead, so their age is said in words next to the day.
+String shortAge(BuildContext c, DateTime day, DateTime now) {
+  final days = civilDaysBetween(day, now);
+  if (days == 0) return assetStrings(c, 'ageToday');
+  if (days == 1) return assetStrings(c, 'ageYesterday');
+  if (days > 1 && days < 30) return assetStrings(c, 'ageDays', {'n': days});
+  return assetDate(c, day);
+}
+
+/// The weight said the two ways Iranians say it: grams and mithqals.
+String mithqalValue(BuildContext c, BigInt mg) => assetStrings(
+  c,
+  'mesghalValue',
+  {'n': fixedNumber(mesghalMilli(mg), 3, NexModuleStrings.persian(c))},
+);
+
+String goldEquivalentBoth(BuildContext c, BigInt mg) =>
+    assetStrings(c, 'equivalentGoldBoth', {
+      'n': fixedNumber(mg, 3, NexModuleStrings.persian(c)),
+      'm': fixedNumber(mesghalMilli(mg), 3, NexModuleStrings.persian(c)),
+    });
+
+String karatText(BuildContext c, int fineness) =>
+    assetStrings(c, 'karatValue', {'n': karatOf(fineness)});

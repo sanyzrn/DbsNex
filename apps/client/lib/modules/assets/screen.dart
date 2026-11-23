@@ -25,11 +25,13 @@ class _AssetsScreenState extends State<AssetsScreen>
     with WidgetsBindingObserver {
   late final ledger = AssetLedger(widget.store);
   final revealed = ValueNotifier(false);
+  StreamSubscription<void>? _changes;
   IrrUnit unit = IrrUnit.toman;
   int tab = 0;
   bool ready = false, secureFailed = false, leased = false;
   bool loading = false, loadFailed = false, writing = false;
   AssetMarket selected = AssetMarket.gold;
+  AssetType? typeFilter;
 
   String s(String key, [Fields args = const {}]) =>
       assetStrings(context, key, args);
@@ -43,6 +45,12 @@ class _AssetsScreenState extends State<AssetsScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // A backup restore, an Undo or a write from the quick view can change the
+    // book while this screen is open. Reload quietly; the screen's own
+    // mutations already reload after they finish.
+    _changes = widget.store.changes.listen((_) {
+      if (mounted && revealed.value && !writing) unawaited(load());
+    });
     unawaited(protect());
   }
 
@@ -73,6 +81,7 @@ class _AssetsScreenState extends State<AssetsScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    unawaited(_changes?.cancel());
     if (leased) unawaited(NexSecureWindow.releasePrivateSurface());
     revealed.dispose();
     super.dispose();
@@ -95,7 +104,19 @@ class _AssetsScreenState extends State<AssetsScreen>
     } on Object {
       if (mounted) setState(() => loadFailed = true);
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted) {
+        setState(() {
+          loading = false;
+          // A filter whose only asset was sold or deleted must not leave an
+          // empty page with no explanation.
+          if (typeFilter != null &&
+              !ledger.valuation.positions.any(
+                (position) => position.holding.market.type == typeFilter,
+              )) {
+            typeFilter = null;
+          }
+        });
+      }
     }
   }
 
@@ -118,6 +139,7 @@ class _AssetsScreenState extends State<AssetsScreen>
           initialMarket: market,
           initialUnit: unit,
           original: original,
+          quotes: [...valuation.history.values.expand((series) => series)],
           save: (id, fields) => ledger.save(kind, id, fields, original),
         ),
       );
@@ -129,18 +151,39 @@ class _AssetsScreenState extends State<AssetsScreen>
     }
   }
 
+  /// Straight from a lot or a benchmark to the price it needs, instead of
+  /// making the person find it again in another tab.
+  Future<void> openQuote(AssetMarket market) async {
+    if (!revealed.value) return;
+    setState(() => selected = market);
+    await editor('quote', market: market);
+  }
+
+  String deleteBody(ModuleRecord record) => switch (record.kind) {
+    'holding' => s('deleteHoldingBody'),
+    'quote' => s('deleteQuoteBody'),
+    _ => s('deleteGoalBody'),
+  };
+
   Future<void> remove(ModuleRecord record) async {
     if (writing) return;
     final accepted = await nexShowDialog<bool>(
       context: context,
       builder: (c) => NexAlertDialog(
         title: Text(assetStrings(c, 'deleteTitle')),
+        content: NexDialogBody(
+          child: Text(assetStrings(c, deleteBody(record))),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c),
             child: Text(assetStrings(c, 'cancel')),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(c).colorScheme.error,
+              foregroundColor: Theme.of(c).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(c, true),
             child: Text(assetStrings(c, 'delete')),
           ),
@@ -206,9 +249,16 @@ class _AssetsScreenState extends State<AssetsScreen>
             value: 'delete',
             icon: Icons.delete_outline,
             label: s('delete'),
+            destructive: true,
           ),
         ],
       );
+
+  void toggleUnit() => setState(
+    () => unit = unit == IrrUnit.toman ? IrrUnit.rial : IrrUnit.toman,
+  );
+
+  void setTypeFilter(AssetType? type) => setState(() => typeFilter = type);
 
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<bool>(
@@ -218,18 +268,22 @@ class _AssetsScreenState extends State<AssetsScreen>
         title: Text(s('title')),
         actions: [
           if (visible) ...[
-            IconButton(
-              tooltip: s(unit == IrrUnit.toman ? 'rial' : 'toman'),
-              icon: const Icon(Icons.swap_horiz),
-              onPressed: writing
-                  ? null
-                  : () => setState(
-                      () => unit = unit == IrrUnit.toman
-                          ? IrrUnit.rial
-                          : IrrUnit.toman,
-                    ),
+            Tooltip(
+              message: s(unit == IrrUnit.toman ? 'showRial' : 'showToman'),
+              child: TextButton(
+                key: const ValueKey('assets-unit'),
+                onPressed: writing ? null : toggleUnit,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: NexSpacing.sm,
+                  ),
+                ),
+                child: Text(s(unit.key)),
+              ),
             ),
             IconButton(
+              key: const ValueKey('assets-hide'),
               tooltip: s('hide'),
               icon: const Icon(Icons.visibility_off_outlined),
               onPressed: () => revealed.value = false,
@@ -258,6 +312,7 @@ class _AssetsScreenState extends State<AssetsScreen>
         child: Align(
           alignment: AlignmentDirectional.centerStart,
           child: FilledButton.icon(
+            key: const ValueKey('assets-reveal'),
             onPressed: ready
                 ? reveal
                 : secureFailed
@@ -266,8 +321,24 @@ class _AssetsScreenState extends State<AssetsScreen>
                     unawaited(protect());
                   }
                 : null,
-            icon: Icon(ready ? Icons.visibility_outlined : Icons.refresh),
-            label: Text(s(ready ? 'reveal' : 'retry')),
+            icon: ready
+                ? const Icon(Icons.visibility_outlined)
+                : secureFailed
+                ? const Icon(Icons.refresh)
+                : const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+            label: Text(
+              s(
+                ready
+                    ? 'reveal'
+                    : secureFailed
+                    ? 'retry'
+                    : 'securingShort',
+              ),
+            ),
           ),
         ),
       ),
@@ -307,7 +378,10 @@ class _AssetsScreenState extends State<AssetsScreen>
                 key: PageStorageKey(tab),
                 padding: const EdgeInsets.all(NexSpacing.md),
                 children: [
-                  if (ledger.damaged) Text(s('damaged')),
+                  if (ledger.damaged) ...[
+                    damagedNotice(),
+                    const SizedBox(height: NexSpacing.md),
+                  ],
                   ...switch (tab) {
                     0 => holdingsView(),
                     1 => pricesView(),
@@ -321,4 +395,19 @@ class _AssetsScreenState extends State<AssetsScreen>
       ],
     );
   }
+
+  Widget damagedNotice() => NexPanel(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          Icons.warning_amber_rounded,
+          size: 20,
+          color: Theme.of(context).colorScheme.error,
+        ),
+        const SizedBox(width: NexSpacing.sm),
+        Expanded(child: Text(s('damaged'))),
+      ],
+    ),
+  );
 }

@@ -4,6 +4,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.18
+
+- **A clearer Asset book.** See how the book's value is split between gold, coins and currency, filter a long book, and read gold in grams and mithqal. Each price says how old it is and can be refreshed in one tap; holdings still waiting for a price are called out.
+- **Safer editing.** Common gold karats show their 18-karat equivalent as you type, errors appear beside the field that needs them, and deleting an entry says what is removed and what stays.
+- **Prices before you buy.** Record any common coin or currency price even before you own it; a price dated in the future is shown with a warning instead of disappearing.
+
 ## v2.8.17
 
 - **Word by Word.** Review a single deck, set a daily goal, and share words as text. Nex remembers how you practise and brings skipped cards back later in the session. Persian search handles alternate spellings and half-spaces.

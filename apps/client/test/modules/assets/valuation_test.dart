@@ -59,7 +59,7 @@ void main() {
     expect(v.equivalent(AssetMarket.gold, 1000), isNull);
   });
 
-  test('ignores future prices; latest date then latest save wins, not insertion order', () {
+  test('future prices stay in history but never value the book', () {
     final q = [
       quote(emami, 200, at: DateTime(2026, 12, 1)),
       quote(emami, 150, at: earlier, saved: DateTime(2026, 12, 1)),
@@ -67,7 +67,10 @@ void main() {
       quote(emami, 180, saved: DateTime(2026, 11, 15, 8)),
     ];
     final v = Valuation([holding(emami, 2)], q, asOf);
-    expect(v.history[emami.key]!.map((q) => q.unitRial), [190, 180, 150]);
+    // The future record used to vanish from the price screen and could not
+    // be corrected; it is still history, but only the usable day values.
+    expect(v.history[emami.key]!.map((q) => q.unitRial), [200, 190, 180, 150]);
+    expect(v.latest(emami)?.unitRial, 190);
     expect(v.total, BigInt.from(380));
   });
 
@@ -114,6 +117,121 @@ void main() {
         ).key,
       ),
     );
+  });
+
+  test(
+    'profit percentages round a loss away from zero and skip a zero cost',
+    () {
+      final gain = Valuation(
+        [holding(emami, 1, price: 1000)],
+        [quote(emami, 1250)],
+        asOf,
+      );
+      expect(gain.profit, BigInt.from(250));
+      expect(gain.profitTenths, BigInt.from(250));
+      expect(gain.positions.single.profitTenths, BigInt.from(250));
+      final loss = Valuation(
+        [holding(emami, 1, price: 1000)],
+        [quote(emami, 750)],
+        asOf,
+      );
+      expect(loss.profitTenths, BigInt.from(-250));
+      final gift = Valuation(
+        [holding(emami, 1, price: 0)],
+        [quote(emami, 750)],
+        asOf,
+      );
+      expect(gift.profitTenths, isNull);
+      expect(gift.positions.single.profitTenths, isNull);
+    },
+  );
+
+  test('the book has one stable order and totals by kind', () {
+    Holding lot(String id, DateTime bought, {DateTime? updated}) =>
+        Holding.read(
+          entry(
+            'holding',
+            id,
+            holdingBody(AssetMarket.usd, 100, bought),
+            updated: updated,
+          ),
+        )!;
+    final first = lot('first', earlier);
+    final second = lot('second', asOf, updated: DateTime(2026, 11, 20));
+    final gold = holding(AssetMarket.gold, 1000, price: 1);
+    final v = Valuation(
+      [second, gold, first],
+      [quote(AssetMarket.usd, 100), quote(AssetMarket.gold, 100)],
+      asOf,
+    );
+    expect(v.positions.map((p) => p.holding.record.id), [
+      gold.record.id,
+      'first',
+      'second',
+    ]);
+    expect(v.typeCounts, {AssetType.gold: 1, AssetType.currency: 2});
+    expect(v.byType.keys.toSet(), {AssetType.gold, AssetType.currency});
+    expect(v.byType[AssetType.gold], BigInt.from(100));
+    expect(v.byType[AssetType.currency], BigInt.from(200));
+    expect(v.oldestPricedQuote?.market.type, AssetType.gold);
+  });
+
+  test('unpriced lots, price changes and freshness are explicit', () {
+    final v = Valuation(
+      [holding(emami, 2), holding(bahar, 1)],
+      [
+        quote(emami, 150, at: DateTime(2026, 11, 1)),
+        quote(emami, 140, at: DateTime(2026, 10, 20)),
+        quote(bahar, 500, at: earlier),
+      ],
+      asOf,
+    );
+    expect(v.firstUnpriced, isNull);
+    final unpriced = Valuation(
+      [holding(emami, 2), holding(bahar, 1)],
+      [quote(bahar, 500, at: earlier)],
+      asOf,
+    );
+    expect(unpriced.firstUnpriced?.holding.market.code, 'emami');
+    expect(unpriced.unpriced, 1);
+    final delta = quoteDelta(v.history[emami.key]!);
+    expect(delta?.amount, BigInt.from(10));
+    expect(delta?.tenths, BigInt.from(71));
+    final same = quoteDelta([quote(emami, 150), quote(emami, 150)]);
+    expect(same?.amount, BigInt.zero);
+    expect(same?.tenths, BigInt.zero);
+    expect(quoteDelta([quote(emami, 150)]), isNull);
+  });
+
+  test('gold is also measured in mithqal and kept at 18k', () {
+    expect(mesghalMilli(BigInt.from(46083)), BigInt.from(10000));
+    expect(mesghalMilli(BigInt.from(4608)), BigInt.from(1000));
+    expect(karatOf(750), 18);
+    expect(karatOf(916), 22);
+    expect(karatOf(999), 24);
+    expect(normalizedGoldMg(2500, 900), BigInt.from(3000));
+  });
+
+  test('the price catalogue offers common assets before they are held', () {
+    final catalogue = priceCatalogue(const [
+      AssetMarket(AssetType.other, name: 'Silver'),
+    ]);
+    expect(catalogue.first.key, AssetMarket.gold.key);
+    expect(catalogue.any((m) => m.key == AssetMarket.usd.key), isTrue);
+    expect(
+      catalogue.any(
+        (m) => m.key == const AssetMarket(AssetType.currency, code: 'EUR').key,
+      ),
+      isTrue,
+    );
+    expect(
+      catalogue.any(
+        (m) => m.key == const AssetMarket(AssetType.coin, code: 'gram').key,
+      ),
+      isTrue,
+    );
+    expect(catalogue.last.name, 'Silver');
+    expect(compareMarkets(AssetMarket.gold, AssetMarket.usd), lessThan(0));
   });
 
   test('defensive parsing and private summaries omit sensitive numeric and storage details', () {
