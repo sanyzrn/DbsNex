@@ -67,9 +67,10 @@ void main() {
       expect(p.confidence, CycleConfidence.high);
       expect(p.nextStart, last.addDays(30));
       expect(p.nextLatest.daysSince(p.nextEarliest), 2);
-      expect(p.ovulation, p.nextStart.addDays(-14));
-      expect(p.fertile.start, p.ovulation.addDays(-5));
-      expect(p.fertile.end, p.ovulation.addDays(1));
+      final forecast = p.nextForecast!;
+      expect(forecast.ovulation, p.nextStart.addDays(-14));
+      expect(forecast.fertile.start, forecast.ovulation.addDays(-5));
+      expect(forecast.fertile.end, forecast.ovulation.addDays(1));
       expect(p.inPeriod, isFalse);
       expect(p.cycleDay, 11);
       expect(p.alerts, isEmpty);
@@ -148,15 +149,37 @@ void main() {
     expect(p.lastStart, d(2026, 10, 1));
   });
 
-  test('a late period is still to come on the calendar', () {
-    final p = CyclePredictor.predict(
-      periods: history(d(2026, 6, 1), [28, 28, 28]),
-      today: d(2026, 10, 1),
+  test('a late period never shifts the forecast to the current day', () {
+    final periods = history(d(2026, 6, 1), [28, 28, 28]);
+    final p = CyclePredictor.predict(periods: periods, today: d(2026, 9, 22))!;
+    // The midpoint was September 21. The 22nd is still in the expected range.
+    expect(p.nextLatest, d(2026, 9, 22));
+    expect(p.forecastExpired, isFalse);
+    expect(p.upcoming.first.period.start, d(2026, 9, 21));
+    expect(
+      p.forecastBetween(d(2026, 9, 1), d(2026, 9, 30)).first,
+      p.upcoming.first,
+    );
+  });
+
+  test('an overdue forecast pauses until a new start is logged', () {
+    final periods = history(d(2026, 6, 1), [28, 28, 28]);
+    final overdue = d(2026, 9, 23);
+    final p = CyclePredictor.predict(periods: periods, today: overdue)!;
+    expect(p.daysUntilNext, -2);
+    expect(p.forecastExpired, isTrue);
+    expect(p.nextForecast, isNull);
+    expect(p.upcoming, isEmpty);
+    expect(p.forecastBetween(d(2026, 9, 1), d(2026, 12, 31)), isEmpty);
+    expect(p.stage, CycleStage.unknown);
+
+    final resumed = CyclePredictor.predict(
+      periods: [...periods, period(overdue)],
+      today: overdue,
     )!;
-    // Due 2026-09-21, ten days ago.
-    expect(p.daysUntilNext, -10);
-    // Counted on from today, not marking days already gone.
-    expect(p.upcoming.first.period.start, d(2026, 10, 1));
+    expect(resumed.forecastExpired, isFalse);
+    expect(resumed.stage, CycleStage.period);
+    expect(resumed.nextForecast, isNotNull);
   });
 
   test('a missed log is not a long cycle to worry about', () {
@@ -177,7 +200,7 @@ void main() {
     expect(p.lastStart, d(2026, 8, 24));
     expect(p.stage, CycleStage.period);
     expect(p.stageOn(d(2026, 8, 31)), CycleStage.follicular);
-    expect(p.stageOn(p.ovulation), CycleStage.fertile);
+    expect(p.stageOn(p.nextForecast!.ovulation), CycleStage.fertile);
     expect(p.stageOn(p.nextStart.addDays(-2)), CycleStage.luteal);
   });
 

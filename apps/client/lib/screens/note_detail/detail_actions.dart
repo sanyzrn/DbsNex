@@ -246,6 +246,19 @@ extension _DetailActions on _NoteDetailSheetState {
     }
   }
 
+  Future<void> _shareCodeFile() async {
+    final note = _note;
+    if (note == null) return;
+    final l10n = AppLocalizations.of(context);
+    if (!await nexShareCodeFile(note) && mounted) {
+      nexShowBanner(
+        context,
+        message: l10n.codeShareFailed,
+        kind: NexBannerKind.failed,
+      );
+    }
+  }
+
   /// Saves a copy where the person chooses: the system's own save dialog,
   /// so Downloads, Documents or a cloud drive, instead of the app's private
   /// folder that most phones keep out of reach.
@@ -276,7 +289,7 @@ extension _DetailActions on _NoteDetailSheetState {
   /// does not move.
   Future<void> _renameFile() async {
     final note = _note;
-    if (note == null || note.type != NoteType.file) return;
+    if (note == null || !note.hasNamedFile) return;
     final name = await nexAskFileName(
       context,
       current: note.originalFilename ?? '',

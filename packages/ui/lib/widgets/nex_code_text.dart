@@ -219,8 +219,27 @@ List<TextSpan> nexHighlightCode(
   );
 
   final spans = <TextSpan>[];
-  if (language == NexCodeLanguage.html || language == NexCodeLanguage.css) {
-    final html = language == NexCodeLanguage.html;
+  if (language == NexCodeLanguage.markdown) {
+    var start = 0;
+    for (final match in _markdownTokens.allMatches(code)) {
+      if (start < match.start) {
+        spans.add(TextSpan(text: code.substring(start, match.start)));
+      }
+      spans.add(
+        TextSpan(
+          text: match[0],
+          style: match[0]!.startsWith('#') ? keyword : string,
+        ),
+      );
+      start = match.end;
+    }
+    if (start < code.length) spans.add(TextSpan(text: code.substring(start)));
+    return spans;
+  }
+  if (language == NexCodeLanguage.html ||
+      language == NexCodeLanguage.xml ||
+      language == NexCodeLanguage.css) {
+    final html = language != NexCodeLanguage.css;
     final scan = html ? _scanHtml : _scanCss;
     final markup = html ? _htmlStyles(scheme, ground) : null;
     var cursor = 0;
@@ -302,7 +321,8 @@ List<TextSpan> nexHighlightCode(
       i = end;
       continue;
     }
-    if (spec.hashComments && c == '#' && !(php && code.startsWith('#[', i))) {
+    if (spec.dashComments && c == '-' && code.startsWith('--', i) ||
+        spec.hashComments && c == '#' && !(php && code.startsWith('#[', i))) {
       final end = _lineEnd(code, i);
       token(code.substring(i, end), comment);
       i = end;
@@ -341,7 +361,7 @@ List<TextSpan> nexHighlightCode(
     );
     if (identifier != null) {
       final word = identifier[0]!;
-      final name = php ? word.toLowerCase() : word;
+      final name = php || spec.dashComments ? word.toLowerCase() : word;
       final tokenStyle = spec.keywords.contains(name)
           ? keyword
           : (php && word.startsWith(r'$')) || spec.types.contains(name)
@@ -382,6 +402,7 @@ final class _LanguageSpec {
     this.types = const <String>{},
     this.slashComments = false,
     this.hashComments = false,
+    this.dashComments = false,
     this.blockComments = false,
     this.tripleQuotes = false,
     this.multilineStrings = false,
@@ -394,6 +415,7 @@ final class _LanguageSpec {
   final Set<String> types;
   final bool slashComments;
   final bool hashComments;
+  final bool dashComments;
   final bool blockComments;
   final bool tripleQuotes;
   final bool multilineStrings;
@@ -611,7 +633,9 @@ const _jsonKeywords = <String>{'false', 'null', 'true'};
 _LanguageSpec? _specFor(NexCodeLanguage language) => switch (language) {
   NexCodeLanguage.plainText ||
   NexCodeLanguage.html ||
-  NexCodeLanguage.css => null,
+  NexCodeLanguage.css ||
+  NexCodeLanguage.xml ||
+  NexCodeLanguage.markdown => null,
   NexCodeLanguage.dart => const _LanguageSpec(
     keywords: _dartKeywords,
     types: _dartTypes,
@@ -637,7 +661,77 @@ _LanguageSpec? _specFor(NexCodeLanguage language) => switch (language) {
   ),
   NexCodeLanguage.json => const _LanguageSpec(keywords: _jsonKeywords),
   NexCodeLanguage.php => _phpSpec,
+  NexCodeLanguage.typescript => _LanguageSpec(
+    keywords: _typescriptKeywords,
+    types: _javascriptTypes,
+    slashComments: true,
+    blockComments: true,
+    templateStrings: true,
+  ),
+  NexCodeLanguage.sql => _LanguageSpec(
+    keywords: _sqlKeywords,
+    blockComments: true,
+    dashComments: true,
+  ),
+  NexCodeLanguage.bash => _LanguageSpec(
+    keywords: _shellKeywords,
+    hashComments: true,
+  ),
+  NexCodeLanguage.yaml => const _LanguageSpec(
+    keywords: _jsonKeywords,
+    hashComments: true,
+  ),
+  NexCodeLanguage.c ||
+  NexCodeLanguage.cpp ||
+  NexCodeLanguage.csharp ||
+  NexCodeLanguage.java ||
+  NexCodeLanguage.kotlin ||
+  NexCodeLanguage.swift ||
+  NexCodeLanguage.go ||
+  NexCodeLanguage.rust => _LanguageSpec(
+    keywords: _compiledKeywords[language]!,
+    types: _compiledTypes,
+    slashComments: true,
+    blockComments: true,
+    templateStrings: language == NexCodeLanguage.go,
+    tripleQuotes:
+        language == NexCodeLanguage.kotlin ||
+        language == NexCodeLanguage.swift ||
+        language == NexCodeLanguage.java,
+  ),
 };
+
+final _markdownTokens = RegExp(
+  r'^[ ]{0,3}#{1,6}[ \t][^\n]*|\x60+[^\x60\n]+\x60+|!?\[[^\]\n]+\]\([^\n)]*\)|\*{1,2}[^*\n]+\*{1,2}',
+  multiLine: true,
+);
+
+final _typescriptKeywords = {
+  ..._javascriptKeywords,
+  ...'abstract any as asserts declare enum implements infer interface is keyof never namespace override private protected public readonly satisfies type unknown'
+      .split(' '),
+};
+
+final _sqlKeywords = 'select from where insert into values update set delete create drop alter table index distinct join inner left right outer on group by order having limit offset union all as and or not null is case when then else end with returning primary key references unique default exists begin commit rollback'
+    .split(' ')
+    .toSet();
+final _shellKeywords = 'if then else elif fi for while until do done case esac in function export local readonly return exit set source echo'
+    .split(' ')
+    .toSet();
+
+final _compiledTypes = 'bool boolean byte char double float int long short string void usize i32 i64 u32 u64 Int Float Double String Boolean Unit Any Void'
+    .split(' ')
+    .toSet();
+final _compiledKeywords = {
+  NexCodeLanguage.c: 'auto break case const continue default do else enum extern for goto if register return sizeof static struct switch typedef union volatile while',
+  NexCodeLanguage.cpp: 'alignas auto break case catch class concept const constexpr continue default delete do else enum explicit extern for friend goto if inline namespace new noexcept nullptr operator private protected public return sizeof static struct switch template this throw try typedef typename union using virtual volatile while',
+  NexCodeLanguage.csharp: 'abstract as async await base break case catch class const continue default delegate do else enum event false finally for foreach if in interface internal is lock namespace new null out override params private protected public readonly record ref return sealed static struct switch this throw true try using var virtual while yield',
+  NexCodeLanguage.java: 'abstract assert break case catch class continue default do else enum extends false final finally for if implements import instanceof interface native new null package private protected public return sealed static super switch synchronized this throw throws true try var volatile while',
+  NexCodeLanguage.kotlin: 'abstract actual as break by catch class companion continue data do else enum expect false for fun if import in interface internal is lateinit null object open override package private protected public return sealed super suspend this throw true try typealias val var when while',
+  NexCodeLanguage.swift: 'actor as async await break case catch class continue default defer do else enum extension false for func guard if import in init internal is let nil private protocol public return self static struct super switch throw throws true try var where while',
+  NexCodeLanguage.go: 'break case chan const continue default defer else fallthrough false for func go goto if import interface map nil package range return select struct switch true type var',
+  NexCodeLanguage.rust: 'as async await break const continue crate dyn else enum extern false fn for if impl in let loop match mod move mut pub ref return self Self static struct super trait true type unsafe use where while',
+}.map((language, words) => MapEntry(language, words.split(' ').toSet()));
 
 /// Where a string's prefix — Dart's `r`, Python's `f`/`b`/`rb` — ends and its
 /// quote begins, or null when this is not a prefixed string.
@@ -740,6 +834,7 @@ bool _couldStart(String code, int i, _LanguageSpec spec, {required bool php}) {
       code.codeUnitAt(i + 1) == 0x2A) {
     return true;
   }
+  if (spec.dashComments && c == '-' && code.startsWith('--', i)) return true;
   if (spec.hashComments && c == '#') return true;
   if (_isDigit(unit) ||
       (c == '.' && i + 1 < code.length && _isDigit(code.codeUnitAt(i + 1)))) {

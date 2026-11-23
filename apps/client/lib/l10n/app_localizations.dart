@@ -1949,7 +1949,7 @@ abstract class AppLocalizations {
   /// No description provided for @noteType.
   ///
   /// In en, this message translates to:
-  /// **'{type, select, text{Text} voice{Voice} photo{Photo} file{File} checklist{Checklist} link{Link} other{Note}}'**
+  /// **'{type, select, text{Text} voice{Voice} photo{Photo} video{Video} media{Media} file{File} checklist{Checklist} link{Link} other{Note}}'**
   String noteType(String type);
 
   /// Confirm button on the inline add-tag dialog
@@ -5431,6 +5431,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Likely between {from} and {to}'**
   String cycleLikelyBetween(String from, String to);
+
+  /// No description provided for @cycleForecastPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'The expected range has passed. Calendar estimates will resume after you log the next start.'**
+  String get cycleForecastPaused;
+
+  /// No description provided for @cycleStageUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Timing uncertain'**
+  String get cycleStageUnknown;
 
   /// No description provided for @cycleConfidenceLow.
   ///
@@ -10121,7 +10133,7 @@ abstract class AppLocalizations {
   /// Home heading over a shelf of one kind of note
   ///
   /// In en, this message translates to:
-  /// **'{type, select, text{Writing} voice{Voice notes} photo{Photos} file{Files} checklist{Checklists} link{Links} other{Notes}}'**
+  /// **'{type, select, text{Writing} voice{Voice notes} photo{Media} file{Files} checklist{Checklists} link{Links} other{Notes}}'**
   String timelineShelfType(String type);
 
   /// End of a home shelf that shows only its newest notes
@@ -10717,6 +10729,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use suggested language'**
   String get codeSuggestedLanguage;
+
+  /// No description provided for @bannerPending.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} in the queue'**
+  String bannerPending(int count);
+
+  /// No description provided for @codeShowMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show more code'**
+  String get codeShowMore;
+
+  /// No description provided for @codeShowLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Show less code'**
+  String get codeShowLess;
+
+  /// No description provided for @codeLineNumbers.
+  ///
+  /// In en, this message translates to:
+  /// **'Line numbers'**
+  String get codeLineNumbers;
+
+  /// No description provided for @codeShareFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Share code as file'**
+  String get codeShareFile;
+
+  /// No description provided for @codeShareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not share the code file'**
+  String get codeShareFailed;
+
+  /// No description provided for @codeFind.
+  ///
+  /// In en, this message translates to:
+  /// **'Find in code'**
+  String get codeFind;
+
+  /// No description provided for @codeNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No matches in this code'**
+  String get codeNoMatches;
+
+  /// No description provided for @codeFirstMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing the first {count} matches'**
+  String codeFirstMatches(int count);
 
   /// No description provided for @codeWrap.
   ///

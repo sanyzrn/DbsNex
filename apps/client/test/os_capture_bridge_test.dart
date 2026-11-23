@@ -358,7 +358,7 @@ void main() {
     final notes = await db.timeline(limit: 50);
     expect(notes, hasLength(1));
     final note = notes.single;
-    expect(note.type, NoteType.file);
+    expect(note.type, NoteType.video);
     expect(note.content, 'clip.mp4');
 
     // The hash is the note's identity for dedup, so a wrong one is worse than

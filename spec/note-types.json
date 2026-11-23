@@ -17,5 +17,5 @@
     "Storage constrains nothing — the client dropped its CHECK for this reason and 0008",
     "drops the server's. The wire schema is the gate, and it is right here."
   ],
-  "types": ["text", "voice", "photo", "file", "checklist", "link"]
+  "types": ["text", "voice", "photo", "file", "checklist", "link", "video"]
 }

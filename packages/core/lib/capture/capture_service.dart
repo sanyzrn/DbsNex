@@ -136,7 +136,11 @@ class CaptureService {
     return _repo.insert(
       Note(
         id: newUuidV7(),
-        type: NoteType.file,
+        type: NoteType.forFile(
+          path: mediaUri,
+          originalFilename: originalFilename,
+          mimeType: mimeType,
+        ),
         content: originalFilename,
         mimeType: mimeType,
         mediaUri: mediaUri,

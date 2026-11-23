@@ -70,7 +70,7 @@ void main() {
     }
     repo.db.execute("DELETE FROM nex_meta WHERE key = 'fts_rowid_aligned'");
     // And stamp it as the older build would have left it.
-    repo.db.execute('PRAGMA user_version = ${NexDatabase.schemaVersion - 1}');
+    repo.db.execute('PRAGMA user_version = 2');
   }
 
   test('every new search row carries its note’s own rowid', () {

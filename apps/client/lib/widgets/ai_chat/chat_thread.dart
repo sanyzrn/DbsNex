@@ -304,6 +304,7 @@ class _Grounding extends StatelessWidget {
       NoteType.text => l10n.text,
       NoteType.voice => l10n.voice,
       NoteType.photo => l10n.photo,
+      NoteType.video => l10n.noteType('video'),
       NoteType.file => l10n.file,
       NoteType.checklist => l10n.checklist,
       NoteType.link => l10n.link,

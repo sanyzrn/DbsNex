@@ -45,11 +45,9 @@ after it had been in use.
   its category and its icon.
 - **Category icons** on rows, the category filter, budgets and the categories
   sheet, from one `expenseCategoryIcon` table.
-- **Persian-aware search.** Arabic/Persian yeh and kaf, hamza forms, ZWNJ,
-  tatweel, harakat and Persian digits fold to one form: «یاران» finds
-  «ياران», «خانه» finds «خانۀ». Folding is module-local
-  (`foldExpenseSearch`) because `module_api.dart`'s export set is asserted
-  exactly by `module_kit_test.dart`.
+- **Persian-aware search.** Expenses uses the same spelling rules as note
+  search through the module kit. «یاران» finds «ياران» and «خانه» finds
+  «خانۀ». Distinct letters such as «آ» and «ئ» keep their spelling.
 
 ### Decisions
 

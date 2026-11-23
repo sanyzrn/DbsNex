@@ -141,10 +141,10 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
         unawaited(reload());
       },
     );
-    if (handle?.closed case final closed?) {
+    if (handle != null) {
       _purging[note.id] = handle;
       unawaited(
-        closed.then((_) async {
+        handle.closed.then((_) async {
           // An earlier Undo can be followed by deleting the same row again
           // before its old banner finishes exiting.
           if (identical(_purging[note.id], handle)) {

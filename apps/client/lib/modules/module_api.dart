@@ -8,6 +8,7 @@
 /// the rest of the app.
 library;
 
+export 'package:nex_core/nex_core.dart' show nexSearchFold;
 export 'package:nex_data/nex_data.dart' show ModuleRecord;
 export 'package:nex_ui/nex_ui.dart';
 

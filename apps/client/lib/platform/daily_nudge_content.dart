@@ -85,6 +85,7 @@ abstract final class NexDailyNudgeContent {
       final typeLabel = switch (note.type) {
         NoteType.photo => persian ? 'یادداشت تصویری' : 'Photo note',
         NoteType.voice => persian ? 'یادداشت صوتی' : 'Voice note',
+        NoteType.video => persian ? 'ویدئو' : 'Video',
         NoteType.file => persian ? 'فایل' : 'File',
         _ => persian ? 'یادداشت' : 'Note',
       };

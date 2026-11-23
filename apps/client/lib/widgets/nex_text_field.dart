@@ -58,6 +58,7 @@ class NexTextField extends StatefulWidget {
     this.textInputAction,
     this.textCapitalization = TextCapitalization.sentences,
     this.onChanged,
+    this.inputFormatters,
     this.onSubmitted,
     this.maxLength,
     this.autocorrect = true,
@@ -100,6 +101,7 @@ class NexTextField extends StatefulWidget {
   final TextInputAction? textInputAction;
   final TextCapitalization textCapitalization;
   final ValueChanged<String>? onChanged;
+  final List<TextInputFormatter>? inputFormatters;
   final ValueChanged<String>? onSubmitted;
   final int? maxLength;
   final bool autocorrect;
@@ -178,6 +180,7 @@ class _NexTextFieldState extends State<NexTextField> {
       textInputAction: widget.textInputAction,
       textCapitalization: widget.textCapitalization,
       onChanged: widget.onChanged,
+      inputFormatters: widget.inputFormatters,
       onSubmitted: widget.onSubmitted,
       maxLength: widget.maxLength,
       autocorrect: widget.autocorrect,

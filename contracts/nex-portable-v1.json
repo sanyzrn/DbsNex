@@ -14,7 +14,8 @@
     "photo",
     "file",
     "checklist",
-    "link"
+    "link",
+    "video"
   ],
   "sharedPreferences": [
     "appearance.theme",

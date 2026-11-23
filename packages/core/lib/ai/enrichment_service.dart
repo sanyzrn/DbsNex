@@ -498,6 +498,7 @@ class EnrichmentService {
       case NoteType.photo:
         return joined([note.ocrText, note.caption, note.title]);
       case NoteType.file:
+      case NoteType.video:
         final body = joined([
           note.ocrText,
           note.transcriptText,

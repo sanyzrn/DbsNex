@@ -58,21 +58,8 @@ class NexCodeLanguageGlyph extends StatelessWidget {
   final Color? color;
 
   @override
-  Widget build(BuildContext context) => _FormatGlyph(
-    switch (language) {
-      NexCodeLanguage.plainText => 'Aa',
-      NexCodeLanguage.dart => 'Dart',
-      NexCodeLanguage.javascript => 'JS',
-      NexCodeLanguage.python => 'Py',
-      NexCodeLanguage.json => '{ }',
-      NexCodeLanguage.html => '</>',
-      NexCodeLanguage.css => 'CSS',
-      NexCodeLanguage.php => 'PHP',
-    },
-    size: size,
-    color: color,
-    source: true,
-  );
+  Widget build(BuildContext context) =>
+      _FormatGlyph(language.glyph, size: size, color: color, source: true);
 }
 
 class _FormatGlyph extends StatelessWidget {

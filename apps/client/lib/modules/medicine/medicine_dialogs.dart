@@ -127,11 +127,9 @@ class MedicineDialogs {
     String undoLabel,
     Future<void> Function() restore,
   ) {
-    // One at a time: a new question replaces the one still on screen.
     final failureMessage = messenger == null
         ? ''
         : medicineStrings(messenger.context, 'undoFailed');
-    nexHideBanner();
     messenger?.show(
       message: message,
       actionKey: const ValueKey('medicine-undo'),

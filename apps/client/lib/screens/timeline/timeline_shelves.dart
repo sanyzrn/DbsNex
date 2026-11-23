@@ -109,7 +109,9 @@ extension _TimelineShelves on TimelineScreenState {
           color: scheme.onSurfaceVariant,
         ),
         NexShelfKind.type => Icon(
-          nexNoteTypeIcon(shelf.type!.wireName),
+          nexNoteTypeIcon(
+            shelf.type == NoteType.photo ? 'media' : shelf.type!.wireName,
+          ),
           size: 18,
           color: nexNoteTypeTint(shelf.type!.wireName, scheme),
         ),

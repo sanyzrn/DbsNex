@@ -2,6 +2,7 @@ part of '../note_detail_sheet.dart';
 
 extension _DetailSnippet on _NoteDetailSheetState {
   NexCodeSnippet? _snippetFor(Note note) {
+    if (note.type != NoteType.text) return null;
     final source = note.content;
     if (_parsedSnippetSource != source) {
       _parsedSnippetSource = source;
@@ -45,6 +46,17 @@ extension _DetailSnippet on _NoteDetailSheetState {
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: l10n.codeFind,
+                          icon: const Icon(Icons.search),
+                          onPressed: () => unawaited(
+                            nexShowSheet<void>(
+                              context: context,
+                              builder: (_) =>
+                                  _SnippetFindSheet(snippet: snippet),
                             ),
                           ),
                         ),
@@ -138,6 +150,13 @@ class _SnippetReader extends StatefulWidget {
 
 class _SnippetReaderState extends State<_SnippetReader> {
   late List<int> _boundaries = _chunkBoundaries(widget.snippet.code);
+  late int _previewEnd = _previewLimit(widget.snippet.code);
+  bool? _showAll;
+  bool get _canFold => _previewEnd < widget.snippet.code.length;
+  bool get _expanded => !_canFold || _showAll == true;
+  late List<int> _chunkLines = _firstLines(widget.snippet.code, _boundaries);
+  bool _wrap = true;
+  bool _numbered = false;
   bool _highlight = false;
   Animation<double>? _entrance;
 
@@ -169,7 +188,7 @@ class _SnippetReaderState extends State<_SnippetReader> {
 
   /// Colours the whole snippet once, when the sheet has finished opening.
   void _prepareSpans() {
-    if (!_highlight) return;
+    if (!_highlight || !_expanded) return;
     final snippet = widget.snippet;
     if (snippet.language == NexCodeLanguage.plainText) {
       _requested = null;
@@ -215,6 +234,8 @@ class _SnippetReaderState extends State<_SnippetReader> {
     super.didUpdateWidget(old);
     if (old.snippet.code != widget.snippet.code) {
       _boundaries = _chunkBoundaries(widget.snippet.code);
+      _previewEnd = _previewLimit(widget.snippet.code);
+      _chunkLines = _firstLines(widget.snippet.code, _boundaries);
     }
     if (old.snippet != widget.snippet) {
       _prepareSpans();
@@ -248,11 +269,47 @@ class _SnippetReaderState extends State<_SnippetReader> {
     return splitsSurrogate ? limit - 1 : limit;
   }
 
+  static int _previewLimit(String source) {
+    final limit = math.min(source.length, 480);
+    var lines = 0;
+    for (var i = 0; i < limit; i++) {
+      if (source.codeUnitAt(i) == 0x0a &&
+          ++lines == 8 &&
+          i + 1 < source.length) {
+        return i;
+      }
+    }
+    if (limit < source.length &&
+        (source.codeUnitAt(limit - 1) & 0xfc00) == 0xd800) {
+      return limit - 1;
+    }
+    return limit;
+  }
+
+  static List<int> _firstLines(String source, List<int> boundaries) {
+    var line = 1;
+    final firstLines = <int>[];
+    for (var i = 0; i < boundaries.length - 1; i++) {
+      firstLines.add(line);
+      for (var j = boundaries[i]; j < boundaries[i + 1]; j++) {
+        if (source.codeUnitAt(j) == 0x0a) line++;
+      }
+    }
+    return [...firstLines, line];
+  }
+
+  void _setExpanded(bool value) {
+    setState(() => _showAll = value);
+    _prepareSpans();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final source = widget.snippet.code;
     final style = theme.textTheme.bodyMedium?.copyWith(height: 1.55);
+
     return DecoratedSliver(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
@@ -260,26 +317,163 @@ class _SnippetReaderState extends State<_SnippetReader> {
       ),
       sliver: SliverPadding(
         padding: const EdgeInsets.all(NexSpacing.sm),
-        sliver: SliverList.builder(
-          itemCount: _boundaries.length - 1,
-          addAutomaticKeepAlives: false,
-          itemBuilder: (context, index) {
-            final start = _boundaries[index];
-            // The next widget already starts on a new line. Leave the last
-            // line break in place at the end of the original source.
-            final end = _chunkTextEnd(source, _boundaries, index);
-            return NexCodeText(
-              source.substring(start, end),
-              language: widget.snippet.language,
-              // The chunk draws its share of the whole source's colours, so
-              // a construct crossing the boundary keeps its reading.
-              highlight: false,
-              spans: _chunkSpans?[index],
-              style: style,
-              softWrap: true,
-            );
-          },
+        sliver: SliverMainAxisGroup(
+          slivers: [
+            if (_expanded)
+              SliverToBoxAdapter(
+                child: Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: Wrap(
+                    children: [
+                      IconButton(
+                        tooltip: l10n.codeLineNumbers,
+                        visualDensity: VisualDensity.compact,
+                        isSelected: _numbered,
+                        icon: const Icon(Icons.format_list_numbered),
+                        onPressed: () => setState(() => _numbered = !_numbered),
+                      ),
+                      IconButton(
+                        tooltip: l10n.codeWrap,
+                        visualDensity: VisualDensity.compact,
+                        isSelected: _wrap,
+                        icon: const Icon(Icons.wrap_text),
+                        onPressed: () => setState(() => _wrap = !_wrap),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (_expanded && _canFold)
+              SliverToBoxAdapter(
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton.icon(
+                    key: const ValueKey('snippet-expand'),
+                    onPressed: () => _setExpanded(!_expanded),
+                    icon: const Icon(Icons.expand_less),
+                    label: Text(l10n.codeShowLess),
+                  ),
+                ),
+              ),
+            if (!_expanded)
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    NexCodeText(
+                      source.substring(0, _previewEnd),
+                      language: widget.snippet.language,
+                      highlight: _highlight,
+                      maxLines: 8,
+                      overflow: TextOverflow.ellipsis,
+                      style: style,
+                      softWrap: true,
+                    ),
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: TextButton.icon(
+                        key: const ValueKey('snippet-expand'),
+                        onPressed: () => _setExpanded(true),
+                        icon: const Icon(Icons.expand_more),
+                        label: Text(l10n.codeShowMore),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              SliverList.builder(
+                itemCount: _boundaries.length - 1,
+                addAutomaticKeepAlives: false,
+                itemBuilder: (context, index) {
+                  final start = _boundaries[index];
+                  final end = _chunkTextEnd(source, _boundaries, index);
+                  final chunk = source.substring(start, end);
+                  final spans = _chunkSpans?[index];
+                  final body = _numbered
+                      ? _numberedChunk(chunk, index, spans, style)
+                      : _codeText(chunk, spans, style);
+                  return _wrap
+                      ? body
+                      : Directionality(
+                          textDirection: TextDirection.ltr,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: body,
+                          ),
+                        );
+                },
+              ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _codeText(String text, List<TextSpan>? spans, TextStyle? style) =>
+      NexCodeText(
+        text,
+        language: widget.snippet.language,
+        highlight: false,
+        spans: spans,
+        style: style,
+        softWrap: _wrap,
+      );
+
+  Widget _numberedChunk(
+    String chunk,
+    int index,
+    List<TextSpan>? spans,
+    TextStyle? style,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    var number = _chunkLines[index];
+    final width = _chunkLines.last.toString().length + 2;
+    var start = 0;
+    final rows = <Widget>[];
+    for (final line in chunk.split('\n')) {
+      final text = line.endsWith('\r')
+          ? line.substring(0, line.length - 1)
+          : line;
+      final end = start + text.length;
+      final sourceOffset = _boundaries[index] + start;
+      final continues =
+          start == 0 &&
+          sourceOffset > 0 &&
+          widget.snippet.code.codeUnitAt(sourceOffset - 1) != 0x0a;
+      final gutter = continues ? '' : '$number';
+      final code = _codeText(
+        text.isEmpty ? ' ' : text,
+        spans == null || text.isEmpty
+            ? null
+            : nexSliceCodeSpans(spans, start, end),
+        style,
+      );
+      rows.add(
+        Row(
+          mainAxisSize: _wrap ? MainAxisSize.max : MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ExcludeSemantics(
+              child: Text(
+                gutter.padLeft(width),
+                style: NexCodeText.monospaceStyle(style)
+                    .copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ),
+            const SizedBox(width: NexSpacing.sm),
+            if (_wrap) Expanded(child: code) else code,
+          ],
+        ),
+      );
+      start += line.length + 1;
+      number++;
+    }
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: rows,
       ),
     );
   }

@@ -59,9 +59,12 @@ abstract final class NexCycleWidgetSnapshot {
         'averageCycle': p.averageCycle,
         'averagePeriod': p.averagePeriod,
         'nextStart': '${p.nextStart}',
-        'fertileStart': '${p.fertile.start}',
-        'fertileEnd': '${p.fertile.end}',
-        'ovulation': '${p.ovulation}',
+        'nextLatest': '${p.nextLatest}',
+        if (p.nextForecast case final forecast?) ...{
+          'fertileStart': '${forecast.fertile.start}',
+          'fertileEnd': '${forecast.fertile.end}',
+          'ovulation': '${forecast.ovulation}',
+        },
       },
     };
   }

@@ -1416,6 +1416,8 @@ IconData nexNoteTypeIcon(String? wireName) => switch (wireName) {
   'text' => Icons.notes_outlined,
   'voice' => Icons.graphic_eq_outlined,
   'photo' => Icons.image_outlined,
+  'media' => Icons.perm_media_outlined,
+  'video' => Icons.videocam_outlined,
   'file' => Icons.insert_drive_file_outlined,
   'checklist' => Icons.checklist_rtl_outlined,
   'link' => Icons.link_outlined,
@@ -1472,6 +1474,7 @@ const _typeFan = <String, (double, double)>{
   'link': (36, 1),
   'voice': (72, 1),
   'photo': (-72, 1),
+  'video': (-72, 1),
   'file': (0, 0.22),
 };
 

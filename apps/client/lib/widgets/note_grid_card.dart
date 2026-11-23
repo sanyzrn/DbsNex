@@ -224,7 +224,7 @@ class NexNoteGridCard extends StatelessWidget {
         flowing &&
         (note.type == NoteType.text ||
             note.type == NoteType.link ||
-            note.type == NoteType.file && !note.isAudioMedia);
+            note.hasNamedFile && !note.isAudioMedia);
     final body = _Body(
       note: note,
       title: content.title,

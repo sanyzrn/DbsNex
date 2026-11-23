@@ -23,6 +23,8 @@ import '../platform/display_date.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/voice_spool.dart';
+import 'code_editing_controller.dart';
+import 'code_input.dart';
 import 'code_language_button.dart';
 import 'nex_banner.dart';
 import 'recording_sheet.dart' show NexLiveWaveform, NexRecordingDot;
@@ -89,7 +91,10 @@ enum _Voice { off, starting, on }
 
 class _CaptureSheetState extends State<CaptureSheet>
     with WidgetsBindingObserver {
-  final controller = TextEditingController();
+  final controller = NexCodeEditingController(
+    text: '',
+    language: NexCodeLanguage.plainText,
+  );
   final _fieldFocus = FocusNode();
 
   Timer? debounce;
@@ -101,6 +106,7 @@ class _CaptureSheetState extends State<CaptureSheet>
 
   /// The language a code box will save as, until the person chooses another.
   NexCodeLanguage _codeLanguage = NexCodeLanguage.plainText;
+  bool _codeLanguageChosen = false;
 
   /// The fenced Markdown last written for the current [persisted] words.
   ///
@@ -507,29 +513,6 @@ class _CaptureSheetState extends State<CaptureSheet>
       if (mounted) Navigator.pop(context);
     } finally {
       _scheduling = false;
-    }
-  }
-
-  /// Switches what the words become. The field, its text and the keyboard
-  /// stay; only the kind changes.
-  void _select(CaptureKind kind) {
-    if (_closing) return;
-    if (kind == CaptureKind.voice) {
-      if (!_voiceOn) unawaited(_startVoice());
-      return;
-    }
-    // While recording, the recorder's own two buttons decide what happens
-    // to it — a tap on another kind is not a decision to keep or to lose it.
-    if (_voiceOn || kind == _kind) return;
-    final wasCode = _kind == CaptureKind.code;
-    if (widget.preferences.haptics) unawaited(HapticFeedback.selectionClick());
-    setState(() => _kind = kind);
-    // Crossing into or out of Code changes what the note is, not just what
-    // the box calls itself: the same words are now wrapped in a fence, or no
-    // longer are. Walk the ordinary write path so the timeline shows the kind
-    // the box shows before the sheet closes.
-    if ((wasCode || kind == CaptureKind.code) && controller.text.isNotEmpty) {
-      changed(controller.text);
     }
   }
 

@@ -69,6 +69,7 @@ class FusedRanking {
     NoteType.photo: ['photo', 'photos', 'picture', 'image', 'عکس', 'تصویر'],
     NoteType.voice: ['voice', 'audio', 'recording', 'صدا', 'صوتی', 'ضبط'],
     NoteType.link: ['link', 'links', 'url', 'لینک', 'پیوند'],
+    NoteType.video: ['video', 'videos', 'ویدیو', 'ویدئو'],
     NoteType.file: ['file', 'files', 'document', 'pdf', 'فایل', 'سند'],
     NoteType.checklist: ['checklist', 'todo', 'list', 'چک‌لیست', 'فهرست'],
   };

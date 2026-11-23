@@ -125,6 +125,7 @@ NoteType? _typeNamed(String value) {
     'صداها' ||
     'صوتی' ||
     'ضبط' => NoteType.voice,
+    'videos' || 'ویدیو' || 'ویدئو' => NoteType.video,
     'files' || 'فایل' || 'فایلها' || 'سند' => NoteType.file,
     'checklists' ||
     'todo' ||

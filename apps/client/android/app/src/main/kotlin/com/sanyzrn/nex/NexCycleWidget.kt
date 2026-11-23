@@ -47,6 +47,7 @@ data class NexCycleSnapshot(
     val fertileEnd: LocalDate?,
     val ovulation: LocalDate?,
     val pregnancyStart: LocalDate?,
+    val nextLatest: LocalDate? = null,
 ) {
     companion object {
         const val FILE_NAME = "nex_cycle_widget.json"
@@ -94,6 +95,7 @@ data class NexCycleSnapshot(
                     averageCycle = int("averageCycle"),
                     averagePeriod = int("averagePeriod"),
                     nextStart = date("nextStart"),
+                    nextLatest = date("nextLatest"),
                     fertileStart = date("fertileStart"),
                     fertileEnd = date("fertileEnd"),
                     ovulation = date("ovulation"),
@@ -152,7 +154,7 @@ data class NexCycleToday(
             val start = s.lastStart ?: return NexCycleToday(Phase.EMPTY)
             val cycleDay = ChronoUnit.DAYS.between(start, today).toInt() + 1
             if (cycleDay < 1) return NexCycleToday(Phase.EMPTY)
-            val inPeriod = if (s.periodEnd == null) true else !today.isAfter(s.periodEnd)
+            val inPeriod = s.periodEnd?.let { !today.isAfter(it) } ?: (cycleDay <= 15)
             val average = s.averageCycle
             val next = s.nextStart
             if (average == null || next == null) {
@@ -167,8 +169,12 @@ data class NexCycleToday(
                 if (date == null) 0f
                 else (ChronoUnit.DAYS.between(start, date).toInt() + plus) / length.toFloat()
             val daysUntil = ChronoUnit.DAYS.between(today, next).toInt()
-            val fertileNow = s.fertileStart != null && s.fertileEnd != null &&
-                !today.isBefore(s.fertileStart) && !today.isAfter(s.fertileEnd)
+            val forecastCurrent = !today.isAfter(s.nextLatest ?: next)
+            val fertileStart = s.fertileStart.takeIf { forecastCurrent }
+            val fertileEnd = s.fertileEnd.takeIf { forecastCurrent }
+            val ovulation = s.ovulation.takeIf { forecastCurrent }
+            val fertileNow = fertileStart != null && fertileEnd != null &&
+                !today.isBefore(fertileStart) && !today.isAfter(fertileEnd)
             val phase = when {
                 inPeriod -> Phase.PERIOD
                 daysUntil < 0 -> Phase.LATE
@@ -181,16 +187,16 @@ data class NexCycleToday(
                 cycleDay = cycleDay,
                 daysUntil = daysUntil,
                 cycleLength = average,
-                ovulationIn = s.ovulation?.let {
+                ovulationIn = ovulation?.let {
                     ChronoUnit.DAYS.between(today, it).toInt().takeIf { d -> d >= 0 }
                 },
-                fertileIn = s.fertileStart?.let {
+                fertileIn = fertileStart?.let {
                     ChronoUnit.DAYS.between(today, it).toInt().takeIf { d -> d > 0 }
                 },
                 progress = ((cycleDay - 0.5f) / length).coerceIn(0f, 1f),
                 periodFraction = ((s.averagePeriod ?: 5) / length.toFloat()).coerceIn(0.02f, 1f),
-                fertileFrom = at(s.fertileStart),
-                fertileTo = at(s.fertileEnd, 1),
+                fertileFrom = at(fertileStart),
+                fertileTo = at(fertileEnd, 1),
             )
         }
     }

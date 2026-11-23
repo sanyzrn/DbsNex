@@ -65,18 +65,21 @@ void main() {
     });
 
     test('a language this build does not know is kept, not renamed', () {
-      final parsed = NexCodeSnippet.parse('```kotlin\nval x = 1\n```');
+      final parsed = NexCodeSnippet.parse('```zig\nconst x = 1;\n```');
 
       expect(parsed, isNotNull);
       expect(parsed!.language, NexCodeLanguage.plainText);
-      expect(parsed.rawLanguage, 'kotlin');
-      expect(parsed.markdown, '```kotlin\nval x = 1\n```');
+      expect(parsed.rawLanguage, 'zig');
+      expect(parsed.markdown, '```zig\nconst x = 1;\n```');
     });
 
     test('the aliases other tools write are understood', () {
       expect(NexCodeLanguage.fromId('js'), NexCodeLanguage.javascript);
       expect(NexCodeLanguage.fromId('JS'), NexCodeLanguage.javascript);
       expect(NexCodeLanguage.fromId('py'), NexCodeLanguage.python);
+      expect(NexCodeLanguage.fromId('c#'), NexCodeLanguage.csharp);
+      expect(NexCodeLanguage.fromId('tsx'), NexCodeLanguage.typescript);
+      expect(NexCodeLanguage.fromId('yml'), NexCodeLanguage.yaml);
       expect(NexCodeLanguage.fromId('HTM'), NexCodeLanguage.html);
       expect(NexCodeLanguage.fromId('CSS'), NexCodeLanguage.css);
       expect(NexCodeLanguage.fromId('phtml'), NexCodeLanguage.php);

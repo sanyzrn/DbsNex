@@ -11,7 +11,7 @@ extension on _CardBody {
           note.checklistItems.isNotEmpty) {
         return _TimelineChecklistHeading(note: note, strings: strings);
       }
-      if (note.type == NoteType.text || note.type == NoteType.file) {
+      if (note.type == NoteType.text || note.hasNamedFile) {
         return _TimelineWords(
           note: note,
           strings: strings,

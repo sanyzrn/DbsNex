@@ -16,7 +16,8 @@ extension _DetailAttachments on _NoteDetailSheetState {
         NoteType.text ||
         NoteType.link ||
         NoteType.photo ||
-        NoteType.file => true,
+        NoteType.file ||
+        NoteType.video => true,
         _ => false,
       };
 

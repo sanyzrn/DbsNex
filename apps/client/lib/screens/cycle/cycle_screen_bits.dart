@@ -3,6 +3,49 @@ part of '../cycle_screen.dart';
 // The small pieces of the Cycle screen. Split out of cycle_screen.dart
 // (REL-10).
 
+class _ForecastStatus extends StatelessWidget {
+  const _ForecastStatus({required this.prediction, required this.day});
+
+  final CyclePrediction prediction;
+  final String Function(CycleDate) day;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = prediction;
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Column(
+      children: [
+        if (p.forecastExpired)
+          Text(
+            l10n.cycleForecastPaused,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          )
+        else if (!p.inPeriod)
+          Text(
+            l10n.cycleLikelyBetween(day(p.nextEarliest), day(p.nextLatest)),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+        if (!p.forecastExpired)
+          Text(
+            switch (p.confidence) {
+              CycleConfidence.low => l10n.cycleConfidenceLow,
+              CycleConfidence.medium => l10n.cycleConfidenceMedium,
+              CycleConfidence.high => l10n.cycleConfidenceHigh,
+            },
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _Stat extends StatelessWidget {
   const _Stat({required this.label, required this.value});
 

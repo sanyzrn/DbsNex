@@ -207,8 +207,12 @@ List<NexShelf> nexArrangeShelves(
 }
 
 /// Snippets are stored as text notes, with their own shelf in the timeline.
-String nexTypeShelfKey(Note note) =>
-    note.snippetPreview != null ? 'type:code' : 'type:${note.type.wireName}';
+String nexTypeShelfKey(Note note) => switch (note.type) {
+  NoteType.text when note.snippetPreview != null => 'type:code',
+  // Keep the shelf's existing fold and order preferences.
+  NoteType.video => 'type:photo',
+  _ => 'type:${note.type.wireName}',
+};
 
 /// [defaults] in the reader's [order]: the keys it names first, as it names
 /// them, then the rest in their default order.

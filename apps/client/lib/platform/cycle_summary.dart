@@ -55,14 +55,21 @@ Future<String> nexCycleSummaryForAssistant({
     out.writeln(
       'Cycle day ${p.cycleDay}; ${p.inPeriod ? 'in a period' : 'not in a period'}',
     );
-    out.writeln(
-      'Next period: likely ${p.nextStart} '
-      '(${p.nextEarliest} to ${p.nextLatest}), confidence ${p.confidence.name}',
-    );
-    out.writeln(
-      'Fertile window: ${p.fertile.start} to ${p.fertile.end}; '
-      'likely ovulation ${p.ovulation}',
-    );
+    if (p.nextForecast case final forecast?) {
+      out.writeln(
+        'Next period: likely ${p.nextStart} '
+        '(${p.nextEarliest} to ${p.nextLatest}), confidence ${p.confidence.name}',
+      );
+      out.writeln(
+        'Fertile window estimate: ${forecast.fertile.start} to ${forecast.fertile.end}; '
+        'likely ovulation ${forecast.ovulation}',
+      );
+    } else {
+      out.writeln(
+        'The expected period range has passed. Calendar estimates for the '
+        'next period and fertility are paused until a new start is logged.',
+      );
+    }
     if (p.alerts.isNotEmpty) {
       out.writeln('Worth noting: ${p.alerts.map((a) => a.name).join(', ')}');
     }

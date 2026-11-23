@@ -22,6 +22,7 @@ NexTileBackdrop nexTileBackdropOf(Note note, {bool collages = true}) {
         ? NexTileBackdrop.collage
         : NexTileBackdrop.photo;
   }
+  if (note.type == NoteType.video) return NexTileBackdrop.video;
   if (note.type != NoteType.file) return NexTileBackdrop.none;
   final original = note.originalFilename;
   if (nexIsPdf(uri, note.mimeType) ||

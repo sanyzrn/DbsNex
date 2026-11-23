@@ -10,9 +10,8 @@ import 'support/nex_harness.dart';
 /// a summary — never the day notes.
 void main() {
   test('the assistant can ask for the cycle, as a read', () {
-    final action = parseAssistantActions(
-      '```nex\n{"action": "cycle"}\n```',
-    ).single;
+    final action = parseAssistantActions('```nex\n{"action": "cycle"}\n```')
+        .single;
     expect(action.kind, AssistantActionKind.cycle);
     expect(action.isRead, isTrue);
   });
@@ -65,6 +64,18 @@ void main() {
       expect(text, contains('Next period: likely'));
       expect(text, contains('cramps ×1'));
       expect(text, isNot(contains('private words')));
+    });
+
+    test('an expired estimate is described without fertility dates', () async {
+      await harness.preferences.setCycleAssistantAccess(true);
+      final text = await nexCycleSummaryForAssistant(
+        services: harness.services,
+        preferences: harness.preferences,
+        now: DateTime.now().add(const Duration(days: 30)),
+      );
+      expect(text, contains('Calendar estimates'));
+      expect(text, isNot(contains('likely ovulation')));
+      expect(text, isNot(contains('Next period: likely')));
     });
 
     test('fertility signs of this cycle are included', () async {

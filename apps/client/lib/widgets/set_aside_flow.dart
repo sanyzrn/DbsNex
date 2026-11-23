@@ -51,6 +51,11 @@ Future<int> nexSetAsideNotes({
     message: message,
     haptics: false,
     actionLabel: l10n.undo,
+    group: NexBannerGroup(
+      key: (services, until),
+      count: done.length,
+      message: l10n.setAsideGroupDone,
+    ),
     onAction: () async {
       for (final id in done) {
         await services.bringBack(id);

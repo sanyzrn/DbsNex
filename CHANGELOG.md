@@ -4,6 +4,15 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.20
+
+- **Photos and videos in Media.** Videos, including ones already saved in Nex, sit with photos in the home filter and the Media shelf.
+- **Important notices keep their turn.** Errors and Undo actions wait in the queue. Consecutive set-aside actions can be undone together.
+- **A more capable code editor.** Paste to detect a language, edit with automatic indentation and bracket pairs, and expand long snippets when needed. Find text inside a snippet, show line numbers or scroll long lines sideways. More languages, including TypeScript, Kotlin, Rust and SQL, have syntax colours and their own file extensions.
+- **Long HTML opens with a lighter preview.** Nex prepares only the first part for the preview. Expand it to select and copy across paragraphs.
+- **Consistent Persian search in Expenses.** The same spelling rules now apply in Expenses and note search.
+- **Cycle pauses overdue estimates.** When the expected period range has passed, the calendar waits for the next logged start before showing new period or fertility dates.
+
 ## v2.8.19
 
 - **Gold weights read as you meant.** A weight typed with a comma, such as 4,250, is no longer taken as four thousand grams; it is refused, so a decimal comma never prices a piece at a thousand times its weight. Money fields still accept grouped thousands.

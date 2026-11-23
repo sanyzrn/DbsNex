@@ -12,37 +12,39 @@
 /// change what the snippet says.
 library;
 
-/// The languages a snippet can be written in, for now.
-///
-/// A language has a highlighting rule set and a menu row. [plainText] keeps
-/// source as written without applying syntax highlighting.
+/// The supported snippet languages, in picker order.
 enum NexCodeLanguage {
-  plainText('text'),
-  dart('dart'),
-  javascript('javascript'),
-  python('python'),
-  json('json'),
-  html('html'),
-  css('css'),
-  php('php');
+  plainText('text', 'Plain text', 'txt', 'Aa'),
+  dart('dart', 'Dart', 'dart', 'Dart'),
+  javascript('javascript', 'JavaScript', 'js', 'JS'),
+  python('python', 'Python', 'py', 'Py'),
+  json('json', 'JSON', 'json', '{ }'),
+  html('html', 'HTML', 'html', '</>'),
+  css('css', 'CSS', 'css', 'CSS'),
+  php('php', 'PHP', 'php', 'PHP'),
+  typescript('typescript', 'TypeScript', 'ts', 'TS'),
+  kotlin('kotlin', 'Kotlin', 'kt', 'KT'),
+  java('java', 'Java', 'java', 'Java'),
+  swift('swift', 'Swift', 'swift', 'Swift'),
+  c('c', 'C', 'c', 'C'),
+  cpp('cpp', 'C++', 'cpp', 'C++'),
+  csharp('csharp', 'C#', 'cs', 'C#'),
+  go('go', 'Go', 'go', 'Go'),
+  rust('rust', 'Rust', 'rs', 'RS'),
+  sql('sql', 'SQL', 'sql', 'SQL'),
+  bash('bash', 'Bash', 'sh', 'SH'),
+  yaml('yaml', 'YAML', 'yaml', 'YML'),
+  xml('xml', 'XML', 'xml', 'XML'),
+  markdown('markdown', 'Markdown', 'md', 'MD');
 
-  const NexCodeLanguage(this.id);
+  const NexCodeLanguage(this.id, this.label, this.extension, this.glyph);
 
-  /// What the fence's info string says. It is also what is shown to the
-  /// reader for a language this build does not know.
   final String id;
+  final String label;
+  final String extension;
+  final String glyph;
 
-  /// The languages with a highlighter, in the order the picker shows them.
-  static const selectable = [
-    plainText,
-    dart,
-    javascript,
-    python,
-    json,
-    html,
-    css,
-    php,
-  ];
+  static const selectable = values;
 
   /// [id] as one of these, or null for a fence this build does not know.
   ///
@@ -60,6 +62,20 @@ enum NexCodeLanguage {
       'html' || 'htm' || 'html5' => html,
       'css' => css,
       'php' || 'php8' || 'phtml' => php,
+      'ts' || 'tsx' || 'typescript' => typescript,
+      'kt' || 'kts' || 'kotlin' => kotlin,
+      'java' => java,
+      'swift' => swift,
+      'c' => c,
+      'cpp' || 'c++' || 'cxx' || 'cc' || 'hpp' => cpp,
+      'csharp' || 'cs' || 'c#' => csharp,
+      'go' || 'golang' => go,
+      'rust' || 'rs' => rust,
+      'sql' || 'postgresql' || 'sqlite' => sql,
+      'bash' || 'sh' || 'shell' || 'zsh' => bash,
+      'yaml' || 'yml' => yaml,
+      'xml' => xml,
+      'markdown' || 'md' => markdown,
       _ => null,
     };
   }

@@ -69,6 +69,25 @@ void main() {
       expect(json.keys, isNot(contains('symptoms')));
     });
 
+    test('an overdue snapshot carries no predicted fertility dates', () {
+      final json = NexCycleWidgetSnapshot.build(
+        enabled: true,
+        setUp: true,
+        hidden: false,
+        mode: CycleMode.conceive,
+        periods: periods,
+        prediction: CyclePredictor.predict(
+          periods: periods,
+          today: start.addDays(32),
+        ),
+        pregnancyStart: null,
+      );
+      expect(json['nextLatest'], '${start.addDays(31)}');
+      expect(json.keys, isNot(contains('fertileStart')));
+      expect(json.keys, isNot(contains('fertileEnd')));
+      expect(json.keys, isNot(contains('ovulation')));
+    });
+
     test('pregnant counts from the pregnancy, without predictions', () {
       final json = build(mode: CycleMode.pregnant);
       expect(json['pregnancyStart'], '2026-09-20');

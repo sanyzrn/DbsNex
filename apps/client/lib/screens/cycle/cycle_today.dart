@@ -13,6 +13,7 @@ String cycleStageLabel(AppLocalizations l10n, CycleStage stage) =>
       CycleStage.follicular => l10n.cycleStageFollicular,
       CycleStage.fertile => l10n.cycleStageFertile,
       CycleStage.luteal => l10n.cycleStageLuteal,
+      CycleStage.unknown => l10n.cycleStageUnknown,
     };
 
 /// The colour a stage is drawn in: rose for the period, teal for the fertile
@@ -21,7 +22,9 @@ Color cycleStageColor(CycleStage stage, Brightness brightness) =>
     switch (stage) {
       CycleStage.period => cyclePeriodColor(brightness),
       CycleStage.fertile => cycleFertileColor(brightness),
-      CycleStage.follicular || CycleStage.luteal => cycleMauve(brightness),
+      CycleStage.follicular ||
+      CycleStage.luteal ||
+      CycleStage.unknown => cycleMauve(brightness),
     };
 
 IconData cycleStageIcon(CycleStage stage) => switch (stage) {
@@ -29,6 +32,7 @@ IconData cycleStageIcon(CycleStage stage) => switch (stage) {
   CycleStage.follicular => Icons.eco_outlined,
   CycleStage.fertile => Icons.spa_outlined,
   CycleStage.luteal => Icons.nightlight_outlined,
+  CycleStage.unknown => Icons.event_outlined,
 };
 
 /// A few words for the day, from where the cycle is: gentle, practical, and
@@ -36,6 +40,7 @@ IconData cycleStageIcon(CycleStage stage) => switch (stage) {
 /// worth a glance rather than learned by heart.
 String cycleTip(AppLocalizations l10n, CycleStage stage, CycleDate today) {
   final tips = switch (stage) {
+    CycleStage.unknown => [l10n.cycleForecastPaused],
     CycleStage.period => [
       l10n.cycleTipPeriod1,
       l10n.cycleTipPeriod2,

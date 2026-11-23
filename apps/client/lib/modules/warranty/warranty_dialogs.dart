@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'warranty_strings.dart';
+
 import 'package:nex_client/modules/module_api.dart';
 
 /// The questions the warranty screens ask, in one place, all through
@@ -71,11 +73,9 @@ class WarrantyDialogs {
     String undoLabel,
     Future<void> Function() restore,
   ) {
-    // One at a time: a new question replaces the one still on screen.
     final failureMessage = messenger == null
         ? ''
         : warrantyStrings(messenger.context, 'undoFailed');
-    nexHideBanner();
     messenger?.show(
       message: message,
       actionKey: const ValueKey('warranty-undo'),

@@ -51,6 +51,7 @@
     <string name="widget_type_text">Text</string>
     <string name="widget_type_voice">Voice</string>
     <string name="widget_type_photo">Photo</string>
+    <string name="widget_type_video">Video</string>
     <string name="widget_type_file">File</string>
     <string name="widget_type_checklist">Checklist</string>
     <string name="widget_type_link">Link</string>

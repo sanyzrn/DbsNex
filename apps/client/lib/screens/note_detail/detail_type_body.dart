@@ -147,7 +147,9 @@ extension _DetailTypeBody on _NoteDetailSheetState {
       if (note.mediaUri != null)
         _FileBody(
           path: note.mediaUri!,
-          kind: NexFileKinds.of(path: note.mediaUri, mimeType: note.mimeType),
+          kind: note.type == NoteType.video
+              ? NexFileKind.video
+              : NexFileKinds.of(path: note.mediaUri, mimeType: note.mimeType),
           mimeType: note.mimeType,
           player: _steady,
           onOpen: _openExternally,

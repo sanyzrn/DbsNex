@@ -78,6 +78,7 @@ part 'note_detail/detail_ai_panel.dart';
 part 'note_detail/detail_ai_widgets.dart';
 part 'note_detail/detail_type_body.dart';
 part 'note_detail/detail_snippet.dart';
+part 'note_detail/detail_snippet_find.dart';
 part 'note_detail/detail_attachments.dart';
 part 'note_detail/detail_compare.dart';
 part 'note_detail/detail_attachment_menu.dart';
@@ -509,6 +510,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           primaryRank: 2,
                           onPressed: _share,
                         ),
+                      if (nexCanShare && _snippetFor(note) != null)
+                        _DetailAction(
+                          icon: Icons.file_upload_outlined,
+                          label: l10n.codeShareFile,
+                          onPressed: _shareCodeFile,
+                        ),
                       if (canSave)
                         _DetailAction(
                           icon: Icons.save_alt,
@@ -516,7 +523,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           primaryRank: 3,
                           onPressed: _saveToDevice,
                         ),
-                      if (note.type == NoteType.file && !archived)
+                      if (note.hasNamedFile && !archived)
                         _DetailAction(
                           icon: Icons.drive_file_rename_outline,
                           label: l10n.rename,

@@ -355,6 +355,7 @@ class _CycleScreenState extends State<CycleScreen> {
     // ring, no range, no alerts, no expected days on the calendar.
     final p = mode.predicts ? _prediction : null;
     final conceive = mode == CycleMode.conceive;
+    final forecast = p?.nextForecast;
     final pregnancy = mode == CycleMode.pregnant
         ? CyclePregnancy(
             lastPeriod:
@@ -391,15 +392,20 @@ class _CycleScreenState extends State<CycleScreen> {
       ),
       // Trying to conceive: the fertile window leads, and the next period
       // is the line under it.
+      _ when conceive && p.stage == CycleStage.fertile && forecast != null => (
+        l10n.cycleFertileToday,
+        l10n.cycleOvulationOn(day(forecast.ovulation)),
+      ),
       _
           when conceive &&
-              !p.fertile.start.isAfter(p.today) &&
-              !p.fertile.end.isBefore(p.today) =>
-        (l10n.cycleFertileToday, l10n.cycleOvulationOn(day(p.ovulation))),
-      _ when conceive && p.fertile.start.isAfter(p.today) => (
-        digits(l10n.cycleUntilFertile(p.fertile.start.daysSince(p.today))),
-        l10n.cycleOvulationOn(day(p.ovulation)),
-      ),
+              forecast != null &&
+              forecast.fertile.start.isAfter(p.today) =>
+        (
+          digits(
+            l10n.cycleUntilFertile(forecast.fertile.start.daysSince(p.today)),
+          ),
+          l10n.cycleOvulationOn(day(forecast.ovulation)),
+        ),
       _ when p.daysUntilNext > 0 => (
         digits(l10n.cycleDaysUntil(p.daysUntilNext)),
         l10n.cycleDayOfCycle(digits(p.cycleDay)),
@@ -435,9 +441,7 @@ class _CycleScreenState extends State<CycleScreen> {
                 _ when pregnancy != null => l10n.cycleWhisperPregnant,
                 null => l10n.cycleWhisperCalm,
                 _ when p.inPeriod => l10n.cycleWhisperPeriod,
-                _
-                    when !p.fertile.start.isAfter(p.today) &&
-                        !p.fertile.end.isBefore(p.today) =>
+                _ when p.stage == CycleStage.fertile =>
                   l10n.cycleWhisperFertile,
                 _ when p.daysUntilNext >= 0 && p.daysUntilNext <= 3 =>
                   l10n.cycleWhisperSoon,
@@ -543,23 +547,7 @@ class _CycleScreenState extends State<CycleScreen> {
             ),
           if (p != null) ...[
             const SizedBox(height: NexSpacing.sm),
-            if (!p.inPeriod)
-              Text(
-                l10n.cycleLikelyBetween(day(p.nextEarliest), day(p.nextLatest)),
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium,
-              ),
-            Text(
-              switch (p.confidence) {
-                CycleConfidence.low => l10n.cycleConfidenceLow,
-                CycleConfidence.medium => l10n.cycleConfidenceMedium,
-                CycleConfidence.high => l10n.cycleConfidenceHigh,
-              },
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
+            _ForecastStatus(prediction: p, day: day),
             if (conceive && _positiveTest != null)
               Padding(
                 padding: const EdgeInsets.only(top: NexSpacing.xs),
@@ -570,7 +558,8 @@ class _CycleScreenState extends State<CycleScreen> {
                   style: theme.textTheme.bodySmall?.copyWith(color: teal),
                 ),
               ),
-            if (!p.fertile.end.isBefore(p.today))
+            if (forecast case final current?
+                when !current.fertile.end.isBefore(p.today))
               Padding(
                 padding: const EdgeInsets.only(top: NexSpacing.xs),
                 child: Row(
@@ -580,7 +569,7 @@ class _CycleScreenState extends State<CycleScreen> {
                     const SizedBox(width: NexSpacing.xs),
                     Flexible(
                       child: Text(
-                        '${l10n.cycleFertileNow}: ${day(p.fertile.start)} – ${day(p.fertile.end)}',
+                        '${l10n.cycleFertileNow}: ${day(current.fertile.start)} – ${day(current.fertile.end)}',
                         style: theme.textTheme.bodySmall?.copyWith(color: teal),
                       ),
                     ),
@@ -626,7 +615,8 @@ class _CycleScreenState extends State<CycleScreen> {
               onEnded: () => unawaited(_confirmEnded(open, usualPeriod)),
               onStill: () => setState(() => _stillGoingOn = _today),
             ),
-          if (p != null) CycleTipCard(stage: p.stage, today: p.today),
+          if (p != null && p.stage != CycleStage.unknown)
+            CycleTipCard(stage: p.stage, today: p.today),
           for (final alert in p?.alerts ?? const <CycleAlert>{})
             CycleCard(
               margin: const EdgeInsets.only(bottom: NexSpacing.sm),

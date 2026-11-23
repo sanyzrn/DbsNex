@@ -223,7 +223,7 @@ class NexGridRowSizing {
         total(preview) +
         total(caption) +
         (caption.isEmpty ? 0 : _gridCaptionGap);
-    if (note.type != NoteType.file && lineCount <= 2 && needed <= shortRoom) {
+    if (!note.hasNamedFile && lineCount <= 2 && needed <= shortRoom) {
       return short;
     }
     return lineCount <= 4 && needed <= mediumRoom ? medium : tall;
