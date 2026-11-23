@@ -19,6 +19,7 @@ class ExpensesMonthNav extends StatelessWidget {
     required this.offset,
     required this.onPrevious,
     required this.onNext,
+    required this.onPickMonth,
     required this.onAllTime,
     required this.onCurrent,
   });
@@ -29,6 +30,9 @@ class ExpensesMonthNav extends StatelessWidget {
   final int offset;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
+
+  /// Opens the month picker: a year of months, three taps away at most.
+  final VoidCallback onPickMonth;
   final VoidCallback onAllTime;
   final VoidCallback onCurrent;
 
@@ -37,7 +41,6 @@ class ExpensesMonthNav extends StatelessWidget {
     final s = expenseStrings;
     final theme = Theme.of(context);
     final label = month.title(context);
-    final isCurrent = offset == 0;
     final relative = switch (offset) {
       0 => s(context, 'thisMonth'),
       -1 => s(context, 'lastMonth'),
@@ -54,25 +57,43 @@ class ExpensesMonthNav extends StatelessWidget {
               icon: Icon(DirectionalChevron.start(context)),
             ),
             Expanded(
-              child: Tooltip(
-                message: isCurrent ? '' : s(context, 'goCurrent'),
-                child: InkWell(
-                  onTap: isCurrent ? null : onCurrent,
-                  borderRadius: BorderRadius.circular(NexRadius.md),
-                  child: Semantics(
-                    label: s(context, 'monthNavSemantics', {'month': label}),
-                    excludeSemantics: true,
+              child: InkWell(
+                // The month itself is the way to another month: a picker
+                // instead of the old hidden «tap to go back to now».
+                onTap: onPickMonth,
+                borderRadius: BorderRadius.circular(NexRadius.md),
+                child: Semantics(
+                  label: s(context, 'monthNavSemantics', {'month': label}),
+                  hint: s(context, 'chooseMonth'),
+                  button: true,
+                  excludeSemantics: true,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: NexSpacing.xs,
+                    ),
                     child: Column(
                       children: [
-                        Text(
-                          label,
-                          style: theme.textTheme.titleMedium,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                label,
+                                style: theme.textTheme.titleMedium,
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: NexSpacing.xs),
+                            Icon(
+                              Icons.expand_more,
+                              size: 18,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ],
                         ),
-                        // The relative name stays visible; tapping the month
-                        // itself is the way back to now.
                         Text(
                           relative,
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -92,17 +113,23 @@ class ExpensesMonthNav extends StatelessWidget {
             ),
           ],
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+        Wrap(
+          alignment: WrapAlignment.end,
+          spacing: NexSpacing.xs,
           children: [
-            // Flexible so a 2× text scale can never push the pill past the
-            // screen: it shortens rather than overflowing.
-            Flexible(
-              child: ExpensesPill(
-                label: s(context, 'allTime'),
+            // The way back to now sits beside «all time», and only when it
+            // is needed — never a hidden tap on the date.
+            if (offset != 0)
+              ExpensesPill(
+                key: const ValueKey('expenses-this-month'),
+                label: s(context, 'thisMonth'),
                 selected: false,
-                onPressed: onAllTime,
+                onPressed: onCurrent,
               ),
+            ExpensesPill(
+              label: s(context, 'allTime'),
+              selected: false,
+              onPressed: onAllTime,
             ),
           ],
         ),
@@ -262,6 +289,362 @@ class ExpensesTotalsPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A month picker: the year, then its twelve months in the calendar the
+/// person reads. Twelve steps back used to mean twelve taps; this is two.
+Future<NexModuleMonth?> showExpensesMonthPicker(
+  BuildContext context, {
+  required NexModuleMonth selected,
+  required NexModuleMonth current,
+}) => nexShowSheet<NexModuleMonth>(
+  context: context,
+  builder: (sheetContext) =>
+      _MonthPickerSheet(selected: selected, current: current),
+);
+
+class _MonthPickerSheet extends StatefulWidget {
+  const _MonthPickerSheet({required this.selected, required this.current});
+
+  final NexModuleMonth selected;
+  final NexModuleMonth current;
+
+  @override
+  State<_MonthPickerSheet> createState() => _MonthPickerSheetState();
+}
+
+class _MonthPickerSheetState extends State<_MonthPickerSheet> {
+  late NexModuleMonth _shown = widget.selected;
+
+  /// Five years back and one forward is more than a household book needs;
+  /// anything further is reached with the arrows, never by accident.
+  bool get _canGoBack => _shown.year > widget.current.year - 5;
+  bool get _canGoForward => _shown.year < widget.current.year + 1;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final s = expenseStrings;
+    final persian = NexModuleStrings.persian(context);
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsetsDirectional.fromSTEB(
+          NexSpacing.md,
+          NexSpacing.sm,
+          NexSpacing.md,
+          NexSpacing.md,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(s(context, 'chooseMonth'), style: theme.textTheme.titleLarge),
+            const SizedBox(height: NexSpacing.sm),
+            Row(
+              children: [
+                IconButton(
+                  tooltip: s(context, 'previousYear'),
+                  onPressed: _canGoBack
+                      ? () => setState(
+                          () => _shown = NexModuleMonth(
+                            _shown.solar,
+                            _shown.year - 1,
+                            _shown.month,
+                          ),
+                        )
+                      : null,
+                  icon: Icon(DirectionalChevron.start(context)),
+                ),
+                Expanded(
+                  child: Text(
+                    nexDigits('${_shown.year}', persian: persian),
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                IconButton(
+                  tooltip: s(context, 'nextYear'),
+                  onPressed: _canGoForward
+                      ? () => setState(
+                          () => _shown = NexModuleMonth(
+                            _shown.solar,
+                            _shown.year + 1,
+                            _shown.month,
+                          ),
+                        )
+                      : null,
+                  icon: Icon(DirectionalChevron.end(context)),
+                ),
+              ],
+            ),
+            const SizedBox(height: NexSpacing.xs),
+            for (var row = 0; row < 4; row++)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(
+                  bottom: NexSpacing.xs,
+                ),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var column = 0; column < 3; column++)
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsetsDirectional.only(
+                              end: NexSpacing.xs,
+                            ),
+                            child: _MonthCell(
+                              key: ValueKey(
+                                'expenses-month-${_shown.year}-'
+                                '${row * 3 + column + 1}',
+                              ),
+                              label: nexModuleMonthName(
+                                context,
+                                solar: _shown.solar,
+                                month: row * 3 + column + 1,
+                              ),
+                              selected:
+                                  _shown.year == widget.selected.year &&
+                                  row * 3 + column + 1 == widget.selected.month,
+                              current:
+                                  _shown.year == widget.current.year &&
+                                  row * 3 + column + 1 == widget.current.month,
+                              onTap: () => Navigator.pop(
+                                context,
+                                NexModuleMonth(
+                                  _shown.solar,
+                                  _shown.year,
+                                  row * 3 + column + 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: NexSpacing.xs),
+            Text(
+              s(context, 'monthPickerHint'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MonthCell extends StatelessWidget {
+  const _MonthCell({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.current,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final bool current;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Semantics(
+      label: label,
+      button: true,
+      selected: selected,
+      excludeSemantics: true,
+      child: Material(
+        color: selected ? scheme.primary : scheme.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(NexRadius.sm),
+          side: BorderSide(
+            color: current && !selected ? scheme.primary : Colors.transparent,
+          ),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(NexRadius.sm),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 52),
+            padding: const EdgeInsets.symmetric(
+              horizontal: NexSpacing.xs,
+              vertical: NexSpacing.xs,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: selected ? scheme.onPrimary : scheme.onSurface,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The last six months as one calm row of bars: the year's shape without a
+/// single figure on screen. The tallest month is named under it, because
+/// «which month cost the most» is the question this answers.
+class ExpensesTrendPanel extends StatelessWidget {
+  const ExpensesTrendPanel({
+    super.key,
+    required this.points,
+    required this.unit,
+    this.hidden = false,
+  });
+
+  final List<ExpenseTrendPoint> points;
+  final ExpenseUnit unit;
+  final bool hidden;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final s = expenseStrings;
+    final persian = NexModuleStrings.persian(context);
+    final accent = NexHue.teal.of(theme.brightness);
+    var largest = BigInt.zero;
+    var largestAt = 0;
+    for (var i = 0; i < points.length; i++) {
+      if (points[i].spent > largest) {
+        largest = points[i].spent;
+        largestAt = i;
+      }
+    }
+    String money(BigInt rials) => hidden
+        ? s(context, 'hiddenAmount')
+        : formatExpenseAmount(rials.toInt(), unit, persian: persian);
+    final tallest = points[largestAt];
+    return NexPanel(
+      title: s(context, 'trendTitle'),
+      icon: Icons.insights_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: 72,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (var i = 0; i < points.length; i++)
+                  Expanded(
+                    child: Semantics(
+                      label: s(context, 'trendSemantics', {
+                        'month': points[i].month.title(context),
+                        'amount': money(points[i].spent),
+                      }),
+                      excludeSemantics: true,
+                      child: Tooltip(
+                        message: s(context, 'trendSemantics', {
+                          'month': points[i].month.title(context),
+                          'amount': money(points[i].spent),
+                        }),
+                        child: Padding(
+                          padding: const EdgeInsetsDirectional.symmetric(
+                            horizontal: 2,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Flexible(
+                                child: FractionallySizedBox(
+                                  heightFactor:
+                                      (expenseProgress(
+                                            points[i].spent,
+                                            largest,
+                                          ) *
+                                          0.92) +
+                                      0.08,
+                                  alignment: Alignment.bottomCenter,
+                                  child: Container(
+                                    constraints: const BoxConstraints(
+                                      minHeight: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: i == largestAt
+                                          ? accent
+                                          : scheme.onSurface.withValues(
+                                              alpha: 0.16,
+                                            ),
+                                      borderRadius: BorderRadius.circular(
+                                        NexRadius.xs,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: NexSpacing.xs),
+          Row(
+            children: [
+              for (var i = 0; i < points.length; i++)
+                Expanded(
+                  child: Text(
+                    _shortMonth(context, points[i].month),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: i == points.length - 1
+                          ? scheme.onSurface
+                          : scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (largest > BigInt.zero) ...[
+            const SizedBox(height: NexSpacing.xs),
+            Text(
+              s(context, 'trendMost', {
+                'month': tallest.month.title(context),
+                'amount': money(largest),
+              }),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// «مهر» and «Nov» alike: six months have to fit one row, so an English
+/// Gregorian month is shortened while a Persian name already is short.
+String _shortMonth(BuildContext context, NexModuleMonth month) {
+  final name = nexModuleMonthName(
+    context,
+    solar: month.solar,
+    month: month.month,
+  );
+  if (month.solar || NexModuleStrings.persian(context)) return name;
+  return name.length <= 3 ? name : name.substring(0, 3);
 }
 
 class _TotalsRow extends StatelessWidget {

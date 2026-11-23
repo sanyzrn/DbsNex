@@ -198,6 +198,8 @@ class _WordsScreenState extends State<WordsScreen>
     final strings = wordsStrings;
     final theme = Theme.of(context);
     final waiting = due + fresh;
+    final deckId = _deckFilter;
+    final deckName = _deckReviewName(context);
     const white = Colors.white;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -231,8 +233,8 @@ class _WordsScreenState extends State<WordsScreen>
                       NexPageRoute<void>(
                         builder: (_) => WordsReviewPage(
                           store: widget.store,
-                          deckId: _deckFilter,
-                          deckName: _deckReviewName(context),
+                          deckId: deckId,
+                          deckName: deckName,
                         ),
                       ),
                     ),

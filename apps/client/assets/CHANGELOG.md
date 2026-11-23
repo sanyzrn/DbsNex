@@ -4,7 +4,11 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
-- **Word by Word, sharper.** Review only the deck you picked, share a word as text, search with the Persian and Arabic letter forms and half-spaces forgiven, and keep the practice mode you chose. A skipped card comes back before the session ends, the daily goal is yours to set, and each word shows its deck in the list.
+## v2.8.17
+
+- **Word by Word.** Review a single deck, set a daily goal, and share words as text. Nex remembers how you practise and brings skipped cards back later in the session. Persian search handles alternate spellings and half-spaces.
+- **Expenses by day and month.** See daily and monthly totals, view six months of spending, and jump to any month from the year picker.
+- **Easier budgets and payments.** Copy last month's budgets with Undo, repeat a payment, and rename your own categories. Switching between tomans and rials preserves the amount.
 
 ## v2.8.16
 

@@ -17,6 +17,7 @@ import 'expenses_undo.dart';
 import 'expenses_widgets.dart';
 import 'logic.dart';
 import 'models.dart';
+import 'money.dart';
 import 'strings.dart';
 
 /// The Expenses home: one month at a time — or all time — with what it
@@ -93,6 +94,50 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   void _allTimeView() => setState(() => _allTime = true);
 
+  /// Any month in the calendar the person reads, two taps away — the year's
+  /// months in a grid rather than one step at a time.
+  Future<void> _pickMonth(NexModuleMonth base) async {
+    final picked = await showExpensesMonthPicker(
+      context,
+      selected: _monthOf(base.solar),
+      current: base,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _allTime = false;
+      _offset = (picked.year - base.year) * 12 + (picked.month - base.month);
+    });
+  }
+
+  /// Carries last month's budgets into [month], one tap for the chore of
+  /// retyping every limit when a month turns over.
+  Future<void> _copyBudgets(NexModuleMonth month) async {
+    final messenger = NexBannerHost.of(context);
+    final s = expenseStrings;
+    final undoLabel = s(context, 'undo');
+    final undoFailure = s(context, 'undoFailed');
+    try {
+      final created = await controller.copyBudgetsFrom(
+        from: monthStartIso(month.shift(-1)),
+        to: monthStartIso(month),
+      );
+      if (!mounted) return;
+      if (created == null) {
+        messenger?.show(message: s(context, 'copiedNone'));
+        return;
+      }
+      ExpensesUndo.offer(
+        messenger,
+        message: s(context, 'copiedBudgets', {'n': created.count}),
+        undoLabel: undoLabel,
+        failureMessage: undoFailure,
+        restore: created.undo,
+      );
+    } catch (_) {
+      if (mounted) expenseWriteFailure(context);
+    }
+  }
+
   Future<void> _add() => showExpensesTxEditor(context, controller: controller);
 
   Future<void> _edit(ExpenseTx tx) =>
@@ -121,6 +166,17 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     }
   }
 
+  Widget _txRow(ExpenseTx tx, ExpenseUnit unit, bool hidden) => ExpensesTxRow(
+    key: ValueKey('expenses-tx-${tx.id}'),
+    tx: tx,
+    categoryName: _categoryName,
+    onTap: () => unawaited(_edit(tx)),
+    now: _openedAt,
+    unit: unit,
+    hidden: hidden,
+    label: templateLabelOf(controller.templates, tx),
+  );
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -144,6 +200,23 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final budgets = _allTime
         ? const <ExpenseBudgetStatus>[]
         : expenseBudgetStatuses(controller.budgets, month, controller.txs);
+    final lastMonthStart = monthStartIso(month.shift(-1));
+    final hasLastMonthBudgets =
+        !_allTime && controller.budgetsForStart(lastMonthStart).isNotEmpty;
+    final trend = _allTime
+        ? const <ExpenseTrendPoint>[]
+        : expenseTrend(controller.txs, month: month, solar: solar);
+    // A header total is the day's (or month's) real spending only while
+    // nothing is narrowing the list.
+    final filtering =
+        _search.text.trim().isNotEmpty ||
+        _categoryFilter != null ||
+        _min.text.trim().isNotEmpty ||
+        _max.text.trim().isNotEmpty;
+    final dayGroups = expenseDayGroups(visible);
+    final monthSections = _allTime
+        ? expenseMonthSections(visible, solar: solar)
+        : const <ExpenseMonthSection>[];
     final change = _allTime
         ? null
         : expenseMonthChange(controller.txs, month: month, solar: solar);
@@ -153,10 +226,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final slices = _allTime
         ? const <ExpenseCategorySlice>[]
         : expenseCategoryBreakdown(scope, month: month, solar: solar);
+    // A budget is setup a person did, even before the first payment: the
+    // home must show it, not «nothing written down yet» above a month that
+    // has limits but no records.
     final empty =
         controller.txs.isEmpty &&
         controller.customCategories.isEmpty &&
-        controller.templates.isEmpty;
+        controller.templates.isEmpty &&
+        controller.budgets.isEmpty;
     // A label that cannot fit beside an icon at 2× text is not shown: the
     // button keeps its one action, and its words move into the tooltip.
     final roomForWords =
@@ -257,6 +334,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           offset: _offset,
                           onPrevious: _previousMonth,
                           onNext: _nextMonth,
+                          onPickMonth: () => unawaited(
+                            _pickMonth(
+                              NexModuleMonth.of(_openedAt, solar: solar),
+                            ),
+                          ),
                           onAllTime: _allTimeView,
                           onCurrent: _toCurrentMonth,
                         ),
@@ -299,12 +381,21 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         hidden: hidden,
                         onLog: (offer) => unawaited(_log(offer)),
                       ),
-                    if (budgets.isNotEmpty) ...[
+                    if (budgets.isNotEmpty || hasLastMonthBudgets) ...[
                       ExpensesBudgetsPanel(
                         statuses: budgets,
                         categoryName: _categoryName,
                         unit: unit,
                         hidden: hidden,
+                        hasPrevious: hasLastMonthBudgets,
+                        onAdd: () => unawaited(
+                          showExpensesBudgetEditor(
+                            context,
+                            controller: controller,
+                            month: month,
+                          ),
+                        ),
+                        onCopyLastMonth: () => unawaited(_copyBudgets(month)),
                         onEdit: (status) => unawaited(
                           showExpensesBudgetEditor(
                             context,
@@ -328,6 +419,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                               ? null
                               : id,
                         ),
+                      ),
+                      const SizedBox(height: NexSpacing.md),
+                    ],
+                    if (trend.any((point) => point.spent > BigInt.zero)) ...[
+                      ExpensesTrendPanel(
+                        key: const ValueKey('expenses-trend'),
+                        points: trend,
+                        unit: unit,
+                        hidden: hidden,
                       ),
                       const SizedBox(height: NexSpacing.md),
                     ],
@@ -358,21 +458,56 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       )
                     else ...[
                       Text(
-                        s(context, 'recentTitle'),
+                        s(context, 'recordsTitle'),
                         style: theme.textTheme.titleSmall,
                       ),
                       const SizedBox(height: NexSpacing.xs),
-                      for (final tx in visible)
-                        ExpensesTxRow(
-                          key: ValueKey('expenses-tx-${tx.id}'),
-                          tx: tx,
-                          categoryName: _categoryName,
-                          onTap: () => unawaited(_edit(tx)),
-                          now: _openedAt,
-                          unit: unit,
-                          hidden: hidden,
-                          label: templateLabelOf(controller.templates, tx),
-                        ),
+                      if (_allTime)
+                        for (final section in monthSections) ...[
+                          ExpensesMonthHeader(
+                            key: ValueKey(
+                              'expenses-month-section-'
+                              '${section.month == null ? 'undated' : monthStartIso(section.month!)}',
+                            ),
+                            month: section.month,
+                            totals: section.totals,
+                            unit: unit,
+                            hidden: hidden,
+                            showTotal: !filtering,
+                          ),
+                          for (final group in section.days) ...[
+                            ExpensesDayHeader(
+                              key: ValueKey(
+                                'expenses-day-'
+                                '${group.day == null ? 'undated' : isoDay(group.day!)}',
+                              ),
+                              day: group.day,
+                              totals: group.totals,
+                              now: _openedAt,
+                              unit: unit,
+                              hidden: hidden,
+                              showTotal: !filtering,
+                            ),
+                            for (final tx in group.txs)
+                              _txRow(tx, unit, hidden),
+                          ],
+                        ]
+                      else
+                        for (final group in dayGroups) ...[
+                          ExpensesDayHeader(
+                            key: ValueKey(
+                              'expenses-day-'
+                              '${group.day == null ? 'undated' : isoDay(group.day!)}',
+                            ),
+                            day: group.day,
+                            totals: group.totals,
+                            now: _openedAt,
+                            unit: unit,
+                            hidden: hidden,
+                            showTotal: !filtering,
+                          ),
+                          for (final tx in group.txs) _txRow(tx, unit, hidden),
+                        ],
                     ],
                   ],
                 ],

@@ -245,11 +245,9 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                         unit: _unit,
                         showAllErrors: _showErrors,
                         onValid: (_) => _changed(),
+                        // The field re-expresses its own value; only the
+                        // choice is remembered here.
                         onUnitChanged: (unit) {
-                          final rials = _parsed.rials;
-                          if (rials != null) {
-                            _amount.text = expenseAmountInput(rials, unit);
-                          }
                           setState(() => _unit = unit);
                           _changed();
                         },

@@ -32,6 +32,10 @@ const _expenseEnglish = <String, String>{
   'previousMonth': 'Previous month',
   'nextMonth': 'Next month',
   'goCurrent': 'Back to this month',
+  'chooseMonth': 'Choose a month',
+  'monthPickerHint': 'Pick a month — the calendar you are reading.',
+  'previousYear': 'Previous year',
+  'nextYear': 'Next year',
 
   // Overview.
   'expensesLabel': 'Expenses',
@@ -45,7 +49,8 @@ const _expenseEnglish = <String, String>{
   'categoryLess': '{pct}% less than last month',
   'categorySame': 'about the same as last month',
   'basedOnEntered': 'Based only on what you entered — not your bank balance',
-  'recentTitle': 'Recent records',
+  'recordsTitle': 'Records',
+  'incompleteGroup': 'Needs repair',
   'noRecords': 'Nothing written down yet',
   'addFirst': 'Add a payment',
   'noResults': 'Nothing matches',
@@ -130,6 +135,13 @@ const _expenseEnglish = <String, String>{
   'deleteTxTitle': 'Delete this record?',
   'deleteTxBody':
       'It is removed from totals as well. Undo is offered for a short while.',
+  'duplicate': 'Same again today',
+  'duplicatedTx': 'Written again for today',
+  'rename': 'Rename',
+  'renameCategoryTitle': 'Rename this category?',
+  'renameCategoryHint':
+      'Records already written show the new name. The category keeps its id.',
+  'categoryRenamed': 'Category renamed',
   'categoryLabel': 'Category',
   'categoryNone': 'None',
   'chooseCategory': 'Choose a category',
@@ -147,6 +159,14 @@ const _expenseEnglish = <String, String>{
   'budgetNote':
       'Budgets never roll over and changing one never changes records. '
       'Spent, left and over are plain arithmetic.',
+  'budgetNone': 'No budget set for this month.',
+  'addBudget': 'Add a budget',
+  'copyBudgets': 'Copy last month',
+  'copiedBudgets': '{n} budgets carried over',
+  'copiedNone': 'There was no budget to carry over',
+  'trendTitle': 'Last six months',
+  'trendMost': 'Most spent in {month}: {amount}',
+  'trendSemantics': '{month}: {amount}',
 
   // Templates and recurring payments.
   'templatesTitle': 'Templates',
@@ -184,6 +204,7 @@ const _expenseEnglish = <String, String>{
 
   // Semantics.
   'txSemantics': '{type} {amount}, {category}, {date}',
+  'dayTotalSemantics': '{date}: {amount}',
   'barSemantics': '{category}: {amount}, {percent} percent of spending',
   'netSemantics': 'Spent {amount}, left {left}',
   'monthNavSemantics': 'Showing {month}',

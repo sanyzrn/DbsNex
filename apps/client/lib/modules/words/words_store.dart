@@ -292,8 +292,8 @@ class WordsRepository {
     ({
       List<WordCard> due,
       List<WordCard> fresh,
-      int newPerDay,
-      int sessionLimit,
+      List<WordCard> pool,
+      WordsSettings settings,
     })
   >
   loadSession({String? deckId}) async {
@@ -318,8 +318,8 @@ class WordsRepository {
     return (
       due: session.due,
       fresh: session.fresh,
-      newPerDay: settings.newPerDay,
-      sessionLimit: settings.sessionLimit,
+      pool: cards,
+      settings: settings,
     );
   }
 

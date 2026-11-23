@@ -202,11 +202,24 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: Text(title, style: theme.textTheme.titleLarge),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(title, style: theme.textTheme.titleLarge),
+                  ),
+                  // «Same again»: the payment in front of the person is
+                  // repeated today, with no form to fill a second time. It
+                  // is a new record, never a copy of a recurring month.
+                  if (!isNew)
+                    IconButton(
+                      key: const ValueKey('expenses-duplicate'),
+                      tooltip: expenseStrings(context, 'duplicate'),
+                      onPressed: _saving ? null : () => unawaited(_duplicate()),
+                      icon: const Icon(Icons.content_copy_outlined),
+                    ),
+                ],
               ),
-              const SizedBox(height: NexSpacing.md),
+              const SizedBox(height: NexSpacing.sm),
               Flexible(
                 child: SingleChildScrollView(
                   child: Column(
@@ -238,13 +251,9 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
                         showAllErrors: _showErrors,
                         // Any keystroke is work worth guarding.
                         onValid: (_) => _markDirty(),
+                        // The field re-expresses its own value in the new
+                        // unit; here the form only remembers the choice.
                         onUnitChanged: (unit) {
-                          // Re-express the typed amount in the new unit so
-                          // switching does not change the money.
-                          final rials = _parsed.rials;
-                          if (rials != null) {
-                            _amount.text = expenseAmountInput(rials, unit);
-                          }
                           setState(() => _unit = unit);
                           _markDirty();
                         },

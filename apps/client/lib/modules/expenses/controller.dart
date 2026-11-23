@@ -81,13 +81,14 @@ class ExpensesController extends ChangeNotifier {
     }
   }
 
-  Future<void> _mutate(Future<void> Function() write) {
+  Future<T> _mutate<T>(Future<T> Function() write) {
     final done = _tail.then((_) async {
       _mutating++;
       try {
-        await write();
+        final result = await write();
         lastWriteError = null;
         await load();
+        return result;
       } catch (_) {
         lastWriteError = 'write';
         _notify();
@@ -127,63 +128,67 @@ class ExpensesController extends ChangeNotifier {
     _undos.remove('$kind:$id');
   });
 
-  Future<void> saveTx(ExpenseTx tx, {ExpenseTx? existing, String? draftId}) =>
-      _mutate(
-        () => LocalWrites.serial(store, () async {
-          final proposed = tx.toBody();
-          if (!ExpenseTx.fromBody(tx.id, proposed).valid ||
-              !expenseAmountInRange(tx.amountRial)) {
-            throw StateError('Invalid transaction');
-          }
-          final raw = await store.get('tx', tx.id);
-          if (existing != null && raw == null) {
-            throw StateError('Transaction no longer exists');
-          }
-          final body = {...?raw};
-          final old = existing?.valid == true ? existing!.toBody() : null;
-          for (final key in {
-            ...proposed.keys,
-            'category',
-            'note',
-            'merchant',
-            'account',
-          }) {
-            // Only skip a field the stored body already holds: a 2.1.x
-            // record has no `amountRial` yet, and the migration has to
-            // write it even though the value is unchanged.
-            if (old != null &&
-                (raw?.containsKey(key) ?? false) &&
-                LocalWrites.same(old[key], proposed[key])) {
-              continue;
-            }
-            if (proposed.containsKey(key)) {
-              body[key] = proposed[key];
-            } else {
-              body.remove(key);
-            }
-          }
-          // A record written by 2.1.x kept a currency's minor units; the
-          // amount now lives in `amountRial`, so the old keys go with it —
-          // the value itself is kept, converted once, and never rescaled.
-          for (final legacy in const [
-            'amount',
-            'currency',
-            'currency_code',
-            'currency_exponent',
-            'exponent',
-          ]) {
-            body.remove(legacy);
-          }
-          body['schema'] = 3;
-          if (!ExpenseTx.fromBody(tx.id, body).valid) {
-            throw StateError('The current transaction needs repair');
-          }
-          await LocalWrites.apply(store, [
-            (kind: 'tx', id: tx.id, body: body),
-            if (draftId != null) (kind: 'draft', id: draftId, body: null),
-          ]);
-        }),
-      );
+  Future<Future<void> Function()> saveTx(
+    ExpenseTx tx, {
+    ExpenseTx? existing,
+    String? draftId,
+  }) => _mutate(
+    () => LocalWrites.serial(store, () async {
+      final proposed = tx.toBody();
+      if (!ExpenseTx.fromBody(tx.id, proposed).valid ||
+          !expenseAmountInRange(tx.amountRial)) {
+        throw StateError('Invalid transaction');
+      }
+      final raw = await store.get('tx', tx.id);
+      if (existing != null && raw == null) {
+        throw StateError('Transaction no longer exists');
+      }
+      final body = {...?raw};
+      final old = existing?.valid == true ? existing!.toBody() : null;
+      for (final key in {
+        ...proposed.keys,
+        'category',
+        'note',
+        'merchant',
+        'account',
+      }) {
+        // Only skip a field the stored body already holds: a 2.1.x
+        // record has no `amountRial` yet, and the migration has to
+        // write it even though the value is unchanged.
+        if (old != null &&
+            (raw?.containsKey(key) ?? false) &&
+            LocalWrites.same(old[key], proposed[key])) {
+          continue;
+        }
+        if (proposed.containsKey(key)) {
+          body[key] = proposed[key];
+        } else {
+          body.remove(key);
+        }
+      }
+      // A record written by 2.1.x kept a currency's minor units; the
+      // amount now lives in `amountRial`, so the old keys go with it —
+      // the value itself is kept, converted once, and never rescaled.
+      for (final legacy in const [
+        'amount',
+        'currency',
+        'currency_code',
+        'currency_exponent',
+        'exponent',
+      ]) {
+        body.remove(legacy);
+      }
+      body['schema'] = 3;
+      if (!ExpenseTx.fromBody(tx.id, body).valid) {
+        throw StateError('The current transaction needs repair');
+      }
+      final undo = await LocalWrites.apply(store, [
+        (kind: 'tx', id: tx.id, body: body),
+        if (draftId != null) (kind: 'draft', id: draftId, body: null),
+      ]);
+      return () => _mutate(undo);
+    }),
+  );
 
   Future<void> deleteTx(String id) => _delete('tx', id);
   Future<void> restoreTx(ExpenseTx tx) => restore('tx', tx.id);
@@ -201,6 +206,19 @@ class ExpensesController extends ChangeNotifier {
           'label': label.trim(),
           'schema': 1,
         });
+
+  /// Renames one of the person's own categories, keeping its id — and every
+  /// record written with it. The built-in ones are words from the module's
+  /// strings and are not records to rename.
+  Future<void> renameCategory(ExpenseCategory category, String label) =>
+      label.trim().isEmpty
+      ? Future.value()
+      : _mutate(
+          () => LocalWrites.patch(store, 'cat', category.id, {
+            'label': label.trim(),
+          }),
+        );
+
   Future<void> deleteCategory(ExpenseCategory category) =>
       _delete('cat', category.id);
   Future<void> restoreCategory(ExpenseCategory category) =>
@@ -242,6 +260,41 @@ class ExpensesController extends ChangeNotifier {
     return null;
   }
 
+  /// The budgets set for a month's first civil day.
+  List<ExpenseBudget> budgetsForStart(String start) => [
+    for (final b in budgets)
+      if (b.start == start) b,
+  ];
+
+  /// Copies the previous month's limits into missing categories. Undo
+  /// refuses to overwrite any later edit to one of the copied budgets.
+  Future<({int count, Future<void> Function() undo})?> copyBudgetsFrom({
+    required String from,
+    required String to,
+  }) {
+    if (from == to) return Future.value();
+    return _mutate(
+      () => LocalWrites.serial(store, () async {
+        final rows = <LocalChange>[];
+        for (final record in await store.list('budget')) {
+          final budget = ExpenseBudget.fromBody(record.id, record.body);
+          if (budget == null || budget.start != from) continue;
+          final id = budgetId(to, budget.categoryId);
+          if (await store.get('budget', id) != null) continue;
+          final copy = ExpenseBudget(
+            start: to,
+            categoryId: budget.categoryId,
+            amountRial: budget.amountRial,
+          );
+          rows.add((kind: 'budget', id: id, body: copy.toBody()));
+        }
+        if (rows.isEmpty) return null;
+        final undo = await LocalWrites.apply(store, rows);
+        return (count: rows.length, undo: () => _mutate(undo));
+      }),
+    );
+  }
+
   Future<void> saveTemplate(ExpenseTemplate template, {String? draftId}) {
     if (ExpenseTemplate.fromBody(template.id, template.toBody()) == null) {
       return Future.error(StateError('Invalid template'));
@@ -257,6 +310,28 @@ class ExpensesController extends ChangeNotifier {
   Future<void> deleteTemplate(String id) => _delete('tpl', id);
   Future<void> restoreTemplate(String id) => restore('tpl', id);
   String newTxId() => 'tx-${store.newId()}';
+
+  /// Writes [tx] again as a new payment, dated [at] (now by default) and
+  /// with no `templateId`/`period`: it is a copy for today, not this month's
+  /// occurrence of a recurring payment.
+  Future<({String id, Future<void> Function() undo})> duplicateTx(
+    ExpenseTx tx, {
+    DateTime? at,
+  }) async {
+    final when = at ?? DateTime.now();
+    final copy = ExpenseTx(
+      id: newTxId(),
+      type: tx.type,
+      amountRial: tx.amountRial,
+      date: DateTime(when.year, when.month, when.day, when.hour, when.minute),
+      categoryId: tx.categoryId,
+      note: tx.note,
+      merchant: tx.merchant,
+      account: tx.account,
+    );
+    final undo = await saveTx(copy, draftId: 'tx:${copy.id}');
+    return (id: copy.id, undo: undo);
+  }
 
   /// Writes this month's occurrence of [template] down, once — the one-tap
   /// "log this month's" the brief asks for. It returns the new payment's id,

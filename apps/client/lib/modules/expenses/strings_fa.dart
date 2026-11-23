@@ -33,6 +33,10 @@ const _expensePersian = <String, String>{
   'previousMonth': 'ماه قبل',
   'nextMonth': 'ماه بعد',
   'goCurrent': 'بازگشت به این ماه',
+  'chooseMonth': 'انتخاب ماه',
+  'monthPickerHint': 'ماه را از همان تقویمی انتخاب کنید که می‌خوانید.',
+  'previousYear': 'سال قبل',
+  'nextYear': 'سال بعد',
 
   // نمای کلی.
   'expensesLabel': 'هزینه‌ها',
@@ -46,7 +50,8 @@ const _expensePersian = <String, String>{
   'categoryLess': '{pct}٪ کمتر از ماه قبل',
   'categorySame': 'تقریباً برابر ماه قبل',
   'basedOnEntered': 'فقط بر پایهٔ چیزی که وارد کرده‌اید — نه موجودی بانک',
-  'recentTitle': 'ثبت‌های اخیر',
+  'recordsTitle': 'ثبت‌ها',
+  'incompleteGroup': 'نیازمند اصلاح',
   'noRecords': 'هنوز چیزی ثبت نشده',
   'addFirst': 'افزودن پرداخت',
   'noResults': 'چیزی پیدا نشد',
@@ -127,6 +132,13 @@ const _expensePersian = <String, String>{
   'deletedTx': 'حذف شد',
   'deleteTxTitle': 'این ثبت حذف شود؟',
   'deleteTxBody': 'از جمع‌ها هم کنار می‌رود. مدت کوتاهی امکان بازگردانی هست.',
+  'duplicate': 'ثبت دوبارهٔ همین پرداخت برای امروز',
+  'duplicatedTx': 'برای امروز دوباره ثبت شد',
+  'rename': 'تغییر نام',
+  'renameCategoryTitle': 'نام این دسته عوض شود؟',
+  'renameCategoryHint':
+      'ثبت‌های قبلی هم با نام تازه دیده می‌شوند؛ شناسهٔ دسته حفظ می‌شود.',
+  'categoryRenamed': 'نام دسته عوض شد',
   'categoryLabel': 'دسته',
   'categoryNone': 'بدون دسته',
   'chooseCategory': 'انتخاب دسته',
@@ -143,6 +155,14 @@ const _expensePersian = <String, String>{
   'budgetNote':
       'بودجه به ماه بعد منتقل نمی‌شود و تغییرش چیزی از ثبت‌ها عوض نمی‌کند. '
       'خرج‌شده، باقی‌مانده و اضافه، حساب سادهٔ حسابی‌اند.',
+  'budgetNone': 'برای این ماه بودجه‌ای تعیین نشده است.',
+  'addBudget': 'افزودن بودجه',
+  'copyBudgets': 'کپی از ماه قبل',
+  'copiedBudgets': '{n} بودجه از ماه قبل آورده شد',
+  'copiedNone': 'بودجه‌ای برای آوردن نبود',
+  'trendTitle': 'شش ماه اخیر',
+  'trendMost': 'بیشترین خرج در {month}: {amount}',
+  'trendSemantics': '{month}: {amount}',
 
   'templatesTitle': 'قالب‌ها',
   'templatesHint': 'قالب فقط فرم ورود را پر می‌کند وقتی خودتان تأیید کنید — هیچ پرداختی در پس‌زمینه انجام نمی‌شود',
@@ -175,6 +195,7 @@ const _expensePersian = <String, String>{
   'shareFooter': 'از ثبت‌های خودم در Nex — نه موجودی بانک.',
 
   'txSemantics': '{type} {amount}، {category}، {date}',
+  'dayTotalSemantics': '{date}: {amount}',
   'barSemantics': '{category}: {amount}، {percent} درصدِ هزینه',
   'netSemantics': 'خرج‌شده {amount}، باقی‌مانده {left}',
   'monthNavSemantics': 'نمایش {month}',

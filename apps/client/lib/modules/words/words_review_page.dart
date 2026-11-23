@@ -117,13 +117,12 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
 
   Future<void> _load() async {
     try {
-      final settings = await _repository.loadSettings();
       final session = await _repository.loadSession(deckId: widget.deckId);
-      final pool = await _repository.loadCards();
+      final settings = session.settings;
       if (!mounted) return;
       setState(() {
         _queue = [...session.due, ...session.fresh];
-        _pool = pool;
+        _pool = session.pool;
         _total = _queue.length;
         _index = 0;
         _answered = 0;

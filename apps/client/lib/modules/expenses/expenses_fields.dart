@@ -47,7 +47,13 @@ class ExpensesAmountField extends StatefulWidget {
 
 class _ExpensesAmountFieldState extends State<ExpensesAmountField> {
   bool _persian = false;
-  bool _grouping = false;
+
+  /// Set while this field writes a formatted value into its own controller.
+  /// The listener cannot tell such a write from a keystroke; without this
+  /// flag, simply opening a saved payment (whose amount is regrouped on the
+  /// first frame) counted as an edit, so Back asked «discard your work?»
+  /// about a form nobody had touched.
+  bool _writing = false;
 
   @override
   void initState() {
@@ -72,6 +78,12 @@ class _ExpensesAmountFieldState extends State<ExpensesAmountField> {
       oldWidget.controller.removeListener(_onChanged);
       widget.controller.addListener(_onChanged);
     }
+    if (oldWidget.unit != widget.unit ||
+        oldWidget.allowZero != widget.allowZero) {
+      // The number is the same money; only the way it is said (and so the
+      // grouping and the allowed decimals) changed.
+      _group();
+    }
   }
 
   @override
@@ -81,10 +93,12 @@ class _ExpensesAmountFieldState extends State<ExpensesAmountField> {
   }
 
   void _onChanged() {
-    if (_grouping) return;
-    _grouping = true;
+    // Our own regrouping or unit conversion, not a person's keystroke: no
+    // validation round-trip and, above all, no «dirty» form.
+    if (_writing) return;
+    _writing = true;
     _group();
-    _grouping = false;
+    _writing = false;
     if (mounted) setState(() {});
     widget.onValid?.call(
       parseExpenseAmount(
@@ -107,10 +121,43 @@ class _ExpensesAmountFieldState extends State<ExpensesAmountField> {
       persian: _persian,
     );
     if (grouped.text == value.text) return;
+    final wasWriting = _writing;
+    _writing = true;
     widget.controller.value = TextEditingValue(
       text: grouped.text,
       selection: TextSelection.collapsed(offset: grouped.caret),
     );
+    _writing = wasWriting;
+  }
+
+  /// Says the same money in [next] — the switch re-words an amount, it never
+  /// changes it. The conversion belongs here, with the text it rewrites: a
+  /// parent that converted the controller itself was read by this field's
+  /// listener in the *old* unit, which regrouped «125000.5 tomans» into
+  /// «125,000» and turned 1,250,005 rials into 1,250,000 behind the person's
+  /// back.
+  void _switchUnit(ExpenseUnit next) {
+    if (next == widget.unit) return;
+    final amount = parseExpenseAmount(
+      widget.controller.text,
+      widget.unit,
+      allowZero: true,
+    );
+    if (amount.error != null && amount.error != ExpenseAmountError.empty) {
+      return;
+    }
+    final rials = amount.rials;
+    if (rials != null) {
+      final text = expenseAmountInput(rials, next);
+      final wasWriting = _writing;
+      _writing = true;
+      widget.controller.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+      _writing = wasWriting;
+    }
+    widget.onUnitChanged(next);
   }
 
   ExpenseAmountResult get _parsed => parseExpenseAmount(
@@ -184,7 +231,7 @@ class _ExpensesAmountFieldState extends State<ExpensesAmountField> {
           ],
           selected: {widget.unit},
           onSelectionChanged: (set) {
-            if (set.isNotEmpty) widget.onUnitChanged(set.first);
+            if (set.isNotEmpty) _switchUnit(set.first);
           },
         ),
         const SizedBox(height: NexSpacing.xs),
@@ -217,6 +264,7 @@ class ExpensesCategoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final name = selectedId == null
         ? expenseStrings(context, 'categoryNone')
         : categoryNameOf(context, selectedId!, customCategories);
@@ -238,31 +286,38 @@ class ExpensesCategoryRow extends StatelessWidget {
           vertical: NexSpacing.sm,
         ),
         decoration: BoxDecoration(
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
           borderRadius: BorderRadius.circular(NexRadius.sm),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
-            Text(
-              expenseStrings(context, 'categoryLabel'),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            Icon(
+              expenseCategoryIcon(selectedId),
+              size: 22,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    name,
-                    style: Theme.of(context).textTheme.bodyLarge,
+            const SizedBox(width: NexSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    expenseStrings(context, 'categoryLabel'),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-                Icon(DirectionalChevron.end(context), size: 20),
-              ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(name, style: theme.textTheme.bodyLarge),
+                      ),
+                      Icon(DirectionalChevron.end(context), size: 20),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -279,6 +334,27 @@ class ExpensesCategoryRow extends StatelessWidget {
     ),
   );
 }
+
+/// The mark a category carries: a shape a person learns faster than a word,
+/// and the same one in the overview, the picker and a record. A category the
+/// person added keeps a plain tag — the app does not guess what it is.
+IconData expenseCategoryIcon(String? id) => switch (id) {
+  'cat-groceries' => Icons.local_grocery_store_outlined,
+  'cat-food' => Icons.restaurant_outlined,
+  'cat-rent' => Icons.home_work_outlined,
+  'cat-home' => Icons.chair_outlined,
+  'cat-bills' => Icons.receipt_long_outlined,
+  'cat-transport' => Icons.directions_bus_outlined,
+  'cat-health' => Icons.medical_services_outlined,
+  'cat-children' => Icons.child_care_outlined,
+  'cat-education' => Icons.school_outlined,
+  'cat-clothes' => Icons.checkroom_outlined,
+  'cat-gifts' => Icons.card_giftcard_outlined,
+  'cat-fun' => Icons.celebration_outlined,
+  'cat-salary' => Icons.payments_outlined,
+  'cat-other' => Icons.more_horiz,
+  _ => Icons.sell_outlined,
+};
 
 /// The name of a category — the person's own words, or the built-in word in
 /// the language of the page.
@@ -332,6 +408,10 @@ class _CategoryPickerSheet extends StatelessWidget {
         const SizedBox(height: NexSpacing.sm),
         for (final id in ids)
           ListTile(
+            leading: Icon(
+              expenseCategoryIcon(id),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             title: Text(categoryNameOf(context, id, customCategories)),
             trailing: id == selectedId ? const Icon(Icons.check) : null,
             onTap: () => Navigator.pop(context, id),

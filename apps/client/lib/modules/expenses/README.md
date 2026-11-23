@@ -1,5 +1,90 @@
 # Expenses (`expenses`) — «هزینه‌ها»
 
+## Maintenance pass (2.8.16)
+
+A second read of the shipped module against the same brief and the same kit,
+after it had been in use.
+
+### Fixed
+
+- **Switching rial → toman multiplied the money by ten.** The unit switch
+  kept the typed digits and only changed the word, so 1,250,005 rials became
+  1,250,005 tomans (12,500,050 rials) on save. The field now converts through
+  `expenseAmountInput` — the parse/format pair it already owns — so the money
+  is preserved exactly (1,250,005 rials → 125,000.5 tomans → 1,250,005
+  rials), and a regression test pins the round trip.
+- **Opening a saved payment then going Back asked “Discard this entry?”.**
+  The amount field regrouped its own text on the first frame, which marked
+  the form dirty. A `_writing` guard keeps those programmatic writes out of
+  the dirty check; typing still guards the form.
+- **A month with budgets but no payments showed the empty state.** The
+  overview replaced the body, hiding budgets the person had just set. A month
+  is empty only when it has neither records nor budgets.
+- **A filtered list no longer shows a header total it cannot know.** With a
+  search, a category or an amount range on, the day and month headers keep
+  their label and drop the total; the hero still states the month's real
+  spending.
+
+### Added
+
+- **Records by day**, each day with its own total. All time reads as months,
+  newest first, with a total per month.
+- **A six-month trend** above the records: this month and the five before,
+  as bars scaled to the largest, with the month's own total. It uses the same
+  Jalali/Gregorian month as the screen, is hidden in All time, and is
+  decoration — not part of the share text or any total.
+- **A month picker.** Tapping the month opens the year's twelve months in the
+  person's calendar with a year stepper, plus a “This month” chip. Ends the
+  arrow-by-arrow walk to Farvardin. Each cell is announced as a button with
+  its selected state.
+- **Last month's budgets in one tap** (“Copy last month's”) with Undo, and
+  **Add a budget** inside the budget panel.
+- **Repeat a payment** (`expenses-duplicate`): today's copy of an earlier
+  payment, without its recurring link.
+- **Rename a category you added**: the id stays, so every past payment keeps
+  its category and its icon.
+- **Category icons** on rows, the category filter, budgets and the categories
+  sheet, from one `expenseCategoryIcon` table.
+- **Persian-aware search.** Arabic/Persian yeh and kaf, hamza forms, ZWNJ,
+  tatweel, harakat and Persian digits fold to one form: «یاران» finds
+  «ياران», «خانه» finds «خانۀ». Folding is module-local
+  (`foldExpenseSearch`) because `module_api.dart`'s export set is asserted
+  exactly by `module_kit_test.dart`.
+
+### Decisions
+
+- **A total belongs to what it totals.** A day header says the day's spending
+  only while nothing narrows the list; a filtered list says nothing it does
+  not know. Grouping itself stays: the headers are still where the records
+  are, only their totals leave.
+- **All time is a year of months**, not one flat list.
+- **A copy is a new payment.** Duplicating drops `templateId`/`period`, so
+  the recurring offer still owns the month and a copy cannot make it think
+  the month is done.
+- **A rename is not a new category.** `renameCategory` writes the label on
+  the `cat` record; the id, and with it every reference, stays.
+- **Copied budgets are caps, not leftovers.** “Copy last month's” copies the
+  budget amounts; what was left is not rolled forward (still an open
+  question below).
+
+### Checks
+
+See the Checks section at the end; this pass added `audit_test.dart` (20
+widget/controller tests: unit round trip, Back without a discard prompt,
+budget-only month, day grouping and totals, filtered headers, trend,
+month picker, copied budgets with Undo, duplicate, rename, folded search) on
+top of the module's own suite.
+
+### Limits
+
+- The trend is six totals as bars: no axis labels, no tap target. A real
+  report belongs to a Reports surface the kit does not define yet.
+- Copying budgets copies caps only; carrying what was left is still open.
+- Duplicating always dates the copy today; choosing its date would need a
+  second sheet.
+- A built-in category keeps its bundled word; only categories the person
+  added can be renamed.
+
 ## Audit (2.8.4 upgrade)
 
 What the module did before this pass, screen by screen, and what was below the
@@ -165,20 +250,30 @@ EN: Choose Expense or Income, type the amount (tomans or rials — the switch
 re-words the same money), and a category; today is already the date. Open “Add
 details” only when you want to change the day or add a note. The overview is
 what you entered this month, not a bank balance; each category shows its
-change against last month. Set a monthly budget for a category or for
-everything — over is information, not a warning. A template with a day (rent,
-the internet) is offered on that day: one tap writes that month, and Undo takes
-it back. Find a payment with the search field and the amount range, share the
-month as text, and hide the amounts with the eye when someone is looking.
+change against last month, and the six-month bars put this month beside the
+five before it. Tap the month for the year's grid, or “This month” to come
+back. Records are grouped by day with each day's total; All time reads month
+by month. Set a monthly budget for a category or for everything — “Copy last
+month's” brings the caps over, Undo takes them back, and over is information,
+not a warning. A template with a day (rent, the internet) is offered on that
+day: one tap writes that month, and Undo takes it back. Repeat a payment from
+its row, rename a category you added, find a payment with the search field
+and the amount range (Persian spelling is forgiven), share the month as text,
+and hide the amounts with the eye when someone is looking.
 
 FA: هزینه یا درآمد را انتخاب کنید، مبلغ را بنویسید (تومان یا ریال؛ تغییر واحد
 همان پول را با واژه‌ی دیگر می‌گوید) و دسته را بزنید؛ تاریخ امروز است. «جزئیات
 بیشتر» را فقط برای تغییر روز یا یادداشت باز کنید. نمای ماه همان چیزی است که
-وارد کرده‌اید، نه موجودی بانک؛ هر دسته تغییرش را نسبت به ماه قبل نشان می‌دهد.
-بودجه‌ی ماهانه برای یک دسته یا همه بگذارید — بیشتر شدن، اطلاع است نه هشدار.
-قالبی که روز دارد (اجاره، اینترنت) در همان روز پیشنهاد می‌شود: یک ضربه همان ماه
-را می‌نویسد و بازگردانی برمی‌گرداند. پرداخت را با جست‌وجو و محدوده‌ی مبلغ پیدا
-کنید، ماه را به‌صورت متن همرسانی کنید و با چشم، مبلغ‌ها را پنهان کنید.
+وارد کرده‌اید، نه موجودی بانک؛ هر دسته تغییرش را نسبت به ماه قبل نشان می‌دهد و
+نمودار شش‌ماهه این ماه را کنار پنج ماه قبل می‌گذارد. ماه را بزنید تا جدول سال
+باز شود، یا «این ماه» را بزنید تا برگردید. پرداخت‌ها به تفکیک روز با جمع هر روز
+می‌آیند و «همهٔ زمان‌ها» ماه به ماه خوانده می‌شود. بودجه‌ی ماهانه برای یک دسته یا
+همه بگذارید — «کپی از ماه قبل» سقف‌ها را می‌آورد و بازگردانی برمی‌گرداند؛ بیشتر
+شدن، اطلاع است نه هشدار. قالبی که روز دارد (اجاره، اینترنت) در همان روز پیشنهاد
+می‌شود: یک ضربه همان ماه را می‌نویسد و بازگردانی برمی‌گرداند. از خود ردیف،
+پرداخت را تکرار کنید، نام دسته‌ای که ساخته‌اید را عوض کنید، پرداخت را با
+جست‌وجو و محدوده‌ی مبلغ پیدا کنید (املای فارسی بخشیده می‌شود)، ماه را
+به‌صورت متن همرسانی کنید و با چشم، مبلغ‌ها را پنهان کنید.
 
 ## Changelog (2.8.4)
 
@@ -216,10 +311,31 @@ FA: «هزینه‌ها» حالا دفتر یک خانه‌ی ایرانی اس
 
 ## Checks
 
-Linux, Flutter 3.47.9 (stable, Dart 3.13.7), module review pass on base
-`e3edff3f`, 2026-11-18. The whole suite also reported one unrelated
-`photo_capture_policy_test.dart` timeout while the runner was suspended; it
-passes alone (`flutter test test/photo_capture_policy_test.dart` → 4 passed).
+Linux, Flutter 3.47.9 (stable, Dart 3.13.7), maintenance pass on base
+`cac07ab3` (v2.8.16), 2026-11-23.
+
+~~~text
+dart format lib/modules/expenses test/modules/expenses   # 0 changed
+flutter analyze --no-pub --fatal-infos lib/modules/expenses  # No issues found
+flutter test --no-pub test/modules/expenses              # 112 passed
+flutter test --no-pub test/modules/expenses test/module_kit_test.dart \
+  test/module_shared_rules_test.dart test/module_glance_test.dart \
+  test/ui_consistency_test.dart test/whats_new_test.dart \
+  test/version_test.dart test/update_sheet_test.dart     # 260 passed
+~~~
+
+The maintenance pass added `audit_test.dart` (20 tests): the unit round trip
+that must not change the money; opening a saved record and going Back without
+a discard prompt while typing still guards; a month with budgets and no
+payments; day grouping and per-day totals; a filtered list dropping the
+header total; the six-month trend; the month picker; copied budgets with
+Undo; duplicate dropping the recurring link; rename keeping the id; folded
+search for Persian yeh/kaf and ZWNJ.
+
+The earlier review, Linux, Flutter 3.47.9, base `e3edff3f`, 2026-11-18. The
+whole suite also reported one unrelated `photo_capture_policy_test.dart`
+timeout while the runner was suspended; it passes alone
+(`flutter test test/photo_capture_policy_test.dart` → 4 passed).
 
 ~~~text
 dart format lib/modules/expenses test/modules/expenses   # 0 changed
@@ -299,8 +415,9 @@ that function unchanged; nothing in the module needs to move for it.
 - When a recurring payment’s day is set in one calendar and the app switches
   to the other, is keeping the original calendar (as now) the right answer, or
   should “the 5th” always mean the 5th of the month currently shown?
-- Should budgets be per month only (as now, no rollover), or offer a “carry
-  what is left” choice?
+- Should budgets be per month only (as now, no rollover of what is left), or
+  should the left part of a budget be carried into the next month — copying
+  the caps is built, but moving money is not?
 - Is one overall budget plus category budgets the right shape, or should a
   category budget be capped by the overall one in the arithmetic?
 - Should a legacy payment in a foreign currency be offered a one-tap “convert

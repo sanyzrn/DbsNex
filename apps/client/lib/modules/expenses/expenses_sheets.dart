@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'controller.dart';
+import 'expenses_fields.dart' show expenseCategoryIcon;
 import 'expenses_undo.dart';
 import 'models.dart';
 import 'strings.dart';
@@ -92,6 +93,10 @@ class _CategoriesSheetState extends State<_CategoriesSheet> {
         for (final id in defaultExpenseCategoryIds)
           ListTile(
             dense: true,
+            leading: Icon(
+              expenseCategoryIcon(id),
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
             title: Text(s(context, id)),
             trailing: Icon(
               Icons.lock_outline,
@@ -104,11 +109,28 @@ class _CategoriesSheetState extends State<_CategoriesSheet> {
           for (final category in custom)
             ListTile(
               dense: true,
+              leading: Icon(
+                expenseCategoryIcon(category.id),
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               title: Text(category.label),
-              trailing: IconButton(
-                tooltip: s(context, 'delete'),
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => unawaited(_deleteCategory(category)),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // A name typed once should be correctable: renaming keeps
+                  // the id, so every record written with it follows.
+                  IconButton(
+                    key: ValueKey('expenses-rename-${category.id}'),
+                    tooltip: s(context, 'rename'),
+                    icon: const Icon(Icons.edit_outlined),
+                    onPressed: () => unawaited(_renameCategory(category)),
+                  ),
+                  IconButton(
+                    tooltip: s(context, 'delete'),
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => unawaited(_deleteCategory(category)),
+                  ),
+                ],
               ),
             ),
         ],
@@ -154,6 +176,26 @@ class _CategoriesSheetState extends State<_CategoriesSheet> {
     );
   }
 
+  Future<void> _renameCategory(ExpenseCategory category) async {
+    final name = await nexShowDialog<String>(
+      context: context,
+      builder: (dialogContext) =>
+          _RenameCategoryDialog(initial: category.label),
+    );
+    if (name == null || !mounted) return;
+    final label = name.trim();
+    if (label.isEmpty || label == category.label) return;
+    try {
+      await widget.controller.renameCategory(category, label);
+      if (mounted) {
+        NexBannerHost.of(context)
+            ?.show(message: expenseStrings(context, 'categoryRenamed'));
+      }
+    } catch (_) {
+      if (mounted) expenseWriteFailure(context);
+    }
+  }
+
   Future<void> _deleteCategory(ExpenseCategory category) async {
     final answer = await nexShowDialog<String>(
       context: context,
@@ -196,5 +238,78 @@ class _CategoriesSheetState extends State<_CategoriesSheet> {
     } catch (_) {
       if (mounted) expenseWriteFailure(context);
     }
+  }
+}
+
+/// Renames one of the person's own categories. The id — and so every record
+/// written with it — stays; only the word changes.
+class _RenameCategoryDialog extends StatefulWidget {
+  const _RenameCategoryDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_RenameCategoryDialog> createState() => _RenameCategoryDialogState();
+}
+
+class _RenameCategoryDialogState extends State<_RenameCategoryDialog> {
+  late final TextEditingController _name = TextEditingController(
+    text: widget.initial,
+  );
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final label = _name.text.trim();
+    if (label.isEmpty) return;
+    Navigator.pop(context, label);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = expenseStrings;
+    final theme = Theme.of(context);
+    return NexAlertDialog(
+      title: Text(s(context, 'renameCategoryTitle')),
+      content: NexDialogBody(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              s(context, 'renameCategoryHint'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: NexSpacing.sm),
+            NexAutoDirection(
+              controller: _name,
+              builder: (context, direction) => TextField(
+                key: const ValueKey('expenses-rename-category'),
+                controller: _name,
+                autofocus: true,
+                textDirection: direction,
+                decoration: InputDecoration(
+                  labelText: s(context, 'newCategory'),
+                ),
+                onSubmitted: (_) => _submit(),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(s(context, 'cancel')),
+        ),
+        TextButton(onPressed: _submit, child: Text(s(context, 'save'))),
+      ],
+    );
   }
 }
