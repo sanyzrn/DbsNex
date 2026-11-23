@@ -225,6 +225,47 @@ Iterable<ExpenseTx> txsInMonth(
 bool _inMonth(DateTime day, NexModuleMonth month) =>
     !day.isBefore(month.first) && day.isBefore(month.shift(1).first);
 
+/// Text folded for search, the way Nex folds a note: the letters an Iranian
+/// keyboard writes two ways become one (Arabic «ي»/«ك» and Persian «ی»/«ک»),
+/// the hamza forms of alef meet plain alef, te marbuta meets he, the zero
+/// width non-joiner and tatweel disappear, harakat are dropped, and Persian
+/// and Arabic digits become Latin. «نانوائی», «نانوایی», «نانوایی» and
+/// «نانوايي» are then the same word, and «۱۴۰۴» finds «1404».
+///
+/// The app-wide fold (`nexSearchFold`) lives behind the module API's
+/// boundary; this module keeps its own copy, as `money_input.dart` keeps
+/// its grouping, until the kit provides one.
+String foldExpenseSearch(String text) {
+  final buffer = StringBuffer();
+  for (final rune in text.runes) {
+    switch (rune) {
+      case 0x064A || 0x0649 || 0x06CC: // ي ى ی
+        buffer.write('ی');
+      case 0x0643 || 0x06A9: // ك ک
+        buffer.write('ک');
+      case 0x0629: // ة
+        buffer.write('ه');
+      case 0x0623 || 0x0625 || 0x0622 || 0x0627: // أ إ آ ا
+        buffer.write('ا');
+      case 0x0624: // ؤ
+        buffer.write('و');
+      case 0x0626: // ئ
+        buffer.write('ی');
+      case 0x200C || 0x200D || 0x200E || 0x200F || 0x0640:
+        break; // ZWNJ, ZWJ, marks, tatweel: layout, not a letter
+      case >= 0x064B && <= 0x065F || 0x0670:
+        break; // harakat
+      case >= 0x06F0 && <= 0x06F9:
+        buffer.writeCharCode(rune - 0x06F0 + 0x30);
+      case >= 0x0660 && <= 0x0669:
+        buffer.writeCharCode(rune - 0x0660 + 0x30);
+      default:
+        buffer.writeCharCode(rune);
+    }
+  }
+  return buffer.toString().toLowerCase();
+}
+
 /// Text search across note, merchant, account and the category's own name,
 /// plus an optional category and amount range — the three ways the brief
 /// names for finding a payment.
@@ -236,7 +277,7 @@ Iterable<ExpenseTx> filterTxs(
   int? maxRial,
   required String Function(String categoryId) categoryName,
 }) {
-  final q = query.trim().toLowerCase();
+  final q = foldExpenseSearch(query.trim());
   return txs.where((tx) {
     if (categoryId != null && (tx.categoryId ?? 'cat-other') != categoryId) {
       return false;
@@ -245,11 +286,145 @@ Iterable<ExpenseTx> filterTxs(
     if (maxRial != null && tx.amountRial > maxRial) return false;
     if (q.isEmpty) return true;
     final category = tx.categoryId == null ? '' : categoryName(tx.categoryId!);
-    return tx.note?.toLowerCase().contains(q) == true ||
-        tx.merchant?.toLowerCase().contains(q) == true ||
-        tx.account?.toLowerCase().contains(q) == true ||
-        category.toLowerCase().contains(q) == true;
+    return foldExpenseSearch(tx.note ?? '').contains(q) ||
+        foldExpenseSearch(tx.merchant ?? '').contains(q) ||
+        foldExpenseSearch(tx.account ?? '').contains(q) ||
+        foldExpenseSearch(category).contains(q);
   });
+}
+
+/// One day of records, newest day first: the day's own spending and income,
+/// and its records newest first. `day` is null for a record whose date could
+/// not be read, which is kept visible in its own group instead of being
+/// pushed into a real day's total.
+class ExpenseDayGroup {
+  const ExpenseDayGroup({
+    required this.day,
+    required this.txs,
+    required this.totals,
+  });
+
+  final DateTime? day;
+  final List<ExpenseTx> txs;
+  final ExpenseTotals totals;
+}
+
+/// [txs] grouped by the civil day the person reads, newest first, one group
+/// per day, with the unreadable ones last.
+List<ExpenseDayGroup> expenseDayGroups(Iterable<ExpenseTx> txs) {
+  final byDay = <String, List<ExpenseTx>>{};
+  final undated = <ExpenseTx>[];
+  for (final tx in txs) {
+    if (tx.date.year <= 1970) {
+      undated.add(tx);
+      continue;
+    }
+    byDay.putIfAbsent(isoDay(tx.date), () => []).add(tx);
+  }
+  final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
+  return [
+    for (final key in days)
+      ExpenseDayGroup(
+        day: DateTime(
+          int.parse(key.substring(0, 4)),
+          int.parse(key.substring(5, 7)),
+          int.parse(key.substring(8, 10)),
+        ),
+        txs: sortedByDate(byDay[key]!),
+        totals: expenseTotals(byDay[key]!),
+      ),
+    if (undated.isNotEmpty)
+      ExpenseDayGroup(
+        day: null,
+        txs: sortedByDate(undated),
+        totals: expenseTotals(undated),
+      ),
+  ];
+}
+
+/// A month of the all-time view: the month a person reads, what it cost and
+/// what came in, and its days. `month` is null for the records whose date
+/// could not be read.
+class ExpenseMonthSection {
+  const ExpenseMonthSection({
+    required this.month,
+    required this.totals,
+    required this.days,
+  });
+
+  final NexModuleMonth? month;
+  final ExpenseTotals totals;
+  final List<ExpenseDayGroup> days;
+}
+
+/// [txs] grouped by the month a person reads, newest month first, for the
+/// all-time view — a year of records is then a handful of months, not one
+/// endless list.
+List<ExpenseMonthSection> expenseMonthSections(
+  Iterable<ExpenseTx> txs, {
+  required bool solar,
+}) {
+  final byMonth = <String, List<ExpenseTx>>{};
+  final months = <String, NexModuleMonth>{};
+  final undated = <ExpenseTx>[];
+  for (final tx in txs) {
+    if (tx.date.year <= 1970) {
+      undated.add(tx);
+      continue;
+    }
+    final month = NexModuleMonth.of(tx.date, solar: solar);
+    final key = monthStartIso(month);
+    byMonth.putIfAbsent(key, () => []).add(tx);
+    months[key] = month;
+  }
+  final keys = byMonth.keys.toList()..sort((a, b) => b.compareTo(a));
+  return [
+    for (final key in keys)
+      ExpenseMonthSection(
+        month: months[key],
+        totals: expenseTotals(byMonth[key]!),
+        days: expenseDayGroups(byMonth[key]!),
+      ),
+    if (undated.isNotEmpty)
+      ExpenseMonthSection(
+        month: null,
+        totals: expenseTotals(undated),
+        days: expenseDayGroups(undated),
+      ),
+  ];
+}
+
+/// One month of the trend: the month and what it cost.
+class ExpenseTrendPoint {
+  const ExpenseTrendPoint({required this.month, required this.spent});
+
+  final NexModuleMonth month;
+  final BigInt spent;
+}
+
+/// The last [count] months ending at [month], oldest first, with each
+/// month's spending — the shape of the year, in one row. A month with
+/// nothing entered is a real zero, not a gap.
+List<ExpenseTrendPoint> expenseTrend(
+  Iterable<ExpenseTx> txs, {
+  required NexModuleMonth month,
+  required bool solar,
+  int count = 6,
+}) {
+  final buckets = <String, BigInt>{};
+  for (final tx in txs) {
+    if (!validExpenseTx(tx) || tx.isIncome || tx.date.year <= 1970) continue;
+    final key = monthStartIso(NexModuleMonth.of(tx.date, solar: solar));
+    buckets[key] = (buckets[key] ?? BigInt.zero) + BigInt.from(tx.amountRial);
+  }
+  final span = count < 2 ? 2 : count;
+  return [
+    for (var i = span - 1; i >= 0; i--)
+      ExpenseTrendPoint(
+        month: month.shift(-i),
+        spent: buckets[monthStartIso(month.shift(-i))] ?? BigInt.zero,
+      ),
+  ];
 }
 
 /// Newest first by date; ids break ties so the order is stable.

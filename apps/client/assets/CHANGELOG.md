@@ -4,6 +4,14 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Expenses, read by day.** Payments are grouped by day with each day’s spending, and All time reads month by month with a total for each. A six-month trend sits above the records.
+- **Any month in a tap.** Tap the month for a year grid and “This month” instead of walking back arrow by arrow.
+- **Budgets from last month.** Copy last month’s budgets in one tap, with Undo, or add one from the budget panel.
+- **Repeat a payment, rename a category.** Log today’s copy of an earlier payment without touching its recurring template, and rename a category you added without orphaning its payments.
+- **The unit switch keeps the money.** Switching between toman and rial now converts the amount instead of relabelling the same digits.
+- **Persian search that forgives spelling.** «یاران» finds «ياران» and «خانه» finds «خانۀ».
+- **Quieter screens.** Opening a saved payment and going Back no longer asks to discard it, and a month with budgets but no payments shows them.
+
 ## v2.8.16
 
 - **Smoother saves on Home.** The list and grid stay steadier when you add a note, edit it, or save a photo.

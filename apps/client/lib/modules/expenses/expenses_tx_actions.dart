@@ -105,6 +105,53 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
     }
   }
 
+  /// Writes the payment in the form again, today — «same again» for the
+  /// taxi, the bread, the coffee. A new record with its own id, no link to a
+  /// recurring template: it is not this month's occurrence of anything.
+  Future<void> _duplicate() async {
+    if (widget.existing == null || _saving) return;
+    final result = _parsed;
+    if (result.error != null || result.rials == null) {
+      _paint(() => _showErrors = true);
+      return;
+    }
+    _paint(() => _saving = true);
+    final messenger = NexBannerHost.of(context);
+    final message = expenseStrings(context, 'duplicatedTx');
+    final undoLabel = expenseStrings(context, 'undo');
+    final undoFailure = expenseStrings(context, 'undoFailed');
+    final now = DateTime.now();
+    try {
+      if (!await _draft.finish()) throw StateError('Draft flush failed');
+      final copy = ExpenseTx(
+        id: widget.controller.newTxId(),
+        type: _type,
+        amountRial: result.rials!,
+        date: DateTime(now.year, now.month, now.day, now.hour, now.minute),
+        categoryId: _categoryId,
+        note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+        merchant: _merchant.text.trim().isEmpty ? null : _merchant.text.trim(),
+        account: _account.text.trim().isEmpty ? null : _account.text.trim(),
+      );
+      await widget.controller.saveTx(copy);
+      if (!mounted) return;
+      Navigator.pop(context);
+      ExpensesUndo.offer(
+        messenger,
+        message: message,
+        undoLabel: undoLabel,
+        failureMessage: undoFailure,
+        restore: () => widget.controller.deleteTx(copy.id),
+      );
+    } catch (_) {
+      _draft.resume();
+      _draft.writeFailed = true;
+      if (mounted) expenseWriteFailure(context);
+    } finally {
+      if (mounted) _paint(() => _saving = false);
+    }
+  }
+
   Future<void> _delete() async {
     final existing = widget.existing;
     if (existing == null || _saving) return;

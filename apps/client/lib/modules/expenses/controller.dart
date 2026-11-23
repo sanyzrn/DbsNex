@@ -201,6 +201,15 @@ class ExpensesController extends ChangeNotifier {
           'label': label.trim(),
           'schema': 1,
         });
+
+  /// Renames one of the person's own categories, keeping its id — and every
+  /// record written with it. The built-in ones are words from the module's
+  /// strings and are not records to rename.
+  Future<void> renameCategory(ExpenseCategory category, String label) =>
+      label.trim().isEmpty
+      ? Future.value()
+      : _put('cat', category.id, {'label': label.trim(), 'schema': 1});
+
   Future<void> deleteCategory(ExpenseCategory category) =>
       _delete('cat', category.id);
   Future<void> restoreCategory(ExpenseCategory category) =>
@@ -242,6 +251,55 @@ class ExpensesController extends ChangeNotifier {
     return null;
   }
 
+  /// The budgets set for [month]'s first civil day.
+  List<ExpenseBudget> budgetsForStart(String start) => [
+    for (final b in budgets)
+      if (b.start == start) b,
+  ];
+
+  /// Carries every budget of [from] into [to], once, and returns the ids it
+  /// created — the answer to «a new month starts and every limit has to be
+  /// typed again». A category this month already budgets is left alone, so
+  /// the carry-over never overwrites a choice the person made here.
+  Future<List<String>> copyBudgetsFrom({
+    required String from,
+    required String to,
+  }) async {
+    final source = budgetsForStart(from);
+    if (source.isEmpty || from == to) return const [];
+    final created = <String>[];
+    await _mutate(
+      () => LocalWrites.serial(store, () async {
+        final rows = <({String kind, String id, Map<String, Object?>? body})>[];
+        for (final budget in source) {
+          final id = budgetId(to, budget.categoryId);
+          if (await store.get('budget', id) != null) continue;
+          final body = ExpenseBudget(
+            start: to,
+            categoryId: budget.categoryId,
+            amountRial: budget.amountRial,
+          ).toBody();
+          rows.add((kind: 'budget', id: id, body: body));
+          created.add(id);
+        }
+        if (rows.isNotEmpty) await LocalWrites.apply(store, rows);
+      }),
+    );
+    return created;
+  }
+
+  /// Removes the budgets [copyBudgetsFrom] created, for its Undo.
+  Future<void> clearBudgets(List<String> ids) => ids.isEmpty
+      ? Future.value()
+      : _mutate(
+          () => LocalWrites.serial(
+            store,
+            () => LocalWrites.apply(store, [
+              for (final id in ids) (kind: 'budget', id: id, body: null),
+            ]),
+          ),
+        );
+
   Future<void> saveTemplate(ExpenseTemplate template, {String? draftId}) {
     if (ExpenseTemplate.fromBody(template.id, template.toBody()) == null) {
       return Future.error(StateError('Invalid template'));
@@ -257,6 +315,25 @@ class ExpensesController extends ChangeNotifier {
   Future<void> deleteTemplate(String id) => _delete('tpl', id);
   Future<void> restoreTemplate(String id) => restore('tpl', id);
   String newTxId() => 'tx-${store.newId()}';
+
+  /// Writes [tx] again as a new payment, dated [at] (now by default) and
+  /// with no `templateId`/`period`: it is a copy for today, not this month's
+  /// occurrence of a recurring payment. Returns the new record's id.
+  Future<String> duplicateTx(ExpenseTx tx, {DateTime? at}) async {
+    final when = at ?? DateTime.now();
+    final copy = ExpenseTx(
+      id: newTxId(),
+      type: tx.type,
+      amountRial: tx.amountRial,
+      date: DateTime(when.year, when.month, when.day, when.hour, when.minute),
+      categoryId: tx.categoryId,
+      note: tx.note,
+      merchant: tx.merchant,
+      account: tx.account,
+    );
+    await saveTx(copy);
+    return copy.id;
+  }
 
   /// Writes this month's occurrence of [template] down, once — the one-tap
   /// "log this month's" the brief asks for. It returns the new payment's id,
