@@ -9,9 +9,12 @@ import 'package:nex_client/modules/module_api.dart';
 import 'words_models.dart';
 import 'words_strings.dart';
 
-/// The deck's colours: ink to violet.
+/// The deck's colours: ink to violet. The violet end is deep enough that
+/// the small white lines on it (the caption, the ladder's labels, the
+/// hint at the foot of a card) keep their contrast; #8B5CF6 was bright
+/// enough to fail it.
 const wordsDeckFrom = Color(0xFF4338CA);
-const wordsDeckTo = Color(0xFF8B5CF6);
+const wordsDeckTo = Color(0xFF7C3AED);
 
 const wordsDeckGradient = LinearGradient(
   begin: AlignmentDirectional.topStart,

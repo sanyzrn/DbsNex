@@ -60,6 +60,15 @@ mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
         _cards = cards;
         _settings = settings;
         _decks = decks;
+        // A deck removed here or on another phone takes its filter with
+        // it: a filter naming a deck that no longer exists would leave the
+        // list silently empty with no chip lit to explain why.
+        final deck = _deckFilter;
+        if (deck != null &&
+            deck.isNotEmpty &&
+            !decks.any((candidate) => candidate.id == deck)) {
+          _deckFilter = null;
+        }
         _loading = false;
         _failed = false;
       });
@@ -100,9 +109,20 @@ mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
     );
   }
 
+  /// The cards the page is about: the whole collection, or the deck chosen
+  /// in the chips. The review starts from the same set, so the number on
+  /// the hero and the session that opens agree.
+  List<WordCard> get _scopedCards {
+    final deck = _deckFilter;
+    if (deck == null) return _cards;
+    return [
+      for (final card in _cards)
+        if (wordsCardDeck(_decks, card) == deck) card,
+    ];
+  }
+
   List<WordCard> get _visible {
-    final query = _query.toLowerCase();
-    Iterable<WordCard> cards = _cards;
+    Iterable<WordCard> cards = _scopedCards;
     if (_filter == _StatusFilter.newWords) {
       cards = cards.where((card) => card.isNew);
     } else if (_filter == _StatusFilter.due) {
@@ -119,27 +139,16 @@ mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
     if (_tagFilter != null) {
       cards = cards.where((card) => card.tag == _tagFilter);
     }
-    final deckFilter = _deckFilter;
-    if (deckFilter != null) {
-      cards = cards.where((card) => wordsCardDeck(_decks, card) == deckFilter);
-    }
-    if (query.isNotEmpty) {
-      cards = cards.where((card) {
-        final haystack = [
-          card.headword,
-          card.language,
-          card.meaning,
-          card.example,
-          card.note,
-          card.tag,
-        ].join('\n');
-        return haystack.toLowerCase().contains(query);
-      });
+    // The same forgiving reading a typed answer gets: ی/ك, harakat, the
+    // half-space and Persian digits do not decide whether a word is found.
+    if (_query.isNotEmpty) {
+      cards = cards.where((card) => wordsMatchesQuery(card, _query));
     }
     return cards.toList();
   }
 
-  int get _dueCount => _cards.where((card) => card.isDueOn(_todayIso)).length;
+  int get _dueCount =>
+      _scopedCards.where((card) => card.isDueOn(_todayIso)).length;
 
   /// The small daily goal in answers, and how many were given today. A
   /// missed day is not counted anywhere — there is no streak.
@@ -161,13 +170,26 @@ mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
     ),
   );
 
-  /// New cards the day may still introduce, with the cap applied.
+  /// New cards the day may still introduce, with the cap applied — and, in
+  /// a deck, the cap counted across the whole collection so reviewing one
+  /// deck cannot double it.
   int get _newToday => buildSession(
-    cards: _cards,
+    cards: _scopedCards,
     todayIso: _todayIso,
     newPerDay: _settings.newPerDay,
     sessionLimit: 0,
+    introducedToday: wordsIntroducedOn(_cards, _todayIso),
   ).fresh.length;
+
+  /// What the review is called in the bar: the deck the chips narrowed to,
+  /// or nothing when the session takes every word. The words outside every
+  /// deck are a scope of their own, so they are named too.
+  String? _deckReviewName(BuildContext context) {
+    final deck = _deckFilter;
+    if (deck == null) return null;
+    if (deck.isEmpty) return wordsStrings(context, 'deckNone');
+    return wordsDeckName(_decks, deck);
+  }
 }
 
 /// [cards] as pasteable lines: `word<TAB>meaning`. A Tab or a line break

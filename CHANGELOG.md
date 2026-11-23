@@ -4,6 +4,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.17
+
+- **Word by Word.** Review a single deck, set a daily goal, and share words as text. Nex remembers how you practise and brings skipped cards back later in the session. Persian search handles alternate spellings and half-spaces.
+- **Expenses by day and month.** See daily and monthly totals, view six months of spending, and jump to any month from the year picker.
+- **Easier budgets and payments.** Copy last month's budgets with Undo, repeat a payment, and rename your own categories. Switching between tomans and rials preserves the amount.
+
 ## v2.8.16
 
 - **Smoother saves on Home.** The list and grid stay steadier when you add a note, edit it, or save a photo.

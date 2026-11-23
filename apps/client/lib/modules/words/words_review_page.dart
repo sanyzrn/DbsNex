@@ -1,12 +1,19 @@
-/// The review session: due cards first, then the day's new ones. A card
-/// can be asked as a flashcard, typed, or answered from choices drawn from
-/// the same deck — and when the queue is empty, a calm done state that
-/// neither praises nor nags.
+/// The review session: due cards first, then the day's new ones — all of
+/// them, or only the deck the home page was narrowed to. A card can be
+/// asked as a flashcard, typed, or answered from choices drawn from the
+/// same deck, and when the queue is empty, a calm done state that neither
+/// praises nor nags.
 ///
 /// An «Again» card leaves the session when it is answered (it comes back
-/// tomorrow), so nothing loops forever inside one sitting. Every answer
-/// is saved before the next card appears, and the buttons stay still
-/// while the save is in flight — a double tap cannot answer twice.
+/// tomorrow), so nothing loops forever inside one sitting. A card skipped
+/// once waits at the end of the sitting — «for now» means later, not never
+/// — and a second skip lets it go. Every answer is saved before the next
+/// card appears, and the buttons stay still while the save is in flight, so
+/// a double tap cannot answer twice.
+///
+/// The way the cards are asked and the direction they are asked in are kept
+/// in the module's settings: a person who learns by typing is not sent back
+/// to flashcards every morning.
 library;
 
 import 'dart:async';
@@ -28,9 +35,22 @@ part 'words_review_practice.dart';
 part 'words_review_done.dart';
 
 class WordsReviewPage extends StatefulWidget {
-  const WordsReviewPage({super.key, required this.store});
+  const WordsReviewPage({
+    super.key,
+    required this.store,
+    this.deckId,
+    this.deckName,
+  });
 
   final NexModuleStore store;
+
+  /// The deck the session draws from, by id — the empty string means the
+  /// words outside every deck. Null reviews the whole collection.
+  final String? deckId;
+
+  /// The deck's name for the bar and the done state; null when the session
+  /// is not narrowed.
+  final String? deckName;
 
   @override
   State<WordsReviewPage> createState() => _WordsReviewPageState();
@@ -38,11 +58,30 @@ class WordsReviewPage extends StatefulWidget {
 
 class _WordsReviewPageState extends State<WordsReviewPage> {
   late final WordsRepository _repository;
+
+  /// The cards still to come; the first one is on screen.
   List<WordCard> _queue = const [];
 
   /// Every card, for drawing wrong choices from the right deck.
   List<WordCard> _pool = const [];
+
+  /// How many cards have left the queue: answered, or let go after a second
+  /// skip. The bar and «N of M» count from it.
   int _index = 0;
+
+  /// How many cards the sitting began with; a skipped card that comes back
+  /// does not inflate it.
+  int _total = 0;
+
+  int _answered = 0;
+
+  /// Cards let go after being skipped twice — said at the end rather than
+  /// hidden.
+  int _leftOut = 0;
+
+  /// Cards already given their one trip to the back of the queue.
+  final _skippedOnce = <String>{};
+
   bool _revealed = false;
 
   /// Meaning first: the card asks for the word. A card with no meaning to
@@ -50,7 +89,6 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
   bool _reverse = false;
   bool _answering = false;
   bool _loading = true;
-  int _answered = 0;
   bool _failed = false;
   String? _answerId;
 
@@ -79,12 +117,20 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
 
   Future<void> _load() async {
     try {
-      final session = await _repository.loadSession();
-      final pool = await _repository.loadCards();
+      final session = await _repository.loadSession(deckId: widget.deckId);
+      final settings = session.settings;
       if (!mounted) return;
       setState(() {
         _queue = [...session.due, ...session.fresh];
-        _pool = pool;
+        _pool = session.pool;
+        _total = _queue.length;
+        _index = 0;
+        _answered = 0;
+        _leftOut = 0;
+        _reverse = settings.reverse;
+        _exercise =
+            WordsExercise.values.asNameMap()[settings.exercise] ??
+            WordsExercise.flashcard;
         _loading = false;
         _failed = false;
       });
@@ -98,9 +144,7 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
     }
   }
 
-  WordCard? get _current => _index < _queue.length ? _queue[_index] : null;
-
-  int get _total => _queue.length;
+  WordCard? get _current => _queue.isEmpty ? null : _queue.first;
 
   /// Turning the flashcard over. (A `part` cannot call `setState` on the
   /// state it extends, so the one place that does lives here.)
@@ -142,12 +186,29 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
     });
   }
 
+  /// Keeping the person's way of practising: the mode and the direction
+  /// outlive the session, and a failed save is not worth interrupting a
+  /// review for.
+  void _remember({String? exercise, bool? reverse}) => unawaited(
+    _repository.updateSettings(exercise: exercise, reverse: reverse),
+  );
+
   void _setExercise(WordsExercise exercise) {
-    if (_answering) return;
+    if (_answering || exercise == _exercise) return;
     setState(() {
       _exercise = exercise;
       _resetAnswer();
     });
+    _remember(exercise: exercise.name);
+  }
+
+  void _toggleReverse() {
+    if (_answering) return;
+    setState(() {
+      _reverse = !_reverse;
+      _resetAnswer();
+    });
+    _remember(reverse: _reverse);
   }
 
   Future<void> _answer(WordsGrade grade) async {
@@ -172,14 +233,14 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
       if (result.status == WordsAnswerStatus.saved) {
         _answered++;
         _index++;
-        _resetAnswer();
+        _queue = _queue.sublist(1);
       } else if (result.card != null) {
-        _queue[_index] = result.card!;
-        _resetAnswer();
+        _queue = [result.card!, ..._queue.sublist(1)];
       } else {
         _index++;
-        _resetAnswer();
+        _queue = _queue.sublist(1);
       }
+      _resetAnswer();
     });
     if (result.status != WordsAnswerStatus.saved) {
       NexBannerHost.of(context)
@@ -187,11 +248,22 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
     }
   }
 
+  /// «For now» means later: the first skip puts the card back at the end of
+  /// this sitting, and only a second skip lets it go — counted in the done
+  /// state instead of vanishing.
   void _skip() {
-    if (_answering || _current == null) return;
+    final card = _current;
+    if (_answering || card == null) return;
     setState(() {
-      _index++;
       _resetAnswer();
+      final rest = _queue.sublist(1);
+      if (rest.isNotEmpty && _skippedOnce.add(card.id)) {
+        _queue = [...rest, card];
+      } else {
+        _queue = rest;
+        _index++;
+        _leftOut++;
+      }
     });
   }
 
@@ -213,9 +285,10 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
         _resetAnswer();
         if (body == null || body['paused'] == true) {
           _index++;
+          _queue = _queue.sublist(1);
         } else {
           final changed = WordCard.fromRecord(card.id, body);
-          _queue[_index] = changed;
+          _queue = [changed, ..._queue.sublist(1)];
           _pool = [
             for (final other in _pool)
               if (other.id == card.id) changed else other,
@@ -236,11 +309,18 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
   @override
   Widget build(BuildContext context) {
     final strings = wordsStrings;
+    final deckName = widget.deckName;
     return PopScope(
       canPop: !_answering,
       child: Scaffold(
         appBar: NexAppBar(
-          title: Text(strings(context, 'reviewTitle')),
+          title: Text(
+            deckName == null
+                ? strings(context, 'reviewTitle')
+                : strings(context, 'reviewDeck', {'name': deckName}),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           actions: [
             IconButton(
               key: const ValueKey('words-review-reverse'),
@@ -249,12 +329,7 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
                 _reverse ? 'reverseOnTip' : 'reverseTip',
               ),
               isSelected: _reverse,
-              onPressed: _answering
-                  ? null
-                  : () => setState(() {
-                      _reverse = !_reverse;
-                      _resetAnswer();
-                    }),
+              onPressed: _answering ? null : _toggleReverse,
               icon: const Icon(Icons.swap_horiz),
               selectedIcon: const Icon(Icons.swap_horiz),
               style: _reverse
@@ -279,7 +354,12 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
                 ),
               )
             : _current == null
-            ? _DoneView(answered: _answered, total: _total)
+            ? _DoneView(
+                answered: _answered,
+                total: _total,
+                leftOut: _leftOut,
+                deckName: deckName,
+              )
             : _reviewBody(context),
       ),
     );

@@ -164,6 +164,34 @@ mixin _WordsCardLogic on State<WordsCardPage> {
     }
   }
 
+  /// Shares the word as plain text — its meaning, example, note and where
+  /// it belongs. What is on screen is what is shared, so a sentence just
+  /// written reaches the person who needs it without saving first.
+  Future<void> _share() async {
+    if (_saving || _restoring) return;
+    final headword = foldWhitespace(_headword.text);
+    if (headword.isEmpty) return;
+    try {
+      final decks = await _repository.loadDecks();
+      if (!mounted) return;
+      await nexModuleShareText(
+        wordsShareText(
+          _card.copyWith(
+            headword: headword,
+            language: foldWhitespace(_language.text),
+            meaning: _meaning.text.trim(),
+            example: _example.text.trim(),
+            note: _note.text.trim(),
+            tag: foldWhitespace(_tag.text),
+          ),
+          deckName: wordsDeckName(decks, _deckId) ?? '',
+        ),
+      );
+    } catch (_) {
+      _error();
+    }
+  }
+
   Future<void> _delete() async {
     if (widget.card == null || _saving || _restoring || _draftLoadFailed) {
       return;

@@ -67,6 +67,28 @@ every write keeps unknown fields). Changes:
 - Persian wording: the typing mode is «نوشتن», a wrong answer says
   «این نبود؛ پاسخ درست این است.»; the hint names half-spaces and senses.
 
+## Refinement pass (after 2.8.16)
+
+A second audit against the brief, the shared rules and the Persian reader,
+without touching a saved record's meaning. What it found:
+
+| # | Found | Done |
+|---|---|---|
+| B1 | `goalPerDay` was stored, read and shown, but no screen could change it — a setting people could not set | A **Daily goal** row in *Review settings*: 5, 10, 20, 30 or none, saved through `updateSettings` |
+| B2 | The brief's open question: a deck filtered the list, but a session still drew from every word | **Review this deck** — the chosen deck is the session, its due cards and its new ones, with the day's introduction allowance counted across the whole collection so a deck cannot double it |
+| B3 | **Skip for now** dropped the card from the sitting; «for now» meant «not today» | A skipped card waits at the end of the sitting; a second skip lets it go, and the done state says how many were left for next time |
+| B4 | The way the cards are asked and meaning-first reset to flashcards every time the page opened | Both are kept in the settings record (`exercise`, `reverse`) and restored on open; a save failure never interrupts the review |
+| B5 | Search was `toLowerCase().contains` — «کتاب» missed «كتاب», «می روم» missed «می‌روم», Persian digits missed their Latin forms | Search runs through `wordsMatchesQuery`, the same forgiving reading a typed answer gets; gaps are folded only between Persian or Arabic letters, so Latin words are never glued together |
+| B6 | A deck removed while its chip was selected left the list empty with no lit chip and no way back | The reload clears a filter naming a deck that no longer exists |
+| B7 | The README claimed a word could be shared as text; no screen shared anything | **Share** on a word's page sends the word, meaning, example, note and deck through `nexModuleShareText` — what is on screen, unsaved edits included |
+| B8 | The paste sheet always started at «English», even for a collection that is entirely Persian | A fresh list starts in the language the collection already speaks, through `wordsSuggestedLanguage` |
+| B9 | The home page showed a search box and filters above the empty state — controls for nothing | They appear with the first word |
+| B10 | An empty or fully skipped sitting said «0 cards reviewed» | It says plainly that nothing was waiting, or that nothing was reviewed, and counts any card left for next time |
+| B11 | `WordsDeckField` re-read the deck list on every rebuild, and a deck made from its own sheet showed as «No deck» until something else rebuilt | The field holds its read, and refreshes when the sheet closes |
+| B12 | The violet end of the deck gradient (#8B5CF6) gave small white text under 4.5:1 | Deepened to #7C3AED (about 5.7:1); the card's pills are dark-tinted so white labels hold their contrast |
+| B13 | A word's deck was invisible in the list unless the deck filter was on | The row's meta line names the deck beside the language and tag |
+| B14 | The list's bottom spacer was shorter than the floating button and ignored the phone's bottom inset, so the last word could sit under it | `NexSpacing.xl * 3 + nexBottomInset(context)`, the clearance the other modules use |
+
 ## What it does
 
 An offline vocabulary box that now also teaches: keep the words you meet,
@@ -83,15 +105,21 @@ The screens:
   the list* — and *Paste a list*; one floating action, *Add a word*.
 - **A word's page** (`words_card_page.dart`): the fields, the deck, the
   progress panel, pause, save and discard.
-- **Review** (`words_review_page.dart`): the queue, the way the card is
-  asked (flashcards, type, choose — in the header, one tap, a sheet), the
-  card, the four answers, skip, and the done state.
+- **Review** (`words_review_page.dart`): the queue — the whole collection
+  or the deck the home page narrowed to — the way the card is asked
+  (flashcards, type, choose — in the header, one tap, a sheet), the card,
+  the four answers, a skip that returns before the sitting ends, and the
+  done state that counts both answered and left-for-next-time.
 - **The deck sheet** (`words_deck_picker.dart`): choose, make, rename and
   remove decks. Removing one keeps its words.
 - **The paste sheet** (`words_batch_sheet.dart`): the lines, the language,
   the deck, the preview, the add.
 - **The progress sheet** (`words_progress_sheet.dart`): learned, due,
   paused, kept, the goal, and seven bars for the week.
+- **A word's page** also offers **Share**: the word, meaning, example, note
+  and deck as plain text, and **Delete** with its Undo, as before.
+- **The daily goal** (`words_goal.dart`, in *Review settings*): five, ten,
+  twenty, thirty answers a day, or none.
 
 ## Records
 
@@ -113,10 +141,14 @@ strings; `createdAt`/`lastReview` are ISO instants; `due` and `introducedOn`
 are real date-only ISO days; `step` is 0..5; `reps`/`lapses` are non-negative
 integers; `log` holds `at` and grade `g`, oldest first, newest 200 kept.
 
-Kind `settings`, fixed id `settings`: `{schema:2,newPerDay:10,sessionLimit:20,goalPerDay:10}`.
+Kind `settings`, fixed id `settings`:
+`{schema:2,newPerDay:10,sessionLimit:20,goalPerDay:10,exercise:"flashcard",reverse:false}`.
 `goalPerDay` is **added**; a settings record without it reads as the default
 10, and changing it preserves `newPerDay`, `sessionLimit` and unknown fields.
-`newPerDay` 0 means no cap; `goalPerDay` 0 means no goal.
+`exercise` and `reverse` are **added** in this pass: a record without them
+reads as flashcards, word first. An `exercise` this version does not know
+falls back to `flashcard` rather than failing to open. `newPerDay` 0 means
+no cap; `goalPerDay` 0 means no goal.
 
 Kind `deck`, id from the store, schema 1:
 `{"schema":1,"name":"The Little Prince","createdAt":"2026-11-01T09:00:00"}`.
@@ -147,7 +179,29 @@ Kind `draft` (`card:new`, `card:<id>`, `batch:new`) and kind `operation`
   choices is asked as typing instead — one option is not a question.
 - **The goal, not a streak.** Ten answers a day by default, said as
   «3/10 today» and «Today: 3 of 10 reviews»; a missed day costs nothing and
-  nothing counts the gap.
+  nothing counts the gap. The number is chosen in *Review settings*, and 0
+  means no goal at all.
+- **A deck session is the deck's cards, the person's allowance.** The
+  session limit applies inside the deck; the day's new-word cap is counted
+  across every card, so six words introduced in one book do not let
+  another book introduce six more. The empty id is a scope too: «No deck»
+  reviews the words that sit outside every deck, and a word whose deck was
+  deleted belongs there rather than to nowhere.
+- **Practising the same way twice.** The mode and meaning-first are part of
+  the settings record. The review writes them best-effort: a failed write
+  leaves the session running and the next one starts at the default, which
+  costs nothing the person cannot change with one tap.
+- **Search is forgiving, not fuzzy.** It uses the typed answer's folding
+  (letter forms, harakat, ZWNJ, digits, case, punctuation) and, only
+  between Persian or Arabic letters, folds a space where a half-space
+  belongs. It never matches letters that are not there — no stemming, no
+  typo correction, no guessing.
+- **A skipped card waits, and is counted.** «For now» means later in the
+  same sitting; a second skip is a decision, and the done state says how
+  many were left for next time rather than dropping them silently.
+- **Sharing is plain text, on purpose.** A word leaves as the words and
+  the lines the person wrote, with language, tag and deck — readable in
+  any chat app, with no picture, link or account.
 - **Progress from the log alone.** Learned means the 60-day rung; due means
   due today or overdue; the week counts answers by the local day they were
   given and marks the «again» ones. No levels, no fluency, no certificates.
@@ -179,11 +233,15 @@ Kind `draft` (`card:new`, `card:<id>`, `batch:new`) and kind `operation`
 **English.** Keep words and phrases with meanings you write yourself, and put
 them in a deck when they belong to a book, a course or a trip. Paste a list
 to add many at once — a Tab, a dash, a colon or «=» between the word and its
-meaning — and look at the preview before anything is saved. Review a few at a
-time: turn the card over, type the answer, or choose it; each answer still
-asks how it went, and Again starts tomorrow while Good and Easy move further
-out. Your goal — ten reviews a day by default — is a small invitation, not a
-debt, and missing a day costs nothing.
+meaning — and look at the preview before anything is saved; a fresh list
+starts in the language your words already use. Choose a deck to narrow the
+list, and **Review this deck** to study it alone. Review a few at a time:
+turn the card over, type the answer, or choose it; the way you practise and
+meaning-first are remembered. Each answer still asks how it went, and Again
+starts tomorrow while Good and Easy move further out. A skipped card waits at
+the end of the sitting, and **Share** on a word's page sends it as text. Your
+goal — ten reviews a day by default, and yours to change — is a small
+invitation, not a debt, and missing a day costs nothing.
 
 **فارسی.** واژه‌ها را با معنایی که خودتان می‌نویسید نگه دارید و اگر به یک
 کتاب، دوره یا سفر تعلق دارند، در یک دسته بگذارید. برای افزودن چندتایی، فهرست
@@ -191,8 +249,11 @@ debt, and missing a day costs nothing.
 ذخیره پیش‌نمایش را ببینید. هر بار چندتایی مرور کنید: کارت را برگردانید، پاسخ
 را تایپ کنید یا از میان گزینه‌ها انتخاب کنید؛ هر پاسخ همچنان می‌پرسد چطور
 بود، «دوباره» از فردا شروع می‌کند و «خوب» و «آسان» فاصله را بیشتر می‌کنند.
-هدف روزانه — پیش‌فرض ده مرور — یک دعوت کوچک است، نه بدهی؛ روز ازدست‌رفته
-هیچ چیزی کم نمی‌کند.
+دسته‌ای را انتخاب کنید تا فهرست محدود شود و با «مرور این دسته» فقط همان را
+تمرین کنید. روش تمرین و «اول معنی» یادتان می‌ماند. کارتِ رد‌شده تا پایان
+جلسه برمی‌گردد و «هم‌رسانی» در صفحهٔ واژه آن را به‌صورت متن می‌فرستد. هدف
+روزانه — پیش‌فرض ده مرور و قابل تغییر در تنظیمات مرور — یک دعوت کوچک است،
+نه بدهی؛ روز ازدست‌رفته هیچ چیزی کم نمی‌کند.
 
 ## Changelog
 
@@ -200,13 +261,18 @@ EN: Word by Word now learns your language with you — group words into decks,
 practise them by typing or by choosing from the same deck's words, keep a
 small daily goal, see how the week went, and paste a list separated by a Tab,
 a dash, a colon or «=». The streak is gone, because a missed day costs
-nothing.
+nothing. It also reviews one deck at a time, remembers the way you practise,
+lets a skipped card come back before the sitting ends, shares a word as text,
+and searches with Persian and Arabic letter forms and half-spaces forgiven.
 
 FA: «واژه به واژه» حالا همراه یادگیری زبان شماست — واژه‌ها را در دسته‌ها
 بگذارید، با تایپ کردن یا انتخاب از میان واژه‌های همان دسته تمرین کنید، یک
 هدف کوچک روزانه داشته باشید، نتیجهٔ هفته را ببینید و فهرست را با تب، خط
 تیره، دو نقطه یا «=» بچسبانید. شمارندهٔ روزهای پیوسته برداشته شد، چون یک روز
-ازدست‌رفته چیزی را خراب نمی‌کند.
+ازدست‌رفته چیزی را خراب نمی‌کند. حالا هر بار فقط یک دسته را مرور می‌کند،
+روش تمرین را یادش می‌ماند، کارتِ رد‌شده پیش از پایان جلسه برمی‌گردد، واژه را
+به‌صورت متن هم‌رسانی می‌کند و در جست‌وجو شکل‌های عربی و فارسی حروف و
+نیم‌فاصله را می‌بخشد.
 
 ## Platform requests
 
@@ -233,8 +299,8 @@ first.
 dart format lib/modules/words test/modules/words      # 0 changed
 flutter analyze --fatal-infos                         # No issues found!
 flutter test test/module_kit_test.dart test/module_shared_rules_test.dart test/modules/words -j 4
-                                                      # 246 passed
-flutter test -j 4                                     # 4190 passed, 4 skipped
+                                                      # 292 passed
+flutter test -j 4                                     # 4780 passed, 7 skipped
 ```
 
 The whole client suite was run once after the last change, with nothing
@@ -251,6 +317,15 @@ paste separators, both practice modes end to end, and a compatibility test
 that opens records exactly as the live version writes them and checks that
 grading and editing keep every field — including one this version does not
 know.
+
+This pass adds `test/modules/words/words_refinement_test.dart` (21 tests):
+Persian search folding (ی/ک, harakat, half-space, digits), the suggested
+batch language, the shared text, old and unknown settings, deck-scoped
+sessions with the global introduction allowance, the deck chip driving the
+session and its title, a skipped card returning and a second skip being
+counted, an empty sitting saying so, the practice mode and direction
+remembered, the daily goal picked and saved, the deck filter cleared when
+its deck is removed, and the share action on a saved word.
 
 Screenshots are in `review/`: `words_home_en_light.png`,
 `words_home_fa_dark.png`, `words_practice_en_light.png`,
@@ -289,14 +364,26 @@ In the order a person meets them:
 9. Open **Progress**: learned, due, paused, the week's bars, and the goal.
 10. Set the goal to 5, answer five cards, and check the hero says the goal is
     done — and that nothing complains the next day.
-11. Turn the reminder on, set a time, and check the notification names how
+11. Choose a deck, check the hero counts only its words and the button says
+    **Review this deck**, and that the session stays inside it.
+12. Skip a card in a session of three: it comes back at the end. Skip it
+    twice: the closing line counts it.
+13. Open the review twice: the mode you chose (type or choose) and
+    meaning-first are still on.
+14. Open a saved word and **Share** it; the text arrives whole in another
+    app, unsaved edits included.
+15. Search «کتاب» for a word written «كتاب», and «می روم» for «می‌روم».
+16. Turn the reminder on, set a time, and check the notification names how
     many words wait.
-12. Persian, dark, and the largest text size: the review header, the deck
+17. Persian, dark, and the largest text size: the review header, the deck
     row and the four answers all stay on the screen.
-13. Tap **Progress** with the app switcher open, and check nothing private is
+18. Tap **Progress** with the app switcher open, and check nothing private is
     left visible in the preview.
 
 ## Open questions
+
+- **A deck-only session** is now built; what is not built is a **deck**
+  setting on the session itself (the home filter is the only way in).
 
 - **How many new words a day, and what goal?** The default stays 10 and 10.
   Should the goal follow the session size, or be one number for the whole app
@@ -306,9 +393,6 @@ In the order a person meets them:
   would take the judgement away.
 - **Decks of decks?** Not built. A book with chapters would need either a
   second level or named decks like «Book — chapter 3».
-- **Should a deck be reviewable on its own?** The filter narrows the list; the
-  session still draws from all words. A deck-only session is a small change,
-  if that is what people want.
 - **Do «learned» and the 60-day rung match what people mean by learned?** The
   module says plainly what the number is based on; a different word for the
   top rung may read more honestly.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'expenses_fields.dart' show expenseCategoryIcon;
 import 'logic.dart';
 import 'models.dart';
 import 'money.dart';
@@ -20,6 +21,9 @@ class ExpensesBudgetsPanel extends StatelessWidget {
     required this.categoryName,
     required this.unit,
     this.hidden = false,
+    this.onAdd,
+    this.onCopyLastMonth,
+    this.hasPrevious = false,
   });
 
   final List<ExpenseBudgetStatus> statuses;
@@ -27,6 +31,15 @@ class ExpensesBudgetsPanel extends StatelessWidget {
   final String Function(String) categoryName;
   final ExpenseUnit unit;
   final bool hidden;
+
+  /// Sets another budget for this month (a category, or the overall one).
+  final VoidCallback? onAdd;
+
+  /// Carries last month's budgets into this one, when it has none.
+  final VoidCallback? onCopyLastMonth;
+
+  /// Whether the month before had budgets worth carrying over.
+  final bool hasPrevious;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +58,13 @@ class ExpensesBudgetsPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (statuses.isEmpty)
+            Text(
+              s(context, 'budgetNone'),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
           for (final status in statuses) ...[
             InkWell(
               onTap: () => onEdit(status),
@@ -106,6 +126,29 @@ class ExpensesBudgetsPanel extends StatelessWidget {
               color: scheme.onSurfaceVariant,
             ),
           ),
+          if (onAdd != null || (onCopyLastMonth != null && hasPrevious)) ...[
+            const SizedBox(height: NexSpacing.xs),
+            Wrap(
+              spacing: NexSpacing.sm,
+              runSpacing: NexSpacing.xs,
+              children: [
+                if (onCopyLastMonth != null && hasPrevious)
+                  TextButton.icon(
+                    key: const ValueKey('expenses-copy-budgets'),
+                    onPressed: onCopyLastMonth,
+                    icon: const Icon(Icons.copy_all_outlined, size: 18),
+                    label: Text(s(context, 'copyBudgets')),
+                  ),
+                if (onAdd != null)
+                  TextButton.icon(
+                    key: const ValueKey('expenses-add-budget'),
+                    onPressed: onAdd,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(s(context, 'addBudget')),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -354,33 +397,212 @@ class ExpensesTxRow extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: NexSpacing.sm),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyLarge,
+              _CategoryMark(
+                icon: tx.valid
+                    ? expenseCategoryIcon(tx.categoryId ?? 'cat-other')
+                    : Icons.report_outlined,
+                invalid: !tx.valid,
               ),
-              const SizedBox(height: NexSpacing.xs),
-              Text(
-                subtitle,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: NexSpacing.xs),
-              Text(
-                amount,
-                textDirection: TextDirection.ltr,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: income ? hue : scheme.onSurface,
+              const SizedBox(width: NexSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: NexSpacing.xs),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: NexSpacing.xs),
+                    Text(
+                      amount,
+                      textDirection: TextDirection.ltr,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: income ? hue : scheme.onSurface,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A category's mark on a soft tile, so a row is recognisable before it is
+/// read. Income takes the module's own hue, an incomplete record the theme's
+/// error tint — never colour alone: the row still says which it is.
+class _CategoryMark extends StatelessWidget {
+  const _CategoryMark({required this.icon, required this.invalid});
+
+  final IconData icon;
+  final bool invalid;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = invalid
+        ? theme.colorScheme.error
+        : NexHue.teal.of(theme.brightness);
+    return ExcludeSemantics(
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(NexRadius.sm),
+        ),
+        child: Icon(icon, size: 20, color: color),
+      ),
+    );
+  }
+}
+
+/// One day of records: its name in the person's calendar and what that day
+/// cost — the question a list of payments is really asked.
+class ExpensesDayHeader extends StatelessWidget {
+  const ExpensesDayHeader({
+    super.key,
+    required this.day,
+    required this.totals,
+    required this.now,
+    required this.unit,
+    this.hidden = false,
+    this.showTotal = true,
+  });
+
+  final DateTime? day;
+  final ExpenseTotals totals;
+  final DateTime now;
+  final ExpenseUnit unit;
+  final bool hidden;
+
+  /// False while a search or filter is narrowing the list: the figure would
+  /// then be the day's *matching* spending, which is not the day's spending,
+  /// so the header says only which day it is.
+  final bool showTotal;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final persian = NexModuleStrings.persian(context);
+    final s = expenseStrings;
+    final label = day == null
+        ? s(context, 'incompleteGroup')
+        : txDateLabel(context, day!, now);
+    String money(BigInt rials) => hidden
+        ? s(context, 'hiddenAmount')
+        : formatExpenseAmount(rials.toInt(), unit, persian: persian);
+    final spent = totals.expense;
+    final came = totals.income;
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(
+        top: NexSpacing.md,
+        bottom: NexSpacing.xs,
+      ),
+      child: Semantics(
+        label: showTotal
+            ? s(context, 'dayTotalSemantics', {
+                'date': label,
+                'amount': money(spent),
+              })
+            : label,
+        excludeSemantics: true,
+        child: Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: NexSpacing.sm,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+            if (showTotal && (spent > BigInt.zero || came == BigInt.zero))
+              Text(
+                money(spent),
+                textDirection: TextDirection.ltr,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            if (showTotal && came > BigInt.zero)
+              Text(
+                '+${money(came)}',
+                textDirection: TextDirection.ltr,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: NexHue.teal.of(theme.brightness),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One month of the all-time view, with what it cost — so a year of records
+/// reads as twelve months, not one endless list.
+class ExpensesMonthHeader extends StatelessWidget {
+  const ExpensesMonthHeader({
+    super.key,
+    required this.month,
+    required this.totals,
+    required this.unit,
+    this.hidden = false,
+    this.showTotal = true,
+  });
+
+  final NexModuleMonth? month;
+  final ExpenseTotals totals;
+  final ExpenseUnit unit;
+  final bool hidden;
+
+  /// False while a filter is narrowing the list; see [ExpensesDayHeader].
+  final bool showTotal;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final persian = NexModuleStrings.persian(context);
+    final s = expenseStrings;
+    final label = month?.title(context) ?? s(context, 'incompleteGroup');
+    final amount = hidden
+        ? s(context, 'hiddenAmount')
+        : formatExpenseAmount(totals.expense.toInt(), unit, persian: persian);
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(top: NexSpacing.lg, bottom: 2),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: NexSpacing.sm,
+        children: [
+          Text(label, style: theme.textTheme.titleSmall),
+          if (showTotal)
+            Text(
+              amount,
+              textDirection: TextDirection.ltr,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+        ],
       ),
     );
   }

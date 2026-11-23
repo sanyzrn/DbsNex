@@ -222,11 +222,9 @@ class _BudgetSheetState extends State<_BudgetSheet> {
                         showAllErrors: _showErrors,
                         allowZero: true,
                         onValid: (_) => _changed(),
+                        // The field re-expresses its own value; only the
+                        // choice is remembered here.
                         onUnitChanged: (unit) {
-                          final rials = _parsed.rials;
-                          if (rials != null) {
-                            _amount.text = expenseAmountInput(rials, unit);
-                          }
                           _unit = unit;
                           _changed();
                         },

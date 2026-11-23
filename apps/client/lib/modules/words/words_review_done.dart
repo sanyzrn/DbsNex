@@ -1,17 +1,34 @@
 part of 'words_review_page.dart';
 
 /// The done state: what happened, and a calm goodbye. No streaks, no
-/// scores, no confetti.
+/// scores, no confetti. An empty sitting says so plainly instead of
+/// announcing «zero cards reviewed», and a card let go after two skips is
+/// counted rather than quietly dropped.
 class _DoneView extends StatelessWidget {
-  const _DoneView({required this.answered, required this.total});
+  const _DoneView({
+    required this.answered,
+    required this.total,
+    required this.leftOut,
+    this.deckName,
+  });
 
   final int answered;
   final int total;
+  final int leftOut;
+  final String? deckName;
 
   @override
   Widget build(BuildContext context) {
     final strings = wordsStrings;
     final theme = Theme.of(context);
+    final deck = deckName;
+    final title = total == 0
+        ? strings(context, 'nothingToReview')
+        : answered == 0
+        ? strings(context, 'sessionDoneNone')
+        : answered == 1
+        ? strings(context, 'sessionDoneOne')
+        : strings(context, 'sessionDone', {'count': answered});
     return Center(
       child: SingleChildScrollView(
         child: Padding(
@@ -26,20 +43,43 @@ class _DoneView extends StatelessWidget {
               ),
               const SizedBox(height: NexSpacing.md),
               Text(
-                answered == 1
-                    ? strings(context, 'sessionDoneOne')
-                    : strings(context, 'sessionDone', {'count': answered}),
+                title,
+                key: const ValueKey('words-session-done'),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleMedium,
               ),
-              const SizedBox(height: NexSpacing.sm),
-              Text(
-                strings(context, 'sessionDoneCalm'),
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+              if (answered > 0) ...[
+                const SizedBox(height: NexSpacing.sm),
+                Text(
+                  strings(context, 'sessionDoneCalm'),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
+              ],
+              if (leftOut > 0) ...[
+                const SizedBox(height: NexSpacing.xs),
+                Text(
+                  strings(context, 'sessionDoneLeftOut', {'count': leftOut}),
+                  key: const ValueKey('words-session-left-out'),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              if (deck != null) ...[
+                const SizedBox(height: NexSpacing.xs),
+                Text(
+                  '${strings(context, 'deckLabel')}: $deck',
+                  key: const ValueKey('words-session-deck'),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               const SizedBox(height: NexSpacing.lg),
               _ScheduleDisclosure(),
             ],

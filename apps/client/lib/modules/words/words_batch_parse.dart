@@ -71,6 +71,34 @@ int _separatorAt(String line) {
   return (entries: entries, duplicates: duplicates);
 }
 
+/// The language a pasted list most likely belongs to: the one the person
+/// already keeps the most words in, falling back to English. An Iranian
+/// learner who writes Persian meanings under English words still gets
+/// «English»; someone keeping a Persian list is not asked to retype it.
+String wordsSuggestedLanguage(
+  Iterable<WordCard> cards, {
+  String fallback = 'English',
+}) {
+  final counts = <String, int>{};
+  final names = <String, String>{};
+  for (final card in cards) {
+    final name = foldWhitespace(card.language);
+    if (name.isEmpty) continue;
+    final key = name.toLowerCase();
+    counts[key] = (counts[key] ?? 0) + 1;
+    names.putIfAbsent(key, () => name);
+  }
+  String? best;
+  var bestCount = 0;
+  for (final entry in counts.entries) {
+    if (entry.value > bestCount) {
+      best = entry.key;
+      bestCount = entry.value;
+    }
+  }
+  return best == null ? fallback : names[best]!;
+}
+
 /// The separator actually found at [at] on [line] — the first one in the
 /// list wins, so a Tab stays a Tab and an equals sign is not read as the
 /// start of a longer one.

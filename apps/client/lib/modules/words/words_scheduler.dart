@@ -126,6 +126,11 @@ int _increment(int value) => value >= 9007199254740991
   required String todayIso,
   required int newPerDay,
   int sessionLimit = 20,
+  // The cards introduced today across the whole collection. A deck-scoped
+  // session reads only its deck, but the day's introduction allowance is
+  // the person's, not the deck's — six words learned in one deck must not
+  // let another deck introduce six more.
+  int? introducedToday,
 }) {
   // `List.sort` is not stable, so equal keys need explicit tiebreaks:
   // among cards due the same day the one written first leads, and a
@@ -143,12 +148,8 @@ int _increment(int value) => value >= 9007199254740991
   final freshAll = cards.where((card) => !card.paused && card.isNew).toList()
     ..sort(byCreated);
 
-  final introducedToday = cards
-      .where((card) => !card.isNew && _firstDay(card) == todayIso)
-      .length;
-  final allowance = newPerDay <= 0
-      ? freshAll.length
-      : newPerDay - introducedToday;
+  final introduced = introducedToday ?? wordsIntroducedOn(cards, todayIso);
+  final allowance = newPerDay <= 0 ? freshAll.length : newPerDay - introduced;
 
   final selectedDue = sessionLimit <= 0 ? due : due.take(sessionLimit).toList();
   final remaining = sessionLimit <= 0
@@ -160,6 +161,12 @@ int _increment(int value) => value >= 9007199254740991
       .toList();
   return (due: selectedDue, fresh: fresh);
 }
+
+/// How many cards had their first-ever answer on [todayIso] — the day's
+/// allowance is spent across the whole collection, whichever deck is being
+/// reviewed.
+int wordsIntroducedOn(Iterable<WordCard> cards, String todayIso) =>
+    cards.where((card) => !card.isNew && _firstDay(card) == todayIso).length;
 
 String? _firstDay(WordCard card) => wordsParseDay(card.introducedOn) != null
     ? card.introducedOn
