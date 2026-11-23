@@ -317,6 +317,7 @@ class ExpensesController extends ChangeNotifier {
   Future<({String id, Future<void> Function() undo})> duplicateTx(
     ExpenseTx tx, {
     DateTime? at,
+    String? draftId,
   }) async {
     final when = at ?? DateTime.now();
     final copy = ExpenseTx(
@@ -329,7 +330,10 @@ class ExpensesController extends ChangeNotifier {
       merchant: tx.merchant,
       account: tx.account,
     );
-    final undo = await saveTx(copy, draftId: 'tx:${copy.id}');
+    // The editing sheet's own draft goes with the save (2.8.19): its edits
+    // went into the copy, and left behind they came back on the original as
+    // unfinished work.
+    final undo = await saveTx(copy, draftId: draftId ?? 'tx:${copy.id}');
     return (id: copy.id, undo: undo);
   }
 

@@ -34,7 +34,11 @@ mixin _GoldFormLogic on State<GoldForm> {
     final gross = parseScaled(_gross.text, 3);
     bool invalid(TextEditingController controller, int scale, int max) {
       if (controller.text.trim().isEmpty) return false;
-      final (value, _) = parseScaledDetailed(controller.text, scale);
+      final (value, _) = parseScaledDetailed(
+        controller.text,
+        scale,
+        grouped: controller is NexMoneyController,
+      );
       return value == null || value > max;
     }
 
@@ -189,7 +193,11 @@ mixin _GoldFormLogic on State<GoldForm> {
       bool required = false,
     }) {
       if (c.text.trim().isEmpty) return required ? null : 0;
-      final (value, problem) = parseScaledDetailed(c.text, scale);
+      final (value, problem) = parseScaledDetailed(
+        c.text,
+        scale,
+        grouped: c is NexMoneyController,
+      );
       return problem == null && value != null && value >= 0 && value <= max
           ? value
           : null;

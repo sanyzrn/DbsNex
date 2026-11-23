@@ -133,7 +133,10 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
         merchant: _merchant.text.trim().isEmpty ? null : _merchant.text.trim(),
         account: _account.text.trim().isEmpty ? null : _account.text.trim(),
       );
-      final copy = await controller.duplicateTx(edited);
+      final copy = await controller.duplicateTx(
+        edited,
+        draftId: _draft.draftId,
+      );
       if (!mounted) return;
       Navigator.pop(context);
       ExpensesUndo.offer(

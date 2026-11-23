@@ -52,7 +52,11 @@ class GoldNumberField extends StatelessWidget {
   final Key? fieldKey;
 
   String? _problem(String text) {
-    final (value, problem) = parseScaledDetailed(text, scale);
+    final (value, problem) = parseScaledDetailed(
+      text,
+      scale,
+      grouped: controller is NexMoneyController,
+    );
     if (problem != null) {
       if (problem == GoldParseProblem.empty && allowEmpty) return null;
       return problem == GoldParseProblem.empty
@@ -81,7 +85,11 @@ class GoldNumberField extends StatelessWidget {
           errorText: errorKey == null ? null : goldStrings(context, errorKey!),
         ),
         onChanged: (text) {
-          final (value, problem) = parseScaledDetailed(text, scale);
+          final (value, problem) = parseScaledDetailed(
+            text,
+            scale,
+            grouped: controller is NexMoneyController,
+          );
           final capped = value != null && value <= maxScaled ? value : null;
           onChanged?.call(problem == null ? capped : null);
         },

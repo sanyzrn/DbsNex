@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
+
 import 'gold_format.dart';
 import 'gold_strings.dart';
 

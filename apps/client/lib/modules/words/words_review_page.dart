@@ -127,6 +127,7 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
         _index = 0;
         _answered = 0;
         _leftOut = 0;
+        _skippedOnce.clear();
         _reverse = settings.reverse;
         _exercise =
             WordsExercise.values.asNameMap()[settings.exercise] ??

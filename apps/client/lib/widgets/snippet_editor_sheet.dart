@@ -154,11 +154,15 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
     if (mounted) {
       Navigator.pop(
         context,
-        NexCodeSnippet(
-          code: _code.text,
-          language: _language,
-          rawLanguage: _rawLanguage,
-        ),
+        // The same language keeps the fence's whole info string (2.8.19).
+        _language == widget.initial.language &&
+                _rawLanguage == widget.initial.rawLanguage
+            ? widget.initial.withCode(_code.text)
+            : NexCodeSnippet(
+                code: _code.text,
+                language: _language,
+                rawLanguage: _rawLanguage,
+              ),
       );
     }
   }

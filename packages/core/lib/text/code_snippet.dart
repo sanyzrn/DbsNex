@@ -71,7 +71,14 @@ final class NexCodeSnippet {
     required this.code,
     this.language = NexCodeLanguage.plainText,
     this.rawLanguage,
+    this.storedInfo,
   });
+
+  /// The whole info string the fence was read with — `js filename=app.js`,
+  /// `python {.numberLines}` — kept while only the code changes and written
+  /// back as it was (2.8.19): only its first word used to survive an edit.
+  /// Choosing a language replaces it.
+  final String? storedInfo;
 
   /// The code exactly as it was typed: line endings, tabs, indentation,
   /// blank lines and trailing spaces included.
@@ -89,8 +96,12 @@ final class NexCodeSnippet {
   /// was already there.
   String get languageId => rawLanguage ?? language.id;
 
-  NexCodeSnippet withCode(String code) =>
-      NexCodeSnippet(code: code, language: language, rawLanguage: rawLanguage);
+  NexCodeSnippet withCode(String code) => NexCodeSnippet(
+    code: code,
+    language: language,
+    rawLanguage: rawLanguage,
+    storedInfo: storedInfo,
+  );
 
   /// The same code in [language], replacing a stored info string this build
   /// did not know.
@@ -100,9 +111,10 @@ final class NexCodeSnippet {
   /// The note this snippet is: one fenced block, in a fence long enough that
   /// no line of the code can close it early.
   String get markdown {
-    final marker = languageId.contains('`') ? '~' : '`';
+    final info = storedInfo ?? languageId;
+    final marker = info.contains('`') ? '~' : '`';
     final fence = marker * _fenceLength(code, marker.codeUnitAt(0));
-    return '$fence$languageId\n$code\n$fence';
+    return '$fence$info\n$code\n$fence';
   }
 
   /// [source] as a snippet when the whole of it is one fenced block, or null.
@@ -117,6 +129,7 @@ final class NexCodeSnippet {
       code: read.code,
       language: read.language,
       rawLanguage: read.rawLanguage,
+      storedInfo: read.info,
     );
   }
 
@@ -132,6 +145,7 @@ final class NexCodeSnippet {
       code: read.code,
       language: read.language,
       rawLanguage: read.rawLanguage,
+      storedInfo: read.info,
     );
   }
 
@@ -205,6 +219,7 @@ final class NexCodeSnippet {
       code: code,
       language: known ?? NexCodeLanguage.plainText,
       rawLanguage: known == null && id.isNotEmpty ? id : null,
+      info: info.isEmpty ? null : info,
     );
   }
 
@@ -249,9 +264,11 @@ final class _Read {
     required this.code,
     required this.language,
     required this.rawLanguage,
+    required this.info,
   });
 
   final String code;
   final NexCodeLanguage language;
   final String? rawLanguage;
+  final String? info;
 }

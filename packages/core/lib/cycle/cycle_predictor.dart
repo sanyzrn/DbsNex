@@ -309,9 +309,20 @@ abstract final class CyclePredictor {
   /// as a mistyped date rather than a cycle are left out for the same reason
   /// they are left out of the average — a chart that disagrees with the
   /// number above it teaches nobody anything.
-  static List<int> intervals(List<CyclePeriod> periods, {int limit = 8}) {
+  ///
+  /// [today], when given, leaves out a start logged after it, as [predict]
+  /// does (2.8.19): a period mistyped into next week drew a bar the average
+  /// never counted.
+  static List<int> intervals(
+    List<CyclePeriod> periods, {
+    int limit = 8,
+    CycleDate? today,
+  }) {
     if (limit <= 0) return const [];
-    final sorted = [...periods]..sort((a, b) => a.start.compareTo(b.start));
+    final sorted = [
+      for (final p in periods)
+        if (today == null || !p.start.isAfter(today)) p,
+    ]..sort((a, b) => a.start.compareTo(b.start));
     final all = _plausibleLengths(sorted);
     final lengths = _withoutLikelyMissedLogs(all, _median(all));
     return lengths.length > limit

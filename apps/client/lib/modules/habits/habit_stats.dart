@@ -212,13 +212,16 @@ class HabitHero extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: NexSpacing.xs),
-                            SizedBox(width: 76, child: Text(
-                              strings(context, 'strength'),
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: white.withValues(alpha: 0.85),
+                            SizedBox(
+                              width: 76,
+                              child: Text(
+                                strings(context, 'strength'),
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: white.withValues(alpha: 0.85),
+                                ),
                               ),
-                            )),
+                            ),
                           ],
                         ),
                       ),
@@ -272,9 +275,8 @@ class _WeekDots extends StatelessWidget {
         Flexible(
           child: Text(
             text,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: white),
+            style: Theme.of(context).textTheme.labelMedium
+                ?.copyWith(color: white),
           ),
         ),
       ],

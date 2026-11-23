@@ -234,7 +234,7 @@ extension _HoldingsTab on _AssetsScreenState {
                   Container(
                     width: 10,
                     height: 10,
-                    margin: const EdgeInsets.only(top: 5),
+                    margin: const EdgeInsets.only(top: NexSpacing.xs),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: accent.withValues(

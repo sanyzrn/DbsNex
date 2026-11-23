@@ -154,10 +154,14 @@ enum GoldParseProblem { empty, invalid, tooManyDecimals, negative, tooBig }
 /// Parses a typed decimal into a scaled integer.
 ///
 /// `123.45` with scale 2 → `12345`. Accepts Persian and Arabic-Indic digits,
-/// either decimal mark and correctly grouped thousands.
-int? parseScaled(String text, int scale) {
+/// either decimal mark, and — for an amount of money ([grouped]) —
+/// correctly grouped thousands. A weight, a percent or a fineness is never
+/// ungrouped (2.8.19): «4,250» typed as a weight with a decimal comma was
+/// read as 4,250 g and priced without a word; it is refused, as it always
+/// was before money fields learned to group.
+int? parseScaled(String text, int scale, {bool grouped = false}) {
   if (scale < 0 || scale > 6 || text.length > 256) return null;
-  final normalized = _normalize(nexUngroupMoney(text));
+  final normalized = _normalize(grouped ? nexUngroupMoney(text) : text);
   if (!RegExp(r'^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$')
       .hasMatch(normalized)) {
     return null;
@@ -197,9 +201,13 @@ String goldDigits(String text, bool persian) =>
 
 /// [parseScaled] with the reasons kept: null result becomes a problem the
 /// field can put into words.
-(int?, GoldParseProblem?) parseScaledDetailed(String text, int scale) {
+(int?, GoldParseProblem?) parseScaledDetailed(
+  String text,
+  int scale, {
+  bool grouped = false,
+}) {
   if (text.length > 256) return (null, GoldParseProblem.tooBig);
-  final normalized = _normalize(nexUngroupMoney(text));
+  final normalized = _normalize(grouped ? nexUngroupMoney(text) : text);
   if (normalized.isEmpty) return (null, GoldParseProblem.empty);
   if (normalized.startsWith('-')) {
     // A negative sign anywhere is rejected before anything else is read.

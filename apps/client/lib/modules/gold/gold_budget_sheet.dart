@@ -45,7 +45,11 @@ class _GoldBudgetSheetState extends State<_GoldBudgetSheet> {
   /// The budget in rials, or null while the field is empty or not a number
   /// the calculator accepts. The field is toman, like every amount here.
   int? get _budgetRial {
-    final (value, problem) = parseScaledDetailed(_budget.text, 2);
+    final (value, problem) = parseScaledDetailed(
+      _budget.text,
+      2,
+      grouped: true,
+    );
     if (problem != null || value == null || value < 1) return null;
     final rial = value ~/ 10 + (value % 10 >= 5 ? 1 : 0);
     return rial >= 1 && rial <= GoldInput.maxAmountRial ? rial : null;

@@ -159,6 +159,22 @@ void main() {
       expect(withRest.done, 1);
     });
 
+    test('a rest this week does not hide last week\'s miss (2.8.19)', () {
+      // Met the week of the 3rd, missed the week of the 10th, and resting
+      // today: the grace is spent, as it would be without the rest.
+      final dates = ['2026-10-03', '2026-10-04'];
+      final plain = HabitMath.standing(
+        habit(plan: HabitPlan.weekly),
+        dates,
+        today,
+      );
+      final rest = habit(plan: HabitPlan.weekly).pauseUntil(today, today);
+      final resting = HabitMath.standing(rest, dates, today);
+      expect(plain.graceNow, isTrue);
+      expect(resting.graceNow, plain.graceNow);
+      expect(resting.streak, plain.streak);
+    });
+
     test('a check-in made during rest stays out of the completion rate', () {
       final rest = habit().pauseUntil(today, DateTime(2026, 10, 22));
       final before = HabitMath.dailyRate(rest, [key(19)], today, 7);

@@ -498,7 +498,11 @@ class HabitMath {
 
     // The current week is still being written. What a streak cannot survive
     // is two finished weeks since the last one that met its target.
-    final age = weeks - 1 - kept.last;
+    // Counted from this week even when it holds a rest day and so is not
+    // in the list (2.8.19): measured from last week instead, a missed
+    // finished week passed for the one still being written.
+    final current = _pausedWeek(habit, thisWeek) ? weeks : weeks - 1;
+    final age = current - kept.last;
     if (age > 2) return (streak: 0, graceNow: false, graceInside: false);
 
     return _run([for (final i in kept) DateTime.utc(2000, 1, 1 + i)], age, 1);

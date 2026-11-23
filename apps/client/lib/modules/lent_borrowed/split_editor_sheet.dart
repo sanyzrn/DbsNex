@@ -130,7 +130,11 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
     setState(() {
       _personError = null;
       _people.remove(person);
-      if (personKey(_me) == personKey(person)) _me = '';
+      // «Me» moves to the first person left, as a new split starts
+      // (2.8.19): left empty, it saved a split that could not record a loan.
+      if (personKey(_me) == personKey(person)) {
+        _me = _people.isEmpty ? '' : _people.first;
+      }
       for (var i = 0; i < _costs.length; i++) {
         final cost = _costs[i];
         if (cost.parts.keys.any((k) => personKey(k) == personKey(person))) {

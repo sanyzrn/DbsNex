@@ -94,7 +94,18 @@ class NexPauseSound implements PauseSound {
 
   @override
   Future<void> prepare(PauseMode mode) =>
-      _preparation ??= _safely(() => _prepare(mode));
+      _preparation ??= _safely(() => _prepare(mode)).whenComplete(() {
+        // A preparation that never reached its files is not kept (2.8.19):
+        // cached, it left every later session silent and «Again» could not
+        // bring the sound back. The half-made players go with it.
+        if (_files != null || _disposed) return;
+        _preparation = null;
+        final breath = _breath, cue = _cue;
+        _breath = null;
+        _cue = null;
+        unawaited(_safely(() async => breath?.dispose()));
+        unawaited(_safely(() async => cue?.dispose()));
+      });
 
   Future<void> _prepare(PauseMode mode) async {
     final files = await _make(mode);

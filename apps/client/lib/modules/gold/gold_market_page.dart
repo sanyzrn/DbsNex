@@ -191,9 +191,14 @@ class GoldMarketPanelState extends State<GoldMarketPanel> {
   }
 
   int? _read(String key, int scale, int max, {bool required = false}) {
-    final text = _fields[key]!.text;
+    final field = _fields[key]!;
+    final text = field.text;
     if (text.trim().isEmpty) return required ? null : 0;
-    final (value, error) = parseScaledDetailed(text, scale);
+    final (value, error) = parseScaledDetailed(
+      text,
+      scale,
+      grouped: field is NexMoneyController,
+    );
     return error == null && value != null && value <= max ? value : null;
   }
 

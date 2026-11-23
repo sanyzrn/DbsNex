@@ -85,6 +85,20 @@ void main() {
     });
   });
 
+  test('editing the code keeps the whole info string (2.8.19)', () {
+    final read = NexCodeSnippet.parse('```js filename=app.js\nlet a=1\n```')!;
+    expect(read.language, NexCodeLanguage.fromId('js'));
+    expect(
+      read.withCode('let a=2').markdown,
+      '```js filename=app.js\nlet a=2\n```',
+    );
+    // Choosing a language replaces it.
+    expect(
+      read.withLanguage(NexCodeLanguage.plainText).markdown,
+      startsWith('```${NexCodeLanguage.plainText.id}\n'),
+    );
+  });
+
   group('only a note that is one fenced block is a snippet', () {
     test('prose before or after a fence leaves it an ordinary note', () {
       expect(NexCodeSnippet.parse('Before\n```dart\nvar x = 1;\n```'), isNull);

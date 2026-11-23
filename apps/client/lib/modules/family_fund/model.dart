@@ -49,7 +49,11 @@ class Fund {
   static Fund? read(ModuleRecord record) {
     if (record.module != 'family_fund' || record.kind != 'fund') return null;
     try {
-      final f = Fund(record.id, record.body);
+      // Month fields are read onto their month's first day (2.8.19): a
+      // record from an earlier version, a backup or another phone with a
+      // mid-month date used to fail the strict check below and take the
+      // whole fund — payments, draws, loans — off the screen.
+      final f = Fund(record.id, _onMonthStarts(record.body));
       if (f.body['v'] != 1 ||
           f.name.trim().isEmpty ||
           f.rules.length > 3000 ||
@@ -138,6 +142,36 @@ class Fund {
     } on Object {
       return null;
     }
+  }
+
+  static Fields _onMonthStarts(Fields body) {
+    Object? first(Object? raw) => _day(raw)
+        ? dayKey(fundMonth(DateTime.parse(raw as String)).first)
+        : raw;
+    List<Object?>? each(Object? list, List<String> keys) => list is List
+        ? [
+            for (final row in list)
+              if (row is Map)
+                {
+                  ...row.cast<String, Object?>(),
+                  for (final key in keys)
+                    if (row[key] != null) key: first(row[key]),
+                }
+              else
+                row,
+          ]
+        : null;
+    return {
+      ...body,
+      'start': first(body['start']),
+      if (body['shareChanges'] != null)
+        'shareChanges': each(body['shareChanges'], const ['from']),
+      if (body['members'] != null)
+        'members': each(body['members'], const ['from', 'until']),
+      if (body['payments'] != null)
+        'payments': each(body['payments'], const ['month']),
+      if (body['draws'] != null) 'draws': each(body['draws'], const ['month']),
+    };
   }
 
   static bool _day(Object? raw) {

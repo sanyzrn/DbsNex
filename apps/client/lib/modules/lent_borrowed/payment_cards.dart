@@ -93,16 +93,23 @@ Future<PaymentCard> saveCard(
   PaymentCard card, {
   String? existingId,
 }) async {
-  final id =
-      existingId ?? (await cardForPerson(store, card.person))?.id ?? card.id;
-  await store.put('card', id, card.toJson());
-  return PaymentCard(
-    id: id,
-    person: card.person,
-    holder: card.holder,
-    card: card.card,
-    iban: card.iban,
-  );
+  final adopted = existingId == null
+      ? await cardForPerson(store, card.person)
+      : null;
+  final id = existingId ?? adopted?.id ?? card.id;
+  // Fields this version does not know are kept (docs/18), and a record
+  // that is adopted keeps what the new entry left blank (2.8.19): a second
+  // save with only an IBAN no longer wiped the card number given before.
+  final old = await store.get('card', id) ?? const <String, Object?>{};
+  bool given(Object? value) =>
+      value is String ? value.trim().isNotEmpty : value != null;
+  final body = <String, Object?>{
+    ...old,
+    for (final entry in card.toJson().entries)
+      if (adopted == null || given(entry.value)) entry.key: entry.value,
+  };
+  await store.put('card', id, body);
+  return PaymentCard.fromBody(id, body);
 }
 
 /// The card/IBAN lines of a message: quiet, complete, and only the fields
