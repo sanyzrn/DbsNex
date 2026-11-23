@@ -174,17 +174,22 @@ void main() {
     final read = Fund.read(record(changed));
     expect(read, isNotNull);
     expect(read!.shareChanges.single['shareRial'], 9000);
-    expect(
-      Fund.read(
-        record({
-          ...changed,
-          'shareChanges': [
-            {'from': dayKey(esfand.dayAt(15)), 'shareRial': 9000},
-          ],
-        }),
-      ),
-      isNull,
+    // A mid-month date is read onto its month's first day, not refused
+    // (2.8.19): refusing it took the whole fund off the screen.
+    final midMonth = Fund.read(
+      record({
+        ...changed,
+        'shareChanges': [
+          {'from': dayKey(later.dayAt(15)), 'shareRial': 9000},
+        ],
+        'members': [
+          for (final m in f.members) {...m, 'from': dayKey(esfand.dayAt(12))},
+        ],
+      }),
     );
+    expect(midMonth, isNotNull);
+    expect(midMonth!.shareChanges.single['from'], dayKey(later.first));
+    expect(midMonth.members.first['from'], dayKey(esfand.first));
     expect(
       Fund.read(
         record({
@@ -385,33 +390,36 @@ void main() {
     );
   });
 
-  test('a stored month must be the first day of its own month', () {
+  test('a stored month is read onto the first day of its own month', () {
+    // Refusing a mid-month date took the whole fund off the screen
+    // (2.8.19); it is read onto its month, and a second payment that lands
+    // on the same member and month is still refused.
     final f = example(esfand);
     final middle = dayKey(esfand.dayAt(15));
-    expect(
-      Fund.read(
-        record({
-          ...f.body,
-          'payments': [
-            <String, Object?>{
-              'member': '0',
-              'month': middle,
-              'at': dayKey(esfand.first),
-              'amountRial': 5000,
-            },
-          ],
-        }),
-      ),
-      isNull,
+    Fields payment(String month) => {
+      'member': '0',
+      'month': month,
+      'at': dayKey(esfand.first),
+      'amountRial': 5000,
+    };
+    final read = Fund.read(
+      record({
+        ...f.body,
+        'payments': [payment(middle)],
+        'members': [
+          for (final member in f.members)
+            member['id'] == '0' ? {...member, 'from': middle} : member,
+        ],
+      }),
     );
+    expect(read, isNotNull);
+    expect(read!.payments.single['month'], dayKey(esfand.first));
+    expect(read.members.first['from'], dayKey(esfand.first));
     expect(
       Fund.read(
         record({
           ...f.body,
-          'members': [
-            for (final member in f.members)
-              member['id'] == '0' ? {...member, 'from': middle} : member,
-          ],
+          'payments': [payment(middle), payment(dayKey(esfand.first))],
         }),
       ),
       isNull,

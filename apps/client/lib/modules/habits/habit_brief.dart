@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:nex_client/modules/module_api.dart';
+
 import 'habit_math.dart';
 import 'habit_model.dart';
 import 'week_settings.dart';
@@ -14,9 +15,10 @@ class HabitsBrief {
 
   static Future<HabitsBrief> read(NexModuleStore store, DateTime now) async {
     final habits =
-        (await store.list(
-            'habit',
-          )).map(Habit.fromRecord).where((h) => !h.archived).toList()
+        (await store.list('habit'))
+            .map(Habit.fromRecord)
+            .where((h) => !h.archived)
+            .toList()
           ..sort((a, b) => a.id.compareTo(b.id));
     if (habits.isEmpty) return empty;
     final byHabit = <String, List<HabitCheck>>{};

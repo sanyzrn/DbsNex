@@ -308,15 +308,18 @@ abstract final class NexMarkdownText {
     // thing worth showing — not the fence, its language, and whatever the
     // marker pass would make of the code's own backticks. The same rule the
     // snippet's own surfaces use decides it, with the same preview cap.
+    // A long one asks through the cache (2.8.19): finding a snippet's
+    // closing fence reads the whole source, and a pasted megabyte paid that
+    // on every rebuild.
+    if (source.length > _previewScanLimit) {
+      return _LongPreviewCache.read(source);
+    }
     final snippet = NexCodeSnippet.previewOf(
       source,
       maxChars: _previewScanLimit,
     );
     if (snippet != null) return snippet.code;
-    if (source.length <= _previewScanLimit) {
-      return nexLooksLikeMarkdown(source) ? plain(source) : source;
-    }
-    return _LongPreviewCache.read(source);
+    return nexLooksLikeMarkdown(source) ? plain(source) : source;
   }
 
   /// The pages of a long note that a preview can ever show, cut on a line
@@ -382,6 +385,11 @@ final class _LongPreviewCache {
   }
 
   static String _compute(String source) {
+    final snippet = NexCodeSnippet.previewOf(
+      source,
+      maxChars: NexMarkdownText._previewScanLimit,
+    );
+    if (snippet != null) return snippet.code;
     final prefix = NexMarkdownText._previewPrefix(source);
     // The gate reads all of the source on purpose — see [NexMarkdownText.preview].
     return nexLooksLikeMarkdown(source)

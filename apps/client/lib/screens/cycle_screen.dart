@@ -414,7 +414,10 @@ class _CycleScreenState extends State<CycleScreen> {
       ),
     };
 
-    final intervals = CyclePredictor.intervals(_periods);
+    final intervals = CyclePredictor.intervals(
+      _periods,
+      today: CycleDate.of(_today),
+    );
 
     return RefreshIndicator(
       onRefresh: _reload,

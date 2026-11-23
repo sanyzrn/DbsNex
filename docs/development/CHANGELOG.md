@@ -34,6 +34,24 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.19 — review of 2.8.8–2.8.18
+
+- Gold: `parseScaled`/`parseScaledDetailed` ungroup only with `grouped:`
+  (money controllers); weights, percents and fineness refuse a comma.
+- Family fund: `Fund.read` maps month fields onto their month's first day
+  before the strict checks (`_onMonthStarts`) instead of returning null.
+- Expenses: `duplicateTx(draftId:)` clears the editing sheet's draft.
+- Lent & Borrowed: removing «me» moves it to the first person; legacy
+  `saveCard` merges the
+  stored body (unknown fields kept; an adopted record keeps blank fields).
+- `NexCodeSnippet.storedInfo` keeps the whole fence info string through
+  `withCode`; the snippet editor keeps it when the language is unchanged.
+- Pause: a failed sound preparation is dropped so a later one can retry.
+- Habits: weekly grace counted from the current week even when it holds a
+  rest day. Cycle: `intervals(today:)` drops future starts. Words review:
+  `_skippedOnce` cleared on reload. Long code-note previews go through the
+  long-preview cache. Asset legend spacing from `NexSpacing`.
+
 ## v2.8.9
 
 - **Full-width cards in the large list.** Photos, video previews, PDF pages and link covers fill the card, with text and badges on top. Photos and cover images move with the scroll, just as in the grid.
