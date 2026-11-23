@@ -143,10 +143,10 @@ class _ExpensesAmountFieldState extends State<ExpensesAmountField> {
       widget.unit,
       allowZero: true,
     );
-    // An amount that does not read in the old unit is left as typed and the
-    // unit still changes (2.8.19): returning early froze the switch, though
-    // the new unit was often exactly what made «1500.5» valid.
-    final rials = amount.error == null ? amount.rials : null;
+    if (amount.error != null && amount.error != ExpenseAmountError.empty) {
+      return;
+    }
+    final rials = amount.rials;
     if (rials != null) {
       final text = expenseAmountInput(rials, next);
       final wasWriting = _writing;

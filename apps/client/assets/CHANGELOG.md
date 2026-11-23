@@ -8,8 +8,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - **Gold weights read as you meant.** A weight typed with a comma, such as 4,250, is no longer taken as four thousand grams; it is refused, so a decimal comma never prices a piece at a thousand times its weight. Money fields still accept grouped thousands.
 - **A family fund never goes missing.** A fund saved with a date in the middle of a month — from an earlier version, a backup or another phone — opens as usual, with its months read onto their first day, instead of disappearing from the list.
-- **Expenses keep up with you.** The rial/toman switch now works even while the amount still needs fixing, and "Same again" on a payment you had started to edit no longer leaves those edits behind as an unfinished draft on the original.
-- **Splits and saved cards, steadier.** Removing yourself from a split hands "me" to the next person, so transfers can still be recorded as loans; an older loan no longer marks a later split with the same name as recorded; and saving a second detail for someone keeps the card or IBAN you saved for them before.
+- **"Same again" leaves the original alone.** In Expenses, "Same again" on a payment you had started to edit no longer leaves those edits behind as an unfinished draft on the original.
+- **Splits and saved cards, steadier.** Removing yourself from a split hands "me" to the next person, so transfers can still be recorded as loans; and saving a second detail for someone keeps the card or IBAN you saved for them before.
 - **Smaller fixes.** Code notes keep everything written after the language when you edit them; Pause's sounds come back with "Again" if they failed to load; a rest day this week no longer hides a missed week in a weekly habit; the cycle chart ignores a start logged in the future; and a review that restarts in Word by Word forgets earlier skips.
 
 ## v2.8.18

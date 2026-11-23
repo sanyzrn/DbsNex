@@ -196,10 +196,7 @@ bool splitTransferRecorded(
         (loan.direction == LoanDirection.lent) == lent &&
         (loan.splitId.isNotEmpty
             ? loan.splitId == split.id
-            // A loan from before the link (2.8.19): its note, and not
-            // written before the split's own day — so another split that
-            // happens to share a title is not marked as recorded by it.
-            : loan.note == note && loan.issued.compareTo(split.date) >= 0),
+            : loan.note == note),
   );
 }
 

@@ -40,10 +40,9 @@ Working convention:
   (money controllers); weights, percents and fineness refuse a comma.
 - Family fund: `Fund.read` maps month fields onto their month's first day
   before the strict checks (`_onMonthStarts`) instead of returning null.
-- Expenses: unit switch no longer returns early on an unparsable amount;
-  `duplicateTx(draftId:)` clears the editing sheet's draft.
+- Expenses: `duplicateTx(draftId:)` clears the editing sheet's draft.
 - Lent & Borrowed: removing «me» moves it to the first person; legacy
-  split loans also need `issued >= split.date`; `saveCard` merges the
+  `saveCard` merges the
   stored body (unknown fields kept; an adopted record keeps blank fields).
 - `NexCodeSnippet.storedInfo` keeps the whole fence info string through
   `withCode`; the snippet editor keeps it when the language is unchanged.
