@@ -213,7 +213,7 @@ void main() {
       // Every media action is directly reachable, with voice in the same
       // row rather than between the kinds sharing the text field.
       final voiceY = tester.getCenter(find.byTooltip('Voice')).dy;
-      for (final kind in ['Voice', 'Camera', 'Gallery', 'File']) {
+      for (final kind in ['Voice', 'Camera', 'Media', 'File']) {
         expect(find.byTooltip(kind).hitTestable(), findsOneWidget);
         expect(tester.getCenter(find.byTooltip(kind)).dy, voiceY);
       }

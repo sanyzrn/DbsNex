@@ -78,7 +78,7 @@ void main() {
         tester.getCenter(voice).dy,
         greaterThan(tester.getCenter(_field).dy),
       );
-      for (final label in ['Camera', 'Gallery', 'File']) {
+      for (final label in ['Camera', 'Media', 'File']) {
         expect(tool(label), findsOneWidget);
         expect(tester.getCenter(tool(label)).dy, tester.getCenter(voice).dy);
       }
