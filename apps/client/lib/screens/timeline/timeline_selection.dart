@@ -216,29 +216,16 @@ extension _TimelineSelection on TimelineScreenState {
     final notes = _selectedNotes;
     if (notes.isEmpty) return;
     if (widget.preferences.haptics) unawaited(HapticFeedback.mediumImpact());
-    for (final note in notes) {
-      await widget.services.deleteNote(note.id);
+    try {
+      for (final note in notes) {
+        await widget.services.deleteNote(note.id, refresh: false);
+      }
+    } finally {
+      await widget.services.refreshTimeline();
     }
-    await widget.services.refreshTimeline();
     if (!mounted) return;
     _endSelection();
-    nexShowBanner(
-      context,
-      message: notes.length == 1
-          ? l10n.noteDeleted
-          : l10n.groupDeleted(notes.length),
-      // The tap that chose Delete already buzzed; the banner announcing the
-      // result of that same gesture stays quiet.
-      haptics: false,
-      actionLabel: l10n.undo,
-      onAction: () async {
-        _tick();
-        for (final note in notes) {
-          await widget.services.undelete(note.id);
-        }
-        await widget.services.refreshTimeline();
-      },
-    );
+    _showDeleteUndo(l10n, notes);
   }
 
   /// What takes the dock's place while notes are picked: how many, and

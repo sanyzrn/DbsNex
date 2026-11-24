@@ -59,11 +59,11 @@ extension _TimelineBody on TimelineScreenState {
                     type == NoteType.photo ? 'media' : type?.wireName,
                   ),
                 ),
-                title: Text(switch (type) {
-                  null => l10n.all,
-                  NoteType.photo => l10n.noteType('media'),
-                  _ => l10n.noteType(type.wireName),
-                }),
+                title: Text(
+                  type == null
+                      ? l10n.all
+                      : nexNoteTypeFilterLabel(l10n, type.wireName),
+                ),
                 trailing: !_model.onlyCode && _model.selectedType == type
                     ? const Icon(Icons.check)
                     : null,

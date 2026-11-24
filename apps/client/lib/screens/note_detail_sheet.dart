@@ -9,6 +9,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show compute;
+import 'package:flutter/rendering.dart' show RenderParagraph;
 
 import '../platform/note_copy.dart';
 import '../widgets/copy_feedback.dart';
@@ -270,6 +271,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   void dispose() {
     _stateSub?.cancel();
     _player?.dispose();
+    _snippetScrollController?.dispose();
     super.dispose();
   }
 
@@ -393,6 +395,15 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   bool _convertingMarkdown = false;
   String? _parsedSnippetSource;
   NexCodeSnippet? _parsedSnippet;
+
+  /// The snippet reader on this sheet, so Find in code can scroll a result
+  /// into view. One note per sheet, so one key; null until a snippet note
+  /// builds its reader.
+  GlobalKey<_SnippetReaderState>? _snippetReader;
+
+  /// The scroll view a snippet's reader sits in, created with the reader and
+  /// disposed with the sheet.
+  ScrollController? _snippetScrollController;
 
   @override
   Widget build(BuildContext context) {

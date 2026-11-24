@@ -25,7 +25,7 @@ String _widgetFilterSummary(AppLocalizations l10n, NexPreferences preferences) {
   final tags = preferences.widgetTags.values.where((n) => n.isNotEmpty);
   final kinds = types.isEmpty
       ? l10n.widgetSettingsEverything
-      : types.map(l10n.noteType).join(', ');
+      : types.map((wire) => nexNoteTypeFilterLabel(l10n, wire)).join(', ');
   return tags.isEmpty ? kinds : '$kinds · ${tags.join(', ')}';
 }
 

@@ -189,12 +189,17 @@ class NexWidgetSnapshot {
     return notes
         .where(
           (note) =>
-              (types.isEmpty || types.contains(_widgetTypeOf(note))) &&
+              (types.isEmpty || _typeSelected(types, note)) &&
               (tagIds.isEmpty ||
                   note.tags.any((tag) => tagIds.contains(tag.id))),
         )
         .toList();
   }
+
+  static bool _typeSelected(Set<String> types, Note note) =>
+      types.contains(_widgetTypeOf(note)) ||
+      (types.contains(NoteType.photo.wireName) &&
+          NoteType.filterMatches(NoteType.photo, note.type));
 
   /// The kind the widget shows for [note]: a snippet is a text note in the
   /// database, but it is Code on the card, in the app's filter and on the

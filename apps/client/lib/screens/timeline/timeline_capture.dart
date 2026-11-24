@@ -101,19 +101,19 @@ extension _TimelineCapture on TimelineScreenState {
     }
   }
 
-  /// A photo from Nex's own camera panel, or from the library. The phone's
+  /// Media from the gallery, or a photo from Nex's own camera panel. The phone's
   /// camera app is the fallback when the panel cannot open a camera.
   ///
   /// From the library, several at once (docs/14-attachments.md): the first
   /// becomes the note, through the same preview as ever, and the rest go on
   /// it as attachments — one note for "these belong together", not one
   /// each.
-  Future<List<XFile>> _pickPhotos(ImageSource source) async {
+  Future<List<XFile>> _pickMedia(ImageSource source) async {
     if (source == ImageSource.camera) {
       final shot = await nexTakePhoto(context);
       return [?shot];
     }
-    return ImagePicker().pickMultiImage();
+    return ImagePicker().pickMultipleMedia();
   }
 
   /// The draft keys an interrupted photo editing session leaves behind,
@@ -130,12 +130,31 @@ extension _TimelineCapture on TimelineScreenState {
       // camera or the photo library, which is the single most likely failure
       // and the one the old handler could not have caught.
       final recovered = widget.preferences.editorDrafts?.readImage('photo-new');
-      final all = recovered == null ? await _pickPhotos(source) : <XFile>[];
+      final all = recovered == null ? await _pickMedia(source) : <XFile>[];
       final picked = all.firstOrNull;
       final more = all.skip(1).toList();
       if (recovered == null && picked == null) return;
+      final video = picked != null && _pickedVideo(picked);
+      if (source == ImageSource.gallery) {
+        for (final item in all) {
+          final bytes = await item.length();
+          final limit =
+              widget.osCapture?.maxAttachmentBytes ??
+              OsCaptureBridge.defaultMaxAttachmentBytes;
+          if (bytes > limit) {
+            if (mounted) {
+              nexShowAttachmentTooLarge(
+                context,
+                RejectedShare(filename: item.name, bytes: bytes, limit: limit),
+              );
+            }
+            return;
+          }
+        }
+      }
       final editing =
-          widget.preferences.editPhotoBeforeCapture || recovered != null;
+          !video &&
+          (widget.preferences.editPhotoBeforeCapture || recovered != null);
       // The original bytes are read only when they are about to be edited:
       // the straight path below copies the picker's own file and hashes it
       // from the disk, so an unedited photo never crosses the heap at all.
@@ -194,23 +213,35 @@ extension _TimelineCapture on TimelineScreenState {
         final pickedExtension = p.extension(pickedPath);
         final dest = p.join(
           widget.services.mediaDir,
-          'photo-${DateTime.now().microsecondsSinceEpoch}'
-          '${pickedExtension.isNotEmpty ? pickedExtension : '.jpg'}',
+          '${video ? 'video' : 'photo'}-${newUuidV7()}'
+          '${pickedExtension.isNotEmpty
+              ? pickedExtension
+              : video
+              ? ''
+              : '.jpg'}',
         );
         await File(pickedPath).copy(dest);
         final hash = await compute(sha256OfFile, dest);
         if (hash == null) {
-          throw StateError('the photo copy could not be read back');
+          throw StateError('the media copy could not be read back');
         }
-        note = await widget.services.capturePhoto(
-          mediaUri: dest,
-          mediaHash: hash,
-        );
+        note = video
+            ? await widget.services.captureFile(
+                mediaUri: dest,
+                mediaHash: hash,
+                originalFilename: picked.name,
+                mimeType: picked.mimeType,
+              )
+            : await widget.services.capturePhoto(
+                mediaUri: dest,
+                mediaHash: hash,
+              );
       }
       for (final key in _photoDraftKeys) {
         widget.preferences.editorDrafts?.clear(key);
       }
       for (final extra in more) {
+        final video = _pickedVideo(extra);
         // Copied and hashed from the file, never read whole into memory: a
         // multi-photo pick can be a dozen pictures, and each used to make
         // two full copies of itself on this loop (read into the heap, then
@@ -218,7 +249,8 @@ extension _TimelineCapture on TimelineScreenState {
         await widget.services.attachFile(
           note.id,
           extra.path,
-          kind: AttachmentKind.photo,
+          kind: video ? AttachmentKind.file : AttachmentKind.photo,
+          name: video ? extra.name : null,
           mimeType: extra.mimeType,
           // The one refresh below the loop covers the whole batch.
           refresh: false,
@@ -237,6 +269,14 @@ extension _TimelineCapture on TimelineScreenState {
       if (mounted) _reportCaptureFailure(CaptureFailure.of(error), source);
     }
   }
+
+  static bool _pickedVideo(XFile file) =>
+      NoteType.forFile(
+        path: file.path,
+        originalFilename: file.name,
+        mimeType: file.mimeType,
+      ) ==
+      NoteType.video;
 
   void _reportCaptureFailure(CaptureFailure failure, ImageSource source) {
     final l10n = AppLocalizations.of(context);

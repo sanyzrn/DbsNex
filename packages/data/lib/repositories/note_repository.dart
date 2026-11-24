@@ -1556,6 +1556,14 @@ VALUES (?, ?, ?, ?, 'synced')
     required int rev,
     required List<String> tagIds,
   }) => db.together(() {
+    // A video that arrives as a plain file — an older build's row, or a note
+    // pulled fresh onto a device that never held this library — is read the
+    // way the capture path reads one, so every device calls one note one kind.
+    // The 2.8.20 migration fixes a library in place; this keeps later
+    // arrivals, and restores from the server, in step with it (2.8.21).
+    final effectiveType = type == NoteType.file
+        ? NoteType.forFile(path: mediaUri, originalFilename: content)
+        : type;
     final existing = db.select('SELECT * FROM notes WHERE id = ?', [id]);
     final pending =
         existing.isNotEmpty && existing.first['sync_state'] == 'pending';
@@ -1587,7 +1595,7 @@ VALUES (?, ?, ?, ?, 'synced')
         !pending &&
         _matchesRemote(
           existing.first,
-          type: type,
+          type: effectiveType,
           content: content,
           mediaUri: effectiveMediaUri,
           mediaHash: mediaHash,
@@ -1612,7 +1620,7 @@ VALUES (?, ?, ?, ?, 'synced')
       }
       if (row['deleted_at'] == null &&
           (row['content'] != content ||
-              row['type'] != type.wireName ||
+              row['type'] != effectiveType.wireName ||
               row['media_uri'] != effectiveMediaUri ||
               row['media_hash'] != mediaHash ||
               row['duration_ms'] != durationMs ||
@@ -1678,7 +1686,7 @@ INSERT INTO notes (
 ''',
         [
           id,
-          type.wireName,
+          effectiveType.wireName,
           content,
           effectiveMediaUri,
           mediaHash,
@@ -1700,7 +1708,7 @@ UPDATE notes SET
 WHERE id = ?
 ''',
         [
-          type.wireName,
+          effectiveType.wireName,
           content,
           effectiveMediaUri,
           mediaHash,
@@ -2620,9 +2628,16 @@ n.id IN (
       args.add(filters.createdTo!.toUtc().toIso8601String());
     }
     if (filters.types.isNotEmpty) {
-      final placeholders = List.filled(filters.types.length, '?').join(',');
+      final names = [
+        for (final type in NoteType.values)
+          if (filters.types.any(
+            (filter) => NoteType.filterMatches(filter, type),
+          ))
+            type.wireName,
+      ];
+      final placeholders = List.filled(names.length, '?').join(',');
       where.add('n.type IN ($placeholders)');
-      args.addAll(filters.types.map((t) => t.wireName));
+      args.addAll(names);
     }
     return (where, args);
   }

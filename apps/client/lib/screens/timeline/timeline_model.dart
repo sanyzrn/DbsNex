@@ -495,9 +495,7 @@ class TimelineModel extends ChangeNotifier {
     final type = _selectedType;
     return source.where((note) {
       if (_onlyReminders && note.dueAt == null) return false;
-      if (type != null &&
-          note.type != type &&
-          !(type == NoteType.photo && note.type == NoteType.video)) {
+      if (type != null && !NoteType.filterMatches(type, note.type)) {
         return false;
       }
       if (type == NoteType.text && (note.snippetPreview != null) != _onlyCode) {

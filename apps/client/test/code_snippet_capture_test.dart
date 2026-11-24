@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/app.dart';
@@ -652,6 +653,161 @@ void main() {
       );
       expect(codeContaining('  line 479'), findsOneWidget);
       expect(codeContaining('a' * 3999), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Find in code takes the reader to the chosen line, folded or not',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 660);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final code = [
+        for (var i = 1; i <= 400; i++)
+          if (i == 335)
+            '${'prefix ' * 80}the needle line'
+          else if (i >= 290 && i < 335)
+            'line $i ${'wrapped words ' * 6}'
+          else
+            'line $i of many',
+      ].join('\n');
+      final note = (await services.captureText(
+        NexCodeSnippet(code: code).markdown,
+      ))!;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: NoteDetailSheet(
+              services: services,
+              preferences: preferences,
+              noteId: note.id,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(NoteDetailSheet)),
+      );
+      final needle = find.textContaining('the needle line');
+
+      // Folded to a preview: the deep line is not reachable by scrolling
+      // the sheet as it opens.
+      expect(find.byKey(const ValueKey('snippet-expand')), findsOneWidget);
+
+      final reader = find.byType(CustomScrollView);
+      Future<void> findAndCheck() async {
+        await tester.tap(find.byTooltip(l10n.codeFind));
+        await tester.pumpAndSettle();
+        final search = find.byType(NexSearchField);
+        final result = find.ancestor(
+          of: needle,
+          matching: find.byType(ListTile),
+        );
+        await tester.enterText(search, 'needle');
+        await tester.pump(const Duration(milliseconds: 140));
+        await tester.pumpAndSettle();
+        expect(result, findsOneWidget);
+        await tester.enterText(search, 'absent');
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(result, findsNothing);
+        expect(find.text(l10n.codeNoMatches), findsNothing);
+        await tester.enterText(search, 'needle');
+        await tester.pump(const Duration(milliseconds: 140));
+        await tester.pumpAndSettle();
+        // Choosing the excerpt itself must work, not just the gutter.
+        await tester.tap(needle);
+        for (var i = 0; i < 36; i++) {
+          await tester.pump(const Duration(milliseconds: 20));
+        }
+        await tester.pumpAndSettle();
+
+        expect(find.byType(NexSearchField), findsNothing);
+        final paragraph = tester.renderObject<RenderParagraph>(needle);
+        final start = paragraph.text.toPlainText().indexOf('the needle line');
+        final box = paragraph
+            .getBoxesForSelection(
+              TextSelection(baseOffset: start, extentOffset: start + 15),
+            )
+            .first
+            .toRect();
+        final point = paragraph.localToGlobal(box.center);
+        final viewport = tester.getRect(reader);
+        expect(
+          viewport.contains(point),
+          isTrue,
+          reason: 'the matching text is visible at $point within $viewport',
+        );
+      }
+
+      await findAndCheck();
+      tester.widget<CustomScrollView>(reader).controller!.jumpTo(0);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip(l10n.codeWrap));
+      await tester.tap(find.byTooltip(l10n.codeLineNumbers));
+      await tester.pumpAndSettle();
+      await findAndCheck();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'line numbers number every line of a snippet, and only while asked',
+    (tester) async {
+      tester.view.physicalSize = const Size(600, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      const code = 'first\nsecond\nthird';
+      final note = (await services.captureText(
+        NexCodeSnippet(code: code, language: NexCodeLanguage.dart).markdown,
+      ))!;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: NoteDetailSheet(
+              services: services,
+              preferences: preferences,
+              noteId: note.id,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(NoteDetailSheet)),
+      );
+      Finder gutters() => find.byWidgetPredicate(
+        (w) => w is Text && RegExp(r'^\s+\d+$').hasMatch(w.data ?? ''),
+      );
+      expect(gutters(), findsNothing);
+
+      final numbers = find.byTooltip(l10n.codeLineNumbers);
+      expect(numbers, findsOneWidget);
+      await tester.tap(numbers);
+      await tester.pumpAndSettle();
+
+      // One gutter per line, counting the code's own lines.
+      final labels = [
+        for (final element in gutters().evaluate())
+          (element.widget as Text).data!,
+      ];
+      expect(labels, ['  1', '  2', '  3']);
+      // Numbering splits the code by line: each line keeps its own words.
+      for (final line in ['first', 'second', 'third']) {
+        expect(
+          find.byWidgetPredicate((w) => w is NexCodeText && w.code == line),
+          findsOneWidget,
+        );
+      }
+
+      await tester.tap(numbers);
+      await tester.pumpAndSettle();
+      expect(gutters(), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );

@@ -35,6 +35,10 @@ enum NoteType {
     return kind == NexFileKind.video ? video : file;
   }
 
+  /// A [photo] filter represents Media and includes both photos and videos.
+  static bool filterMatches(NoteType filter, NoteType type) =>
+      filter == type || (filter == NoteType.photo && type == NoteType.video);
+
   static NoteType fromWire(String value) {
     return NoteType.values.firstWhere(
       (t) => t.name == value,
