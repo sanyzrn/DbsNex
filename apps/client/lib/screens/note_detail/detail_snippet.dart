@@ -21,8 +21,14 @@ extension _DetailSnippet on _NoteDetailSheetState {
     List<Widget> footer,
   ) {
     final theme = Theme.of(context);
+    // One controller for the sheet's life, so Find in code can scroll this
+    // view to the chunk its line is in. [Scrollable.ensureVisible] cannot
+    // do that alone: the list builds its chunks lazily, and a chunk far off
+    // screen has no context to be shown.
+    final scroll = _snippetScrollController ??= ScrollController();
     return CustomScrollView(
       shrinkWrap: true,
+      controller: scroll,
       slivers: [
         SliverPadding(
           padding: padding,
@@ -52,12 +58,20 @@ extension _DetailSnippet on _NoteDetailSheetState {
                         IconButton(
                           tooltip: l10n.codeFind,
                           icon: const Icon(Icons.search),
+                          // The sheet returns the line a result was tapped
+                          // on, and the reader scrolls to it: a list of
+                          // matches nobody can reach is not a find.
                           onPressed: () => unawaited(
-                            nexShowSheet<void>(
+                            nexShowSheet<_SnippetMatch>(
                               context: context,
                               builder: (_) =>
                                   _SnippetFindSheet(snippet: snippet),
-                            ),
+                            ).then((match) {
+                              final reader = _snippetReader?.currentState;
+                              if (match != null && reader != null) {
+                                unawaited(reader.revealMatch(match));
+                              }
+                            }),
                           ),
                         ),
                         TextButton.icon(
@@ -72,7 +86,13 @@ extension _DetailSnippet on _NoteDetailSheetState {
                   ],
                 ),
               ),
-              _SnippetReader(key: ValueKey(note.id), snippet: snippet),
+              _SnippetReader(
+                key: _snippetReader ??= GlobalKey<_SnippetReaderState>(
+                  debugLabel: 'snippet-reader',
+                ),
+                snippet: snippet,
+                scroll: scroll,
+              ),
               SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -140,9 +160,16 @@ List<List<TextSpan>> _snippetHighlight(_ReaderRequest request) {
 }
 
 class _SnippetReader extends StatefulWidget {
-  const _SnippetReader({super.key, required this.snippet});
+  const _SnippetReader({
+    super.key,
+    required this.snippet,
+    required this.scroll,
+  });
 
   final NexCodeSnippet snippet;
+
+  /// The scroll view the reader's chunks sit in, for [revealLine].
+  final ScrollController scroll;
 
   @override
   State<_SnippetReader> createState() => _SnippetReaderState();
@@ -159,6 +186,102 @@ class _SnippetReaderState extends State<_SnippetReader> {
   bool _numbered = false;
   bool _highlight = false;
   Animation<double>? _entrance;
+
+  final _chunkKeys = <int, GlobalKey>{};
+  final _targetText = GlobalKey();
+  _SnippetMatch? _target;
+  int _targetTextOffset = 0;
+
+  GlobalKey _chunkKey(int index) =>
+      _chunkKeys.putIfAbsent(index, GlobalKey.new);
+
+  Future<void> revealMatch(_SnippetMatch match) async {
+    final duration = NexMotion.of(context, NexMotion.standard);
+    final code = widget.snippet.code;
+    final chunk = _chunkAt(match.offset);
+    _target = match;
+    _setExpanded(true);
+    await WidgetsBinding.instance.endOfFrame;
+
+    bool current() =>
+        mounted &&
+        _target == match &&
+        code == widget.snippet.code &&
+        widget.scroll.hasClients;
+
+    if (!current()) return;
+    final position = widget.scroll.position;
+    var lower = position.minScrollExtent;
+    double? upper;
+    var probe = position.maxScrollExtent * (match.line - 1) / _chunkLines.last;
+
+    // The sliver estimates its extent from the chunks it has laid out.
+    // Probe the estimate, then narrow the search using mounted chunk indices.
+    // Usually the first probe is enough; wrapped text can skew it.
+    for (
+      var attempt = 0;
+      attempt < 32 && _targetText.currentContext == null;
+      attempt++
+    ) {
+      position.jumpTo(
+        probe.clamp(position.minScrollExtent, position.maxScrollExtent),
+      );
+      await WidgetsBinding.instance.endOfFrame;
+      if (!current()) return;
+      final visible = _chunkKeys.entries
+          .where((e) => e.value.currentContext != null)
+          .map((e) => e.key);
+      final first = visible.isEmpty ? null : visible.reduce(math.min);
+      final pixels = position.pixels;
+      if ((first != null && first > chunk) ||
+          (first == null && position.extentAfter < 1)) {
+        upper = upper == null ? pixels : math.min(upper, pixels);
+      } else {
+        lower = math.max(lower, pixels);
+      }
+      final ceiling = math.min(
+        upper ?? position.maxScrollExtent,
+        position.maxScrollExtent,
+      );
+      if (ceiling - lower < 0.5) break;
+      probe = upper == null ? ceiling : (lower + ceiling) / 2;
+    }
+
+    if (!current()) return;
+    final render = _targetText.currentContext?.findRenderObject();
+    if (render is! RenderParagraph) return;
+    final start = match.offset - _targetTextOffset;
+    final end = math.min(
+      start + match.length,
+      render.text.toPlainText().length,
+    );
+    if (end <= start) return;
+    final boxes = render.getBoxesForSelection(
+      TextSelection(baseOffset: start, extentOffset: end),
+    );
+    if (boxes.isEmpty) return;
+    // Reveal the matching glyphs, including their horizontal offset when the
+    // chunk is unwrapped. Flutter propagates this rectangle to both viewports.
+    render.showOnScreen(
+      rect: boxes.first.toRect(),
+      duration: duration,
+      curve: NexMotion.curve,
+    );
+  }
+
+  int _chunkAt(int offset) {
+    var low = 0;
+    var high = _boundaries.length - 1;
+    while (high - low > 1) {
+      final middle = (low + high) ~/ 2;
+      if (_boundaries[middle] <= offset) {
+        low = middle;
+      } else {
+        high = middle;
+      }
+    }
+    return low;
+  }
 
   _ReaderRequest? _requested;
   List<List<TextSpan>>? _chunkSpans;
@@ -236,6 +359,10 @@ class _SnippetReaderState extends State<_SnippetReader> {
       _boundaries = _chunkBoundaries(widget.snippet.code);
       _previewEnd = _previewLimit(widget.snippet.code);
       _chunkLines = _firstLines(widget.snippet.code, _boundaries);
+      // The old chunks are gone; keys for chunks that no longer exist
+      // must not outlive them.
+      _chunkKeys.clear();
+      _target = null;
     }
     if (old.snippet != widget.snippet) {
       _prepareSpans();
@@ -392,16 +519,19 @@ class _SnippetReaderState extends State<_SnippetReader> {
                   final spans = _chunkSpans?[index];
                   final body = _numbered
                       ? _numberedChunk(chunk, index, spans, style)
-                      : _codeText(chunk, spans, style);
-                  return _wrap
-                      ? body
-                      : Directionality(
-                          textDirection: TextDirection.ltr,
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: body,
+                      : _codeText(chunk, spans, style, sourceOffset: start);
+                  return KeyedSubtree(
+                    key: _chunkKey(index),
+                    child: _wrap
+                        ? body
+                        : Directionality(
+                            textDirection: TextDirection.ltr,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: body,
+                            ),
                           ),
-                        );
+                  );
                 },
               ),
           ],
@@ -410,15 +540,28 @@ class _SnippetReaderState extends State<_SnippetReader> {
     );
   }
 
-  Widget _codeText(String text, List<TextSpan>? spans, TextStyle? style) =>
-      NexCodeText(
-        text,
-        language: widget.snippet.language,
-        highlight: false,
-        spans: spans,
-        style: style,
-        softWrap: _wrap,
-      );
+  Widget _codeText(
+    String text,
+    List<TextSpan>? spans,
+    TextStyle? style, {
+    required int sourceOffset,
+  }) {
+    final target = _target?.offset;
+    final containsMatch =
+        target != null &&
+        target >= sourceOffset &&
+        target < sourceOffset + text.length;
+    if (containsMatch) _targetTextOffset = sourceOffset;
+    return NexCodeText(
+      text,
+      key: containsMatch ? _targetText : null,
+      language: widget.snippet.language,
+      highlight: false,
+      spans: spans,
+      style: style,
+      softWrap: _wrap,
+    );
+  }
 
   Widget _numberedChunk(
     String chunk,
@@ -448,6 +591,7 @@ class _SnippetReaderState extends State<_SnippetReader> {
             ? null
             : nexSliceCodeSpans(spans, start, end),
         style,
+        sourceOffset: sourceOffset,
       );
       rows.add(
         Row(

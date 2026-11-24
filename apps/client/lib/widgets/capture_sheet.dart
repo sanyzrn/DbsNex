@@ -720,7 +720,7 @@ class _CaptureSheetState extends State<CaptureSheet>
                       ),
                       _Tool(
                         icon: Icons.photo_library_outlined,
-                        label: l10n.gallery,
+                        label: l10n.noteType('media'),
                         type: 'photo',
                         onTap: tools
                             ? () => unawaited(_leaveFor(widget.onGallery))

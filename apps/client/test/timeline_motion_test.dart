@@ -153,6 +153,45 @@ void main() {
     );
   }
 
+  testWidgets('deletes made in a row share one count and one Undo', (
+    tester,
+  ) async {
+    final h = await open(tester);
+    final first = (await h.services.captureText('First to go'))!;
+    final second = (await h.services.captureText('Second to go'))!;
+    await tester.pumpWidget(h.app());
+    await tester.pumpAndSettle();
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(TimelineScreen)),
+    );
+
+    await timeline(tester).deleteWithUndo(first);
+    await tester.pump();
+    expect(find.text(l10n.noteDeleted), findsOneWidget);
+    expect(find.text(l10n.undo), findsOneWidget);
+
+    await timeline(tester).deleteWithUndo(second);
+    await tester.pump();
+
+    // One banner with one count, not two banners with two Undos.
+    expect(find.text(l10n.noteDeleted), findsNothing);
+    expect(find.text(l10n.groupDeleted(2)), findsOneWidget);
+    expect(find.text(l10n.undo), findsOneWidget);
+
+    var refreshes = 0;
+    final subscription = h.services.timelineStream.listen((_) => refreshes++);
+    addTearDown(subscription.cancel);
+    await tester.tap(find.text(l10n.undo));
+    await tester.pumpAndSettle();
+    expect(refreshes, 1);
+    expect(card(first.id), findsOneWidget);
+    expect(card(second.id), findsOneWidget);
+    expect((await h.services.getById(first.id))?.deletedAt, isNull);
+    expect((await h.services.getById(second.id))?.deletedAt, isNull);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('updated brief text blends in and old semantics disappear', (
     tester,
   ) async {

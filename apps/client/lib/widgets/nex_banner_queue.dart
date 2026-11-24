@@ -6,11 +6,15 @@ class NexBannerGroup {
     required this.key,
     required this.count,
     required this.message,
+    this.batch,
   });
 
   final Object key;
   final int count;
   final String Function(int) message;
+
+  /// Optional identifiers to submit together when the user taps Undo.
+  final ({List<String> ids, ValueChanged<List<String>> run})? batch;
 }
 
 final _queues = Expando<_BannerQueue>();
@@ -30,6 +34,7 @@ class _BannerRequest {
     required this.haptics,
     required this.group,
   }) : actions = [?onAction],
+       _ids = group?.batch?.ids.toSet(),
        repetitions = group?.count ?? 1;
 
   String message;
@@ -40,6 +45,7 @@ class _BannerRequest {
   final bool haptics;
   final NexBannerGroup? group;
   final List<VoidCallback> actions;
+  final Set<String>? _ids;
   final closed = Completer<void>();
   int repetitions;
 
@@ -50,19 +56,29 @@ class _BannerRequest {
     final mergeActions =
         group != null &&
         group!.key == next.group?.key &&
+        (_ids == null) == (next._ids == null) &&
         actionKey == next.actionKey;
     if (!mergeActions && (actionLabel != null || message != next.message)) {
       return false;
     }
     repetitions += next.repetitions;
     if (mergeActions) {
+      if (_ids case final ids?) {
+        ids.addAll(next._ids!);
+        repetitions = ids.length;
+      } else {
+        actions.addAll(next.actions);
+      }
       message = group!.message(repetitions);
-      actions.addAll(next.actions);
     }
     return true;
   }
 
   void act() {
+    if (group?.batch case final batch?) {
+      batch.run(List.unmodifiable(_ids!));
+      return;
+    }
     for (final action in actions) {
       action();
     }

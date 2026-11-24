@@ -4,6 +4,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.21
+
+- **Pick photos and videos together.** Open Media from the capture sheet to choose both from your gallery.
+- **Deletes made in a row undo together.** One notice counts the notes and one Undo brings them all back.
+- **Find in code reaches the line.** Choosing a result takes the snippet to that line — folded code included.
+
 ## v2.8.20
 
 - **Photos and videos in Media.** Videos, including ones already saved in Nex, sit with photos in the home filter and the Media shelf.

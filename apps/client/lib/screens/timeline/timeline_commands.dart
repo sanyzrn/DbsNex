@@ -1,5 +1,11 @@
 part of '../timeline_screen.dart';
 
+/// What makes two delete banners the same batch: one swipe delete and the
+/// next one, or a selection's delete followed by one more. Consecutive
+/// deletes share one count and one Undo; anything else — a save, a share —
+/// keeps its own banner beside it.
+const _deletedNotesGroup = ValueKey<String>('timeline-deleted-notes');
+
 /// What the timeline can be asked to do from outside: open the capture
 /// sheet, or delete a note with an undo. Split out of timeline_screen.dart
 /// (REL-10).
@@ -88,22 +94,30 @@ extension TimelineCommands on TimelineScreenState {
   Future<void> deleteWithUndo(Note note) async {
     final l10n = AppLocalizations.of(context);
     await widget.services.deleteNote(note.id);
-    await widget.services.refreshTimeline();
-    if (!mounted) return;
-    // One buzz per delete, and it has already happened: the swipe's own
-    // threshold thud — or the tap that chose Delete — is the whole
-    // confirmation. The action and then the banner each added another:
-    // three in a row for one delete, which reads as an error, not a receipt.
+    if (mounted) _showDeleteUndo(l10n, [note]);
+  }
+
+  void _showDeleteUndo(AppLocalizations l10n, List<Note> notes) {
+    final services = widget.services;
     nexShowBanner(
       context,
-      message: l10n.noteDeleted,
+      message: notes.length == 1
+          ? l10n.noteDeleted
+          : l10n.groupDeleted(notes.length),
       haptics: false,
       actionLabel: l10n.undo,
-      onAction: () async {
-        _tick();
-        await widget.services.undelete(note.id);
-        await widget.services.refreshTimeline();
-      },
+      group: NexBannerGroup(
+        key: (services, _deletedNotesGroup),
+        count: notes.length,
+        message: l10n.groupDeleted,
+        batch: (
+          ids: [for (final note in notes) note.id],
+          run: (ids) {
+            if (mounted) _tick();
+            unawaited(services.undeleteNotes(ids));
+          },
+        ),
+      ),
     );
   }
 

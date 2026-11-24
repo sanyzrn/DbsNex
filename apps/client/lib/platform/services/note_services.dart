@@ -312,7 +312,7 @@ extension NexNoteServices on NexServices {
   }
 
   /// Undoes a soft delete, and re-arms the note's alarm if it has one.
-  Future<void> undelete(String id) async {
+  Future<void> undelete(String id, {bool refresh = true}) async {
     await worker.undelete(id);
     // The delete path cancelled the alarm (as it must). Restoring the note
     // without restoring its reminder would make delete lose data — the one
@@ -324,7 +324,18 @@ extension NexNoteServices on NexServices {
         await reminders.schedule(note);
       }
     } catch (_) {}
-    await refreshTimeline();
+    if (refresh) await refreshTimeline();
+  }
+
+  /// Restores all the notes in one Undo and refreshes after the batch.
+  Future<void> undeleteNotes(Iterable<String> ids) async {
+    try {
+      for (final id in ids) {
+        await undelete(id, refresh: false);
+      }
+    } finally {
+      await refreshTimeline();
+    }
   }
 
   /// Sets or clears when a note should come back up, and moves the alarm to

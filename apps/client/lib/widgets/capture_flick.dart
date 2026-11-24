@@ -28,7 +28,7 @@ String captureShortcutLabel(AppLocalizations l10n, CaptureShortcut shortcut) =>
       CaptureShortcut.camera => l10n.camera,
       CaptureShortcut.checklist => l10n.checklist,
       CaptureShortcut.link => l10n.link,
-      CaptureShortcut.gallery => l10n.gallery,
+      CaptureShortcut.gallery => l10n.noteType('media'),
       CaptureShortcut.file => l10n.file,
     };
 

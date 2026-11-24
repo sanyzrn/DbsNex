@@ -1,5 +1,7 @@
 part of '../note_detail_sheet.dart';
 
+typedef _SnippetMatch = ({int line, int offset, int length, String excerpt});
+
 class _SnippetFindSheet extends StatefulWidget {
   const _SnippetFindSheet({required this.snippet});
 
@@ -12,7 +14,7 @@ class _SnippetFindSheet extends StatefulWidget {
 class _SnippetFindSheetState extends State<_SnippetFindSheet> {
   static const _limit = 200;
   final _controller = TextEditingController();
-  List<({int line, String excerpt})> _matches = const [];
+  List<_SnippetMatch> _matches = const [];
   bool _limited = false;
   int _searchId = 0;
 
@@ -29,12 +31,10 @@ class _SnippetFindSheetState extends State<_SnippetFindSheet> {
     });
   }
 
-  static List<({int line, String excerpt})> _findSnippetLines(
-    (String, String) request,
-  ) {
+  static List<_SnippetMatch> _findSnippetLines((String, String) request) {
     final (source, query) = request;
     if (query.isEmpty) return const [];
-    final matches = <({int line, String excerpt})>[];
+    final matches = <_SnippetMatch>[];
     final pattern = RegExp(RegExp.escape(query), caseSensitive: false);
     var line = 1;
     var start = 0;
@@ -42,12 +42,13 @@ class _SnippetFindSheetState extends State<_SnippetFindSheet> {
       final newline = source.indexOf('\n', start);
       final end = newline < 0 ? source.length : newline;
       final text = source.substring(start, end);
-      final offset = text.indexOf(pattern);
-      if (offset >= 0) {
-        final from = math.max(0, offset - 60);
-        final to = math.min(text.length, offset + query.length + 120);
+      if (pattern.firstMatch(text) case final match?) {
+        final from = math.max(0, match.start - 60);
+        final to = math.min(text.length, match.end + 120);
         matches.add((
           line: line,
+          offset: start + match.start,
+          length: match.end - match.start,
           excerpt:
               '${from > 0 ? '…' : ''}${text.substring(from, to)}${to < text.length ? '…' : ''}',
         ));
@@ -98,11 +99,8 @@ class _SnippetFindSheetState extends State<_SnippetFindSheet> {
                         final result = _matches[index];
                         return ListTile(
                           leading: Text('${result.line}'),
-                          title: NexCodeText(
-                            result.excerpt,
-                            softWrap: true,
-                            selectable: true,
-                          ),
+                          title: NexCodeText(result.excerpt, softWrap: true),
+                          onTap: () => Navigator.pop(context, result),
                         );
                       },
                     ),

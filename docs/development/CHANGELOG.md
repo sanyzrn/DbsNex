@@ -34,6 +34,16 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.21 — capture and reading
+
+- Media capture picks photos and videos together. The first item becomes
+  the note and later items become attachments in the same note.
+- Consecutive deletes share an Undo that restores reminders and refreshes
+  the timeline once for the batch.
+- Code search returns the match offset. The reader locates the lazy chunk
+  and reveals the matching glyphs, including in wrapped and unwrapped code.
+  The reader tests also cover the line-number toggle.
+
 ### 2.8.20 — media, notices, code, and reading fixes
 
 - Video is an independent note type. The timeline combines photos and videos
