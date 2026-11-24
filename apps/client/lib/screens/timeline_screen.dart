@@ -131,6 +131,7 @@ part 'timeline/timeline_note_actions.dart';
 part 'timeline/timeline_navigation.dart';
 part 'timeline/timeline_layout.dart';
 part 'timeline/timeline_home_chrome.dart';
+part 'timeline/timeline_dock_slot.dart';
 part 'timeline/timeline_scroll.dart';
 part 'timeline/timeline_sticky_day.dart';
 part 'timeline/timeline_body.dart';

@@ -322,7 +322,13 @@ extension _TimelineRows on TimelineScreenState {
     }
     if (_model.all?.isEmpty ?? false) unawaited(_countSetAside());
     // Commitments and notes can arrive independently of the timeline stream.
-    unawaited(_loadAiSummary());
+    // A tag or shelf-count refresh cannot change what the brief says, and the
+    // pass reads the waiting notes, the habits and the whole library before it
+    // can decide nothing moved; it is not spent on a change that never
+    // reaches its source.
+    if (kind == TimelineChange.notes || kind == TimelineChange.commitments) {
+      unawaited(_loadAiSummary());
+    }
   }
 
   /// Link pictures: what is on disk known before the first tile, words a

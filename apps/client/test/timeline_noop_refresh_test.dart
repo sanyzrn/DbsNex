@@ -48,11 +48,15 @@ void main() {
       await harness.services.captureText('the only note');
       await model.load();
       final before = rebuilds;
+      final filters = model.debugFilterPasses;
       await refreshed();
       await refreshed();
       expect(rebuilds, before);
       expect(deliveries, 0);
       expect(model.notes, hasLength(1));
+      // The window was narrowed once for the note that arrived; two refreshes
+      // that changed nothing must not narrow it again.
+      expect(model.debugFilterPasses, filters);
     });
 
     test('new note still triggers a delivery', () async {

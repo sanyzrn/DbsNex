@@ -239,6 +239,19 @@ void main() {
       expect(NexMarkdownText.preview('just a sentence'), 'just a sentence');
     });
 
+    test('a short note is memoized too, by content and by identity', () {
+      const source = '**shipped** the release, then _wrote_ it down';
+      final first = NexMarkdownText.preview(source);
+      // A card asks for its note's preview several times in one build; the
+      // identity fast path is what makes the second and later ones free.
+      expect(identical(NexMarkdownText.preview(source), first), isTrue);
+      // A different string with the same content reaches the same answer,
+      // rather than stripping it again.
+      final copy = String.fromCharCodes(source.runes);
+      expect(identical(NexMarkdownText.preview(copy), first), isTrue);
+      expect(first, 'shipped the release, then wrote it down');
+    });
+
     test('a long plain note shows its first pages, not its whole body', () {
       final note = longBody('the end of a very long note');
       final out = NexMarkdownText.preview(note);

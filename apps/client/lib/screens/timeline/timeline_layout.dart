@@ -523,37 +523,37 @@ extension _TimelineLayout on TimelineScreenState {
       // airspace. It returns at full size without an entrance animation.
       // The desktop's rail replaces the dock; the selection bar stays.
       floatingActionButton:
-          _searching ||
-              MediaQuery.viewInsetsOf(context).bottom > 0 ||
-              (NexDesktopScope.isDesktop(context) && !_selecting)
+          _searching || (NexDesktopScope.isDesktop(context) && !_selecting)
           ? null
-          : AnimatedSwitcher(
-              // The dock does not cross-fade into the selection bar: it
-              // gives way. The capsule leaving narrows and sinks, the one
-              // arriving rises and widens out of it, and the bar's buttons
-              // then land one after another (see [_StaggerIn]) — so the
-              // change reads as the same bar turning into a different
-              // tool rather than one picture swapped for another.
-              duration: NexMotion.of(context, NexMotion.morph),
-              reverseDuration: NexMotion.of(context, NexMotion.exit),
-              switchInCurve: NexMotion.curve,
-              switchOutCurve: NexMotion.exitCurve,
-              transitionBuilder: _morphTransition,
-              // Bottom-aligned: the selection bar carries a count above it,
-              // and centring the two would lift the capsule mid-change.
-              layoutBuilder: (current, previous) => Stack(
-                alignment: Alignment.bottomCenter,
-                children: [...previous, ?current],
+          : _TimelineDockSlot(
+              child: AnimatedSwitcher(
+                // The dock does not cross-fade into the selection bar: it
+                // gives way. The capsule leaving narrows and sinks, the one
+                // arriving rises and widens out of it, and the bar's buttons
+                // then land one after another (see [_StaggerIn]) — so the
+                // change reads as the same bar turning into a different
+                // tool rather than one picture swapped for another.
+                duration: NexMotion.of(context, NexMotion.morph),
+                reverseDuration: NexMotion.of(context, NexMotion.exit),
+                switchInCurve: NexMotion.curve,
+                switchOutCurve: NexMotion.exitCurve,
+                transitionBuilder: _morphTransition,
+                // Bottom-aligned: the selection bar carries a count above it,
+                // and centring the two would lift the capsule mid-change.
+                layoutBuilder: (current, previous) => Stack(
+                  alignment: Alignment.bottomCenter,
+                  children: [...previous, ?current],
+                ),
+                child: _selecting
+                    ? KeyedSubtree(
+                        key: const ValueKey('selection'),
+                        child: _selectionBar(l10n),
+                      )
+                    : KeyedSubtree(
+                        key: const ValueKey('dock'),
+                        child: _bottomBar(l10n),
+                      ),
               ),
-              child: _selecting
-                  ? KeyedSubtree(
-                      key: const ValueKey('selection'),
-                      child: _selectionBar(l10n),
-                    )
-                  : KeyedSubtree(
-                      key: const ValueKey('dock'),
-                      child: _bottomBar(l10n),
-                    ),
             ),
     );
   }
