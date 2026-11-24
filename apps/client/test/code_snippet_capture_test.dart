@@ -702,7 +702,21 @@ void main() {
       Future<void> findAndCheck() async {
         await tester.tap(find.byTooltip(l10n.codeFind));
         await tester.pumpAndSettle();
-        await tester.enterText(find.byType(NexSearchField), 'needle');
+        final search = find.byType(NexSearchField);
+        final result = find.ancestor(
+          of: needle,
+          matching: find.byType(ListTile),
+        );
+        await tester.enterText(search, 'needle');
+        await tester.pump(const Duration(milliseconds: 140));
+        await tester.pumpAndSettle();
+        expect(result, findsOneWidget);
+        await tester.enterText(search, 'absent');
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(result, findsNothing);
+        expect(find.text(l10n.codeNoMatches), findsNothing);
+        await tester.enterText(search, 'needle');
+        await tester.pump(const Duration(milliseconds: 140));
         await tester.pumpAndSettle();
         // Choosing the excerpt itself must work, not just the gutter.
         await tester.tap(needle);

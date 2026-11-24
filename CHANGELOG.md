@@ -8,7 +8,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - **Pick photos and videos together.** Open Media from the capture sheet to choose both from your gallery.
 - **Deletes made in a row undo together.** One notice counts the notes and one Undo brings them all back.
-- **Find in code reaches the line.** Choosing a result takes the snippet to that line — folded code included.
+- **Find in code reaches the line.** Long snippets search after a brief pause in typing. Choosing a result brings the matching text into view, even in folded code.
+- **Media filters include videos.** Search and the home-screen widget group photos and videos under Media. Older videos arriving from sync are recognised as videos.
 
 ## v2.8.20
 

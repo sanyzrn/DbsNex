@@ -61,6 +61,42 @@ void main() {
     }
   });
 
+  test('a video pulled onto a fresh library stays a video', () {
+    // Schema 4's migration has no rows to repair on a fresh library. Older
+    // video notes can still arrive as `file` on a later sync pull.
+    final db = NexDatabase.open(path);
+    try {
+      final notes = SqliteNoteRepository(db);
+      final now = DateTime.utc(2026, 3, 1);
+      void pull(String id, String filename) => notes.applyRemoteNote(
+        id: id,
+        type: NoteType.file,
+        content: filename,
+        mediaUri: filename,
+        mediaHash: 'hash-$id',
+        createdAt: now,
+        updatedAt: now,
+        deviceId: 'peer',
+        rev: 3,
+        tagIds: const [],
+      );
+
+      pull('clip', 'clip.MP4');
+      pull('document', 'document.pdf');
+
+      expect(notes.getById('clip')!.type, NoteType.video);
+      expect(notes.getById('document')!.type, NoteType.file);
+      expect(notes.timelineShelfCounts()['type:photo'], 1);
+      expect(notes.timelineShelfCounts()['type:file'], 1);
+
+      final changes = db.db.select('SELECT total_changes() AS n').first['n'];
+      pull('clip', 'clip.MP4');
+      expect(db.db.select('SELECT total_changes() AS n').first['n'], changes);
+    } finally {
+      db.close();
+    }
+  });
+
   /// The v1 layout: four note types pinned by a CHECK, the plain FTS table,
   /// tags and nothing else — no meta table, no receipts, no embeddings.
   void writeV1Library() {

@@ -263,6 +263,7 @@ void main() {
       note('b', NoteType.photo, null, caption: 'the receipt'),
       note('c', NoteType.checklist, '- [ ] milk'),
       note('d', NoteType.text, 'another thought'),
+      note('e', NoteType.video, 'clip.mp4'),
     ];
 
     test('no kinds chosen means no filter, not an empty widget', () {
@@ -273,8 +274,10 @@ void main() {
     });
 
     test('keeps only the kinds asked for, in the order they arrived', () {
-      final photos = NexWidgetSnapshot.filter(mixed, const {'photo'});
-      expect(photos.map((n) => n.id), ['b']);
+      final media = NexWidgetSnapshot.filter(mixed, const {'photo'});
+      expect(media.map((n) => n.id), ['b', 'e']);
+      final videos = NexWidgetSnapshot.filter(mixed, const {'video'});
+      expect(videos.map((n) => n.id), ['e']);
 
       final both = NexWidgetSnapshot.filter(mixed, const {'text', 'checklist'});
       expect(both.map((n) => n.id), [

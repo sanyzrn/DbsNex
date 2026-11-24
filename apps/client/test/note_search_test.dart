@@ -87,6 +87,44 @@ void main() {
   });
 
   test(
+    'Media includes photos and videos in filtered and ranked search',
+    () async {
+      final photo = await services.capturePhoto(
+        mediaUri: 'trip.jpg',
+        mediaHash: 'photo',
+      );
+      final video = await services.captureFile(
+        mediaUri: 'trip.mp4',
+        mediaHash: 'video',
+        originalFilename: 'trip.mp4',
+      );
+      await services.setCaption(photo.id, 'holiday');
+      await services.setCaption(video.id, 'holiday');
+      await services.captureText('holiday');
+
+      final search = NoteSearchController(services: services);
+      addTearDown(search.dispose);
+      search.types.add(NoteType.photo);
+      await search.run();
+      expect(
+        search.results.map((note) => note.id),
+        unorderedEquals([photo.id, video.id]),
+      );
+      search.query.text = 'holiday';
+      await search.run();
+      expect(
+        search.results.map((note) => note.id),
+        unorderedEquals([photo.id, video.id]),
+      );
+      search.types
+        ..clear()
+        ..add(NoteType.video);
+      await search.run();
+      expect(search.results.map((note) => note.id), [video.id]);
+    },
+  );
+
+  test(
     'filter-only search adds all result pages without dropping loaded rows',
     () async {
       for (var i = 0; i < 205; i++) {

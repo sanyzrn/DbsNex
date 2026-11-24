@@ -1,5 +1,7 @@
 import 'package:nex_core/nex_core.dart';
 
+import '../l10n/app_localizations.dart';
+
 /// How the home screen sorts its notes into headings (2.7.0).
 ///
 /// Time is what it always was: days, newest first. Kind and tag answer the
@@ -213,6 +215,10 @@ String nexTypeShelfKey(Note note) => switch (note.type) {
   NoteType.video => 'type:photo',
   _ => 'type:${note.type.wireName}',
 };
+
+/// The saved photo filter covers all media, including videos.
+String nexNoteTypeFilterLabel(AppLocalizations l10n, String wireType) =>
+    l10n.noteType(wireType == NoteType.photo.wireName ? 'media' : wireType);
 
 /// [defaults] in the reader's [order]: the keys it names first, as it names
 /// them, then the rest in their default order.

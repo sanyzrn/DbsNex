@@ -5,8 +5,9 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
-import 'nex_dialog.dart';
 import '../platform/note_search.dart';
+import '../platform/timeline_shelves.dart';
+import 'nex_dialog.dart';
 
 /// The search filter sheet: tags, note types and a date window.
 ///
@@ -115,7 +116,9 @@ class _SearchFilterSheet extends StatelessWidget {
                   children: [
                     for (final type in NoteType.values)
                       FilterChip(
-                        label: Text(l10n.noteType(type.wireName)),
+                        label: Text(
+                          nexNoteTypeFilterLabel(l10n, type.wireName),
+                        ),
                         selected: search.types.contains(type),
                         onSelected: (_) => search.toggleType(type),
                       ),

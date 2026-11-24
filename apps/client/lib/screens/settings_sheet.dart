@@ -34,6 +34,7 @@ import '../platform/notification_settings.dart';
 import '../platform/nex_services.dart';
 import '../platform/profile_photo.dart';
 import '../platform/reminders.dart';
+import '../platform/timeline_shelves.dart';
 import '../platform/update_service.dart';
 import '../platform/os_capture_bridge.dart' show QuickCaptureNotification;
 import 'about_screen.dart';

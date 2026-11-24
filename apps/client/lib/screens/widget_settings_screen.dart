@@ -9,6 +9,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../platform/timeline_shelves.dart';
 
 /// What the home-screen widget is allowed to show.
 ///
@@ -123,7 +124,9 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
                     ),
                     for (final type in NoteType.values)
                       FilterChip(
-                        label: Text(l10n.noteType(type.wireName)),
+                        label: Text(
+                          nexNoteTypeFilterLabel(l10n, type.wireName),
+                        ),
                         selected: types.contains(type.wireName),
                         onSelected: (_) => unawaited(_toggle(type)),
                       ),
