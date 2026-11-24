@@ -433,12 +433,22 @@
   "@attach": {"description": "The chip beside Tag on a note with no attachments yet; opens the camera, photos or file choice."},
   "attachAdd": "پیوست عکس یا فایل",
   "@attachAdd": {"description": "Tooltip and label of the add-attachment tile"},
+  "mediaSkippedOne": "«{name}» عکس یا ویدئو نیست و افزوده نشد. برای افزودن آن از «فایل» استفاده کنید.",
+  "@mediaSkippedOne": {
+    "description": "Banner when one picked item is neither a photo nor a video; File is the separate capture action for any file",
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "mediaSkippedMany": "{count} فایل انتخاب‌شده عکس یا ویدئو نبودند و افزوده نشدند. برای افزودن آن‌ها از «فایل» استفاده کنید.",
+  "@mediaSkippedMany": {
+    "description": "Banner when several picked items are neither photos nor videos",
+    "placeholders": {"count": {"type": "String"}}
+  },
   "attachTakePhoto": "گرفتن عکس",
   "@attachTakePhoto": {"description": "Attach sheet option"},
   "attachRecordVoice": "ضبط صدا",
   "@attachRecordVoice": {"description": "Attach menu: record a short voice clip onto the note"},
-  "attachChoosePhotos": "انتخاب عکس‌ها",
-  "@attachChoosePhotos": {"description": "Attach sheet option"},
+  "attachChooseMedia": "انتخاب عکس و ویدئو",
+  "@attachChooseMedia": {"description": "Attach sheet option: the system photo picker, for several photos and videos at once"},
   "attachChooseFile": "انتخاب فایل",
   "@attachChooseFile": {"description": "Attach sheet option"},
   "attachRemove": "برداشتن از این یادداشت",

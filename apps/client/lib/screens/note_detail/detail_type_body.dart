@@ -4,6 +4,23 @@ part of '../note_detail_sheet.dart';
 /// text, the player, the picture or the file — and, for anything but text,
 /// its caption. Split out of the sheet's build (REL-10).
 extension _DetailTypeBody on _NoteDetailSheetState {
+  /// Whether a photo note's own file can really be drawn as a picture.
+  ///
+  /// A build before 2.8.22 could store a PDF or a video as a photo when the
+  /// Android picker handed back a document. Its sheet used to draw a blank
+  /// 220-pixel frame; now that note falls through to the file body below,
+  /// which shows the PDF reader or the video player the file actually needs.
+  ///
+  /// An unknown kind — an old photo copy with no extension and no MIME type —
+  /// is still given to the image decoder: refusing to draw it would lose more
+  /// real photos than it saves.
+  bool _showsOwnPhoto(Note note) {
+    final path = note.mediaUri;
+    if (path == null || !File(path).existsSync()) return false;
+    final kind = NexFileKinds.of(path: path, mimeType: note.mimeType);
+    return kind == NexFileKind.image || kind == NexFileKind.other;
+  }
+
   List<Widget> _typeBody(
     BuildContext context,
     Note note,
@@ -46,33 +63,37 @@ extension _DetailTypeBody on _NoteDetailSheetState {
           l10n.voiceSearchHint,
           style: Theme.of(context).textTheme.bodySmall,
         ),
-    ] else if (note.type == NoteType.photo) ...[
-      if (note.mediaUri != null && File(note.mediaUri!).existsSync()) ...[
-        GestureDetector(
-          onTap: () => unawaited(_openGallery(note, at: note.mediaUri!)),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(NexRadius.md),
-            child: Image.file(
-              File(note.mediaUri!),
-              semanticLabel: l10n.photo,
-              fit: BoxFit.contain,
+    ] else if (note.type == NoteType.photo && _showsOwnPhoto(note)) ...[
+      GestureDetector(
+        onTap: () => unawaited(_openGallery(note, at: note.mediaUri!)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(NexRadius.md),
+          child: Image.file(
+            File(note.mediaUri!),
+            semanticLabel: l10n.photo,
+            fit: BoxFit.contain,
+            height: 220,
+            width: double.infinity,
+            cacheWidth: _imageCacheWidth(context),
+            // A file that is there but will not decode says so, rather
+            // than leaving the 220 pixels blank.
+            errorBuilder: (_, _, _) => SizedBox(
               height: 220,
-              width: double.infinity,
-              cacheWidth: _imageCacheWidth(context),
-              // A photo whose file has gone — deleted
-              // underneath an open sheet — draws nothing
-              // rather than reporting an error.
-              errorBuilder: (_, _, _) => const SizedBox(height: 220),
+              child: Center(
+                child: Text(
+                  l10n.mediaUnavailable,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
             ),
           ),
         ),
-        const SizedBox(height: NexSpacing.sm),
-        Text(l10n.tapToExpand, style: Theme.of(context).textTheme.bodySmall),
-      ] else
-        Text(
-          l10n.mediaUnavailable,
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
+      ),
+      const SizedBox(height: NexSpacing.sm),
+      Text(l10n.tapToExpand, style: Theme.of(context).textTheme.bodySmall),
+    ] else if (note.type == NoteType.photo &&
+        (note.mediaUri == null || !File(note.mediaUri!).existsSync())) ...[
+      Text(l10n.mediaUnavailable, style: Theme.of(context).textTheme.bodyLarge),
     ] else ...[
       // File — same sheet, ADR-008 display fields. Tapping the row
       // hands it to the OS, so the note behaves like the same file

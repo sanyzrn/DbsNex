@@ -692,13 +692,23 @@
   "attach": "Attach",
   "@attach": {"description": "The chip beside Tag on a note with no attachments yet; opens the camera, photos or file choice."},
   "attachAdd": "Attach a photo or file",
+  "mediaSkippedOne": "“{name}” is not a photo or video, so it was not added. Use File for it.",
+  "@mediaSkippedOne": {
+    "description": "Banner when one picked item is neither a photo nor a video; File is the separate capture action for any file",
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "mediaSkippedMany": "{count} picked files were not photos or videos, so they were not added. Use File for them.",
+  "@mediaSkippedMany": {
+    "description": "Banner when several picked items are neither photos nor videos",
+    "placeholders": {"count": {"type": "String"}}
+  },
   "@attachAdd": {"description": "Tooltip and label of the add-attachment tile"},
   "attachTakePhoto": "Take a photo",
   "@attachTakePhoto": {"description": "Attach sheet option"},
   "attachRecordVoice": "Record a voice clip",
   "@attachRecordVoice": {"description": "Attach menu: record a short voice clip onto the note"},
-  "attachChoosePhotos": "Choose photos",
-  "@attachChoosePhotos": {"description": "Attach sheet option"},
+  "attachChooseMedia": "Choose photos and videos",
+  "@attachChooseMedia": {"description": "Attach sheet option: the system photo picker, for several photos and videos at once"},
   "attachChooseFile": "Choose a file",
   "@attachChooseFile": {"description": "Attach sheet option"},
   "attachRemove": "Remove from this note",

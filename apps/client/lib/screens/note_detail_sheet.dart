@@ -16,7 +16,6 @@ import '../widgets/copy_feedback.dart';
 import '../platform/photo_encoding.dart';
 
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';

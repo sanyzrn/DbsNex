@@ -113,7 +113,16 @@ class NexTestHarness {
     _disposed = true;
     nexHideBanner();
     await services.dispose();
-    if (root.existsSync()) root.deleteSync(recursive: true);
+    if (!root.existsSync()) return;
+    try {
+      root.deleteSync(recursive: true);
+    } on PathAccessException {
+      // Windows keeps an image file open through the platform decoder after
+      // the tile that showed it has gone, and there is no handle this test can
+      // close. The library has already served every assertion; leaving its
+      // temp folder to the OS is better than reporting a passing test as a
+      // failed one. Linux, where CI runs, deletes it as before.
+    }
   }
 }
 
