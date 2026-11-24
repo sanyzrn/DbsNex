@@ -84,7 +84,7 @@ extension _DetailAttachments on _NoteDetailSheetState {
         ),
         KeyedSubtree(
           key: ValueKey('attachment-reader-${preview.id}'),
-          child: _isVideo(preview)
+          child: AttachmentTile.lookOf(preview) == AttachmentLook.video
               ? NexVideoPlayer(
                   path: preview.mediaUri,
                   onOpen: () => unawaited(_openAttachmentExternally(preview)),
@@ -153,8 +153,10 @@ extension _DetailAttachments on _NoteDetailSheetState {
     if (mounted) _rebuild(() => _attachments = attachments);
   }
 
-  /// Camera, photos (several at once) or a file — the same three ways a
-  /// note is captured, now onto this one.
+  /// Camera, photos and videos (several at once) or a file — the same ways a
+  /// note is captured, now onto this one. Media and File stay separate: the
+  /// picker shows only photos and videos, and the file manager keeps taking
+  /// everything else.
   Future<void> _addAttachment(Note note) async {
     final l10n = AppLocalizations.of(context);
     final choice = await nexShowSheet<String>(
@@ -183,10 +185,10 @@ extension _DetailAttachments on _NoteDetailSheetState {
               onTap: () => Navigator.pop(sheet, 'camera'),
             ),
             ListTile(
-              key: const ValueKey('attach-photos'),
+              key: const ValueKey('attach-media'),
               leading: const Icon(Icons.photo_library_outlined),
-              title: Text(l10n.attachChoosePhotos),
-              onTap: () => Navigator.pop(sheet, 'photos'),
+              title: Text(l10n.attachChooseMedia),
+              onTap: () => Navigator.pop(sheet, 'media'),
             ),
             ListTile(
               key: const ValueKey('attach-voice'),
@@ -226,8 +228,12 @@ extension _DetailAttachments on _NoteDetailSheetState {
               null;
         case 'voice':
           landed = await _attachVoice(note.id);
-        case 'photos':
-          for (final picked in await ImagePicker().pickMultiImage()) {
+        case 'media':
+          final chosen = await nexPickMedia(
+            context,
+            picker: widget.services.mediaPicker,
+          );
+          for (final picked in chosen.media) {
             // Copied and hashed from the file, never read whole into
             // memory: a multi-photo pick can be a dozen pictures, and each
             // used to make two full copies of itself on this loop (read
@@ -235,11 +241,17 @@ extension _DetailAttachments on _NoteDetailSheetState {
             // timeline re-read per photo. The timeline's photo path stopped
             // paying that in 2.6.10 (PERF-07); this is the same path,
             // arrived at from the note.
+            //
+            // A video keeps its own name and goes on as a file attachment,
+            // so the strip shows its frame and its player opens it; only a
+            // real image becomes a photo attachment.
+            final video = picked.isVideo;
             landed =
                 await widget.services.attachFile(
                       note.id,
                       picked.path,
-                      kind: AttachmentKind.photo,
+                      kind: video ? AttachmentKind.file : AttachmentKind.photo,
+                      name: video ? picked.name : null,
                       mimeType: picked.mimeType,
                       // The one refresh below the loop covers the whole batch.
                       refresh: false,
@@ -342,31 +354,22 @@ extension _DetailAttachments on _NoteDetailSheetState {
       _toast(l10n.mediaUnavailable);
       return;
     }
-    if (attachment.kind == AttachmentKind.photo) {
-      final note = _note;
-      if (note != null) await _openGallery(note, at: attachment.mediaUri);
-      return;
+    // What the file is, not what its row was once labelled: a PDF stored as a
+    // photo by an older build must not be handed to the photo gallery, and a
+    // video stored the same way must open its player.
+    switch (AttachmentTile.lookOf(attachment)) {
+      case AttachmentLook.photo:
+        final note = _note;
+        if (note != null) await _openGallery(note, at: attachment.mediaUri);
+      case AttachmentLook.voice:
+        await VoiceClipSheet.show(context, attachment: attachment);
+      case AttachmentLook.video || AttachmentLook.pdf:
+        await _player?.pause();
+        if (mounted) _rebuild(() => _previewAttachmentId = attachment.id);
+      default:
+        await _openAttachmentExternally(attachment);
     }
-    if (attachment.kind == AttachmentKind.voice) {
-      await VoiceClipSheet.show(context, attachment: attachment);
-      return;
-    }
-    if (_isVideo(attachment) ||
-        NexFileKinds.extensionOf(attachment.mediaUri) == 'pdf' ||
-        attachment.mimeType == 'application/pdf') {
-      await _player?.pause();
-      if (mounted) _rebuild(() => _previewAttachmentId = attachment.id);
-      return;
-    }
-    await _openAttachmentExternally(attachment);
   }
-
-  bool _isVideo(NoteAttachment attachment) =>
-      NexFileKinds.of(
-        path: attachment.mediaUri,
-        mimeType: attachment.mimeType,
-      ) ==
-      NexFileKind.video;
 
   Future<void> _openAttachmentExternally(NoteAttachment attachment) async {
     final result = await nexOpenFile(
@@ -386,7 +389,7 @@ extension _DetailAttachments on _NoteDetailSheetState {
       if (own != null && File(own).existsSync())
         NexGalleryPhoto(own, caption: note.caption),
       for (final attachment in _attachments)
-        if (attachment.kind == AttachmentKind.photo &&
+        if (AttachmentTile.lookOf(attachment) == AttachmentLook.photo &&
             File(attachment.mediaUri).existsSync())
           NexGalleryPhoto(attachment.mediaUri, caption: attachment.caption),
     ];

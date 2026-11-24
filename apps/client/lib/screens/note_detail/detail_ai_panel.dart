@@ -426,13 +426,9 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     NoteAttachment attachment,
     AppLocalizations l10n,
   ) {
-    final image =
-        attachment.kind == AttachmentKind.photo ||
-        NexFileKinds.of(
-              path: attachment.mediaUri,
-              mimeType: attachment.mimeType,
-            ) ==
-            NexFileKind.image;
+    // A PDF once stored as a photo was read as an image; label the result by
+    // what the file really is.
+    final image = AttachmentTile.lookOf(attachment) == AttachmentLook.photo;
     return image ? l10n.aiImageResult : l10n.aiExtractedText;
   }
 

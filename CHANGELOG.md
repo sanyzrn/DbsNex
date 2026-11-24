@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.22
+
+- **Media picks only photos and videos.** The Media button now opens the phone's own gallery picker, the way a chat app does, so several photos and videos can be chosen together. A PDF, a ZIP or a recording offered by an older picker is refused with a message instead of appearing as an empty picture, and File still takes any file. A file an earlier version stored as a photo now opens as what it really is.
+
 ## v2.8.21
 
 - **Pick photos and videos together.** Open Media from the capture sheet to choose both from your gallery.

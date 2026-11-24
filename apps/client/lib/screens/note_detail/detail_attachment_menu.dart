@@ -18,9 +18,9 @@ extension _DetailAttachmentMenu on _NoteDetailSheetState {
       path: attachment.mediaUri,
       mimeType: attachment.mimeType,
     );
-    final image =
-        attachment.kind == AttachmentKind.photo ||
-        mediaKind == NexFileKind.image;
+    // What the file is, not the row's old label: a PDF once stored as a photo
+    // must not offer "Edit" or become the note's photo.
+    final image = look == AttachmentLook.photo;
     final audio =
         attachment.kind == AttachmentKind.voice ||
         mediaKind == NexFileKind.audio;
@@ -30,7 +30,7 @@ extension _DetailAttachmentMenu on _NoteDetailSheetState {
     final canPromote =
         note.type == NoteType.photo &&
         note.mediaUri != null &&
-        attachment.kind == AttachmentKind.photo;
+        look == AttachmentLook.photo;
     final choice = await nexShowSheet<String>(
       context: context,
       builder: (sheet) {

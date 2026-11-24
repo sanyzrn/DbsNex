@@ -37,8 +37,13 @@ class AttachmentTextReader {
       path: attachment.mediaUri,
       mimeType: attachment.mimeType,
     );
+    // The file's own type decides whether an image reader or a transcriber
+    // should see it. A PDF mislabelled as a photo by an older build (no MIME
+    // type, a `.pdf` name) is not read as a picture; an old photo with no
+    // extension at all still is.
     final photo =
-        attachment.kind == AttachmentKind.photo || kind == NexFileKind.image;
+        kind == NexFileKind.image ||
+        (attachment.kind == AttachmentKind.photo && kind == NexFileKind.other);
     final voice =
         attachment.kind == AttachmentKind.voice || kind == NexFileKind.audio;
     if (!(photo && (refresh || attachment.ocrText == null)) &&

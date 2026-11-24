@@ -30,43 +30,39 @@ class AttachmentTile extends StatelessWidget {
   final double side;
   final VoidCallback onTap;
 
-  /// What a file is, from its type and, failing that, its extension.
+  /// What a file is, from its row's kind, its MIME type and its extension.
+  ///
+  /// The row's kind is the last thing consulted rather than the first. A photo
+  /// attachment recorded by a build that trusted a document picker can be a
+  /// PDF on disk; showing it as a photo drew an empty frame. The file's own
+  /// name and type say what it is, and only a photo with nothing more to go on
+  /// stays a photo.
   static AttachmentLook lookOf(NoteAttachment attachment) {
-    if (attachment.kind == AttachmentKind.photo) return AttachmentLook.photo;
     if (attachment.kind == AttachmentKind.voice) return AttachmentLook.voice;
     final mime = attachment.mimeType?.toLowerCase() ?? '';
-    final ext = p
-        .extension(attachment.name ?? attachment.mediaUri)
-        .toLowerCase();
+    // The stored file name is authoritative for the bytes; the display name
+    // is only a fallback when the stored name has no extension.
+    final ext = p.extension(attachment.mediaUri).toLowerCase();
     if (mime == 'application/pdf' || ext == '.pdf') return AttachmentLook.pdf;
-    if (mime.startsWith('video/') ||
-        const {'.mp4', '.mov', '.mkv', '.webm', '.3gp'}.contains(ext)) {
-      return AttachmentLook.video;
-    }
-    if (mime.startsWith('image/') ||
-        const {
-          '.jpg',
-          '.jpeg',
-          '.png',
-          '.webp',
-          '.heic',
-          '.gif',
-        }.contains(ext)) {
-      return AttachmentLook.photo;
-    }
-    if (mime.startsWith('audio/') ||
-        const {'.m4a', '.mp3', '.aac', '.ogg', '.wav', '.opus'}.contains(ext)) {
-      return AttachmentLook.audio;
-    }
-    if (const {'.xls', '.xlsx', '.csv', '.ods', '.tsv'}.contains(ext)) {
+    final kind = NexFileKinds.of(
+      path: attachment.mediaUri,
+      mimeType: attachment.mimeType,
+    );
+    if (kind == NexFileKind.video) return AttachmentLook.video;
+    if (kind == NexFileKind.image) return AttachmentLook.photo;
+    if (kind == NexFileKind.audio) return AttachmentLook.audio;
+    if (kind == NexFileKind.table ||
+        const {'.xls', '.xlsx', '.ods'}.contains(ext)) {
       return AttachmentLook.sheet;
     }
     if (const {'.zip', '.rar', '.7z', '.tar', '.gz'}.contains(ext)) {
       return AttachmentLook.archive;
     }
-    if (const {'.doc', '.docx', '.odt', '.rtf', '.txt', '.md'}.contains(ext)) {
+    if (kind == NexFileKind.document ||
+        const {'.doc', '.docx', '.odt', '.rtf', '.txt', '.md'}.contains(ext)) {
       return AttachmentLook.document;
     }
+    if (attachment.kind == AttachmentKind.photo) return AttachmentLook.photo;
     return AttachmentLook.file;
   }
 

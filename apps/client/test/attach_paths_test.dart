@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/sharing.dart';
@@ -168,9 +169,13 @@ void main() {
       await tester.runAsync(() async {
         note = (await services.captureText('the set'))!;
         for (var i = 0; i < 3; i++) {
-          final source = File(
-            '${harness.root.path}${Platform.pathSeparator}picked-$i.png',
-          )..writeAsBytesSync(List.filled(64 + i, i + 1));
+          // A real PNG: media picks are checked by their bytes now, and the
+          // tiles decode it, so Windows has nothing half-read at teardown.
+          final source =
+              File('${harness.root.path}${Platform.pathSeparator}picked-$i.png')
+                ..writeAsBytesSync(
+                  img.encodePng(img.Image(width: 12 + i, height: 8)),
+                );
           sources.add(source);
         }
       });
@@ -178,7 +183,7 @@ void main() {
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(picker, (
         call,
       ) async {
-        if (call.method == 'pickMultiImage') {
+        if (call.method == 'pickMedia') {
           return [for (final source in sources) source.path];
         }
         return null;
@@ -207,7 +212,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('attachment-add')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('attach-photos')));
+      await tester.tap(find.byKey(const ValueKey('attach-media')));
       await tester.pumpAndSettle();
 
       List<NoteAttachment> saved = const [];
@@ -236,6 +241,12 @@ void main() {
         expect(source.existsSync(), isTrue);
       }
       expect(tester.takeException(), isNull);
+      // Unmount the strip before its temp folder is deleted. On Windows an
+      // image decoder still reading a just-written attachment keeps the file
+      // open for a moment, and the harness' cleanup would report that as a
+      // failed test even though every attachment landed.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
     });
   });
 

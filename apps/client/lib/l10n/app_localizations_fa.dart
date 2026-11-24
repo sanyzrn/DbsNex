@@ -1297,13 +1297,23 @@ class AppLocalizationsFa extends AppLocalizations {
   String get attachAdd => 'پیوست عکس یا فایل';
 
   @override
+  String mediaSkippedOne(String name) {
+    return '«$name» عکس یا ویدئو نیست و افزوده نشد. برای افزودن آن از «فایل» استفاده کنید.';
+  }
+
+  @override
+  String mediaSkippedMany(String count) {
+    return '$count فایل انتخاب‌شده عکس یا ویدئو نبودند و افزوده نشدند. برای افزودن آن‌ها از «فایل» استفاده کنید.';
+  }
+
+  @override
   String get attachTakePhoto => 'گرفتن عکس';
 
   @override
   String get attachRecordVoice => 'ضبط صدا';
 
   @override
-  String get attachChoosePhotos => 'انتخاب عکس‌ها';
+  String get attachChooseMedia => 'انتخاب عکس و ویدئو';
 
   @override
   String get attachChooseFile => 'انتخاب فایل';

@@ -2132,6 +2132,18 @@ abstract class AppLocalizations {
   /// **'Attach a photo or file'**
   String get attachAdd;
 
+  /// Banner when one picked item is neither a photo nor a video; File is the separate capture action for any file
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” is not a photo or video, so it was not added. Use File for it.'**
+  String mediaSkippedOne(String name);
+
+  /// Banner when several picked items are neither photos nor videos
+  ///
+  /// In en, this message translates to:
+  /// **'{count} picked files were not photos or videos, so they were not added. Use File for them.'**
+  String mediaSkippedMany(String count);
+
   /// Attach sheet option
   ///
   /// In en, this message translates to:
@@ -2144,11 +2156,11 @@ abstract class AppLocalizations {
   /// **'Record a voice clip'**
   String get attachRecordVoice;
 
-  /// Attach sheet option
+  /// Attach sheet option: the system photo picker, for several photos and videos at once
   ///
   /// In en, this message translates to:
-  /// **'Choose photos'**
-  String get attachChoosePhotos;
+  /// **'Choose photos and videos'**
+  String get attachChooseMedia;
 
   /// Attach sheet option
   ///

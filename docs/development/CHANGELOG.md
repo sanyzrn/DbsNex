@@ -34,6 +34,22 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.22 — media pick
+
+- Media opens the Android system photo picker
+  (`ImagePickerAndroid.useAndroidPhotoPicker`) on Android 15 and below, where
+  the legacy document picker could return a PDF. Android 16 uses it
+  regardless, and image_picker already declares the backported module.
+- Every picked file is checked by its own header (`NexFileSignatures`) before
+  it is kept. A PDF, ZIP or audio file is refused with a message even when its
+  name says `.jpg`. The separate File action is unchanged.
+- Timeline Media and note attachments share `MediaPicker.pickMedia`. The first
+  kept item becomes the note; later items are attachments, with videos kept as
+  file attachments under their own name so their frame and player work.
+- Photo notes and photo attachments that an earlier build mislabelled now draw
+  and open as what they are — PDF reader, video player, or the OS handler —
+  instead of a blank frame. OCR and AI result labels follow the real kind too.
+
 ### 2.8.21 — capture and reading
 
 - Media capture picks photos and videos together. The first item becomes

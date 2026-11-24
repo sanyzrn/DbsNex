@@ -1312,13 +1312,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get attachAdd => 'Attach a photo or file';
 
   @override
+  String mediaSkippedOne(String name) {
+    return '“$name” is not a photo or video, so it was not added. Use File for it.';
+  }
+
+  @override
+  String mediaSkippedMany(String count) {
+    return '$count picked files were not photos or videos, so they were not added. Use File for them.';
+  }
+
+  @override
   String get attachTakePhoto => 'Take a photo';
 
   @override
   String get attachRecordVoice => 'Record a voice clip';
 
   @override
-  String get attachChoosePhotos => 'Choose photos';
+  String get attachChooseMedia => 'Choose photos and videos';
 
   @override
   String get attachChooseFile => 'Choose a file';

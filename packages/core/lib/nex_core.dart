@@ -42,6 +42,7 @@ export 'import/note_import.dart';
 export 'files/delimited_text.dart';
 export 'files/file_kind.dart';
 export 'files/file_names.dart';
+export 'files/file_signature.dart';
 
 // The user's own writing, with formatting in it.
 export 'text/code_snippet.dart';
