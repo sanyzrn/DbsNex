@@ -7,6 +7,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 ## v2.8.22
 
 - **Media picks only photos and videos.** The Media button now opens the phone's own gallery picker, the way a chat app does, so several photos and videos can be chosen together. A PDF, a ZIP or a recording offered by an older picker is refused with a message instead of appearing as an empty picture, and File still takes any file. A file an earlier version stored as a photo now opens as what it really is.
+- **A steadier home screen.** Opening or closing the keyboard no longer redraws the note list, and each note's preview is prepared once instead of on every rebuild — so searching, switching layouts and scrolling stay smoother.
 
 ## v2.8.21
 

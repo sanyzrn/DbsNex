@@ -300,27 +300,11 @@ abstract final class NexMarkdownText {
   /// ten kilobytes in still has the pairs in its first lines unwrapped, and
   /// card and sheet still agree about what the note is — but the stripping
   /// itself stops where every surface that asks here stops too. The answer is
-  /// memoized, so a card asked for again — a rebuild, a scroll back, the four
-  /// widgets of one build that each want the preview of the same note — costs
-  /// a lookup rather than the strip again.
-  static String preview(String source) {
-    // A note that is one fenced code block is a snippet, and its code is the
-    // thing worth showing — not the fence, its language, and whatever the
-    // marker pass would make of the code's own backticks. The same rule the
-    // snippet's own surfaces use decides it, with the same preview cap.
-    // A long one asks through the cache (2.8.19): finding a snippet's
-    // closing fence reads the whole source, and a pasted megabyte paid that
-    // on every rebuild.
-    if (source.length > _previewScanLimit) {
-      return _LongPreviewCache.read(source);
-    }
-    final snippet = NexCodeSnippet.previewOf(
-      source,
-      maxChars: _previewScanLimit,
-    );
-    if (snippet != null) return snippet.code;
-    return nexLooksLikeMarkdown(source) ? plain(source) : source;
-  }
+  /// memoized for every source, not only long ones: a card's build asks for
+  /// the same preview several times over (overflow, label, preview, footnote),
+  /// and a scroll back asks again — all lookups rather than four more passes
+  /// of the marker regexes.
+  static String preview(String source) => _PreviewCache.read(source);
 
   /// The pages of a long note that a preview can ever show, cut on a line
   /// break near the cap so a construct that spans the cut — a fenced block, a
@@ -343,17 +327,20 @@ abstract final class NexMarkdownText {
   }
 }
 
-/// [NexMarkdownText.preview] for sources past the scan cap, remembered.
+/// [NexMarkdownText.preview], remembered.
 ///
-/// A long note's preview is asked for by every card of it that is built, and
-/// the answer never changes until the note does: the same string in, the same
+/// A note's preview is asked for by every card of it that is built, and the
+/// answer never changes until the note does: the same string in, the same
 /// string out. The cache holds a bounded window of those answers — notes age
 /// out oldest-first, both by count and by how much text they pin — so a
-/// library of long notes cannot turn it into a second library.
-final class _LongPreviewCache {
+/// library of notes cannot turn it into a second library. Short previews are
+/// cached too: they are the common case, and a card build asks for one of
+/// them more than once.
+final class _PreviewCache {
   /// Enough entries for every card a screen can hold, and every one the
-  /// cache-below-it builds on the way to it.
-  static const int _maxEntries = 32;
+  /// cache-below-it builds on the way to it. Short notes cost a few hundred
+  /// bytes each here; long ones are bounded by [_maxChars] instead.
+  static const int _maxEntries = 64;
 
   /// A ceiling on the source text the cache pins: the point where holding
   /// notes becomes its own memory cost rather than a saving of work.
@@ -385,11 +372,22 @@ final class _LongPreviewCache {
   }
 
   static String _compute(String source) {
+    // A note that is one fenced code block is a snippet, and its code is the
+    // thing worth showing — not the fence, its language, and whatever the
+    // marker pass would make of the code's own backticks. The same rule the
+    // snippet's own surfaces use decides it, with the same preview cap.
     final snippet = NexCodeSnippet.previewOf(
       source,
       maxChars: NexMarkdownText._previewScanLimit,
     );
     if (snippet != null) return snippet.code;
+    // Short sources are the common case, and their preview is the whole
+    // source stripped rather than a capped prefix of it.
+    if (source.length <= NexMarkdownText._previewScanLimit) {
+      return nexLooksLikeMarkdown(source)
+          ? NexMarkdownText.plain(source)
+          : source;
+    }
     final prefix = NexMarkdownText._previewPrefix(source);
     // The gate reads all of the source on purpose — see [NexMarkdownText.preview].
     return nexLooksLikeMarkdown(source)

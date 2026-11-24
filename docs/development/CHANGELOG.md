@@ -36,6 +36,23 @@ Working convention:
 
 ### 2.8.22 — media pick
 
+- Performance audit (PERF):
+  - `NexMarkdownText.preview` now memoizes every source, not only ones past the
+    4096-character scan cap. A card build asks for the same preview from its
+    overflow, semantics label, preview and footnote, and scroll-back asks
+    again. In a 960,000-call microbenchmark over short Markdown notes, the
+    identity hit fell from 23.2 µs to 0.038 µs per call (about 600×); the cache
+    still holds at most 64 entries and 256 KB of source.
+  - `TimelineModel._take` no longer re-runs `visible()` when the delivered
+    window is unchanged; a no-op refresh keeps the filtered list it already
+    had. `byId` walks the list directly instead of allocating a lazy iterable.
+  - The timeline dock's keyboard dependency moved from `_screen` to
+    `_TimelineDockSlot`, so a keyboard animation no longer rebuilds the scroll
+    view and its slivers. `timeline_keyboard_rebuild_test` asserts zero
+    `CustomScrollView` rebuilds across both inset changes.
+  - `_onModelChange` reloads the AI brief only for note and commitment changes;
+    tag and shelf-count refreshes no longer read waiting notes, habits and the
+    library to discover that the brief did not move.
 - Media opens the Android system photo picker
   (`ImagePickerAndroid.useAndroidPhotoPicker`) on Android 15 and below, where
   the legacy document picker could return a PDF. Android 16 uses it

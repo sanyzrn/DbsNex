@@ -203,7 +203,18 @@ class TimelineModel extends ChangeNotifier {
   }
 
   /// The note with [id] among those delivered, if it is one of them.
-  Note? byId(String id) => _all?.where((n) => n.id == id).firstOrNull;
+  ///
+  /// A loop rather than `where(...).firstOrNull`: opening a note, revealing a
+  /// reminder and paging to a named note all ask this, and the lazy iterable
+  /// allocated a wrapper for an answer that is usually the first few rows.
+  Note? byId(String id) {
+    final all = _all;
+    if (all == null) return null;
+    for (final note in all) {
+      if (note.id == id) return note;
+    }
+    return null;
+  }
 
   /// Follows the timeline stream. [onDelivered] runs after each delivery has
   /// been taken in, for what the screen does on top of showing it.
@@ -468,23 +479,37 @@ class TimelineModel extends ChangeNotifier {
   // timeline stream keep the window fresh when underlying notes change.
   Future<void> _applyFilters() {
     if (!_disposed) {
+      _filterPasses++;
       _notes = visible(_all ?? const <Note>[]);
       _notifyOf(TimelineChange.notes);
     }
     return Future<void>.value();
   }
 
+  /// How many times the window was narrowed by filters — a test handle for
+  /// the no-op delivery rule, which must not spend another pass.
+  @visibleForTesting
+  int get debugFilterPasses => _filterPasses;
+  int _filterPasses = 0;
+
   /// Returns true when the *entire* timeline snapshot actually changed.
   ///
   /// Comparing the unfiltered window matters: notes hidden by a tag/type
   /// filter still contribute to the smart summary and reminder state.
   /// A changed hidden note must reach the summary even when cards stay put.
+  ///
+  /// An unchanged delivery keeps the filtered view it already has. Re-running
+  /// [visible] on every no-op refresh — the stream fires one after each write,
+  /// and a reminder tick or a settings save can deliver the same window again
+  /// — allocated a new note list for a screen that was not going to rebuild.
   bool _take(List<Note> delivered) {
     final changed = _all == null || !_sameNotes(_all!, delivered);
     _all = delivered;
+    if (!changed) return false;
+    _filterPasses++;
     _notes = visible(delivered);
-    if (changed) _notifyOf(TimelineChange.notes);
-    return changed;
+    _notifyOf(TimelineChange.notes);
+    return true;
   }
 
   /// FR-4.5: the content-type filter layers on top of the tag filter — it is
