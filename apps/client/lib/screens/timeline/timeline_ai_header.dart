@@ -92,6 +92,10 @@ extension _TimelineAiHeader on TimelineScreenState {
   /// style, which never asks a provider, around the completion handler's
   /// escalation loop forever.
   Future<void> _loadAiSummary({bool force = false, bool manual = false}) {
+    // This pass reads the library as it is now, so a queued one would
+    // repeat the same read.
+    _briefReload?.cancel();
+    _briefReload = null;
     if (manual) _aiSummaryManualRequested = true;
     final pending = _aiSummaryInFlight;
     if (pending != null) return pending;

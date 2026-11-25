@@ -14,6 +14,7 @@ void main() {
   late List<MethodCall> toNative;
   late Map<String, Object?>? created;
   late int viewId;
+  late List<int> viewIds;
   late bool hybrid;
   late int createCount;
 
@@ -22,6 +23,7 @@ void main() {
     NexTextField.flutterMagnifier = true;
     toNative = [];
     created = null;
+    viewIds = [];
     createCount = 0;
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
@@ -33,6 +35,7 @@ void main() {
         final args = (call.arguments as Map).cast<String, Object?>();
         hybrid = args['hybrid'] == true;
         viewId = args['id']! as int;
+        viewIds.add(viewId);
         final params = args['params'] as Uint8List;
         created = (const StandardMessageCodec().decodeMessage(
           ByteData.sublistView(params),
@@ -63,13 +66,14 @@ void main() {
         .setMockMethodCallHandler(SystemChannels.platform_views, null);
   });
 
-  Future<void> fromNative(
+  Future<void> fromNativeTo(
     WidgetTester tester,
+    int view,
     String method, [
     Object? arguments,
   ]) async {
     await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
-      'nex/edit_text/$viewId',
+      'nex/edit_text/$view',
       const StandardMethodCodec().encodeMethodCall(
         MethodCall(method, arguments),
       ),
@@ -77,6 +81,12 @@ void main() {
     );
     await tester.pump();
   }
+
+  Future<void> fromNative(
+    WidgetTester tester,
+    String method, [
+    Object? arguments,
+  ]) => fromNativeTo(tester, viewId, method, arguments);
 
   Future<void> pump(
     WidgetTester tester,
@@ -610,7 +620,53 @@ void main() {
     toNative.clear();
     focus.unfocus();
     await tester.pump();
+    // The hide waits for the next field to claim the keyboard; with nothing
+    // claiming it, it still happens one handoff later.
+    await tester.pump(NexImeHandoff.delay);
+    await tester.pump();
     expect(toNative.map((c) => c.method), contains('unfocus'));
+  });
+
+  testWidgets('a keyboard handed to the next field is not hidden between '
+      'them', (tester) async {
+    final first = FocusNode();
+    final second = FocusNode();
+    final one = TextEditingController();
+    final two = TextEditingController();
+    addTearDown(first.dispose);
+    addTearDown(second.dispose);
+    addTearDown(one.dispose);
+    addTearDown(two.dispose);
+    await pump(
+      tester,
+      Column(
+        children: [
+          NexTextField(controller: one, focusNode: first),
+          NexTextField(controller: two, focusNode: second),
+        ],
+      ),
+    );
+    expect(viewIds, hasLength(2));
+
+    first.requestFocus();
+    await tester.pump();
+    await fromNativeTo(tester, viewIds[0], 'focus', {'focused': true});
+    toNative.clear();
+
+    // A tap on the second field: the first loses focus in the same frame the
+    // second takes it. The keyboard must stay up between them.
+    second.requestFocus();
+    await tester.pump();
+    await fromNativeTo(tester, viewIds[1], 'focus', {'focused': true});
+    await tester.pump(NexImeHandoff.delay);
+    await tester.pump();
+
+    expect(
+      toNative.map((c) => c.method),
+      isNot(contains('unfocus')),
+      reason: 'the keyboard is handed over, not closed and reopened',
+    );
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('a label inside the empty field keeps the hint off the editor', (
@@ -690,6 +746,8 @@ void main() {
       await tester.tapAt(Offset(bounds.center.dx, bounds.bottom + 54));
       await tester.pump();
       expect(focus.hasFocus, isFalse);
+      await tester.pump(NexImeHandoff.delay);
+      await tester.pump();
       expect(toNative.map((c) => c.method), contains('unfocus'));
       await tester.pumpWidget(const SizedBox());
     },

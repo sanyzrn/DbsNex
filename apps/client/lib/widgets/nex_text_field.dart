@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import 'keyboard_dismisser.dart';
 import 'text_format_menu.dart';
 import 'native_text_magnifier.dart';
 
@@ -317,6 +318,7 @@ class _NativeFieldState extends State<_NativeField> {
   /// controller, so the listener does not echo it.
   bool _fromNative = false;
   bool _focused = false;
+  NexImeHide? _pendingHide;
   double? _height;
   Map<String, Object?>? _lastConfig;
   AppLocalizations? _formatLocale;
@@ -355,6 +357,7 @@ class _NativeFieldState extends State<_NativeField> {
   void dispose() {
     _controller.removeListener(_onController);
     _focus.removeListener(_onFocus);
+    _pendingHide?.cancel();
     _ownFocus?.dispose();
     _channel?.setMethodCallHandler(null);
     _magnifier.dispose();
@@ -392,10 +395,23 @@ class _NativeFieldState extends State<_NativeField> {
   /// view's node, and that clears the editor's.
   void _onFocus() {
     if (_focus.hasPrimaryFocus) {
+      // Another field may be about to lose focus on the same frame; taking
+      // focus cancels the keyboard hide it deferred.
+      _pendingHide = null;
+      nexImeHandoff.gain();
       unawaited(_channel?.invokeMethod<void>('focus'));
     } else if (!_focus.hasFocus && _focused) {
-      unawaited(_channel?.invokeMethod<void>('unfocus'));
+      // Not immediately: a tap on the next field on this screen loses this
+      // focus and gains that one in the same frame, and hiding the IME here
+      // would close it just before the next field reopens it. The handoff
+      // gives that field the chance to take the keyboard over first.
+      _pendingHide = nexImeHandoff.lose(_unfocusEditor);
     }
+  }
+
+  void _unfocusEditor() {
+    if (!mounted || _focus.hasFocus) return;
+    unawaited(_channel?.invokeMethod<void>('unfocus'));
   }
 
   void _focusFromPadding(TapUpDetails tap) {
@@ -468,7 +484,13 @@ class _NativeFieldState extends State<_NativeField> {
         if (height != _height && mounted) setState(() => _height = height);
       case 'focus':
         final focused = args['focused'] == true;
-        if (!focused) _magnifier.hide();
+        if (focused) {
+          // The editor has the keyboard: keep a previous field's deferred
+          // hide from landing on it.
+          nexImeHandoff.gain();
+        } else {
+          _magnifier.hide();
+        }
         if (focused == _focused) return;
         _focused = focused;
         // Not a `requestFocus` here: the platform view's own node already

@@ -26,6 +26,14 @@ class _ViewDissolve extends ChangeNotifier {
   /// Where the notes begin in the picture: under the filter row.
   double get top => _top;
 
+  /// The most a transient underlay is captured at.
+  ///
+  /// The picture is only ever drawn while a 300 ms fade runs over it, and a
+  /// full-screen 3x capture is nine million pixels copied on the frame of the
+  /// tap — the stall a mid-range device shows when the layout changes. At 2x
+  /// the fade still reads as the old view rather than as a blur.
+  static const maxPixelRatio = 2.0;
+
   /// Keeps what is on screen now, before the rebuild that changes it.
   void capture(BuildContext context, GlobalKey line) {
     if (MediaQuery.disableAnimationsOf(context)) return;
@@ -41,7 +49,10 @@ class _ViewDissolve extends ChangeNotifier {
     }
     final ui.Image? shot;
     try {
-      shot = box.lastFrame(MediaQuery.devicePixelRatioOf(context));
+      final ratio = MediaQuery.devicePixelRatioOf(context)
+          .clamp(1.0, maxPixelRatio)
+          .toDouble();
+      shot = box.lastFrame(ratio);
     } catch (_) {
       return;
     }

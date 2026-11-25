@@ -37,6 +37,47 @@ TextDirection? nexDirectionOf(String? text) {
   return null;
 }
 
+/// The direction a finished block of text reads in: whichever script its own
+/// words are mostly written in.
+///
+/// [nexDirectionOf] answers from the first strong character, and that stays
+/// the right rule for a field being typed into: once the first letter is down
+/// the answer cannot move underneath the writer. It is the wrong rule for a
+/// block that is already written. «Nex را باز کن و یادداشت را بخوان» opens
+/// with an English product name and is a Persian sentence; the first-strong
+/// answer lays it out left to right, so the paragraph sits on the wrong side
+/// of a Persian page. Counting puts it back where it belongs.
+///
+/// The count is of letters, not of characters: digits, punctuation, spaces,
+/// URLs and emoji carry no direction and are skipped, exactly as they are by
+/// [nexDirectionOf]. Combining marks and Arabic-Indic digits are neutral for
+/// the same reasons spelled out on [_directionOfRune].
+///
+/// A tie falls back to the first strong character, so the answer is still
+/// decided by the text alone and still stable for the same words. Returns
+/// null when the text carries no strong character at all — a number, an
+/// empty block, a line of punctuation — which leaves the caller's direction
+/// in place.
+TextDirection? nexDominantDirectionOf(String? text) {
+  final value = text;
+  if (value == null || value.isEmpty) return null;
+  var rightToLeft = 0;
+  var leftToRight = 0;
+  TextDirection? firstStrong;
+  for (final rune in value.runes) {
+    final direction = _directionOfRune(rune);
+    if (direction == null) continue;
+    firstStrong ??= direction;
+    if (direction == TextDirection.rtl) {
+      rightToLeft++;
+    } else {
+      leftToRight++;
+    }
+  }
+  if (rightToLeft == leftToRight) return firstStrong;
+  return rightToLeft > leftToRight ? TextDirection.rtl : TextDirection.ltr;
+}
+
 /// The direction one character carries, or null if it carries none.
 ///
 /// Neutral characters — digits, punctuation, spaces, emoji — deliberately
