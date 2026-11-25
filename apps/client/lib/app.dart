@@ -37,6 +37,7 @@ import 'screens/settings_sheet.dart';
 import 'screens/tools_screen.dart';
 import 'widgets/commitments_sheet.dart';
 import 'screens/timeline_screen.dart';
+import 'widgets/focus_reveal.dart';
 import 'widgets/keyboard_dismisser.dart';
 import 'widgets/nex_banner.dart';
 import 'widgets/app_lock_gate.dart';
@@ -722,39 +723,45 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
                       // instead of being scoped to whichever page happened to be
                       // underneath when they were raised.
                       child: NexKeyboardDismisser(
-                        child: Stack(
-                          children: [
-                            Scaffold(
-                              backgroundColor: Colors.transparent,
-                              resizeToAvoidBottomInset: false,
-                              body: ExcludeSemantics(
-                                excluding: _locked,
-                                child: IgnorePointer(
-                                  ignoring: _locked,
-                                  child: FocusTraversalGroup(
-                                    child: NexDesktopShell(
-                                      nav: _desktopNav,
-                                      services: widget.services,
-                                      preferences: prefs,
-                                      timelineKey: timelineKey,
-                                      updates: _updates,
-                                      child: child!,
+                        // Above the Navigator, so every page, dialog and sheet
+                        // gets the same rule: the field being typed in stays
+                        // above the keyboard.
+                        child: NexFocusReveal(
+                          child: Stack(
+                            children: [
+                              Scaffold(
+                                backgroundColor: Colors.transparent,
+                                resizeToAvoidBottomInset: false,
+                                body: ExcludeSemantics(
+                                  excluding: _locked,
+                                  child: IgnorePointer(
+                                    ignoring: _locked,
+                                    child: FocusTraversalGroup(
+                                      child: NexDesktopShell(
+                                        nav: _desktopNav,
+                                        services: widget.services,
+                                        preferences: prefs,
+                                        timelineKey: timelineKey,
+                                        updates: _updates,
+                                        child: child!,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                            if (_locked)
-                              Positioned.fill(
-                                child: AppLockGate(
-                                  busy: _unlocking,
-                                  error: _lockError,
-                                  onSettings: () =>
-                                      unawaited(_appLock.openDeviceSecurity()),
-                                  onUnlock: () => unawaited(_unlock()),
+                              if (_locked)
+                                Positioned.fill(
+                                  child: AppLockGate(
+                                    busy: _unlocking,
+                                    error: _lockError,
+                                    onSettings: () => unawaited(
+                                      _appLock.openDeviceSecurity(),
+                                    ),
+                                    onUnlock: () => unawaited(_unlock()),
+                                  ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

@@ -315,3 +315,86 @@ for both, in English and Persian (Persian digits included).
 - A model may answer with a neutral phrase at an odd hour ("Ready when you
   are" at 03:00). It passes validation; the local phrasing is what names the
   hour, and the prompt asks the model to.
+
+## Step 4 — the keyboard and the field being typed in
+
+### Root cause
+
+The report was Prompt Studio: tapping the body field opened the keyboard over
+it, and the form "did not adapt". Measured rather than guessed, with a widget
+that set a 320 px keyboard on a 600 px screen:
+
+- The page's `Scaffold` *did* resize (`resizeToAvoidBottomInset` is true by
+  default; the root's `false` does not reach it), so the viewport ended at
+  y=280.
+- The focused field was 168…364 — its lower 84 px under the keyboard.
+- The reason is Flutter's own rule: it scrolls the **caret** into view, not the
+  field. A six-line body field with the caret at its top is "visible" to the
+  framework and still half-covered on screen.
+- Scrolling the *editable text* rather than the field was not enough either: it
+  left the field's label, counter and border 28 px below the keyboard. The unit
+  to lift is the field's box.
+
+### What changed
+
+- **`apps/client/lib/widgets/focus_reveal.dart` (new).** `NexFocusReveal`
+  listens to the keyboard's metrics and to focus changes, and when the keyboard
+  is up scrolls the focused field — the nearest `TextField` above the focus
+  node, not the inner editor — to the end of its scroll viewport
+  (`keepVisibleAtEnd`), so the box is above the keyboard. It runs after the
+  frame and once more on the next one, because the first pass can run while the
+  scaffold is still growing (that first attempt left the box 28 px low). It
+  does nothing when the keyboard is closed, and it is instant rather than
+  animated: this scroll is part of the keyboard arriving, and an animation
+  racing the keyboard was what left the field half-covered.
+- **Installed once, above the Navigator**, in `app.dart`. Pages, dialogs and
+  sheets are all inside it, so there is one rule for the app rather than a
+  patch per screen.
+- **`nexShowPanel` fits above the keyboard.** Its 0.88-of-the-window height is
+  now measured against the window minus the keyboard, and it keeps a floor so
+  a very short window does not collapse it.
+- **Audited rather than assumed.** `nexShowSheet` already lifts a sheet once
+  (`nex_sheet_keyboard_test`), `nexShowDialog` already pads by the inset, the
+  two expenses sheets that set `resizeToAvoidBottomInset: false` live inside a
+  sheet that resizes for them, and the pages carrying text fields are either a
+  `Scaffold` (which resizes) or already padding by `viewInsets` by hand. The
+  timeline sits directly under the root, which is deliberate: its search field
+  is at the top and it hides its dock while the keyboard is up.
+
+### Tests added
+
+- `apps/client/test/focus_reveal_test.dart` (8) — keyboard after the tap; focus
+  while the keyboard is already up (the "next field" path); a closed keyboard
+  moving nothing; a dialog field; a tall field inside a sheet; a 400×520 short
+  window; right to left; "remove animations".
+- `apps/client/test/modules/prompt_studio/studio_widget_test.dart` — the
+  reported screen itself: the real editor under the app's wrapper, the body
+  field's box above a 320 px keyboard.
+
+### Checks run in this environment
+
+- `apps/client`: `flutter analyze` no errors or warnings introduced; the new
+  files and prompt-studio editor green (248), the keyboard/input/dialog/sheet
+  group green, 308 app/timeline/onboarding/desktop tests green, 1097 tests
+  across the eight form-heavy module families, 899 across the other module
+  families.
+- `packages/core`, `packages/data`, `packages/ai` were not touched by this
+  step; their suites were green in steps 2 and 3 and nothing in this change
+  reaches them.
+
+### Not run here
+
+- A real keyboard on a device, the platform's own inset animation, and the
+  Android native-editor path (widget tests run on the host editor). The rule is
+  geometry only, and the fallback target for the native editor is the focus
+  node's own render object.
+
+### Remaining risks for the final audit
+
+- A screen that neither resizes (its own `resizeToAvoidBottomInset: false`)
+  nor scrolls cannot be helped by a scroll: the rule would find nothing to
+  scroll. None was found in this audit; a future screen that opts out of
+  resizing should be checked against this.
+- The reveal targets the nearest `TextField`; a custom editor that is not a
+  `TextField` and not the native one falls back to the focus node's render
+  object, which is the text rather than its frame.

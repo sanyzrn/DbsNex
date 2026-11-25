@@ -6,6 +6,7 @@ import 'package:nex_client/modules/prompt_studio/prompt_model.dart';
 import 'package:nex_client/modules/prompt_studio/studio_editor.dart';
 import 'package:nex_client/modules/prompt_studio/studio_home.dart';
 import 'package:nex_client/modules/prompt_studio/studio_repository.dart';
+import 'package:nex_client/widgets/focus_reveal.dart';
 
 import '../../support/nex_harness.dart';
 
@@ -394,4 +395,35 @@ void main() {
       expect(find.text('My prompt'), findsNothing);
     },
   );
+
+  // 2.9.0, step 4: the reported screen. Opening the keyboard over the body
+  // field left its lower half covered — the scaffold made room, but only the
+  // caret was scrolled into view. The app installs NexFocusReveal above the
+  // Navigator; this is that path, on the real editor.
+  testWidgets('the keyboard does not cover the body being edited', (t) async {
+    await t.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        builder: (context, child) => NexFocusReveal(child: child!),
+        home: StudioEditor(repo: StudioRepository(store)),
+      ),
+    );
+    await settleStudio(t);
+    final body = find.byKey(const ValueKey('studio-body'));
+    await revealStudio(t, body);
+    await t.tap(body);
+    await t.pump();
+    t.view.viewInsets = FakeViewPadding(bottom: 320 * t.view.devicePixelRatio);
+    addTearDown(t.view.resetViewInsets);
+    await t.pumpAndSettle();
+    final screen = t.view.physicalSize / t.view.devicePixelRatio;
+    expect(
+      t.getRect(body).bottom,
+      lessThanOrEqualTo(screen.height - 320 + 0.5),
+      reason: 'the field box, not only the caret, has to stay in view',
+    );
+    await t.pumpWidget(const SizedBox());
+  });
 }

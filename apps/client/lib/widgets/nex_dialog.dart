@@ -130,13 +130,17 @@ Future<T?> nexShowPanel<T>({
   barrierDismissible: dismissible || swipeToClose,
   builder: (context) {
     final size = MediaQuery.sizeOf(context);
+    // A panel with a field in it has to fit above the keyboard too: the dialog
+    // route already lifts it by the inset, and a height measured against the
+    // whole window would put its lower rows back under it.
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
     final width = math.min(nexPanelWidth, size.width - 2 * NexSpacing.lg);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(NexSpacing.lg),
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxHeight: size.height * 0.88,
+            maxHeight: math.max(160, (size.height - keyboard) * 0.88),
             minWidth: width,
             maxWidth: width,
           ),
