@@ -39,6 +39,7 @@ extension NexModuleAlarms on NexReminders {
           '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}',
     );
     final secret = hideOnLockScreen?.call() ?? false;
+    final words = nexNotificationWords(title, body);
     // Cleared before anything that can fail, so a failure below is never
     // reported as the previous one.
     lastError = null;
@@ -62,12 +63,12 @@ extension NexModuleAlarms on NexReminders {
     try {
       await _plugin.zonedSchedule(
         id: id,
-        title: nexNotificationText(title),
-        body: nexNotificationText(body),
+        title: nexNotificationText(words.title),
+        body: nexNotificationText(words.body),
         scheduledDate: NexReminders.scheduledDateFor(at.toUtc()),
         notificationDetails: habitCounted != null
             ? NexHabitNotificationActions.details(
-                body: body,
+                body: words.body,
                 counted: habitCounted,
                 secret: secret,
               )
@@ -75,7 +76,7 @@ extension NexModuleAlarms on NexReminders {
                 android: AndroidNotificationDetails(
                   NexReminders._channelId,
                   NexReminders._text.reminders,
-                  styleInformation: nexNotificationStyle(null),
+                  styleInformation: nexNotificationStyle(words.body),
                   channelDescription: NexReminders._text.remindersAbout,
                   importance: Importance.high,
                   priority: Priority.high,

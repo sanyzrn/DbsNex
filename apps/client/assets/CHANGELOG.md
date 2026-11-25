@@ -4,6 +4,30 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.9.0
+
+- **Notifications that say each thing once.** A reminder no longer repeats its own title under it, no blank line is left above or below the words, and a module or cycle reminder with more to say opens to all of it instead of one cut line. The buttons under a habit's reminder now use the same words and language as every other reminder.
+
+- **Video from the camera.** Hold the shutter in Nex's camera to record a video with sound, and let go to keep it; a tap still takes a photo. The clock at the top runs while it records, the stop button ends it, and a hold too short to be a video is thrown away instead of leaving a second-long clip — and no stray photo. The attach sheet's “Take a photo” is now **Camera**.
+
+- **Paste where the send button is.** The capture box keeps its whole width for writing, and the primary button turns into Paste when the box is empty and the clipboard holds something worth pasting — an address, in a link box. Pressing it only inserts: nothing is sent for you, and the arrow is back the moment there is something to send.
+
+- **One capture box for every kind.** Moving between a note, a list, a link and code no longer closes and reopens the keyboard or shifts the box while you write. Code keeps its bracket pairs and line indentation — the same editor handles them — so changing the kind costs nothing.
+
+- **The keyboard never covers the field you are typing.** Tapping a field — in Prompt Studio, a long form, a dialog, a sheet or the Android editor — now brings the whole field above the keyboard, not just the caret, so the line being written stays in view. The rule is installed once for the whole app, it does nothing while the keyboard is closed, and it respects "remove animations".
+
+- **The greeting keeps up with the hour.** The line above your notes now belongs to the day and the part of the day it was written for, so last night's phrase no longer greets you in the morning. The app's own greeting appears at once while a fresh one is written, and it is replaced without a jump when you come back to the app, cross noon, evening or midnight, or change the interface language. A phrase about the wrong time of day is never shown.
+
+- **The brief and the daily nudge read the day the same way.** One reading of the library now feeds both, so a reminder later today is a plan and is never called finished or missed — at 10:30, reminders for 11:20 and 11:46 are still ahead of you — and an item whose early window is open says so without pretending it is due. Overdue, due now, open early and merely upcoming are four different things, and each is named as itself. The model is given these facts and cannot overwrite them: a summary that contradicts them, or that arrives after the notes have changed, is dropped instead of shown.
+
+- **A recurring item cannot be finished in advance.** After you mark an occurrence done, the next one waits: its tick opens a set time before it falls due — a few minutes for an hourly item, three hours for a daily one, a day for a weekly, three days for a monthly and a week for a yearly — and the card says when. You can set that window for each item, including "only when it is due". Ticking one off ahead of time keeps the schedule where it was, and the history now shows both when it was done and which occurrence it answered. A paused item no longer looks like it can be done.
+
+- **Full-size photos from the camera that can also record.** Holding the shutter for a video no longer costs your photographs their resolution: stills are taken at the sensor's full size in every camera panel, and a clip is kept inside the attachment limit by its bitrate instead of by making the pictures smaller. The camera's ⋮ menu also offers **Photos and videos**, so a photo or video you already have can be chosen without leaving the panel — and a recording too large to keep says so rather than disappearing.
+
+- **An out-of-date summary is not shown.** A brief written before something fell due is no longer left on the card, the home-screen widget or the notification as if it still described your library. The app notices that moment by itself — nothing has to be edited — shows its own factual lines in the meantime, and asks for a fresh summary. Related notes behind a summary are also found by their tags and by the same word written two ways, not only by an identical spelling.
+
+- **Nothing due this month is skipped by the nudge.** The daily nudge is planned a month ahead, and every reminder inside those weeks is now weighed instead of only the few nearest — a note due on the last planned day is no longer crowded out by busier ones before it.
+
 ## v2.8.22
 
 - **Media picks only photos and videos.** The Media button now opens the phone's own gallery picker, the way a chat app does, so several photos and videos can be chosen together. A PDF, a ZIP or a recording offered by an older picker is refused with a message instead of appearing as an empty picture, and File still takes any file. A file an earlier version stored as a photo now opens as what it really is.

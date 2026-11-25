@@ -350,6 +350,7 @@ abstract final class NexReminderActions {
         ? text[1]
         : null;
     final secret = text != null && text.length > 2 && text[2] == '1';
+    final words = nexNotificationWords(title, body);
     tz_data.initializeTimeZones();
     final at = tz.TZDateTime.from(
       DateTime.now().toUtc().add(snoozeFor),
@@ -357,11 +358,11 @@ abstract final class NexReminderActions {
     );
     Future<void> arm(AndroidScheduleMode mode) => plugin.zonedSchedule(
       id: NexReminders.snoozeIdFor(noteId),
-      title: nexNotificationText(title),
-      body: nexNotificationText(body),
+      title: nexNotificationText(words.title),
+      body: nexNotificationText(words.body),
       scheduledDate: at,
       notificationDetails: NexReminderActions.noteDetails(
-        body: body,
+        body: words.body,
         secret: secret,
         text: language,
       ),

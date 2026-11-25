@@ -1,3 +1,6 @@
+/// The moment the greeting on screen belongs to: this day, this part of it,
+/// this language. The one reading of the clock the whole line is built from.
+
 part of '../timeline_screen.dart';
 
 /// The greeting, the AI headline and recap, and the daily brief card.
@@ -137,12 +140,7 @@ extension _TimelineAiHeader on TimelineScreenState {
   void _armBriefRefresh() {
     _aiSummaryWake?.cancel();
     final prefs = widget.preferences;
-    if (!_aiHeaderAvailable ||
-        !prefs.showDaySummary ||
-        !prefs.briefStyle.usesModel ||
-        !_briefForeground) {
-      return;
-    }
+    if (!_briefAvailable || !prefs.showDaySummary || !_briefForeground) return;
     // One build of the source answers both questions: whether there is
     // anything to describe, and (through the fingerprint) whether what is
     // on file was written from it. The fingerprint variant carries the same
@@ -152,239 +150,121 @@ extension _TimelineAiHeader on TimelineScreenState {
     final fingerprint = TimelineScreenState.recapFingerprint(
       _briefSignatureBody(source),
     );
-    // No recurring timer: unchanged information never generates another brief.
-    if (prefs.aiDaySummarySource == fingerprint) return;
-    final next = widget.services.briefRefresh.nextAllowedAt();
-    final wait = next.difference(DateTime.now());
-    // A changed input arriving during a flight also gets checked here.
-    _aiSummaryWake = Timer(wait.isNegative ? Duration.zero : wait, () {
+    final now = DateTime.now();
+    DateTime? wakeAt;
+    // Two reasons to wake, and they are different questions. The first is
+    // that the words on file were written from something else — a capture, a
+    // tick, a setting. Only a style that asks anybody can act on it, and the
+    // retry is bounded by the cooldown, so a failure cannot spin here.
+    if (_aiHeaderAvailable && prefs.briefStyle.usesModel) {
+      final stale =
+          prefs.aiDaySummarySource != fingerprint || !prefs.aiDaySummaryFresh;
+      if (stale) {
+        final next = widget.services.briefRefresh.nextAllowedAt();
+        wakeAt = next.isAfter(now) ? next : now;
+      }
+    }
+    // The second is that nothing was written at all since the words were:
+    // the clock has moved past a fact they state, and no write will announce
+    // it. Every style needs this one — the report's own lines say "today at
+    // 11:20" until something asks them again — which is why it is armed
+    // outside the model branch above.
+    final boundary = _briefBoundary;
+    if (boundary != null &&
+        boundary.isAfter(now) &&
+        (wakeAt == null || boundary.isBefore(wakeAt))) {
+      wakeAt = boundary;
+    }
+    if (wakeAt == null) return;
+    var wait = wakeAt.difference(now);
+    // A timer that fires a hair before its own boundary would compute the
+    // same boundary again; a second is enough to have moved past it.
+    if (wait < const Duration(seconds: 1)) wait = const Duration(seconds: 1);
+    _aiSummaryWake = Timer(wait, () {
       if (mounted) unawaited(_loadAiSummary());
     });
   }
 
-  Future<void> _askAiSummary({required bool force}) async {
-    await _briefCommitmentsReady;
-    if (!mounted) return;
-    force = force || _aiSummaryManualRequested;
+  NexGreetingMoment get _greetingMoment =>
+      nexGreetingMomentAt(DateTime.now(), language: _headlineLanguage.wireName);
+
+  /// The model's phrase for the current moment, or null when the cached and
+  /// in-memory phrases belong to another one.
+  ///
+  /// Called from build, so it has to be synchronous and cheap: two map reads
+  /// and a validation of at most ninety characters. It is also the last line
+  /// of defence for the bug this step exists for — even if a timer is missed
+  /// and the cache is old, a night phrase is not shown in the morning.
+  String? _greetingPhrase() {
+    final moment = _greetingMoment;
+    if (_aiHeadlineMoment == moment.key &&
+        nexGreetingFits(_aiHeadlineText, moment: moment)) {
+      return _aiHeadlineText!.trim();
+    }
     final prefs = widget.preferences;
-    if (!_briefAvailable || (!force && !prefs.showDaySummary)) return;
-    final usesModel = prefs.briefStyle.usesModel;
-    final cached = CloudAIAdapter.cleanDecorativeReply(prefs.aiDaySummaryText);
-    // The cache is a model-written brief, and only that: the report style
-    // writes its own lines from the library on the next few lines of this
-    // very pass, so adopting a stale cache first would paint a brief that
-    // is about to be replaced — and on a library too quiet for a report
-    // would leave an old model's words standing in for arithmetic.
-    if (mounted &&
-        usesModel &&
-        cached != null &&
-        cached.isNotEmpty &&
-        cached != _aiSummaryText) {
-      _rebuild(() {
-        _aiSummaryText = cached;
-        _aiSummaryHasHabits =
-            prefs.aiDaySummaryIncludesHabits && prefs.briefHabitsAllowed;
-      });
+    final cached = prefs.aiHeadlineText;
+    if (prefs.aiHeadlineDate == moment.dateKey &&
+        prefs.aiHeadlinePart == moment.part.wireName &&
+        prefs.aiHeadlineLang == moment.language &&
+        nexGreetingFits(cached, moment: moment)) {
+      return cached!.trim();
     }
-    final habits = await widget.services.habitsForBrief();
-    if (!mounted) return;
-    // The notes beyond the window, before anything is built from them: the
-    // source, the report and the fingerprint below all read this pass's
-    // copy, not whatever the last pass happened to leave in the field.
-    _briefWaitingNotes = await widget.services.briefWaitingNotes();
-    if (!mounted) return;
-    final briefNotes = _briefLibrary();
-    // A manual pull may have joined while the habits and the waiting notes
-    // were being read — before the request decision below, so still in
-    // time to be honoured by it.
-    force = force || _aiSummaryManualRequested;
-    _habitBriefSource = prefs.briefHabitsAllowed ? habits.source : '';
-    final includesHabits = _habitBriefSource.isNotEmpty;
-    final habitText = includesHabits
-        ? habits.localText(
-            AppLocalizations.of(context),
-            includeCompleted: prefs.briefStyle == NexBriefStyle.report,
-            maxWords: prefs.briefLength.words,
-          )
-        : '';
-    if (!prefs.briefHabitsAllowed && prefs.aiDaySummaryIncludesHabits) {
-      _rebuild(
-        () => _aiSummaryText = prefs.aiDaySummaryText ?? _notesOnlyBrief(),
-      );
-    }
-    final notesSource = _aiRecapSource(notes: briefNotes);
-    final source = [
-      notesSource,
-      if (includesHabits) _habitBriefSource,
-    ].where((s) => s.isNotEmpty).join('\n');
-    if (source.isEmpty) return;
-    // Which notes the brief is written from, for the log of what left the
-    // phone: it used to name none (1.99.96 reviews, SEC-01).
-    final sourceNotes = nexRecapNoteIds(
-      briefNotes,
-      commitments: _model.commitments,
-    );
-    final style = prefs.briefStyle;
-    final length = prefs.briefLength;
-    final budget = nexBriefLines(
-      '\n'.allMatches(source).length + 1,
-      ceiling: length.lines,
-    );
-    final writtenBudget = style.usesModel
-        ? (budget - 1).clamp(1, budget)
-        : budget;
-    final habitLines = habitText.isEmpty ? <String>[] : habitText.split('\n');
-    // Spend the factual budget on notes in priority order first. Habit
-    // progress may use spare room; it never reserves a row ahead of a note.
-    final reportLines = style.statesFacts
-        ? nexBriefReportLines(
-            nexBriefFacts(briefNotes, commitments: _model.commitments),
-            AppLocalizations.of(context),
-            maxLines: writtenBudget,
-            maxWords: length.words,
-            notes: briefNotes,
-            clock: (local) => nexDueClock(context, local),
-          )
-        : const <NexBriefLine>[];
-    _rememberBriefLines(reportLines);
-    final noteLines = [for (final line in reportLines) line.text];
-    final written = style.statesFacts
-        ? [
-            ...noteLines,
-            ...habitLines.take(
-              (writtenBudget - noteLines.length).clamp(0, writtenBudget),
-            ),
-          ].join('\n')
-        : null;
-    if (!style.usesModel) {
-      if (mounted) {
-        _rebuild(() {
-          _aiSummaryLoading = false;
-          _aiSummaryHasHabits = includesHabits;
-          _aiSummaryText = written ?? '';
-        });
-      }
-      _refreshDailyNudge();
-      return;
-    }
-    if (!force && !_briefForeground) return;
-    final fingerprint = _briefFingerprint();
-    final refresh = widget.services.briefRefresh;
-    if (!force && !refresh.needs(fingerprint)) return;
-    final config = prefs.aiProvider;
-    // `notesSource` again rather than a second pass over the library: the
-    // question is only whether the model has anything to read, and the
-    // answer was settled a moment ago.
-    final language =
-        prefs.aiOutputLanguage == AiOutputLanguage.auto && notesSource.isEmpty
-        ? _headlineLanguage
-        : prefs.aiOutputLanguage;
-    final unlimited = prefs.aiSummaryUnlimited;
-    final tone = prefs.briefTone;
-    final instruction = prefs.briefInstruction;
-    final settings = _briefSettingsSignature();
-    if (mounted) _rebuild(() => _aiSummaryLoading = true);
-    try {
-      final result = await refresh.refresh(
-        fingerprint: fingerprint,
-        dateKey: _aiSummaryDateKey(),
-        force: force,
-        includesHabits: includesHabits,
-        // Read by the cache only when habits were included; building the
-        // local report is a walk over the library and is not spent on the
-        // briefs that cannot use it.
-        notesOnlyFallback: includesHabits ? _notesOnlyBrief() : null,
-        request: () async {
-          // Marked before anything can fail: the flag says a provider was
-          // asked, not that it answered.
-          _aiSummaryFlightAsked = true;
-          if (includesHabits && !prefs.briefHabitsAllowed) return null;
-          final adapter = CloudAIAdapter(
-            config: config,
-            outputLanguage: language,
-            unlimitedSummary: unlimited,
-          );
-          try {
-            final answer = await NexDisclosureLog.about(
-              notes: sourceNotes,
-              () => adapter.digest(
-                source,
-                includesHabits: includesHabits,
-                lines: budget,
-                style: style,
-                tone: tone,
-                instruction: instruction,
-                written: written ?? '',
-                words: length.words,
-                timeout: force
-                    ? const Duration(minutes: 5)
-                    : unlimited
-                    ? const Duration(minutes: 3)
-                    : CloudAIAdapter.ambientTimeout,
-              ),
-            );
-            // Local facts are useful fallback text, never an AI success stamp.
-            if (answer == null || answer.trim().isEmpty) return null;
-            return [
-              if (written != null && written.isNotEmpty) written,
-              answer,
-            ].join('\n');
-          } finally {
-            adapter.close();
-          }
-        },
-      );
-      _lastBriefRefreshFailed = result.failed;
-      if (result.updated) unawaited(widget.widgets?.refresh());
-      if (!mounted || settings != _briefSettingsSignature()) return;
-      _rebuild(() {
-        _aiSummaryText = result.text ?? _aiSummaryText ?? written;
-        _aiSummaryHasHabits =
-            prefs.aiDaySummaryIncludesHabits && prefs.briefHabitsAllowed;
-      });
-      if ((force || _aiSummaryManualRequested) && result.failed) {
-        NexBannerHost.of(context)?.show(
-          message: AppLocalizations.of(context).recapRefreshFailed,
-          kind: NexBannerKind.failed,
-        );
-      }
-      _refreshDailyNudge(
-        freshlyGeneratedSummary:
-            result.updated && prefs.aiDaySummarySource == _briefFingerprint(),
-      );
-    } finally {
-      if (mounted) _rebuild(() => _aiSummaryLoading = false);
-    }
+    return null;
   }
 
-  /// Which language the generated line has to be written in: the app's own.
+  /// Arms one timer for the next boundary (05:00, 12:00, 17:00, 23:00 or
+  /// midnight) and re-arms itself from the handler.
   ///
-  /// It used to follow the script of the user's name, so a Persian interface
-  /// with a name typed in Latin letters opened with an English sentence
-  /// (2.4.0). The line is part of the interface, and the name is only a word
-  /// in it — "صبحت بخیر، Saeed" reads naturally; a whole English line in a
-  /// Persian app does not.
-  AiOutputLanguage get _headlineLanguage =>
-      Localizations.localeOf(context).languageCode == 'fa'
-      ? AiOutputLanguage.persian
-      : AiOutputLanguage.english;
+  /// One timer, not a periodic tick: the line changes at four moments a day,
+  /// and a minute-by-minute wake-up to find that out would cost more than the
+  /// greeting is worth.
+  void _scheduleGreetingRollover() {
+    _greetingRollover?.cancel();
+    final now = DateTime.now();
+    final next = nexGreetingBoundaries(now).firstWhere(
+      (at) => at.isAfter(now),
+      orElse: () => now.add(const Duration(hours: 1)),
+    );
+    _greetingRollover = Timer(next.difference(now), () {
+      if (!mounted) return;
+      _onGreetingMomentChanged();
+      _scheduleGreetingRollover();
+    });
+  }
+
+  /// The day or the part of it has turned: stale words go now, the local
+  /// phrasing holds the line, and a phrase for the new moment is asked for.
+  void _onGreetingMomentChanged() {
+    final moment = _greetingMoment;
+    if (_aiHeadlineMoment != null && _aiHeadlineMoment != moment.key) {
+      _rebuild(() {
+        _aiHeadlineText = null;
+        _aiHeadlineMoment = null;
+      });
+    }
+    unawaited(_loadAiHeadline());
+  }
 
   /// The headline over the timeline. Same shape as [_loadAiSummary] — cached
-  /// per day, forced by a tap on the line itself.
+  /// per moment, forced by a tap on the line itself.
   Future<void> _loadAiHeadline({bool force = false}) async {
     final prefs = widget.preferences;
     if (!_aiHeaderAvailable) return;
     // Drawn only beside the greeting; with the greeting hidden it is not
     // asked for.
     if (!force && !prefs.showGreeting) return;
-    final today = _aiSummaryDateKey();
+    final moment = _greetingMoment;
+    // This moment's phrase is already on screen — from the cache or from the
+    // last answer. Asking again would rebuild the line to say the same thing.
+    if (!force && _greetingPhrase() != null) return;
     final language = _headlineLanguage;
     final langKey = language.wireName;
     if (_aiHeadlineLoading) return;
     _rebuild(() => _aiHeadlineLoading = true);
     try {
       final text = await widget.services.briefRefresh.headline(
-        dateKey: today,
+        dateKey: moment.dateKey,
+        part: moment.part.wireName,
         language: langKey,
         force: force,
         request: () async {
@@ -406,20 +286,26 @@ extension _TimelineAiHeader on TimelineScreenState {
           }
         },
       );
-      if (mounted && language == _headlineLanguage) {
+      // The answer is only this request's answer if the clock still says so.
+      // A phrase for 22:00 that lands at 00:05 is not a greeting for now, and
+      // a language change rewrites the line just as completely.
+      if (mounted && moment == _greetingMoment) {
         // A greeting kept from before 2.8.6 may have been cut off with an
-        // ellipsis; the app's own line stands in for it rather than a phrase
-        // broken off before the name.
+        // ellipsis; a phrase that names another part of the day is just as
+        // unusable, and the app's own line stands in for it.
         final clean = CloudAIAdapter.cleanDecorativeReply(text);
-        _rebuild(
-          () => _aiHeadlineText =
-              clean != null && clean.trimRight().endsWith('…') ? null : clean,
-        );
+        final phrase = nexGreetingFits(clean, moment: moment)
+            ? clean!.trim()
+            : null;
+        _rebuild(() {
+          _aiHeadlineText = phrase;
+          _aiHeadlineMoment = phrase == null ? null : moment.key;
+        });
       }
     } finally {
       if (mounted) {
         _rebuild(() => _aiHeadlineLoading = false);
-        if (language != _headlineLanguage) unawaited(_loadAiHeadline());
+        if (moment != _greetingMoment) unawaited(_loadAiHeadline());
       }
     }
   }
@@ -617,6 +503,7 @@ extension _TimelineAiHeader on TimelineScreenState {
     // screen restless.
     if (_aiSummaryRequested) return;
     _aiSummaryRequested = true;
+    _scheduleGreetingRollover();
     unawaited(_loadAiHeadline());
   }
 
@@ -697,7 +584,7 @@ extension _TimelineAiHeader on TimelineScreenState {
     };
     // A comma in the interface's script — the phrase came back in that
     // language.
-    if (_headlineLanguage.acceptsGreeting(aiPhrase)) {
+    if (aiPhrase != null && aiPhrase.isNotEmpty) {
       if (name == null) return aiPhrase;
       final comma = Localizations.localeOf(context).languageCode == 'fa'
           ? '،'

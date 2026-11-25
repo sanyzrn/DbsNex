@@ -98,7 +98,7 @@ void main() {
       expect(parentFocus.hasFocus, isTrue);
       expect(parentFocus.hasPrimaryFocus, isFalse);
       calls.clear();
-      await tester.tap(find.byKey(const ValueKey('capture-paste')));
+      await tester.tap(find.byKey(const ValueKey('capture-send')));
       await tester.pumpAndSettle();
       expect(FocusManager.instance.primaryFocus, same(nativeFocus));
       expect(

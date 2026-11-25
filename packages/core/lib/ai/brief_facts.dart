@@ -24,6 +24,7 @@ library;
 
 import '../models/commitment.dart';
 import '../models/note.dart';
+import 'attention.dart';
 
 /// One thing worth mentioning, reduced to the facts about it.
 class NexBriefEntry {
@@ -101,82 +102,55 @@ NexBriefFacts nexBriefFacts(
   DateTime? now,
   Duration horizon = const Duration(days: 7),
 }) {
-  final local = now ?? DateTime.now();
-  final at = local.toUtc();
-  // Sorted once, here, so every group below comes out in a defined order
-  // whatever order the library handed them over in. Newest first is the right
-  // default for the groups that have no date of their own.
-  final live = [
-    for (final note in notes)
-      if (note.deletedAt == null) note,
-  ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  // One reading of the library, shared with the daily nudge — see
+  // `attention.dart`. This function is only the projection into the brief's
+  // three groups; it does not classify anything itself, so the two surfaces
+  // cannot drift apart about what "overdue" or "today" means.
+  final attention = nexAttention(
+    notes,
+    commitments: commitments,
+    now: now,
+    horizon: horizon,
+    includeIdeas: false,
+  );
 
-  final overdue = <NexBriefEntry>[];
-  final dueSoon = <NexBriefEntry>[];
-  final unfinished = <NexBriefEntry>[];
+  NexBriefEntry entry(NexAttentionItem item) => NexBriefEntry(
+    title: item.title,
+    dueAt: item.dueAt,
+    recurring: item.recurring,
+    remaining: item.remaining,
+    total: item.total,
+    noteId: item.noteId,
+  );
 
-  for (final commitment in commitments) {
-    if (commitment.paused) continue;
-    if (commitment.isOverdue(local)) {
-      overdue.add(
-        NexBriefEntry(
-          title: commitment.title,
-          dueAt: commitment.dueAt,
-          recurring: true,
-        ),
-      );
-    } else if (commitment.isWaiting(local)) {
-      dueSoon.add(
-        NexBriefEntry(
-          title: commitment.title,
-          dueAt: commitment.dueAt,
-          recurring: true,
-        ),
-      );
-    }
-  }
-
-  for (final note in live) {
-    final title = note.displayText?.trim();
-    if (title == null || title.isEmpty) continue;
-    final due = note.dueAt;
-    if (due != null) {
-      final moment = due.toUtc();
-      if (moment.isBefore(at)) {
-        overdue.add(NexBriefEntry(title: title, dueAt: due, noteId: note.id));
-        continue;
-      }
-      if (moment.isBefore(at.add(horizon))) {
-        dueSoon.add(NexBriefEntry(title: title, dueAt: due, noteId: note.id));
-        continue;
-      }
-    }
-    // A checklist counts as unfinished whatever its date, but only once: a
-    // list that is also overdue has already been said, and saying it twice
-    // in a four-line brief spends half the brief on one item.
-    if (note.type == NoteType.checklist) {
-      final items = note.checklistItems;
-      final left = items.where((item) => !item.done).length;
-      if (left > 0) {
-        unfinished.add(
-          NexBriefEntry(
-            title: title,
-            remaining: left,
-            total: items.length,
-            noteId: note.id,
-          ),
-        );
-      }
-    }
-  }
-
-  overdue.sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
-  dueSoon.sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
+  final overdue = [
+    for (final item in attention.overdue)
+      if (item.source == NexAttentionSource.note || item.waiting) entry(item),
+  ]..sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
+  final dueSoon = [
+    for (final item in attention.items)
+      if ((item.kind == NexAttentionKind.today ||
+              item.kind == NexAttentionKind.soon) &&
+          item.waiting)
+        entry(item),
+  ]..sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
+  // A checklist is unfinished whether or not it has a date, so long as that
+  // date is not already one of the dated groups above: a list due in three
+  // weeks is still a list with items left on it, and the brief has always
+  // said so rather than waiting three weeks to mention it.
+  final unfinished = [
+    for (final item in attention.items)
+      if (item.source == NexAttentionSource.note &&
+          (item.remaining ?? 0) > 0 &&
+          (item.kind == NexAttentionKind.unfinished ||
+              item.kind == NexAttentionKind.upcoming))
+        entry(item),
+  ];
 
   return NexBriefFacts(
     overdue: overdue,
     dueSoon: dueSoon,
     unfinished: unfinished,
-    notes: live.length,
+    notes: attention.liveNotes,
   );
 }

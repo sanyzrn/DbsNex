@@ -54,6 +54,8 @@ void main() {
     // that arrives, leaves or changes uses the tokens.
     const signature = {
       'lib/screens/camera_sheet.dart',
+      // The camera's recording pulse moved here when the sheet was split.
+      'lib/screens/camera/camera_sheet_widgets.dart',
       'lib/screens/onboarding/onboarding_scenes.dart',
       'lib/screens/onboarding/onboarding_art.dart',
       'lib/screens/onboarding/onboarding_modules.dart',

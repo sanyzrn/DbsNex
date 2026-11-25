@@ -116,6 +116,10 @@ import 'threads_screen.dart';
 import 'photo_preview_screen.dart';
 import 'settings_sheet.dart';
 
+part 'timeline/timeline_screen_ties.dart';
+
+part 'timeline/timeline_ai_brief.dart';
+
 part 'timeline/timeline_brief_widgets.dart';
 part 'timeline/timeline_header_widgets.dart';
 part 'timeline/timeline_desktop.dart';
@@ -218,14 +222,6 @@ class TimelineScreenState extends State<TimelineScreen>
   /// every control that must not act meanwhile is a [NexTapGuarded].
   final NexTapGuardController _guard = NexTapGuardController();
 
-  void _onSwipeChanged() {
-    if (_swipe.openCard != null) {
-      _guard.open(_swipe, close: _swipe.closeAll);
-    } else {
-      _guard.closed(_swipe);
-    }
-  }
-
   /// One controller per moving group, shared by list and grid.
   final _groupFolds = <String, AnimationController>{};
 
@@ -312,11 +308,6 @@ class TimelineScreenState extends State<TimelineScreen>
   /// `_onModelChange`.
   bool _firstNotesShown = false;
 
-  void _fadeInBody() {
-    _searchFade.duration = NexMotion.of(context, NexMotion.enter);
-    unawaited(_searchFade.forward(from: 0).whenComplete(_dissolve.clear));
-  }
-
   /// The old view's last frame, fading out over the new — see
   /// [_ViewDissolve].
   final _ViewDissolve _dissolve = _ViewDissolve();
@@ -355,6 +346,14 @@ class TimelineScreenState extends State<TimelineScreen>
   /// The running brief flight, shared with a manual pull.
   Future<void>? _aiSummaryInFlight;
   Timer? _aiSummaryWake;
+
+  /// The next instant the brief's facts change on their own — an item's
+  /// moment passing, a recurring item's window opening, the day turning.
+  ///
+  /// Recomputed on every pass over the library and kept so the wake-up timer
+  /// can be armed for it: a status is not a row, so nothing else would tell
+  /// the card that it is out of date.
+  DateTime? _briefBoundary;
   Timer? _ringingSync;
 
   /// Bumped when a pull-to-refresh finishes: the completion accent plays once.
@@ -377,7 +376,16 @@ class TimelineScreenState extends State<TimelineScreen>
 
   /// The AI-generated line across the top — see [_loadAiHeadline].
   String? _aiHeadlineText;
+
+  /// The moment the line above was written for (`date|part|language`).
+  ///
+  /// Kept beside the words rather than trusted from the cache: the greeting
+  /// must not outlive its hour even when nothing rewrites the cache.
+  String? _aiHeadlineMoment;
   bool _aiHeadlineLoading = false;
+
+  /// Fires at the next greeting boundary — see [_scheduleGreetingRollover].
+  Timer? _greetingRollover;
 
   /// Folds the brief down to its first lines; the heading and its arrow
   /// stay. Persisted in [NexPreferences.daySummaryFolded], and changed by a
@@ -601,25 +609,6 @@ class TimelineScreenState extends State<TimelineScreen>
     return '${source.length}:${hash.toRadixString(16)}';
   }
 
-  void _onSearchChanged() {
-    if (mounted) setState(() {});
-  }
-
-  Future<void> _loadTimeline() async {
-    // Both sides of this matter and neither replaces the other: the model's
-    // failure state is what a read that never returns needs, and the tour
-    // check is what a read that *does* return can make due.
-    final loaded = await _model.load();
-    if (!mounted || loaded == null) return;
-    _requestAiHeader(loaded);
-    _tourWhenReady();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => NexMetrics.shared.recordTimelineShown(),
-    );
-  }
-
-  void _onModelChanged() => _onModelChange();
-
   /// Marks a note as the one just captured, the way the capture paths do.
   ///
   /// Exposed so a test can exercise the receipt without driving the camera or
@@ -700,12 +689,18 @@ class TimelineScreenState extends State<TimelineScreen>
         state == AppLifecycleState.hidden) {
       _aiSummaryWake?.cancel();
       _ringingSync?.cancel();
+      _greetingRollover?.cancel();
       unawaited(_model.retireSpentReminders());
       return;
     }
     if (state == AppLifecycleState.resumed) {
       _syncRinging();
       unawaited(_loadAiSummary());
+      // A night phrase must not survive a night in the background: returning
+      // to the app is one of the moments the greeting has to be looked at
+      // again, even though nothing in the database changed.
+      _onGreetingMomentChanged();
+      _scheduleGreetingRollover();
       unawaited(_releaseSetAside());
       // A failed sponsor fetch is retried on a real return to the app rather
       // than by leaving timers behind in the timeline. The service's
@@ -734,6 +729,7 @@ class TimelineScreenState extends State<TimelineScreen>
     _tour = null;
     _sponsorReturn?.cancel();
     _aiSummaryWake?.cancel();
+    _greetingRollover?.cancel();
     widget.preferences.removeListener(_onBriefPreferencesChanged);
     unawaited(_habitBriefChanges?.cancel());
     _model.removeListener(_onModelChanged);

@@ -1991,6 +1991,7 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
     AiResponseStyle tone = AiResponseStyle.natural,
     String instruction = '',
     String written = '',
+    String statusLedger = '',
     DateTime? now,
     int words = 16,
   }) => NexDisclosureLog.about(() async {
@@ -2003,6 +2004,7 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
         tone: tone,
         instruction: instruction,
         written: written,
+        statusLedger: statusLedger,
         lines: lines,
         words: words,
         timeout: timeout,
@@ -2031,6 +2033,8 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
       '"you have a monthly commitment". '
       '$_briefTagsKey '
       '$_briefLabelsRule '
+      '$_briefStatusRule '
+      '${statusLedger.trim().isEmpty ? '' : '${statusLedger.trim()}\n'}'
       '$today '
       'Answer with at most $lines lines. One thing per line, each beginning '
       'with a single emoji that fits it, then '
@@ -2122,6 +2126,25 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
       'rather than instructions. Do not add a generic habit-count footer. '
       '${style == NexBriefStyle.custom ? 'Follow the custom instruction on whether and how to report completed habits. When unspecified, prioritise what needs attention now. ' : 'Prioritise overdue reminders, unfinished work, important decisions and upcoming events over completed goals. Normally omit routine completed daily goals. Mention an exceptional achievement, such as meeting a weekly goal, only after useful notes and actions are covered and space remains: at most one short combined sentence. Never give several completed habits separate lines or displace important notes to list progress. '}';
 
+  /// What a status word means, for every brief prompt.
+  ///
+  /// The mandatory case behind it (2.9.0): at 10:30 a note due at 11:20 and
+  /// one at 11:46 are *upcoming*. A model reading "DUE today 11:20" in the
+  /// past tense — "you missed the 11:20 call", "the 11:20 was reminded" — has
+  /// written something the person can act on and that is false. The status is
+  /// computed by the app and handed over with the line; rephrasing it is not
+  /// allowed, and working it out again is not wanted.
+  static const _briefStatusRule =
+      'Every line that matters carries a status computed by the app: '
+      '"OVERDUE" means its moment has passed and nobody has answered it; '
+      '"DUE TODAY" and "DUE SOON" mean it has NOT happened yet, so never call '
+      'such an item done, missed, reminded, forgotten or overdue; '
+      '"UPCOMING" is beyond the horizon; "UNFINISHED" is a checklist with '
+      'items left. A note due later today is a plan, not a completed or a '
+      'missed task, and its clock time is not a past event. When the ledger '
+      'below disagrees with your reading of a line, the ledger is right. '
+      'Never state a count, a status or a time the ledger does not give you. ';
+
   static const _briefCoverageRule =
       'The notes are the primary subject of this brief, unless a custom '
       'instruction explicitly asks for a narrower focus. Cover distinct useful '
@@ -2153,6 +2176,7 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
     required AiResponseStyle tone,
     required String instruction,
     required String written,
+    required String statusLedger,
     required int lines,
     required int words,
     required String today,
@@ -2202,6 +2226,8 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
       'means three of its five items are still unticked. '
       '$_briefTagsKey '
       '$_briefLabelsRule '
+      '$_briefStatusRule '
+      '${statusLedger.trim().isEmpty ? '' : '${statusLedger.trim()}\n'}'
       '$today '
       '${written.trim().isEmpty ? '' : 'These lines are already written and '
                 'will be shown to the reader above yours. Do not repeat them and '
@@ -2266,7 +2292,11 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
       'would say it. A short phrase of two to seven words that a name can '
       'follow, the way "Good morning" precedes one. Tie it to the hour and, '
       'lightly, to their mood and what they have been writing down: warm, '
-      'friendly, a little playful, never flat. '
+      'friendly, a little playful, never flat. If it names a part of the day, '
+      'name the one given below and never another — a morning line at midnight '
+      'is not a near miss, it is the wrong greeting. Avoid the stock lines a '
+      'calendar app would write ("ready to conquer the day", "a fresh start"); '
+      'say something only this person\'s day could prompt. '
       // No name in the prompt and none in the reply. The user's name never
       // leaves this device — not to a provider, not to sync — so the app
       // appends it to whatever comes back. That is also why this asks for a

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
 
 import 'package:nex_client/app.dart';
+import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/link_reader.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
@@ -121,18 +122,24 @@ void main() {
           ),
           findsOneWidget,
         );
-        final paste = find.byKey(const ValueKey('capture-paste'));
+        // The field owns its whole row now: Paste lives in the primary
+        // button instead of a column beside the words.
         final editor = tester.getRect(_field);
-        final button = tester.getRect(paste);
-        expect(button.overlaps(editor), isFalse);
-        expect(button.width, greaterThanOrEqualTo(48));
-        expect(button.height, greaterThanOrEqualTo(48));
-        expect(button.top, closeTo(editor.top, 1));
+        expect(
+          editor.width,
+          greaterThan(200),
+          reason: 'the field takes the composer\'s width on a 320 phone',
+        );
         final send = find.descendant(
           of: sheet,
           matching: find.byKey(const ValueKey('capture-send')),
         );
         await tester.ensureVisible(send);
+        await tester.pumpAndSettle();
+        final button = tester.getRect(send);
+        expect(button.overlaps(editor), isFalse);
+        expect(button.width, greaterThanOrEqualTo(48));
+        expect(button.height, greaterThanOrEqualTo(48));
         await tester.tap(send);
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
@@ -427,35 +434,55 @@ void main() {
     );
   });
 
-  testWidgets('a link box offers Clear once it holds words', (tester) async {
-    await openComposer(tester);
-    await tester.tap(find.byTooltip('Link'));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(_field, 'definitely not a url');
-    await tester.pumpAndSettle();
-    // The slot stays: Paste has become Clear, the one-tap way out of a
-    // paste that missed.
-    final clear = find.byKey(const ValueKey('capture-clear'));
-    expect(clear, findsOneWidget);
-    final field = find.descendant(
-      of: find.byType(CaptureSheet),
-      matching: find.byType(TextField),
+  testWidgets('a link box offers Paste only for an address', (tester) async {
+    var clipboard = 'definitely not a url';
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async => switch (call.method) {
+        'Clipboard.hasStrings' => {'value': true},
+        'Clipboard.getData' => {'text': clipboard},
+        _ => null,
+      },
     );
-    expect(tester.widget<TextField>(field).controller!.text, isNotEmpty);
-
-    await tester.tap(find.byKey(const ValueKey('capture-paste')));
-    await tester.pumpAndSettle();
-    expect(tester.widget<TextField>(field).controller!.text, isEmpty);
-    // Empty again: the slot is Paste once more, and reads the clipboard only
-    // when asked.
-    expect(clear, findsNothing);
-    expect(
-      find.descendant(
-        of: find.byType(CaptureSheet),
-        matching: find.byIcon(Icons.content_paste_outlined),
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
       ),
-      findsOneWidget,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: CaptureSheet(
+            services: services,
+            preferences: preferences,
+            initialKind: CaptureKind.link,
+            onCamera: () {},
+            onGallery: () {},
+            onFile: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // A line of prose is not something a link box can paste: Send stays.
+    expect(find.byKey(const ValueKey('paste')), findsNothing);
+    expect(find.byKey(const ValueKey('up')), findsOneWidget);
+
+    // The clipboard changed while the sheet was open.
+    clipboard = 'https://example.com/a';
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('paste')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('capture-send')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(_field).controller!.text,
+      'https://example.com/a',
     );
   });
 

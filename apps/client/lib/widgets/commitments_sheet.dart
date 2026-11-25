@@ -116,8 +116,102 @@ class _RecurringScreenState extends State<RecurringScreen>
   /// The difference between a commitment and a reminder, in one line: a note's
   /// reminder is spent once it has rung, and this one is due again — the
   /// useful thing the app can do at that moment is work out when.
+  ///
+  /// It goes through the database's own `markCommitmentMet`, which re-reads the
+  /// item before moving it. That is what makes a second tap on a stale row — or
+  /// a tap landing at the same moment as **Done** in the shade — find the date
+  /// already moved rather than complete the following occurrence as well. The
+  /// early window is checked here first only so the answer can be a sentence
+  /// instead of a silent no-op; the rule itself lives in the model and the
+  /// repository.
   Future<void> _markMet(NexCommitment commitment) async {
-    await _applyOccurrence(commitment, commitment.met(DateTime.now()));
+    if (_working) return;
+    final now = DateTime.now();
+    if (!commitment.canComplete(now)) {
+      _sayNotYet(commitment);
+      return;
+    }
+    _working = true;
+    try {
+      final saved = await widget.services.markCommitmentMet(
+        commitment.id,
+        at: now,
+      );
+      await _load();
+      if (!mounted) return;
+      if (saved == null) {
+        // The row was read before something else completed or edited it. The
+        // fresh list is on screen; say why nothing moved.
+        _sayNotYet(commitment);
+        return;
+      }
+      nexShowBanner(
+        context,
+        message: commitment.isEarlyCompletion(now)
+            ? nexLabel(
+                context,
+                'Done ahead of its date',
+                'پیش از سررسید انجام شد',
+              )
+            : nexLabel(context, 'Recurring item updated', 'تعهد به‌روز شد'),
+        actionLabel: AppLocalizations.of(context).undo,
+        onAction: () => unawaited(_restore(commitment, saved.rev)),
+      );
+    } catch (_) {
+      if (mounted) {
+        nexShowBanner(
+          context,
+          message: AppLocalizations.of(context).captureFailed,
+        );
+      }
+    } finally {
+      _working = false;
+    }
+  }
+
+  /// "Not yet — from nine." The window is a rule of the feature, so the page
+  /// says when it opens rather than leaving a button that does nothing.
+  void _sayNotYet(NexCommitment commitment) {
+    if (!mounted) return;
+    nexShowBanner(
+      context,
+      message: nexLabel(
+        context,
+        'Done opens ${nexDueExact(context, commitment.completionOpensAt, solarCalendar: widget.services.solarCalendar)}',
+        'ثبت انجام از ${nexDueExact(context, commitment.completionOpensAt, solarCalendar: widget.services.solarCalendar)} ممکن است',
+      ),
+    );
+  }
+
+  /// Undo for a completion: the item as it was, if nothing else has moved it
+  /// since.
+  Future<void> _restore(NexCommitment before, int expectedRev) async {
+    final latest = (await widget.services.commitments())
+        .where((c) => c.id == before.id)
+        .firstOrNull;
+    if (latest == null || latest.rev != expectedRev) return;
+    await widget.services.saveCommitment(
+      NexCommitment(
+        id: before.id,
+        title: before.title,
+        cadence: before.cadence,
+        every: before.every,
+        dueAt: before.dueAt,
+        createdAt: before.createdAt,
+        updatedAt: DateTime.now(),
+        lead: before.lead,
+        windowStart: before.windowStart,
+        windowEnd: before.windowEnd,
+        lastMetAt: before.lastMetAt,
+        metToday: before.metToday,
+        metTodayOn: before.metTodayOn,
+        paused: before.paused,
+        notify: before.notify,
+        details: before.details,
+        rev: latest.rev + 1,
+      ),
+    );
+    await _load();
   }
 
   Future<void> _delete(NexCommitment commitment) async {
@@ -263,14 +357,10 @@ class _RecurringScreenState extends State<RecurringScreen>
     }
     final now = DateTime.now();
     if (choice == 'skip') {
-      await _applyOccurrence(
-        c,
-        c.copyWith(
-          dueAt: nexAdvance(c, after: now),
-          details: c.recordOccurrence('skip', now),
-          updatedAt: now,
-        ),
-      );
+      // Past the occurrence being skipped, not merely past the tap: skipping
+      // the day before a weekly item is due must land on the *following*
+      // week, or the skip does nothing and the item stays where it was.
+      await _applyOccurrence(c, c.skipped(now));
       return;
     }
     DateTime? date;
@@ -354,7 +444,23 @@ class _RecurringScreenState extends State<RecurringScreen>
                       time: true,
                     ),
                   ),
-                  subtitle: Text(item['note'] as String? ?? ''),
+                  // Both times, and whether it was ahead of its date. The
+                  // list used to show only when the button was pressed, which
+                  // made an early completion and a late one read the same.
+                  subtitle: Text(
+                    [
+                      if (item['early'] == true)
+                        nexLabel(ctx, 'done early', 'پیش از سررسید'),
+                      if (item['due'] case final String due)
+                        nexLabel(
+                          ctx,
+                          'due ${nexDisplayDate(DateTime.parse(due), solar: widget.services.solarCalendar, persian: Localizations.localeOf(ctx).languageCode == 'fa', time: true)}',
+                          'سررسید ${nexDisplayDate(DateTime.parse(due), solar: widget.services.solarCalendar, persian: Localizations.localeOf(ctx).languageCode == 'fa', time: true)}',
+                        ),
+                      if ((item['note'] as String? ?? '').isNotEmpty)
+                        item['note'] as String,
+                    ].join(' · '),
+                  ),
                   trailing: const Icon(Icons.edit_note),
                   onTap: () async {
                     final controller = TextEditingController(

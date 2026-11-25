@@ -308,6 +308,166 @@ void main() {
     });
   });
 
+  group('the early window', () {
+    // The bug this closes: tapping "done" twice used to finish next week's
+    // occurrence as well as this week's, and an early tap moved nothing at
+    // all because the arithmetic stepped from the tap rather than from the
+    // occurrence.
+    NexCommitment weekly() => make(
+      cadence: NexCadence.weeks,
+      every: 1,
+      // A Monday.
+      dueAt: DateTime(2026, 3, 2, 9),
+    );
+
+    test('the defaults are short against the gap they sit in', () {
+      // Ten per cent of the interval for the hourly ones, and a human-sized
+      // span for the rest: a day before a week, three days before a month.
+      expect(
+        make(
+          cadence: NexCadence.hours,
+          every: 1,
+          dueAt: DateTime(2026, 3, 1, 10),
+        ).earlyWindow,
+        const Duration(minutes: 6),
+      );
+      expect(
+        make(
+          cadence: NexCadence.hours,
+          every: 8,
+          dueAt: DateTime(2026, 3, 1, 10),
+        ).earlyWindow,
+        const Duration(minutes: 48),
+      );
+      expect(
+        nexDefaultEarlyWindow(NexCadence.days, 1),
+        const Duration(hours: 3),
+      );
+      expect(
+        nexDefaultEarlyWindow(NexCadence.weeks, 1),
+        const Duration(hours: 24),
+      );
+      expect(
+        nexDefaultEarlyWindow(NexCadence.months, 1),
+        const Duration(days: 3),
+      );
+      expect(
+        nexDefaultEarlyWindow(NexCadence.years, 1),
+        const Duration(days: 7),
+      );
+    });
+
+    test('a weekly occurrence opens the day before, never sooner', () {
+      final item = weekly();
+      expect(item.completionOpensAt, DateTime(2026, 3, 1, 9));
+      expect(item.canComplete(DateTime(2026, 2, 28, 9)), isFalse);
+      expect(item.complete(DateTime(2026, 2, 28, 23)), isNull);
+      expect(item.canComplete(DateTime(2026, 3, 1, 9)), isTrue);
+      expect(
+        () => item.met(DateTime(2026, 2, 28, 9)),
+        throwsStateError,
+        reason: 'the model is the rule, not only the button',
+      );
+    });
+
+    test('meeting early advances past the occurrence, not past the tap', () {
+      // Sunday, a day before the Monday it is due. The next one is the Monday
+      // after that, not the one that has not arrived yet.
+      final done = weekly().met(DateTime(2026, 3, 1, 10));
+      expect(done.dueAt, DateTime(2026, 3, 9, 9));
+      expect(done.lastMetAt, DateTime(2026, 3, 1, 10));
+      final entry = done.history.last;
+      expect(entry['early'], isTrue);
+      expect(entry['at'], DateTime(2026, 3, 1, 10).toUtc().toIso8601String());
+      expect(
+        entry['due'],
+        DateTime(2026, 3, 2, 9).toUtc().toIso8601String(),
+        reason: 'the occurrence it answered is still on the record',
+      );
+    });
+
+    test('once met, the next occurrence is shut until its own window', () {
+      final done = weekly().met(DateTime(2026, 3, 1, 10));
+      expect(done.canComplete(DateTime(2026, 3, 1, 10, 1)), isFalse);
+      expect(done.complete(DateTime(2026, 3, 1, 10, 2)), isNull);
+      expect(done.completionOpensAt, DateTime(2026, 3, 8, 9));
+      expect(done.canComplete(DateTime(2026, 3, 8, 9)), isTrue);
+    });
+
+    test('a window of zero means from the due time onwards', () {
+      final strict = weekly().copyWith(details: {'earlyWindowMinutes': 0});
+      expect(strict.earlyWindow, Duration.zero);
+      expect(strict.canComplete(DateTime(2026, 3, 2, 8, 59)), isFalse);
+      expect(strict.canComplete(DateTime(2026, 3, 2, 9)), isTrue);
+    });
+
+    test('a window can never reach into the next occurrence', () {
+      // The guard that makes chaining impossible even if the stored value is
+      // absurd: half the gap, so there is always half a gap between one
+      // completion and the next opening.
+      final hourly = make(
+        cadence: NexCadence.hours,
+        every: 1,
+        dueAt: DateTime(2026, 3, 1, 10),
+      ).copyWith(details: {'earlyWindowMinutes': 100000});
+      expect(hourly.earlyWindow, const Duration(minutes: 30));
+      final done = hourly.met(DateTime(2026, 3, 1, 9, 31));
+      expect(done.dueAt, DateTime(2026, 3, 1, 11));
+      expect(done.canComplete(DateTime(2026, 3, 1, 9, 32)), isFalse);
+      expect(done.canComplete(DateTime(2026, 3, 1, 10, 30)), isTrue);
+    });
+
+    test('overdue is always open, and a paused item never', () {
+      final late = make(
+        cadence: NexCadence.months,
+        every: 1,
+        dueAt: DateTime(2025, 1, 1, 9),
+      );
+      expect(late.canComplete(DateTime(2026, 6)), isTrue);
+      final paused = late.copyWith(paused: true);
+      expect(paused.canComplete(DateTime(2026, 6)), isFalse);
+      expect(paused.complete(DateTime(2026, 6)), isNull);
+    });
+
+    test('an early completion does not move the monthly rhythm', () {
+      final rent = make(
+        cadence: NexCadence.months,
+        every: 1,
+        dueAt: DateTime(2026, 4, 1, 9),
+      );
+      // Three days is the monthly window; the 30th is inside it.
+      final paid = rent.met(DateTime(2026, 3, 30, 20));
+      expect(paid.dueAt, DateTime(2026, 5, 1, 9));
+      expect(paid.history.last['early'], isTrue);
+    });
+
+    test('a snoozed occurrence opens on its snoozed time', () {
+      final moved = weekly().copyWith(
+        dueAt: DateTime(2026, 3, 4, 18),
+        details: {'scheduledDue': DateTime(2026, 3, 2, 9).toIso8601String()},
+      );
+      expect(moved.completionOpensAt, DateTime(2026, 3, 3, 18));
+      expect(moved.canComplete(DateTime(2026, 3, 3, 17)), isFalse);
+      final done = moved.met(DateTime(2026, 3, 4, 18));
+      expect(
+        done.dueAt,
+        DateTime(2026, 3, 9, 9),
+        reason: 'the schedule keeps its Monday nine, not the snoozed hour',
+      );
+      expect(
+        done.history.last['due'],
+        DateTime(2026, 3, 4, 18).toUtc().toIso8601String(),
+      );
+    });
+
+    test('skipping past the occurrence moves it; the rhythm stays', () {
+      final skipped = weekly().skipped(DateTime(2026, 3, 1, 12));
+      expect(skipped.dueAt, DateTime(2026, 3, 9, 9));
+      expect(skipped.history.last['action'], 'skip');
+      expect(skipped.history.last.containsKey('early'), isFalse);
+    });
+  });
+
   group('occurrences for the calendar', () {
     test('a monthly item keeps its day, and a paused one has none', () {
       final rent = make(

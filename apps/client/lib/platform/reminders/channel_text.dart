@@ -17,6 +17,8 @@ class NexChannelText {
     required this.updatesAbout,
     required this.done,
     required this.snooze,
+    required this.logProgress,
+    required this.remindLater,
   });
 
   final String reminders;
@@ -30,6 +32,12 @@ class NexChannelText {
   final String done;
   final String snooze;
 
+  /// The same two buttons where they mean something else: a habit's **Done**
+  /// opens the habit rather than ticking a note, and its snooze says what it
+  /// does in words a person reads as an invitation, not a time.
+  final String logProgress;
+  final String remindLater;
+
   static const en = NexChannelText._(
     reminders: 'Reminders',
     remindersAbout: 'Notes you asked Nex to bring back up',
@@ -39,6 +47,8 @@ class NexChannelText {
     updatesAbout: 'Downloading a new version of Nex',
     done: 'Done',
     snooze: 'In an hour',
+    logProgress: 'Log progress',
+    remindLater: 'Remind later',
   );
 
   static const fa = NexChannelText._(
@@ -50,5 +60,7 @@ class NexChannelText {
     updatesAbout: 'دریافت نسخهٔ تازهٔ Nex',
     done: 'انجام شد',
     snooze: 'یک ساعت دیگر',
+    logProgress: 'ثبت پیشرفت',
+    remindLater: 'بعداً یادآوری کن',
   );
 }

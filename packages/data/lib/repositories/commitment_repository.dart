@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:nex_core/nex_core.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -90,7 +91,9 @@ INSERT OR REPLACE INTO commitments (
     return commitment;
   }
 
-  /// Marks it met at [at] and rolls it forward to its next turn.
+  /// Marks it met at [at] and rolls it forward to its next turn, or answers
+  /// null when the early-completion window for the current occurrence has not
+  /// opened yet.
   ///
   /// Read, advance, write — rather than arithmetic in SQL — because the
   /// arithmetic is the hard part and it lives in core where it is tested
@@ -98,10 +101,18 @@ INSERT OR REPLACE INTO commitments (
   /// commitment has to land inside its waking window, and a date missed for
   /// three weeks has to come back into the future. None of that belongs in a
   /// SQL expression.
+  ///
+  /// The read is what makes the window enforceable here and not merely on
+  /// screen: two quick taps, two paths at once, or a stale button in a
+  /// notification all end in this method, and the second one sees the date the
+  /// first one wrote — which is no longer open. Null therefore means "not
+  /// now", not "not found"; a missing row is null too, and neither is worth
+  /// an exception where a tap is waiting.
   NexCommitment? markMet(String id, {DateTime? at}) {
     final current = getById(id);
     if (current == null) return null;
-    return save(current.met(at ?? DateTime.now()));
+    final next = current.complete(at ?? DateTime.now());
+    return next == null ? null : save(next);
   }
 
   /// Soft-deletes, the way a note is deleted.
@@ -123,9 +134,9 @@ INSERT OR REPLACE INTO commitments (
   }
 
   NexCommitment _fromRow(Row row) => NexCommitment(
-    details:
-        jsonDecode(row['details_json'] as String? ?? '{}')
-            as Map<String, dynamic>,
+    details: jsonDecode(
+      row['details_json'] as String? ?? '{}',
+    ) as Map<String, dynamic>,
     id: row['id'] as String,
     title: row['title'] as String,
     cadence: NexCadence.fromWire(row['cadence'] as String?),

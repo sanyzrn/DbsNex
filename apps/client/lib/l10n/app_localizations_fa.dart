@@ -1307,7 +1307,7 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get attachTakePhoto => 'گرفتن عکس';
+  String get attachTakePhoto => 'دوربین';
 
   @override
   String get attachRecordVoice => 'ضبط صدا';
@@ -5030,6 +5030,32 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get cameraStarting => 'در حال روشن کردن دوربین…';
+
+  @override
+  String get cameraHoldForVideo => 'برای ضبط ویدئو، شاتر را نگه دارید';
+
+  @override
+  String get cameraRecordVideo => 'ضبط ویدئو';
+
+  @override
+  String get cameraGallery => 'عکس و ویدئو';
+
+  @override
+  String get cameraStopRecording => 'پایان ضبط';
+
+  @override
+  String cameraRecordingElapsed(Object elapsed) {
+    return 'در حال ضبط، $elapsed';
+  }
+
+  @override
+  String get cameraSilentVideo => 'ضبط بدون صدا — میکروفون بسته است';
+
+  @override
+  String get cameraVideoTooShort => 'برای ضبط، کمی بیشتر نگه دارید';
+
+  @override
+  String get cameraVideoTooLarge => 'این ویدئو برای نگه داشتن خیلی بزرگ است';
 
   @override
   String get disclosuresTitle => 'آنچه از این گوشی خارج شد';

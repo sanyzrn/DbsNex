@@ -207,9 +207,15 @@ public final class NexDailyNudgeReceiver extends BroadcastReceiver {
     private static CharSequence text(String html) {
         Spanned parsed = Build.VERSION.SDK_INT >= 24
             ? Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY) : Html.fromHtml(html);
+        // A leading newline is drawn as a blank line above the words, and a
+        // trailing one leaves space under them before the buttons. Both are
+        // whitespace the words did not ask for, so both go.
+        int start = 0;
         int end = parsed.length();
-        while (end > 0 && Character.isWhitespace(parsed.charAt(end - 1))) end--;
-        return end == parsed.length() ? parsed : parsed.subSequence(0, end);
+        while (start < end && Character.isWhitespace(parsed.charAt(start))) start++;
+        while (end > start && Character.isWhitespace(parsed.charAt(end - 1))) end--;
+        return start == 0 && end == parsed.length()
+            ? parsed : parsed.subSequence(start, end);
     }
 
     private static void deliver(Context context, JSONObject plan, boolean retry) throws Exception {
@@ -306,9 +312,17 @@ public final class NexDailyNudgeReceiver extends BroadcastReceiver {
         if (icon == 0) icon = context.getApplicationInfo().icon;
         Notification.Builder builder = Build.VERSION.SDK_INT >= 26
             ? new Notification.Builder(context, CHANNEL) : new Notification.Builder(context);
-        builder.setSmallIcon(icon).setContentTitle(text(title))
-            .setContentText(text(body)).setStyle(new Notification.BigTextStyle().bigText(text(body)))
-            .setAutoCancel(true).setCategory(Notification.CATEGORY_REMINDER)
+        CharSequence titleText = text(title);
+        CharSequence bodyText = text(body);
+        builder.setSmallIcon(icon).setContentTitle(titleText);
+        // The plan can hand the greeting and the recap the same sentence — a
+        // fallback day with one line in it, say. Android draws both, one under
+        // the other, so it is said once.
+        if (!bodyText.toString().contentEquals(titleText)) {
+            builder.setContentText(bodyText)
+                .setStyle(new Notification.BigTextStyle().bigText(bodyText));
+        }
+        builder.setAutoCancel(true).setCategory(Notification.CATEGORY_REMINDER)
             .setVisibility(prefs.getBoolean("flutter.security.app_lock", false)
                 ? Notification.VISIBILITY_SECRET : Notification.VISIBILITY_PRIVATE);
         // A device whose launcher intent cannot be resolved still deserves

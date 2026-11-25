@@ -19,6 +19,11 @@ String? nexNotificationText(String? text) => Platform.isAndroid && text != null
 /// when not given.
 String nexAndroidNotificationText(String text, {TextDirection? phone}) {
   if (text.isEmpty) return text;
+  // Blank edges are drawn as blank space in the expanded template, and a
+  // trailing newline is the most common one: a body that ended with one used
+  // to leave an empty line between the words and the buttons.
+  text = nexNotificationBody(text) ?? '';
+  if (text.isEmpty) return '';
   const escape = HtmlEscape();
   final directions = <TextDirection?>[];
   final lines = text.split('\n').map((line) {
@@ -47,12 +52,58 @@ String nexAndroidNotificationText(String text, {TextDirection? phone}) {
   return '<div style="text-align:start;">$joined</div>';
 }
 
-DefaultStyleInformation nexNotificationStyle(String? body) =>
-    body == null || body.isEmpty
-    ? const DefaultStyleInformation(true, true)
-    : BigTextStyleInformation(
-        nexAndroidNotificationText(body),
-        htmlFormatBigText: true,
-        htmlFormatContent: true,
-        htmlFormatTitle: true,
-      );
+DefaultStyleInformation nexNotificationStyle(String? body) {
+  final text = nexNotificationBody(body);
+  return text == null
+      ? const DefaultStyleInformation(true, true)
+      : BigTextStyleInformation(
+          nexAndroidNotificationText(text),
+          htmlFormatBigText: true,
+          htmlFormatContent: true,
+          htmlFormatTitle: true,
+        );
+}
+
+/// The title and body as the shade should receive them.
+///
+/// Trimmed, with no blank lines at either end, runs of blank lines folded to
+/// one, and — the case a reminder actually hit — a body that only repeats the
+/// title dropped. Android draws both, one under the other, so a module or a
+/// reminder that passed the same sentence twice read as a bug. An empty body
+/// is no body at all: a second, empty line under a title is worse than none.
+({String title, String? body}) nexNotificationWords(
+  String title,
+  String? body,
+) {
+  final cleanTitle = title.trim();
+  final text = nexNotificationBody(body);
+  if (text == null || text == cleanTitle) {
+    return (title: cleanTitle, body: null);
+  }
+  return (title: cleanTitle, body: text);
+}
+
+/// [text] without blank edges or doubled blank lines, or null when nothing is
+/// left. The one place both the words and the style clean up, so a body can
+/// never be trimmed for the title and untrimmed for its expanded copy.
+String? nexNotificationBody(String? text) {
+  if (text == null || text.trim().isEmpty) return null;
+  final lines = <String>[];
+  for (final raw in text.replaceAll('\r\n', '\n').split('\n')) {
+    final line = raw.trimRight();
+    if (line.trim().isEmpty) {
+      // Never at the start, never twice in a row.
+      if (lines.isEmpty || lines.last.isEmpty) continue;
+      lines.add('');
+      continue;
+    }
+    lines.add(line);
+  }
+  while (lines.isNotEmpty && lines.last.isEmpty) {
+    lines.removeLast();
+  }
+  if (lines.isEmpty) return null;
+  // Edges only: indentation inside the body is the words' own.
+  final joined = lines.join('\n').trim();
+  return joined.isEmpty ? null : joined;
+}

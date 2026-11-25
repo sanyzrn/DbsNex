@@ -22,6 +22,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.accessibility.AccessibilityManager
+import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
@@ -192,6 +193,20 @@ private class NexEditTextView(
 
     /** True while a value from Dart is written in, so it is not sent back. */
     private var applying = false
+
+    /**
+     * The words are code: pair brackets and quotes, and keep the line's
+     * indent on the next line. This is the same rule as
+     * `NexCodeInputFormatter` on the Flutter editor, which Android's own
+     * editor cannot run — a Dart formatter never sees this text.
+     */
+    private var code = false
+
+    /** The text and caret before the change being reported, for [codeGestures]. */
+    private var beforeText = ""
+    private var beforeStart = 0
+    private var beforeEnd = 0
+
     private var lastHeight = -1f
     private var minLines = 1
     private var maxLines = 0
@@ -236,16 +251,30 @@ private class NexEditTextView(
         applying = false
 
         edit.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                // The state *before* the insertion; the change being reported
+                // is always a single typed character for a code box to act
+                // on, and it needs the old text and caret to recognise it.
+                if (applying) return
+                beforeText = s?.toString() ?: ""
+                beforeStart = edit.selectionStart
+                beforeEnd = edit.selectionEnd
+            }
+
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
                 edit.stopFling()
                 magnifier.hide()
                 if (!applying) {
+                    // He chooses one character and gets two, or none: the
+                    // code rules run before the change is reported, so Dart
+                    // sees (and the draft keeps) the text that is really
+                    // shown — one message, never a correction after it.
+                    if (code) codeGestures()
                     channel.invokeMethod(
                         "changed",
                         mapOf(
-                            "text" to (s?.toString() ?: ""),
+                            "text" to edit.text.toString(),
                             "start" to edit.selectionStart,
                             "end" to edit.selectionEnd,
                         ),
@@ -312,6 +341,41 @@ private class NexEditTextView(
 
                 override fun onViewDetachedFromWindow(v: View) {}
             })
+        }
+    }
+
+    /**
+     * The code editor's gestures, applied to a single typed character.
+     *
+     * The rule itself is [nexCodeGesture], a pure function tested on the JVM;
+     * this only writes its answer into the field. Anything that is not
+     * exactly one character inserted at a collapsed caret — a paste, an
+     * autocorrect, a change from Dart — comes back as `null` and is left
+     * alone.
+     *
+     * While a keyboard has a composition open (most soft keyboards report the
+     * word being typed as a composing span), the editor can still be told
+     * about the edit: the spans are removed after it, which commits the word
+     * to the field. Keeping them would leave the keyboard writing into text
+     * it no longer matches.
+     */
+    private fun codeGestures() {
+        val gesture = nexCodeGesture(
+            before = beforeText,
+            beforeStart = beforeStart,
+            beforeEnd = beforeEnd,
+            after = edit.text.toString(),
+            afterStart = edit.selectionStart,
+            afterEnd = edit.selectionEnd,
+        ) ?: return
+        val composing = BaseInputConnection.getComposingSpanStart(edit.text) != -1
+        applying = true
+        try {
+            edit.text.replace(gesture.start, gesture.start + 1, gesture.replacement)
+            if (composing) BaseInputConnection.removeComposingSpans(edit.text)
+            edit.setSelection(gesture.caret.coerceIn(0, edit.text.length))
+        } finally {
+            applying = false
         }
     }
 
@@ -423,6 +487,7 @@ private class NexEditTextView(
         (args["accentColor"] as? Number)?.let { tint(it.toInt()) }
         edit.hint = args["hint"] as? String
 
+        code = args["code"] == true
         imeAction = args["imeAction"] as? String ?: "newline"
         var type = when (args["keyboard"]) {
             "number" -> InputType.TYPE_CLASS_NUMBER

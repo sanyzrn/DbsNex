@@ -106,6 +106,45 @@ mixin _BriefPreferences on _PreferencesStore {
 
   String? get aiDaySummarySource => _prefs.getString('ai.daySummary.source');
 
+  /// The instant the recap on file stops being true, as the app computed it
+  /// when the words were written.
+  ///
+  /// A brief is written from facts that change on their own — an item's
+  /// moment passes, a recurring item's early window opens, the day turns —
+  /// and not one of those writes a row. Storing the instant it was checked
+  /// against is what lets a later read tell a brief that still holds from one
+  /// that merely looks current, without re-reading the library.
+  ///
+  /// Absent means "not known", which is not "expired": a cache written
+  /// before 2.9.0 keeps the behaviour it had.
+  DateTime? get aiDaySummaryValidUntil {
+    final value = _prefs.getInt('ai.daySummary.validUntil');
+    return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
+  }
+
+  /// Whether the recap on file is still within the moment it was written for.
+  bool get aiDaySummaryFresh {
+    final until = aiDaySummaryValidUntil;
+    return until == null || DateTime.now().isBefore(until);
+  }
+
+  /// The model's recap when it is still true — today's, and written before
+  /// the moment its facts moved — and null otherwise.
+  ///
+  /// The one question every surface that republishes the recap asks: the
+  /// card, the home-screen widget and the daily nudge all read
+  /// [aiDaySummaryText] directly before this existed, which is how a
+  /// yesterday's sentence (or one whose "nothing overdue" had stopped being
+  /// true an hour ago) could be published as the state of the library now.
+  String? get currentAiBrief {
+    final text = aiDaySummaryText;
+    if (text == null || text.trim().isEmpty) return null;
+    if (aiDaySummaryDate != NexPreferences.daySummaryDateKey(DateTime.now())) {
+      return null;
+    }
+    return aiDaySummaryFresh ? text : null;
+  }
+
   DateTime? get aiDaySummaryFailedAt {
     final value = _prefs.getInt('ai.daySummary.failedAt');
     return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
@@ -127,6 +166,7 @@ mixin _BriefPreferences on _PreferencesStore {
     String source = '',
     bool includesHabits = false,
     String? notesOnlyFallback,
+    DateTime? validUntil,
   }) async {
     if (includesHabits && !briefHabitsAllowed) return;
     if (!includesHabits) {
@@ -149,6 +189,14 @@ mixin _BriefPreferences on _PreferencesStore {
       (at ?? DateTime.now()).millisecondsSinceEpoch,
     );
     await _prefs.setString('ai.daySummary.source', source);
+    if (validUntil == null) {
+      await _prefs.remove('ai.daySummary.validUntil');
+    } else {
+      await _prefs.setInt(
+        'ai.daySummary.validUntil',
+        validUntil.millisecondsSinceEpoch,
+      );
+    }
     await _prefs.setInt('ai.daySummary.revision', 1);
     await _prefs.remove('ai.daySummary.failedAt');
   }
@@ -182,6 +230,14 @@ mixin _BriefPreferences on _PreferencesStore {
   String? get aiHeadlineText => _prefs.getString('ai.headline.text');
   String? get aiHeadlineDate => _prefs.getString('ai.headline.date');
 
+  /// The part of the day the cached line was written for: `morning`,
+  /// `afternoon`, `evening` or `night`.
+  ///
+  /// Absent on a line cached before 2.9.0, which is exactly why it is checked
+  /// rather than assumed: a cache with no part is not a cache for the current
+  /// moment, so the local greeting is used until a new line arrives.
+  String? get aiHeadlinePart => _prefs.getString('ai.headline.part');
+
   DateTime? get aiHeadlineFailedAt {
     final value = _prefs.getInt('ai.headline.failedAt');
     return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
@@ -201,6 +257,7 @@ mixin _BriefPreferences on _PreferencesStore {
     required String text,
     required String dateKey,
     String? lang,
+    String? part,
   }) async {
     await _prefs.setString('ai.headline.text', text);
     await _prefs.setString('ai.headline.date', dateKey);
@@ -209,6 +266,11 @@ mixin _BriefPreferences on _PreferencesStore {
       await _prefs.remove('ai.headline.lang');
     } else {
       await _prefs.setString('ai.headline.lang', lang);
+    }
+    if (part == null) {
+      await _prefs.remove('ai.headline.part');
+    } else {
+      await _prefs.setString('ai.headline.part', part);
     }
   }
 }

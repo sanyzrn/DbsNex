@@ -459,9 +459,12 @@ class NexWidgetBridge {
       final snapshot = NexWidgetSnapshot.build(
         appLock: lock,
         notes: notes,
-        // Whatever the recap card is showing. Written, not generated: see
-        // [NexWidgetSnapshot.recap].
-        recap: preferences.aiDaySummaryText ?? '',
+        // Whatever the recap card is showing — today's, and only while it is
+        // still true. Written, not generated: see [NexWidgetSnapshot.recap].
+        // It used to be the raw cache, so yesterday's sentence (and one whose
+        // facts had moved on an hour ago) could be published on the home
+        // screen as the state of the library now.
+        recap: preferences.currentAiBrief ?? '',
       );
       // Atomic swap. The reader runs whenever the launcher pleases; a
       // half-written file must never be the thing it finds.

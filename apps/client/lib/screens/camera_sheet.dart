@@ -3,12 +3,20 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsService;
 import 'package:flutter/services.dart' show DeviceOrientation;
+import 'package:nex_core/nex_core.dart' show nexDigits;
 import 'package:nex_ui/nex_ui.dart';
 import 'package:image_picker/image_picker.dart' show ImagePicker, ImageSource;
 
 import '../l10n/app_localizations.dart';
 import '../platform/large_screen.dart';
+
+part 'camera/camera_sheet_widgets.dart';
+
+part 'camera/camera_sheet_views.dart';
+
+part 'camera/camera_sheet_capture.dart';
 
 /// Thrown by [showNexCamera] when Nex's own camera cannot be used — no camera,
 /// no plugin, or the person chose the system camera instead — so the caller
@@ -17,15 +25,26 @@ class NexCameraUnavailable implements Exception {
   const NexCameraUnavailable();
 }
 
+/// What Nex's camera handed back: a still, or — when the panel was asked for
+/// video — a recording made by holding the shutter.
+class NexCameraShot {
+  const NexCameraShot(this.file, {this.isVideo = false});
+
+  final XFile file;
+  final bool isVideo;
+}
+
 /// Nex's own camera: a panel that rises over the timeline with the live view,
 /// a shutter, a back button and a ⋮ menu for switching camera and flash.
 ///
-/// Returns the photo taken, or null when the panel was closed without one.
-/// Throws [NexCameraUnavailable] when the system camera should be used
-/// instead. [cameras] is for tests.
-Future<XFile?> showNexCamera(
+/// A tap takes a photo; when [video] is set, holding the shutter records one
+/// with sound until it is let go. Returns what was taken, or null when the
+/// panel was closed without anything. Throws [NexCameraUnavailable] when the
+/// system camera should be used instead. [cameras] is for tests.
+Future<NexCameraShot?> showNexCamera(
   BuildContext context, {
   Future<List<CameraDescription>> Function()? cameras,
+  bool video = false,
 }) async {
   List<CameraDescription> found;
   try {
@@ -48,7 +67,7 @@ Future<XFile?> showNexCamera(
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       transitionDuration: still ? Duration.zero : NexMotion.enter,
       reverseTransitionDuration: still ? Duration.zero : NexMotion.exit,
-      pageBuilder: (_, _, _) => NexCameraSheet(cameras: found),
+      pageBuilder: (_, _, _) => NexCameraSheet(cameras: found, video: video),
       transitionsBuilder: (_, animation, _, child) => SlideTransition(
         position: Tween(begin: const Offset(0, 1), end: Offset.zero).animate(
           CurvedAnimation(
@@ -62,35 +81,84 @@ Future<XFile?> showNexCamera(
     ),
   );
   if (result == _useSystemCamera) throw const NexCameraUnavailable();
-  return result is XFile ? result : null;
+  return result is NexCameraShot ? result : null;
 }
 
 const _useSystemCamera = #useSystemCamera;
 
-/// A photo from the camera, the way Nex takes one everywhere: its own panel
-/// on a phone, the system camera when the panel cannot open one (or on a
-/// desktop). Null when nothing was taken.
+/// A photo or recording from the camera, the way Nex takes one everywhere:
+/// its own panel on a phone, the system camera app when the panel cannot open
+/// one (or on a desktop). Null when nothing was taken.
 ///
-/// The one door for a photo from the camera — the timeline, a Recurring
-/// item's receipt and a private message all come through here, so all three
-/// look and behave the same.
-Future<XFile?> nexTakePhoto(BuildContext context) async {
+/// [video] is off by default: the places that only ever wanted a picture (a
+/// profile picture, a vault document) keep the still-only panel, and the
+/// system camera they fall back to stays a photo camera.
+Future<NexCameraShot?> nexTakeShot(
+  BuildContext context, {
+  bool video = false,
+}) async {
   if (Platform.isAndroid || Platform.isIOS) {
     try {
-      return await showNexCamera(context);
+      return await showNexCamera(context, video: video);
     } on NexCameraUnavailable {
       if (!context.mounted) return null;
     }
   }
-  return ImagePicker().pickImage(source: ImageSource.camera);
+  final picker = ImagePicker();
+  // The system camera records video on a phone; on a desktop it is a photo
+  // camera, and asking it for a video there would fail the whole action.
+  final records = video && (Platform.isAndroid || Platform.isIOS);
+  final picked = records
+      ? await picker.pickVideo(source: ImageSource.camera)
+      : await picker.pickImage(source: ImageSource.camera);
+  return picked == null ? null : NexCameraShot(picked, isVideo: records);
 }
+
+/// A photo from the camera, for the places that take only photos. The same
+/// panel as [nexTakeShot], with the video gesture left out.
+Future<XFile?> nexTakePhoto(BuildContext context) async =>
+    (await nexTakeShot(context))?.file;
 
 const _openTimeout = Duration(seconds: 8);
 
+/// The recording budget, in bits per second.
+///
+/// The still capture stays at the sensor's full size in every panel — adding
+/// video must not cost a photo its resolution, and a lower
+/// `resolutionPreset` would cap both — so the clip is bounded by its bitrate
+/// instead. 16 Mbit/s of video and 128 kbit/s of audio is about 363 MB for
+/// the three-minute ceiling: inside the 500 MiB attachment limit with room to
+/// spare, and encoded by the camera at its highest available video quality.
+const nexCameraVideoBitrate = 16000000;
+const nexCameraAudioBitrate = 128000;
+
+/// The recording clock, as the panel shows it: minutes and seconds, counting
+/// past an hour without wrapping.
+String nexCameraClock(Duration elapsed) =>
+    '${elapsed.inMinutes.toString().padLeft(2, '0')}:'
+    '${(elapsed.inSeconds % 60).toString().padLeft(2, '0')}';
+
 class NexCameraSheet extends StatefulWidget {
-  const NexCameraSheet({super.key, required this.cameras});
+  const NexCameraSheet({super.key, required this.cameras, this.video = false});
 
   final List<CameraDescription> cameras;
+
+  /// Whether holding the shutter records a video. A panel opened for a place
+  /// that takes stills has no video item, no hold and no microphone request.
+  final bool video;
+
+  /// Shorter than this and the hold was a slip of the thumb, not a video.
+  static const minVideo = Duration(milliseconds: 900);
+
+  /// The longest a hold records. A held shutter left alone stops here rather
+  /// than filling the phone.
+  static const maxVideo = Duration(minutes: 3);
+
+  /// The most a clip may weigh: the same 500 MiB the attachment path streams
+  /// to disk. A recording that came out bigger is discarded here, with a line
+  /// that says so, rather than handed to a capture path that would refuse it
+  /// without a word.
+  static const maxVideoBytes = 500 * 1024 * 1024;
 
   /// The share of the screen's height the panel takes.
   static const heightFactor = .62;
@@ -114,11 +182,35 @@ class _NexCameraSheetState extends State<NexCameraSheet>
   bool _blink = false;
   double _drag = 0;
 
+  // ── video ──────────────────────────────────────────────────────────────
+  bool _recording = false;
+  bool _startingVideo = false;
+
+  /// Let go before the sensor had started: stop as soon as it has.
+  bool _stopRequested = false;
+
+  /// Recording without sound — the microphone was refused, the camera was not.
+  bool _silentVideo = false;
+
+  /// The one-shot timer that ends a held recording exactly at [maxVideo].
+  Timer? _limit;
+
+  /// What the panel has to say about the last recording, until its timer
+  /// clears it.
+  _Notice? _noticeKind;
+  DateTime? _startedAt;
+  Timer? _ticker;
+  Timer? _notice;
+  Duration _elapsed = Duration.zero;
+
   /// When a wait that is still trying stops looking like a wait and starts
   /// offering the way out: most cameras are up long before this, and the
   /// ones that reach it are usually heading for the timeout.
   Timer? _systemCameraAt;
   bool _offerSystemCamera = false;
+
+  /// setState, for the parts this sheet is split across.
+  void _set(VoidCallback change) => setState(change);
 
   int _initialIndex() {
     final index = widget.cameras.indexWhere(
@@ -136,64 +228,6 @@ class _NexCameraSheetState extends State<NexCameraSheet>
 
   /// Which [_open] is current; an older one that finishes late steps aside.
   int _generation = 0;
-
-  Future<void> _open() async {
-    final generation = ++_generation;
-    final previous = _controller;
-    _controller = null;
-    if (mounted) setState(() => _failed = false);
-    // The wait is spoken: a panel that goes black for as long as the sensor
-    // takes reads as broken, not busy. Six seconds in, it also offers the
-    // system camera — the same way out the timeout ends in, arrived at
-    // while there is still time to take it.
-    _systemCameraAt?.cancel();
-    if (mounted) setState(() => _offerSystemCamera = false);
-    _systemCameraAt = Timer(const Duration(seconds: 6), () {
-      if (!mounted || generation != _generation) return;
-      if (_controller != null || _failed) return;
-      setState(() => _offerSystemCamera = true);
-    });
-    // Not awaited: a controller whose opening never finished never finishes
-    // disposing either, and the next camera should not wait on it.
-    _release(previous);
-    final controller = CameraController(
-      widget.cameras[_index],
-      ResolutionPreset.max,
-      enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.jpeg,
-    );
-    bool current() => mounted && generation == _generation;
-    try {
-      // A camera held by another app can leave this waiting for good; a black
-      // panel with no way forward is worse than offering the camera app.
-      await controller.initialize().timeout(_openTimeout);
-    } on Object {
-      _release(controller);
-      if (current()) setState(() => _failed = true);
-      return;
-    }
-    // On a phone the app is held in portrait (the manifest and
-    // lockNexPhoneOrientation), so the panel is portrait and so are the
-    // photos taken in it. A tablet or an unfolded foldable is not: from
-    // Android 16 the system ignores a fixed orientation on large screens, and
-    // a capture locked upright there would save a landscape shot sideways.
-    // Left unlocked, the photo follows the way the device is held.
-    if (mounted &&
-        generation == _generation &&
-        !nexLargeScreen(MediaQuery.sizeOf(context))) {
-      try {
-        await controller.lockCaptureOrientation(DeviceOrientation.portraitUp);
-      } on Object {
-        // Not every camera can; its photos are still upright on the phone.
-      }
-    }
-    await _applyFlash(controller, _lastFlash);
-    if (!current()) {
-      _release(controller);
-      return;
-    }
-    setState(() => _controller = controller);
-  }
 
   /// Lets a camera go without waiting for it, and without its failures
   /// reaching anyone: a camera that could not open often cannot close either.
@@ -219,76 +253,71 @@ class _NexCameraSheetState extends State<NexCameraSheet>
     // The camera is released while Nex is in the background, as Android
     // expects, and opened again on return. Only an open camera: Android's own
     // permission dialog also makes the app inactive, while it is opening.
-    final controller = _controller;
-    if (state == AppLifecycleState.inactive &&
-        controller != null &&
-        controller.value.isInitialized) {
-      _released = true;
-      setState(() => _controller = null);
-      _release(controller);
+    if (state == AppLifecycleState.inactive) {
+      // One path, in this order: the recording ends *before* the camera is
+      // let go. Releasing first disposed the controller under a
+      // `stopVideoRecording` that was still in flight, so the clip was lost
+      // exactly when it mattered most — a phone call arriving mid-recording.
+      unawaited(_suspend(_controller));
     } else if (state == AppLifecycleState.resumed && _released) {
       _released = false;
       unawaited(_open());
     }
   }
 
+  /// Stops a recording, keeps it, then lets the camera go.
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _systemCameraAt?.cancel();
+    _ticker?.cancel();
+    _limit?.cancel();
+    _notice?.cancel();
     _release(_controller);
     super.dispose();
   }
 
-  Future<void> _take() async {
-    final controller = _controller;
-    if (controller == null || _taking || !controller.value.isInitialized) {
-      return;
-    }
-    setState(() {
-      _taking = true;
-      // A screen-flash is exactly what a photosensitive person asked the
-      // system to prevent (F-05): the blink is skipped under reduce-motion.
-      if (!MediaQuery.disableAnimationsOf(context)) _blink = true;
-      _menuOpen = false;
-    });
-    // Through the global gate every other haptic answers (F-09).
-    nexBump();
-    unawaited(
-      Future<void>.delayed(const Duration(milliseconds: 90), () {
-        if (mounted) setState(() => _blink = false);
-      }),
-    );
+  static Future<int> _sizeOf(XFile file) async {
     try {
-      final shot = await controller.takePicture();
-      if (mounted) Navigator.of(context).pop(shot);
+      return await File(file.path).length();
     } on Object {
-      if (mounted) setState(() => _taking = false);
+      // A file the app cannot measure is not one it should throw away.
+      return 0;
     }
   }
 
-  Future<void> _switchCamera() async {
-    if (widget.cameras.length < 2) return;
-    setState(() {
-      _index = (_index + 1) % widget.cameras.length;
-      _menuOpen = false;
-    });
-    _lastLens = widget.cameras[_index].lensDirection;
-    await _open();
+  /// A recording the app will not show is still its own to tidy; a camera
+  /// that already removed it changes nothing.
+  static Future<void> _discard(XFile file) async {
+    try {
+      await File(file.path).delete();
+    } on Object {
+      // Nothing to do: the clip is gone either way.
+    }
   }
 
-  Future<void> _cycleFlash() async {
-    _lastFlash = switch (_lastFlash) {
-      FlashMode.off => FlashMode.auto,
-      FlashMode.auto => FlashMode.always,
-      _ => FlashMode.off,
-    };
-    setState(() {});
-    final controller = _controller;
-    if (controller != null) await _applyFlash(controller, _lastFlash);
+  /// One line under the clock for a few seconds.
+
+  /// Whether a picked file is a recording. The picker names its temporary
+  /// copy with the original extension, and a video panel is the only place
+  /// the answer can change anything.
+  static bool _isVideo(XFile file) {
+    final path = file.path.toLowerCase();
+    return const [
+      '.mp4',
+      '.mov',
+      '.m4v',
+      '.3gp',
+      '.3gpp',
+      '.webm',
+      '.mkv',
+      '.avi',
+    ].any(path.endsWith);
   }
 
-  void _close() => Navigator.of(context).maybePop();
+  /// Closes the panel. A recording in flight is stopped and thrown away: the
+  /// person closed the camera, not a video they wanted to keep.
 
   @override
   Widget build(BuildContext context) {
@@ -333,6 +362,7 @@ class _NexCameraSheetState extends State<NexCameraSheet>
                       child: ColoredBox(color: Colors.white),
                     ),
                   ),
+                  if (widget.video) _videoStatus(context, media),
                   if (_failed) _unavailable(context),
                   if (_menuOpen)
                     Positioned.fill(
@@ -351,340 +381,7 @@ class _NexCameraSheetState extends State<NexCameraSheet>
     );
   }
 
-  Widget _preview(BuildContext context) {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) {
-      // Not reached when the camera has failed: [_unavailable] takes the
-      // panel then. This is the wait — faint, and saying so.
-      return _failed ? const SizedBox.expand() : _waiting(context);
-    }
-    // previewSize is in the sensor's landscape terms. On a phone the panel is
-    // portrait; on a large screen it is whichever way the device is held.
-    final size = controller.value.previewSize;
-    final landscape =
-        nexLargeScreen(MediaQuery.sizeOf(context)) &&
-        MediaQuery.orientationOf(context) == Orientation.landscape;
-    final long = size?.width ?? 4;
-    final short = size?.height ?? 3;
-    return ClipRect(
-      child: FittedBox(
-        fit: BoxFit.cover,
-        child: SizedBox(
-          width: landscape ? long : short,
-          height: landscape ? short : long,
-          child: CameraPreview(controller),
-        ),
-      ),
-    );
-  }
-
-  /// The panel while the sensor is still being asked for: a skeleton in
-  /// its own dimness and the words, in the same voice the microphone
-  /// permission speaks in. Six seconds in, the system camera is offered
-  /// here rather than only after the timeout has already eaten the wait.
-  Widget _waiting(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        NexSpacing.xl,
-        NexSpacing.xl,
-        NexSpacing.xl,
-        120,
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.photo_camera_outlined,
-                  color: Colors.white.withValues(alpha: 0.3),
-                  size: 40,
-                ),
-                const SizedBox(height: NexSpacing.md),
-                // The skeleton: the panel's own shape, ghosted, where the picture
-                // is about to be.
-                Container(
-                  width: 132,
-                  height: 88,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(NexRadius.md),
-                  ),
-                ),
-                const SizedBox(height: NexSpacing.md),
-                Text(
-                  l10n.cameraStarting,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white70, fontSize: 15),
-                ),
-                if (_offerSystemCamera) ...[
-                  const SizedBox(height: NexSpacing.md),
-                  FilledButton.tonal(
-                    onPressed: () =>
-                        Navigator.of(context).pop(_useSystemCamera),
-                    child: Text(l10n.cameraUseSystem),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _unavailable(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        NexSpacing.xl,
-        NexSpacing.xl,
-        NexSpacing.xl,
-        120,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.no_photography_outlined,
-            color: Colors.white70,
-            size: 40,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            l10n.cameraUnavailable,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white, fontSize: 15),
-          ),
-          const SizedBox(height: NexSpacing.md),
-          FilledButton.tonal(
-            onPressed: () => Navigator.of(context).pop(_useSystemCamera),
-            child: Text(l10n.cameraUseSystem),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _controls(BuildContext context, double bottomInset) {
-    final l10n = AppLocalizations.of(context);
-    return Positioned.fill(
-      left: 20,
-      right: 20,
-      bottom: bottomInset + 20,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _RoundButton(
-                tooltip: l10n.cameraClose,
-                onPressed: _close,
-                // chevron_left mirrors itself under RTL; swapping it here
-                // as well flipped it twice (LOC-10).
-                child: const Icon(Icons.chevron_left, size: 28),
-              ),
-              _Shutter(
-                label: l10n.cameraShutter,
-                enabled: _controller != null && !_taking,
-                onPressed: _take,
-              ),
-              _RoundButton(
-                tooltip: l10n.cameraOptions,
-                onPressed: () => setState(() => _menuOpen = !_menuOpen),
-                child: const Icon(Icons.more_vert),
-              ),
-            ],
-          ),
-          // Above the ⋮ button it belongs to.
-          PositionedDirectional(
-            end: 0,
-            bottom: 90,
-            child: IgnorePointer(
-              ignoring: !_menuOpen,
-              child: AnimatedScale(
-                scale: _menuOpen ? 1 : .8,
-                alignment: Directionality.of(context) == TextDirection.rtl
-                    ? Alignment.bottomLeft
-                    : Alignment.bottomRight,
-                duration: NexMotion.of(context, NexMotion.standard),
-                curve: NexMotion.curve,
-                child: AnimatedOpacity(
-                  opacity: _menuOpen ? 1 : 0,
-                  duration: NexMotion.of(context, NexMotion.fast),
-                  child: _Menu(
-                    children: [
-                      if (widget.cameras.length > 1)
-                        _MenuItem(
-                          icon: Icons.cameraswitch_outlined,
-                          label: l10n.cameraSwitch,
-                          onTap: _switchCamera,
-                        ),
-                      _MenuItem(
-                        icon: switch (_lastFlash) {
-                          FlashMode.auto => Icons.flash_auto,
-                          FlashMode.always => Icons.flash_on,
-                          _ => Icons.flash_off,
-                        },
-                        label: switch (_lastFlash) {
-                          FlashMode.auto => l10n.cameraFlashAuto,
-                          FlashMode.always => l10n.cameraFlashOn,
-                          _ => l10n.cameraFlashOff,
-                        },
-                        onTap: _cycleFlash,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RoundButton extends StatelessWidget {
-  const _RoundButton({
-    required this.tooltip,
-    required this.onPressed,
-    required this.child,
-  });
-
-  final String tooltip;
-  final VoidCallback onPressed;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Tooltip(
-    message: tooltip,
-    child: Material(
-      color: Colors.black.withValues(alpha: .45),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
-        child: SizedBox.square(
-          dimension: 48,
-          child: IconTheme(
-            data: const IconThemeData(color: Colors.white),
-            child: Center(child: child),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-class _Shutter extends StatefulWidget {
-  const _Shutter({
-    required this.label,
-    required this.enabled,
-    required this.onPressed,
-  });
-
-  final String label;
-  final bool enabled;
-  final VoidCallback onPressed;
-
-  @override
-  State<_Shutter> createState() => _ShutterState();
-}
-
-class _ShutterState extends State<_Shutter> {
-  bool _down = false;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    enabled: widget.enabled,
-    label: widget.label,
-    child: GestureDetector(
-      onTapDown: (_) => setState(() => _down = true),
-      onTapCancel: () => setState(() => _down = false),
-      onTapUp: (_) => setState(() => _down = false),
-      onTap: widget.enabled ? widget.onPressed : null,
-      child: AnimatedScale(
-        scale: _down ? .9 : 1,
-        duration: NexMotion.of(context, NexMotion.fast),
-        child: Container(
-          width: 78,
-          height: 78,
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.black.withValues(alpha: .55),
-          ),
-          child: AnimatedContainer(
-            duration: NexMotion.of(context, NexMotion.fast),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: widget.enabled ? Colors.white : Colors.white54,
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-class _Menu extends StatelessWidget {
-  const _Menu({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.black.withValues(alpha: .72),
-    borderRadius: BorderRadius.circular(NexRadius.lg),
-    clipBehavior: Clip.antiAlias,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: IntrinsicWidth(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: children,
-        ),
-      ),
-    ),
-  );
-}
-
-class _MenuItem extends StatelessWidget {
-  const _MenuItem({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: NexSpacing.md,
-        vertical: 12,
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white, size: 22),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 15),
-          ),
-        ],
-      ),
-    ),
-  );
+  /// The line at the top of the panel: the gesture the first time, and while
+  /// recording the clock and the red dot — the two things a person needs to
+  /// know it is running and for how long.
 }

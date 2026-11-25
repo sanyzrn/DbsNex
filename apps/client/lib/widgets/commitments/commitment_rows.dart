@@ -316,6 +316,10 @@ class _CommitmentRow extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final overdue = commitment.isOverdue(now);
+    // Whether this occurrence may be ticked off yet. The page already redraws
+    // on its own minute clock, so the button opens by itself when the window
+    // does — nobody has to reopen the page for the tick to start working.
+    final open = commitment.canComplete(now);
     final accent = overdue
         ? scheme.error
         : commitment.paused
@@ -458,6 +462,36 @@ class _CommitmentRow extends StatelessWidget {
                                       color: scheme.onSurfaceVariant,
                                     ),
                                   ),
+                                // When the tick opens again. Only while it is
+                                // shut: a permanent line saying "you may do
+                                // this now" is noise on every other row. A
+                                // span rather than a date on purpose — this
+                                // shares a wrapping row with the countdown on
+                                // a narrow card at large text, and a full
+                                // "Today at 18:30" is what used to overflow
+                                // it. The tooltip carries the exact time.
+                                if (!open && !commitment.paused)
+                                  Tooltip(
+                                    message: nexDueExact(
+                                      context,
+                                      commitment.completionOpensAt,
+                                      solarCalendar: solarCalendar,
+                                    ),
+                                    child: Text(
+                                      nexLabel(
+                                        context,
+                                        'Done ${nexRelativeSpan(l10n, commitment.completionOpensAt.difference(now))}',
+                                        'انجام تا ${nexRelativeSpan(l10n, commitment.completionOpensAt.difference(now))}',
+                                      ),
+                                      key: ValueKey(
+                                        'recurring-opens-${commitment.id}',
+                                      ),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: scheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -467,8 +501,13 @@ class _CommitmentRow extends StatelessWidget {
                   ),
                   IconButton(
                     key: ValueKey('recurring-complete-${commitment.id}'),
+                    // Worth saying even while shut: the row already says
+                    // from when, and this keeps the action recognizable.
                     tooltip: l10n.commitmentMarkOccurrence,
-                    onPressed: onMet,
+                    // Null disables it: a tick that stays live and then
+                    // explains itself in a banner is a worse answer than one
+                    // that is visibly not available yet.
+                    onPressed: open ? onMet : null,
                     color: accent,
                     icon: const Icon(Icons.check_circle_outline),
                   ),

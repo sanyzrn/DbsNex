@@ -2147,7 +2147,7 @@ abstract class AppLocalizations {
   /// Attach sheet option
   ///
   /// In en, this message translates to:
-  /// **'Take a photo'**
+  /// **'Camera'**
   String get attachTakePhoto;
 
   /// Attach menu: record a short voice clip onto the note
@@ -8017,6 +8017,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Turning the camera on…'**
   String get cameraStarting;
+
+  /// Below the shutter in the camera panel; describes the press-and-hold gesture.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold the shutter to record a video'**
+  String get cameraHoldForVideo;
+
+  /// Camera options menu: starts recording without the hold gesture, for switch access.
+  ///
+  /// In en, this message translates to:
+  /// **'Record a video'**
+  String get cameraRecordVideo;
+
+  /// Camera options menu: picks an existing photo or video from the phone instead of taking a new one.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos and videos'**
+  String get cameraGallery;
+
+  /// Tooltip on the shutter and the stop button while a video is being recorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop recording'**
+  String get cameraStopRecording;
+
+  /// Screen reader announcement while a video records; elapsed is mm:ss.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording, {elapsed}'**
+  String cameraRecordingElapsed(Object elapsed);
+
+  /// Shown in the camera panel when the microphone was refused but video still records.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording without sound — the microphone is off'**
+  String get cameraSilentVideo;
+
+  /// Shown when the shutter was held too briefly for a video; the clip was discarded.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold a little longer to record'**
+  String get cameraVideoTooShort;
+
+  /// Shown when a recording came out larger than the attachment limit; the clip was discarded.
+  ///
+  /// In en, this message translates to:
+  /// **'That clip is too large to keep'**
+  String get cameraVideoTooLarge;
 
   /// No description provided for @disclosuresTitle.
   ///

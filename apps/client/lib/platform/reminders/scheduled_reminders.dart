@@ -22,6 +22,10 @@ extension NexScheduledReminders on NexReminders {
   }) async {
     if (!NexReminders.supported) return;
     lastError = null;
+    // One clean pair of words for both the collapsed line and its expanded
+    // copy: a body that only repeats the title is dropped rather than drawn
+    // twice, and blank edges go with it.
+    final words = nexNotificationWords(title, body);
     await initialise();
     // Re-armed in place: a cancel would also take today's nudge off the
     // screen if it is still showing (2.1.9).
@@ -43,8 +47,8 @@ extension NexScheduledReminders on NexReminders {
     try {
       await _plugin.zonedSchedule(
         id: NexReminders._dailyId,
-        title: nexNotificationText(title),
-        body: nexNotificationText(body.isEmpty ? null : body),
+        title: nexNotificationText(words.title),
+        body: nexNotificationText(words.body),
         scheduledDate: when,
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
@@ -58,7 +62,7 @@ extension NexScheduledReminders on NexReminders {
             // set, Android shows one line of it and offers no way to reach
             // the rest, so the mornings with the most in them would be the
             // ones the notification said least about.
-            styleInformation: nexNotificationStyle(body),
+            styleInformation: nexNotificationStyle(words.body),
           ),
           iOS: const DarwinNotificationDetails(),
         ),
@@ -145,7 +149,12 @@ extension NexScheduledReminders on NexReminders {
     try {
       await _plugin.zonedSchedule(
         id: id,
-        title: nexNotificationText(NexReminders._clamp(commitment.title, 60)),
+        title: nexNotificationText(
+          nexNotificationWords(
+            NexReminders._clamp(commitment.title, 60),
+            null,
+          ).title,
+        ),
         scheduledDate: NexReminders.scheduledDateFor(at.toUtc()),
         notificationDetails: NexReminderActions.commitmentDetails(
           secret: hideOnLockScreen?.call() ?? false,
@@ -201,17 +210,20 @@ extension NexScheduledReminders on NexReminders {
       await _withdraw(NexReminders.cycleIdFor(key));
       return;
     }
+    final words = nexNotificationWords(title, body);
     try {
       await _plugin.zonedSchedule(
         id: NexReminders.cycleIdFor(key),
-        title: nexNotificationText(title),
-        body: nexNotificationText(body.isEmpty ? null : body),
+        title: nexNotificationText(words.title),
+        body: nexNotificationText(words.body),
         scheduledDate: when,
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             NexReminders._channelId,
             NexReminders._text.reminders,
-            styleInformation: nexNotificationStyle(null),
+            // The body is real text: without a big-text style the expanded
+            // shade showed one truncated line of it and no way to the rest.
+            styleInformation: nexNotificationStyle(words.body),
             channelDescription: NexReminders._text.remindersAbout,
             importance: Importance.high,
             priority: Priority.high,
@@ -277,12 +289,15 @@ extension NexScheduledReminders on NexReminders {
         ? 'Nex'
         : NexReminders._clamp(words.split('\n').first, 60);
     // The rest of the note under its first line, not the whole note again.
-    final body = NexReminders.bodyBeyond(title, words);
+    final shown = nexNotificationWords(
+      title,
+      NexReminders.bodyBeyond(title, words),
+    );
     try {
       await _plugin.zonedSchedule(
         id: NexReminders.arrivalIdFor(note.id),
-        title: nexNotificationText(title),
-        body: nexNotificationText(body),
+        title: nexNotificationText(shown.title),
+        body: nexNotificationText(shown.body),
         scheduledDate: NexReminders.scheduledDateFor(note.releaseAt),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
@@ -291,7 +306,7 @@ extension NexScheduledReminders on NexReminders {
             channelDescription: NexReminders._text.remindersAbout,
             importance: Importance.high,
             priority: Priority.high,
-            styleInformation: nexNotificationStyle(body),
+            styleInformation: nexNotificationStyle(shown.body),
             visibility: hideOnLockScreen?.call() ?? false
                 ? NotificationVisibility.secret
                 : null,

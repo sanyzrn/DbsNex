@@ -48,6 +48,7 @@ class NexTextField extends StatefulWidget {
     this.style,
     this.textDirection,
     this.monospace = false,
+    this.code = false,
     this.minLines,
     this.maxLines,
     this.expands = false,
@@ -87,6 +88,17 @@ class NexTextField extends StatefulWidget {
   /// over the channel, not by Flutter's text style.
   final bool monospace;
 
+  /// Whether the words are code, so the editor pairs brackets and quotes and
+  /// keeps a line's indentation on the next one.
+  ///
+  /// On the Flutter editor that is [inputFormatters]; Android's own editor
+  /// cannot run a Dart formatter, so the same two rules are its own
+  /// (`NexEditText.codeGestures`). Passing this and keeping the field on the
+  /// native editor is what lets a capture box move between code and the
+  /// other kinds without swapping editors — and so without dropping the
+  /// keyboard and blowing the sheet up and down.
+  final bool code;
+
   final int? minLines;
 
   /// Null grows without limit.
@@ -115,7 +127,10 @@ class NexTextField extends StatefulWidget {
   /// `nexFormatContextMenuBuilder`.
   final bool formatting;
 
-  /// Code editing uses Flutter's styled spans, even on Android.
+  /// Whether this field uses Android's own editor. Code was the one field
+  /// that opted out, for [inputFormatters]; the native editor now carries
+  /// the same code gestures, so a capture box keeps one editor for all its
+  /// kinds.
   final bool useNativeEditor;
 
   /// Where Copy and Cut send the selected text instead of the clipboard —
@@ -592,6 +607,7 @@ class _NativeFieldState extends State<_NativeField> {
       'privateCopy': field.onCopy != null,
       'flutterMagnifier': NexTextField.flutterMagnifier,
       'monospace': field.monospace,
+      'code': field.code,
       'textDirection': field.textDirection?.name,
       'rtl': Directionality.of(context) == TextDirection.rtl,
       'formats': field.formatting ? _formats : const <Map<String, String>>[],

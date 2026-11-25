@@ -212,7 +212,11 @@ extension _DetailAttachments on _NoteDetailSheetState {
     try {
       switch (choice) {
         case 'camera':
-          final shot = await nexTakePhoto(context);
+          // A photo on a tap, a recording on a hold — the same panel the
+          // timeline opens. A recording is attached as a video file, so the
+          // strip shows its frame and its player opens it; only a real image
+          // becomes a photo attachment.
+          final shot = await nexTakeShot(context, video: true);
           if (shot == null) return;
           // Copied and hashed from the file, never read whole into memory —
           // the same straight path the timeline's photo capture takes
@@ -220,9 +224,11 @@ extension _DetailAttachments on _NoteDetailSheetState {
           landed =
               await widget.services.attachFile(
                 note.id,
-                shot.path,
-                kind: AttachmentKind.photo,
-                mimeType: shot.mimeType,
+                shot.file.path,
+                kind: shot.isVideo ? AttachmentKind.file : AttachmentKind.photo,
+                name: shot.isVideo ? p.basename(shot.file.path) : null,
+                mimeType:
+                    shot.file.mimeType ?? (shot.isVideo ? 'video/mp4' : null),
                 refresh: false,
               ) !=
               null;

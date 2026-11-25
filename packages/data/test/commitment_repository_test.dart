@@ -189,6 +189,32 @@ CREATE TABLE commitments (
     expect(got.notify, isTrue);
   });
 
+  test('a completion before the window writes nothing', () {
+    // The rule is enforced where the write happens, not only on the page: a
+    // second tap, a notification button and a stale row all arrive here, and
+    // here the current row is the only thing that decides.
+    final due = DateTime.now().add(const Duration(days: 3));
+    final weekly = NexCommitment(
+      id: 'c3',
+      title: 'bins',
+      cadence: NexCadence.weeks,
+      every: 1,
+      dueAt: due,
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
+    );
+    repo.save(weekly);
+    expect(repo.markMet('c3'), isNull);
+    expect(repo.getById('c3')!.dueAt, due);
+
+    // Inside the day-before window it moves, once.
+    final met = repo.markMet('c3', at: due.subtract(const Duration(hours: 1)));
+    expect(met, isNotNull);
+    expect(met!.dueAt, due.add(const Duration(days: 7)));
+    expect(repo.markMet('c3', at: due), isNull);
+    expect(repo.getById('c3')!.dueAt, due.add(const Duration(days: 7)));
+  });
+
   test('a saved commitment is in the list, and a deleted one is not', () {
     repo.save(full());
     expect(repo.list().map((c) => c.id), ['c1']);

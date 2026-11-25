@@ -146,7 +146,10 @@ extension NexNoteReminders on NexReminders {
     final title = body.isEmpty
         ? 'Nex'
         : NexReminders._clamp(body.split('\n').first, 60);
-    final text = NexReminders.bodyBeyond(title, body);
+    final shown = nexNotificationWords(
+      title,
+      NexReminders.bodyBeyond(title, body),
+    );
     final secret = hideOnLockScreen?.call() ?? false;
     // Everything about the alarm the OS would be told, in one comparable
     // line — checked against what it was told before any call below is made.
@@ -155,8 +158,8 @@ extension NexNoteReminders on NexReminders {
       repeat: note.dueRepeat,
       mode: _scheduleMode,
       secret: secret,
-      title: title,
-      text: text,
+      title: shown.title,
+      text: shown.body,
     );
     if (knownArmed != null && knownArmed.contains(alarmId)) {
       if (await NexReminderActions.armedMatches(alarmId, signature)) {
@@ -172,11 +175,11 @@ extension NexNoteReminders on NexReminders {
     try {
       await _plugin.zonedSchedule(
         id: alarmId,
-        title: nexNotificationText(title),
-        body: nexNotificationText(text),
+        title: nexNotificationText(shown.title),
+        body: nexNotificationText(shown.body),
         scheduledDate: NexReminders.scheduledDateFor(at),
         notificationDetails: NexReminderActions.noteDetails(
-          body: text,
+          body: shown.body,
           secret: secret,
           repeating: note.dueRepeat != NoteRepeat.once,
         ),
@@ -203,8 +206,8 @@ extension NexNoteReminders on NexReminders {
       // words unchanged, so the skipped path writes nothing either.
       await NexReminderActions.remember(
         note.id,
-        title: title,
-        body: text,
+        title: shown.title,
+        body: shown.body,
         secret: secret,
       );
       // What the OS was told, in its own terms: the instant, the wall clock

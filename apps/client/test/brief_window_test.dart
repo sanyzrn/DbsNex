@@ -181,7 +181,11 @@ void main() {
           jsonEncode({
             'choices': [
               {
-                'message': {'content': 'Good morning'},
+                // Deliberately neutral: a phrase that names a part of the
+                // day is refused outside it (2.9.0's greeting rule), so a
+                // reply of "Good morning" made this test pass before noon
+                // and fail after it.
+                'message': {'content': 'Ready when you are'},
                 'finish_reason': 'stop',
               },
             ],
@@ -199,6 +203,12 @@ void main() {
     final h = await NexTestHarness.create(name: 'nex_brief_headline_');
     addTearDown(h.dispose);
     await h.preferences.setSponsorAttemptedAt(DateTime.now());
+    // The update check is the app's only other network call, and this test is
+    // the one that removes the HTTP override so its own loopback server can
+    // answer. Left on, the release check's 15-second timeout is still pending
+    // when the tree is disposed — a failure that depends on whether the real
+    // API answered in time, which is nothing to do with a greeting.
+    await h.preferences.setAutoUpdateCheck(false);
     await h.preferences.setAiEnabled(true);
     await h.preferences.setAiProvider(
       AiProviderConfig(
@@ -234,7 +244,7 @@ void main() {
     // the asserts — a failure under load, not a flake.
     await _until(
       tester,
-      () => find.textContaining('Good morning').evaluate().isNotEmpty,
+      () => find.textContaining('Ready when you are').evaluate().isNotEmpty,
       'the greeting reply on screen',
     );
     // And every request the server took has had its answer — a second one
