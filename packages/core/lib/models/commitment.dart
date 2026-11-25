@@ -82,10 +82,53 @@ class NexCommitment {
   DateTime get scheduledDue =>
       DateTime.tryParse(details['scheduledDue'] as String? ?? '')?.toLocal() ??
       dueAt;
+
+  /// The early-completion window this item was given, in minutes, or null
+  /// when it follows the cadence's default — see [earlyWindow].
+  ///
+  /// Zero is a real choice and not the same as null: it means "only from the
+  /// due time onwards", which is what somebody wants for a dose they must not
+  /// tick off before they have taken it.
+  int? get earlyWindowMinutes {
+    final raw = details['earlyWindowMinutes'];
+    return raw is num ? raw.toInt() : null;
+  }
+
+  /// How far ahead of [dueAt] this occurrence may be marked done.
+  ///
+  /// Never more than half the gap between occurrences, whatever the item or
+  /// its stored value says. That bound is the whole guarantee: with it, the
+  /// next occurrence can never already be inside its own window when the
+  /// current one is completed, however fast somebody taps — so no amount of
+  /// pressing finishes a series ahead of time.
+  Duration get earlyWindow {
+    final cap = nexMaxEarlyWindowMinutes(cadence, every);
+    final wanted =
+        earlyWindowMinutes ?? nexDefaultEarlyWindow(cadence, every).inMinutes;
+    return Duration(minutes: wanted.clamp(0, cap));
+  }
+
+  /// The first moment the current occurrence may be marked done.
+  DateTime get completionOpensAt => dueAt.subtract(earlyWindow);
+
+  /// Whether the occurrence at [dueAt] may be met at [now].
+  ///
+  /// Overdue is always open. A paused item is never open: it is not running,
+  /// so there is no occurrence to answer — and ticking one off used to move a
+  /// stopped item's date without restarting it, which is nobody's intent.
+  bool canComplete(DateTime now) {
+    if (paused) return false;
+    return !now.isBefore(completionOpensAt);
+  }
+
+  /// Whether meeting it at [now] would be ahead of its due time.
+  bool isEarlyCompletion(DateTime now) => now.isBefore(dueAt);
+
   Map<String, dynamic> recordOccurrence(
     String action,
     DateTime at, {
     String note = '',
+    bool? early,
   }) => {
     ...details,
     'anchor': details['anchor'] ?? scheduledDue.toIso8601String(),
@@ -95,8 +138,17 @@ class NexCommitment {
       {
         'action': action,
         'at': at.toUtc().toIso8601String(),
-        'due': scheduledDue.toUtc().toIso8601String(),
+        // The occurrence this answers, as it actually stood — a snoozed one
+        // records the time it was moved to, so "done at 18:00 for the 18:00
+        // dose" cannot be read back as "done for the 09:00 one". The
+        // scheduled anchor is still `scheduledDue` above and in the cycle
+        // arithmetic; this is the record of what was answered.
+        'due': dueAt.toUtc().toIso8601String(),
         'note': note,
+        // Kept for the ones that can be early, so the history can say "done
+        // ahead of its date" without recomputing a window that may since
+        // have been changed. Absent means not applicable (a skip).
+        'early': ?early,
       },
     ].reversed.take(500).toList().reversed.toList(),
   };
@@ -221,18 +273,49 @@ class NexCommitment {
   int metOn(DateTime now) => metTodayOn == nexDayKey(now) ? metToday : 0;
 
   /// The same commitment, met at [at] and rolled forward to its next turn.
+  ///
+  /// Throws a [StateError] when [at] is outside the early window. That is the
+  /// central guard, not a UI courtesy: every path that completes an item — the
+  /// tick on the page, **Done** in the shade, a future widget or shortcut —
+  /// ends here or at [complete], so a new caller cannot bypass the rule by
+  /// forgetting to ask. Callers that can be reached by a tap use [complete].
+  ///
+  /// It advances from the *occurrence*, not merely from the moment of the tap.
+  /// Those are the same thing for an overdue item and different for an early
+  /// one: stepping from a tap made the day before a weekly item was due used
+  /// to hand back that same due date, so "done" moved nothing and the item
+  /// stayed there to be ticked again.
   NexCommitment met(DateTime at) {
-    final next = nexAdvance(this, after: at);
+    if (!canComplete(at)) {
+      throw StateError(
+        'commitment $id cannot be met at ${at.toIso8601String()}: '
+        'its window opens at ${completionOpensAt.toIso8601String()}',
+      );
+    }
+    final next = nexAdvance(this, after: at.isAfter(dueAt) ? at : dueAt);
     final today = nexDayKey(at);
     return copyWith(
       dueAt: next,
-      details: recordOccurrence('done', at),
+      details: recordOccurrence('done', at, early: at.isBefore(dueAt)),
       lastMetAt: at,
       metToday: (metTodayOn == today ? metToday : 0) + 1,
       metTodayOn: today,
       updatedAt: at,
     );
   }
+
+  /// [met] when the window is open, or null when it is not — the form a tap, a
+  /// notification button or a repository write can use without a try/catch.
+  NexCommitment? complete(DateTime at) => canComplete(at) ? met(at) : null;
+
+  /// The same commitment with this occurrence skipped: the date moves on, the
+  /// schedule does not. Always possible, even before the window opens — a skip
+  /// is a decision about the occurrence, not a claim to have done it.
+  NexCommitment skipped(DateTime at) => copyWith(
+    dueAt: nexAdvance(this, after: at.isAfter(dueAt) ? at : dueAt),
+    details: recordOccurrence('skip', at),
+    updatedAt: at,
+  );
 
   NexCommitment copyWith({
     String? title,
@@ -296,6 +379,51 @@ Duration nexDefaultLead(NexCadence cadence, int every) => switch (cadence) {
   // much warning as a glass of water can possibly need.
   NexCadence.hours => Duration(minutes: every * 15),
 };
+
+/// How far ahead of its due time an occurrence may be met, by default.
+///
+/// These are deliberately short relative to the gap they sit in. The window
+/// exists to let somebody tick off the thing they have just done a little
+/// before the clock agrees — the pill taken at ten to, the rent paid the
+/// evening before — not to let a series be finished in advance. A share of the
+/// interval for the hourly ones (ten per cent, so six minutes on a one-hour
+/// item) and a fixed, human-sized span for the rest.
+Duration nexDefaultEarlyWindow(NexCadence cadence, int every) =>
+    switch (cadence) {
+      // Ten per cent of the gap, at least a minute: an hourly item every hour
+      // gets six minutes, one every eight hours gets forty-eight.
+      NexCadence.hours => Duration(minutes: every * 6),
+      NexCadence.days => const Duration(hours: 3),
+      NexCadence.weeks => const Duration(hours: 24),
+      NexCadence.months => const Duration(days: 3),
+      NexCadence.years => const Duration(days: 7),
+    };
+
+/// The gap between occurrences in minutes, using the shortest real length for
+/// the calendar cadences.
+int nexIntervalMinutes(NexCadence cadence, int every) {
+  final n = every.clamp(1, 1000);
+  return switch (cadence) {
+    NexCadence.hours => n * 60,
+    NexCadence.days => n * 1440,
+    NexCadence.weeks => n * 7 * 1440,
+    NexCadence.months => n * 28 * 1440,
+    NexCadence.years => n * 365 * 1440,
+  };
+}
+
+/// The widest early window this item may be given: half its shortest gap.
+///
+/// Half rather than "most of it" for one reason. If the window were allowed to
+/// reach the gap, then at the moment one occurrence was completed the next
+/// would already be inside its own window, and a second tap would complete it
+/// too — which is the bug this whole feature exists to close. Half leaves at
+/// least half a gap between one completion and the next opening.
+int nexMaxEarlyWindowMinutes(NexCadence cadence, int every) =>
+    (nexIntervalMinutes(cadence, every.clamp(1, 1000)) ~/ 2).clamp(
+      0,
+      30 * 24 * 60,
+    );
 
 /// When [commitment] next comes round, given it was met at [after].
 ///

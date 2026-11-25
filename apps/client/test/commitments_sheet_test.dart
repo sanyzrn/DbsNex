@@ -30,19 +30,23 @@ void main() {
 
   // Straight to the worker, not through `services.saveCommitment`: that one
   // also schedules a real alarm, and this page never asks it to.
-  Future<void> add(String title, DateTime due, {bool paused = false}) =>
-      services.worker.saveCommitment(
-        NexCommitment(
-          id: 'c-$title',
-          title: title,
-          cadence: NexCadence.months,
-          every: 1,
-          dueAt: due,
-          paused: paused,
-          createdAt: DateTime.utc(2026),
-          updatedAt: DateTime.utc(2026),
-        ),
-      );
+  Future<void> add(
+    String title,
+    DateTime due, {
+    bool paused = false,
+    NexCadence cadence = NexCadence.months,
+  }) => services.worker.saveCommitment(
+    NexCommitment(
+      id: 'c-$title',
+      title: title,
+      cadence: cadence,
+      every: 1,
+      dueAt: due,
+      paused: paused,
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    ),
+  );
 
   Future<AppLocalizations> open(WidgetTester tester) async {
     // Tall, so the whole list is laid out. A `SliverList` only lays out what
@@ -292,6 +296,85 @@ void main() {
     expect(y('insurance'), lessThan(y('passport')));
     expect(y('passport'), lessThan(y(l10n.commitmentsRested)));
     expect(y(l10n.commitmentsRested), lessThan(y('gym')));
+  });
+
+  testWidgets(
+    'the tick is shut until the next occurrence is inside its window',
+    (tester) async {
+      // The reported bug: pressing "done" again and again finished the
+      // following weeks as well. A weekly item three days out is well before
+      // its day-before window, so the button is not available and the row says
+      // from when it will be.
+      final due = DateTime.now().add(const Duration(days: 3));
+      await add('bins', due, cadence: NexCadence.weeks);
+      await open(tester);
+      final tick = find.byKey(const ValueKey('recurring-complete-c-bins'));
+      expect(tester.widget<IconButton>(tick).onPressed, isNull);
+      expect(
+        find.byKey(const ValueKey('recurring-opens-c-bins')),
+        findsOneWidget,
+      );
+      await tester.tap(tick);
+      await tester.pumpAndSettle();
+      final after = (await services.commitments()).single;
+      expect(after.dueAt, due);
+      expect(after.history, isEmpty);
+    },
+  );
+
+  testWidgets('inside the window the tick moves one occurrence, not two', (
+    tester,
+  ) async {
+    final due = DateTime.now().add(const Duration(hours: 2));
+    await add('bins', due, cadence: NexCadence.weeks);
+    await open(tester);
+    final tick = find.byKey(const ValueKey('recurring-complete-c-bins'));
+    expect(tester.widget<IconButton>(tick).onPressed, isNotNull);
+    await tester.tap(tick);
+    await tester.pumpAndSettle();
+    final after = (await services.commitments()).single;
+    expect(after.dueAt, due.add(const Duration(days: 7)));
+    expect(after.history.single['early'], isTrue);
+    // And it is shut again straight away: a second tap cannot reach the
+    // following week.
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('recurring-complete-c-bins')))
+          .onPressed,
+      isNull,
+    );
+    await tester.tap(find.byKey(const ValueKey('recurring-complete-c-bins')));
+    await tester.pumpAndSettle();
+    expect((await services.commitments()).single.dueAt, after.dueAt);
+  });
+
+  testWidgets('the editor can make the window strict, and the save keeps it', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 2200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await open(tester);
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(RecurringScreen)),
+    );
+    await tester.tap(find.text(l10n.commitmentAdd));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Dose');
+    await tester.pumpAndSettle();
+    final early = find.byKey(const ValueKey('recurring-early-window'));
+    await tester.ensureVisible(early);
+    await tester.pumpAndSettle();
+    await tester.tap(early);
+    await tester.pumpAndSettle();
+    // Zero, then save: a dose that may not be ticked off before it is due.
+    await tester.tap(find.text(l10n.commitmentLeadNone).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, l10n.save).first);
+    await tester.pumpAndSettle();
+    final saved = (await services.commitments()).single;
+    expect(saved.earlyWindowMinutes, 0);
+    expect(saved.earlyWindow, Duration.zero);
   });
 
   testWidgets('a group with nothing in it is not drawn', (tester) async {

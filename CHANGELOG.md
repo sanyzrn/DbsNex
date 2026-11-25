@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.9.0
+
+- **A recurring item cannot be finished in advance.** After you mark an occurrence done, the next one waits: its tick opens a set time before it falls due — a few minutes for an hourly item, three hours for a daily one, a day for a weekly, three days for a monthly and a week for a yearly — and the card says when. You can set that window for each item, including "only when it is due". Ticking one off ahead of time keeps the schedule where it was, and the history now shows both when it was done and which occurrence it answered. A paused item no longer looks like it can be done.
+
 ## v2.8.22
 
 - **Media picks only photos and videos.** The Media button now opens the phone's own gallery picker, the way a chat app does, so several photos and videos can be chosen together. A PDF, a ZIP or a recording offered by an older picker is refused with a message instead of appearing as an empty picture, and File still takes any file. A file an earlier version stored as a photo now opens as what it really is.

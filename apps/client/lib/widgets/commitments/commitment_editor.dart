@@ -137,6 +137,61 @@ class _CommitmentEditorState extends State<CommitmentEditor>
   late int _windowEnd = widget.existing?.windowEnd ?? 23 * 60;
   bool _saving = false;
 
+  /// The early-completion window held in the form, in minutes, or null for
+  /// "whatever suits this cadence".
+  int? get _earlyMinutes {
+    final raw = _details['earlyWindowMinutes'];
+    return raw is num ? raw.toInt() : null;
+  }
+
+  /// What the tick-off row offers for the cadence on screen.
+  ///
+  /// Bounded by the same half-a-gap rule the model applies, and always
+  /// including zero: somebody who must not tick a dose off before taking it
+  /// should be able to say so, and that is a different choice from "leave it
+  /// on automatic".
+  List<int> _earlyChoices() {
+    final cap = nexMaxEarlyWindowMinutes(_cadence, _every);
+    final wanted = <int>{
+      nexDefaultEarlyWindow(_cadence, _every).inMinutes,
+      0,
+      10,
+      15,
+      30,
+      60,
+      180,
+      360,
+      720,
+      1440,
+      4320,
+      10080,
+    };
+    final out = [
+      for (final minutes in wanted.toList()..sort())
+        if (minutes <= cap) minutes,
+    ];
+    return out.isEmpty ? const [0] : out;
+  }
+
+  /// The stored window, moved into the set the current cadence allows.
+  ///
+  /// A form that lets somebody set "three days early" on a monthly bill and
+  /// then switch it to hourly must land somewhere valid rather than assert in
+  /// a dropdown whose value is no longer among its items. Reading it through
+  /// here means the control always shows, and saves, a value this item can
+  /// actually honour.
+  int? get _earlyNormalized {
+    final stored = _earlyMinutes;
+    if (stored == null) return null;
+    final choices = _earlyChoices();
+    if (choices.contains(stored)) return stored;
+    final inside = [
+      for (final m in choices)
+        if (m <= stored) m,
+    ];
+    return inside.isEmpty ? choices.first : inside.last;
+  }
+
   /// Tomorrow morning, on the hour.
   ///
   /// Not "now": a commitment created at 14:37 and due at 14:37 is due the
@@ -191,8 +246,10 @@ class _CommitmentEditorState extends State<CommitmentEditor>
       );
       return;
     }
+    final early = _earlyNormalized;
     _details = {
       ..._details,
+      if (early == null) ...{} else 'earlyWindowMinutes': early,
       'currency': _details['currency'] ?? 'IRT',
       'anchor':
           widget.existing == null ||
@@ -203,6 +260,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
           : _details['anchor'] ?? _dueAt.toIso8601String(),
       if (widget.existing?.dueAt != _dueAt) 'scheduledDue': null,
     };
+    if (early == null) _details.remove('earlyWindowMinutes');
     setState(() => _saving = true);
     final now = DateTime.now();
     final existing = widget.existing;
@@ -439,6 +497,61 @@ class _CommitmentEditorState extends State<CommitmentEditor>
                       ? null
                       : Duration(hours: value),
                 ),
+              ),
+            ),
+            // How early the tick becomes available. Under the lead time
+            // because the two are different halves of the same question:
+            // one is when to mention it, this is when it may be answered.
+            // Left on automatic, it follows the cadence (an hour's notice on
+            // a monthly bill, a few minutes on an hourly one).
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                nexLabel(context, 'Tick off early', 'انجام پیش از سررسید'),
+              ),
+              subtitle: Text(switch (_earlyNormalized) {
+                null => nexLabel(
+                  context,
+                  'Automatic (${nexRelativeSpan(l10n, nexDefaultEarlyWindow(_cadence, _every))})',
+                  'خودکار (${nexRelativeSpan(l10n, nexDefaultEarlyWindow(_cadence, _every))})',
+                ),
+                0 => nexLabel(
+                  context,
+                  'Only from its due time',
+                  'فقط از سررسید',
+                ),
+                final minutes => nexLabel(
+                  context,
+                  'Up to ${nexRelativeSpan(l10n, Duration(minutes: minutes))} before it is due',
+                  'تا ${nexRelativeSpan(l10n, Duration(minutes: minutes))} پیش از سررسید',
+                ),
+              }),
+              trailing: DropdownButton<int>(
+                key: const ValueKey('recurring-early-window'),
+                borderRadius: nexDropdownRadius,
+                dropdownColor: nexDropdownColor(context),
+                value: _earlyNormalized ?? -1,
+                underline: const SizedBox.shrink(),
+                style: Theme.of(context).textTheme.bodyLarge,
+                items: [
+                  DropdownMenuItem(value: -1, child: Text(l10n.commitmentAuto)),
+                  for (final minutes in _earlyChoices())
+                    DropdownMenuItem(
+                      value: minutes,
+                      child: Text(
+                        minutes == 0
+                            ? l10n.commitmentLeadNone
+                            : nexRelativeSpan(l10n, Duration(minutes: minutes)),
+                      ),
+                    ),
+                ],
+                onChanged: (value) => setState(() {
+                  if (value == null || value < 0) {
+                    _details.remove('earlyWindowMinutes');
+                  } else {
+                    _details = {..._details, 'earlyWindowMinutes': value};
+                  }
+                }),
               ),
             ),
             SwitchListTile(
