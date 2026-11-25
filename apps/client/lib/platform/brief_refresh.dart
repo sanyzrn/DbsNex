@@ -171,6 +171,7 @@ class NexBriefRefresh {
     bool includesHabits = false,
     String? notesOnlyFallback,
     DateTime? validUntil,
+    Future<bool> Function()? canPersist,
   }) {
     final pending = _pending;
     if (pending != null) return pending;
@@ -198,6 +199,14 @@ class NexBriefRefresh {
           preferences.aiDaySummaryText,
           failed: true,
         );
+      }
+      // The data, settings or facts can change while the provider is busy.
+      // Refuse the answer before it reaches any shared cache or surface.
+      if (canPersist != null && !await canPersist()) {
+        return const NexBriefRefreshResult(null);
+      }
+      if (validUntil != null && !_clock().isBefore(validUntil)) {
+        return const NexBriefRefreshResult(null);
       }
       await preferences.setAiDaySummary(
         text: text,

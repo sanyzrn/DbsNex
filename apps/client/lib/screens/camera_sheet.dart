@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart' show ImagePicker, ImageSource;
 
 import '../l10n/app_localizations.dart';
 import '../platform/large_screen.dart';
+import '../widgets/nex_dialog.dart';
 
 part 'camera/camera_sheet_widgets.dart';
 
@@ -104,14 +105,38 @@ Future<NexCameraShot?> nexTakeShot(
       if (!context.mounted) return null;
     }
   }
+  final records = video && (Platform.isAndroid || Platform.isIOS)
+      ? await _chooseSystemCameraMode(context)
+      : false;
+  if (records == null || !context.mounted) return null;
   final picker = ImagePicker();
-  // The system camera records video on a phone; on a desktop it is a photo
-  // camera, and asking it for a video there would fail the whole action.
-  final records = video && (Platform.isAndroid || Platform.isIOS);
   final picked = records
-      ? await picker.pickVideo(source: ImageSource.camera)
+      ? await picker.pickVideo(
+          source: ImageSource.camera,
+          maxDuration: NexCameraSheet.maxVideo,
+        )
       : await picker.pickImage(source: ImageSource.camera);
   return picked == null ? null : NexCameraShot(picked, isVideo: records);
+}
+
+Future<bool?> _chooseSystemCameraMode(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
+  return nexShowDialog<bool>(
+    context: context,
+    builder: (dialog) => AlertDialog(
+      title: Text(l10n.cameraUseSystem),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialog).pop(false),
+          child: Text(l10n.cameraShutter),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(dialog).pop(true),
+          child: Text(l10n.cameraRecordVideo),
+        ),
+      ],
+    ),
+  );
 }
 
 /// A photo from the camera, for the places that take only photos. The same
@@ -185,6 +210,11 @@ class _NexCameraSheetState extends State<NexCameraSheet>
   // ── video ──────────────────────────────────────────────────────────────
   bool _recording = false;
   bool _startingVideo = false;
+  Future<void>? _videoStart;
+  Future<void>? _videoStop;
+  bool _discardVideo = false;
+  bool _closingCamera = false;
+  bool _suspendingCamera = false;
 
   /// Let go before the sensor had started: stop as soon as it has.
   bool _stopRequested = false;
@@ -259,7 +289,10 @@ class _NexCameraSheetState extends State<NexCameraSheet>
       // `stopVideoRecording` that was still in flight, so the clip was lost
       // exactly when it mattered most — a phone call arriving mid-recording.
       unawaited(_suspend(_controller));
-    } else if (state == AppLifecycleState.resumed && _released) {
+    } else if (state == AppLifecycleState.resumed &&
+        _released &&
+        !_suspendingCamera &&
+        !_closingCamera) {
       _released = false;
       unawaited(_open());
     }
@@ -274,7 +307,10 @@ class _NexCameraSheetState extends State<NexCameraSheet>
     _ticker?.cancel();
     _limit?.cancel();
     _notice?.cancel();
-    _release(_controller);
+    _closingCamera = true;
+    _discardVideo = true;
+    final controller = _controller;
+    unawaited(_releaseAfterVideo(controller));
     super.dispose();
   }
 

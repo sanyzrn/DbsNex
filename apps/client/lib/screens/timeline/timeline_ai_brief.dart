@@ -193,6 +193,28 @@ extension _TimelineAiBrief on TimelineScreenState {
         // briefs that cannot use it.
         notesOnlyFallback: includesHabits ? _notesOnlyBrief() : null,
         validUntil: _briefBoundary,
+        canPersist: () async {
+          if (!mounted || settings != _briefSettingsSignature()) return false;
+          final current = await widget.services.briefCandidates();
+          if (!mounted || settings != _briefSettingsSignature()) return false;
+          // The timeline may not have delivered a write outside its window.
+          // Compare every eligible candidate, not only the selected lines.
+          final revisions = {
+            for (final note in _briefCandidates) note.id: note.rev,
+          };
+          if (current.length != revisions.length ||
+              current.any((note) => revisions[note.id] != note.rev)) {
+            _briefCandidates = current;
+            return false;
+          }
+          if (includesHabits) {
+            final latest = await widget.services.habitsForBrief();
+            if (!mounted || latest.source != _habitBriefSource) return false;
+          }
+          return mounted &&
+              settings == _briefSettingsSignature() &&
+              fingerprint == _briefFingerprint();
+        },
         request: () async {
           // Marked before anything can fail: the flag says a provider was
           // asked, not that it answered.
@@ -253,7 +275,6 @@ extension _TimelineAiBrief on TimelineScreenState {
         },
       );
       _lastBriefRefreshFailed = result.failed;
-      if (result.updated) unawaited(widget.widgets?.refresh());
       if (!mounted || settings != _briefSettingsSignature()) return;
       // The library moved while the answer was in flight. Its words describe
       // a state that no longer exists — a deleted note, a reminder that has
@@ -261,6 +282,7 @@ extension _TimelineAiBrief on TimelineScreenState {
       // local lines are already on screen and the cache will be asked again
       // under the new fingerprint.
       if (fingerprint != _briefFingerprint()) return;
+      if (result.updated) unawaited(widget.widgets?.refresh());
       // A failed refresh hands the old text back. When that text has expired
       // it is not adopted again: the local lines are the current truth, and
       // the words it would restore describe a moment that has passed.

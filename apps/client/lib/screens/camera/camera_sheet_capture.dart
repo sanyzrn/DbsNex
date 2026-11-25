@@ -88,18 +88,38 @@ extension _NexCameraCapture on _NexCameraSheetState {
   );
 
   Future<void> _suspend(CameraController? controller) async {
-    if (_recording) {
+    if (_suspendingCamera || _closingCamera || controller == null) return;
+    _suspendingCamera = true;
+    try {
+      if (_startingVideo) _stopRequested = true;
+      await _videoStart;
       await _stopVideo();
-    } else if (_startingVideo) {
-      // The sensor has not answered yet; stop the instant it does. Releasing
-      // the controller now would fail that start anyway, and this way the
-      // panel is never left with a shutter that thinks it is recording.
-      _stopRequested = true;
+      if (!mounted || _closingCamera || _controller != controller) return;
+      if (!controller.value.isInitialized || _released) return;
+      _released = true;
+      _set(() => _controller = null);
+      try {
+        await controller.dispose();
+      } on Object {
+        // The camera may already have been released by the platform.
+      }
+    } finally {
+      _suspendingCamera = false;
+      if (mounted &&
+          !_closingCamera &&
+          _released &&
+          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        _released = false;
+        unawaited(_open());
+      }
     }
-    if (!mounted || controller == null || _controller != controller) return;
-    if (!controller.value.isInitialized || _released) return;
-    _released = true;
-    _set(() => _controller = null);
+  }
+
+  // Disposal cannot await, but controller ownership must outlive the start
+  // and stop futures. No second stop is issued while a clip is being written.
+  Future<void> _releaseAfterVideo(CameraController? controller) async {
+    await _videoStart;
+    await _stopVideo(deliver: false);
     _NexCameraSheetState._release(controller);
   }
 
@@ -109,6 +129,8 @@ extension _NexCameraCapture on _NexCameraSheetState {
         _taking ||
         _recording ||
         _startingVideo ||
+        _videoStop != null ||
+        _closingCamera ||
         !controller.value.isInitialized) {
       return;
     }
@@ -128,14 +150,27 @@ extension _NexCameraCapture on _NexCameraSheetState {
     );
     try {
       final shot = await controller.takePicture();
-      if (mounted) Navigator.of(context).pop(shot);
+      if (mounted &&
+          !_closingCamera &&
+          ModalRoute.of(context)?.isCurrent == true) {
+        Navigator.of(context).pop(NexCameraShot(shot));
+      } else {
+        await _NexCameraSheetState._discard(shot);
+      }
     } on Object {
       if (mounted) _set(() => _taking = false);
     }
   }
 
   Future<void> _switchCamera() async {
-    if (widget.cameras.length < 2) return;
+    if (widget.cameras.length < 2 ||
+        _taking ||
+        _recording ||
+        _startingVideo ||
+        _videoStop != null ||
+        _closingCamera) {
+      return;
+    }
     _set(() {
       _index = (_index + 1) % widget.cameras.length;
       _menuOpen = false;
@@ -145,6 +180,7 @@ extension _NexCameraCapture on _NexCameraSheetState {
   }
 
   Future<void> _cycleFlash() async {
+    if (_videoStop != null || _closingCamera) return;
     _lastFlash = switch (_lastFlash) {
       FlashMode.off => FlashMode.auto,
       FlashMode.auto => FlashMode.always,
@@ -160,12 +196,23 @@ extension _NexCameraCapture on _NexCameraSheetState {
   /// Starts a recording. Releasing the shutter before the sensor answers is
   /// remembered: the recording is stopped the moment it actually begins, so
   /// a quick hold leaves neither a video nor a stuck shutter.
-  Future<void> _startVideo() async {
+  Future<void> _startVideo() {
+    final pending = _videoStart;
+    if (pending != null) return pending;
+    final flight = _startVideoOnce().whenComplete(() => _videoStart = null);
+    _videoStart = flight;
+    return flight;
+  }
+
+  Future<void> _startVideoOnce() async {
     final controller = _controller;
     if (!widget.video ||
         controller == null ||
         _recording ||
         _startingVideo ||
+        _videoStop != null ||
+        _closingCamera ||
+        _suspendingCamera ||
         _taking ||
         !controller.value.isInitialized) {
       return;
@@ -173,6 +220,7 @@ extension _NexCameraCapture on _NexCameraSheetState {
     _set(() {
       _startingVideo = true;
       _stopRequested = false;
+      _discardVideo = false;
       _noticeKind = null;
       _menuOpen = false;
     });
@@ -180,11 +228,20 @@ extension _NexCameraCapture on _NexCameraSheetState {
     try {
       await controller.startVideoRecording();
     } on Object {
-      if (mounted) _set(() => _startingVideo = false);
+      _startingVideo = false;
+      if (mounted && !_closingCamera) _sayRecordingFailed();
       return;
     }
-    if (!mounted) {
-      _NexCameraSheetState._release(controller);
+    if (!mounted ||
+        _closingCamera ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      _startingVideo = false;
+      try {
+        final file = await controller.stopVideoRecording();
+        await _NexCameraSheetState._discard(file);
+      } on Object {
+        // The platform may have already cancelled the recording.
+      }
       return;
     }
     _beginTicking();
@@ -219,34 +276,52 @@ extension _NexCameraCapture on _NexCameraSheetState {
   /// A hold shorter than [NexCameraSheet.minVideo] is a slip of the thumb:
   /// its file is deleted and the panel says why in three words, so no stray
   /// second-long video lands on the timeline.
-  Future<void> _stopVideo({bool deliver = true}) async {
+  Future<void> _stopVideo({bool deliver = true}) {
+    if (!deliver) _discardVideo = true;
+    final pending = _videoStop;
+    if (pending != null) return pending;
     if (_startingVideo) {
       _stopRequested = true;
-      return;
+      return Future<void>.value();
     }
     final controller = _controller;
-    if (!_recording || controller == null) return;
+    if (!_recording || controller == null) return Future<void>.value();
+    final flight = _finishVideo(controller).whenComplete(() {
+      _videoStop = null;
+      if (mounted && !_closingCamera) _set(() {});
+    });
+    _videoStop = flight;
+    return flight;
+  }
+
+  Future<void> _finishVideo(CameraController controller) async {
     _ticker?.cancel();
     _limit?.cancel();
     final elapsed = _startedAt == null
         ? Duration.zero
         : DateTime.now().difference(_startedAt!);
-    _set(() {
-      _recording = false;
-      _startedAt = null;
-      _elapsed = Duration.zero;
-    });
-    nexBump();
+    _recording = false;
+    _startedAt = null;
+    _elapsed = Duration.zero;
+    if (mounted && !_closingCamera) {
+      _set(() {});
+      nexBump();
+    }
     XFile? file;
     try {
       file = await controller.stopVideoRecording();
     } on Object {
-      if (mounted) _sayRecordingFailed();
+      if (mounted && !_closingCamera) _sayRecordingFailed();
       return;
     }
-    if (!deliver || elapsed < NexCameraSheet.minVideo) {
+    bool canDeliver() =>
+        mounted &&
+        !_closingCamera &&
+        !_discardVideo &&
+        ModalRoute.of(context)?.isCurrent == true;
+    if (!canDeliver() || elapsed < NexCameraSheet.minVideo) {
       await _NexCameraSheetState._discard(file);
-      if (mounted && deliver) _say(_Notice.tooShort);
+      if (canDeliver()) _say(_Notice.tooShort);
       return;
     }
     // The bitrate budget keeps a full clip well inside this, so a file that
@@ -255,10 +330,14 @@ extension _NexCameraCapture on _NexCameraSheetState {
     if (await _NexCameraSheetState._sizeOf(file) >
         NexCameraSheet.maxVideoBytes) {
       await _NexCameraSheetState._discard(file);
-      if (mounted && deliver) _say(_Notice.tooLarge);
+      if (canDeliver()) _say(_Notice.tooLarge);
       return;
     }
-    if (mounted) Navigator.of(context).pop(NexCameraShot(file, isVideo: true));
+    if (canDeliver()) {
+      Navigator.of(context).pop(NexCameraShot(file, isVideo: true));
+    } else {
+      await _NexCameraSheetState._discard(file);
+    }
   }
 
   void _say(_Notice notice) {
@@ -292,7 +371,13 @@ extension _NexCameraCapture on _NexCameraSheetState {
   /// phone. A panel that can record takes a video, a still panel a photo —
   /// the same split the shutter itself draws.
   Future<void> _pickFromGallery() async {
-    if (_taking || _recording || _startingVideo) return;
+    if (_taking ||
+        _recording ||
+        _startingVideo ||
+        _videoStop != null ||
+        _closingCamera) {
+      return;
+    }
     _set(() => _menuOpen = false);
     XFile? picked;
     try {
@@ -313,9 +398,8 @@ extension _NexCameraCapture on _NexCameraSheetState {
   }
 
   void _close() {
-    if (_recording || _startingVideo) {
-      unawaited(_stopVideo(deliver: false));
-    }
+    _closingCamera = true;
+    unawaited(_stopVideo(deliver: false));
     Navigator.of(context).maybePop();
   }
 }

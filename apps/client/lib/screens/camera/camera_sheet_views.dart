@@ -223,7 +223,11 @@ extension _NexCameraViews on _NexCameraSheetState {
                     ? l10n.cameraStopRecording
                     : l10n.cameraShutter,
                 holdLabel: widget.video ? l10n.cameraHoldForVideo : null,
-                enabled: _controller != null && !_taking,
+                enabled:
+                    _controller != null &&
+                    !_taking &&
+                    _videoStop == null &&
+                    !_closingCamera,
                 recording: _recording || _startingVideo,
                 onPressed: _recording ? () => unawaited(_stopVideo()) : _take,
                 onHoldStart: widget.video
@@ -243,7 +247,11 @@ extension _NexCameraViews on _NexCameraSheetState {
               else
                 _RoundButton(
                   tooltip: l10n.cameraOptions,
-                  onPressed: () => _set(() => _menuOpen = !_menuOpen),
+                  onPressed: () {
+                    if (_videoStop == null && !_closingCamera) {
+                      _set(() => _menuOpen = !_menuOpen);
+                    }
+                  },
                   child: const Icon(Icons.more_vert),
                 ),
             ],
