@@ -173,7 +173,7 @@ The controller, selection, native editing, `NexKeyboardDismisser` and
 ## Tests run for this change
 
 - `packages/ui`: `flutter test test/nex_markdown_direction_test.dart
-  test/nex_markdown_test.dart test/nex_text_direction_test.dart` — 36 passing
+  test/nex_markdown_test.dart test/nex_text_direction_test.dart` — 57 passing
   (Flutter 3.47.9).
 - `apps/client`: `flutter test test/nex_text_field_test.dart
   test/keyboard_dismisser_test.dart` — 42 passing, including the new two-field
@@ -183,6 +183,9 @@ The controller, selection, native editing, `NexKeyboardDismisser` and
 - `apps/client`: `flutter test test/capture_kind_switch_test.dart` — 2
   passing (run with a local `libsqlite3.so` symlink; see below).
 - `packages/core`: `dart test test/attention_test.dart` — 31 passing.
+- `apps/client`: `flutter test test/version_test.dart
+  test/brief_attention_test.dart test/timeline_row_rebuild_test.dart` — 14
+  passing.
 - `packages/core`: `dart analyze benchmark/attention_benchmark.dart`,
   `dart run benchmark/attention_benchmark.dart`.
 - `packages/ui`: `flutter test benchmark/nex_direction_benchmark.dart` (a
