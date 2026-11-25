@@ -669,6 +669,50 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('a Flutter field takes the keyboard without a hide in between', (
+    tester,
+  ) async {
+    // The ordering this guards: the native field's focus-loss notification can
+    // arrive after the Flutter field has already taken focus. The hide must be
+    // decided by who holds focus now, not by the order the events landed in.
+    final controller = TextEditingController();
+    final nativeFocus = FocusNode();
+    final flutterFocus = FocusNode();
+    final flutterController = TextEditingController();
+    addTearDown(controller.dispose);
+    addTearDown(nativeFocus.dispose);
+    addTearDown(flutterFocus.dispose);
+    addTearDown(flutterController.dispose);
+    await pump(
+      tester,
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          NexTextField(controller: controller, focusNode: nativeFocus),
+          TextField(controller: flutterController, focusNode: flutterFocus),
+        ],
+      ),
+    );
+    expect(viewIds, hasLength(1));
+
+    nativeFocus.requestFocus();
+    await tester.pump();
+    await fromNativeTo(tester, viewIds.single, 'focus', {'focused': true});
+    toNative.clear();
+
+    flutterFocus.requestFocus();
+    await tester.pump();
+    await tester.pump(NexImeHandoff.delay);
+    await tester.pump();
+
+    expect(
+      toNative.map((c) => c.method),
+      isNot(contains('unfocus')),
+      reason: 'a field has the keyboard; the editor must not close it',
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('a label inside the empty field keeps the hint off the editor', (
     tester,
   ) async {

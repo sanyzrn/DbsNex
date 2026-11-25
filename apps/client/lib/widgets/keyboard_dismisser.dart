@@ -54,9 +54,16 @@ class NexImeHandoff {
   /// The returned handle lets the field that scheduled it cancel the hide
   /// when it is disposed — a field that leaves with its sheet has no session
   /// left to end.
-  NexImeHide lose(VoidCallback hide) {
+  ///
+  /// The decision is made from the focus tree, not only from the order events
+  /// arrive in: a loss notification delivered *after* the next field has
+  /// already taken focus would otherwise schedule a hide with nothing left to
+  /// cancel it. Checking again when the timer fires covers a field that takes
+  /// focus while the handoff is settling.
+  NexImeHide? lose(VoidCallback hide) {
     cancel();
-    return _pending = NexImeHide(hide);
+    if (nexTextInputHasFocus()) return null;
+    return _pending = NexImeHide(hide, skip: nexTextInputHasFocus);
   }
 
   /// The keyboard is meant to go now — a route is leaving, a sheet closing.
@@ -68,9 +75,10 @@ class NexImeHandoff {
 
 /// One deferred hide, cancellable by the field that asked for it.
 class NexImeHide {
-  NexImeHide(VoidCallback hide) {
+  NexImeHide(VoidCallback hide, {bool Function()? skip}) {
     _timer = Timer(NexImeHandoff.delay, () {
       _timer = null;
+      if (skip?.call() ?? false) return;
       hide();
     });
   }
@@ -81,6 +89,33 @@ class NexImeHide {
     _timer?.cancel();
     _timer = null;
   }
+}
+
+/// Whether a text editor holds the primary focus — one of this app's native
+/// fields or a Flutter field.
+///
+/// The focus node of either kind sits inside its editor: beneath a
+/// [TextFieldTapRegion] for a [NexTextField]'s platform view, beneath
+/// [EditableText] for a Flutter field. Walking the focused element's ancestry
+/// answers the question without knowing which kind of field is asking, and it
+/// is current at the moment it is read rather than a frame behind.
+@visibleForTesting
+bool nexTextInputHasFocus() {
+  final context = FocusManager.instance.primaryFocus?.context;
+  if (context is! Element || !context.mounted) return false;
+  bool isEditor(Element element) {
+    final widget = element.widget;
+    return widget is EditableText ||
+        (widget is TextFieldTapRegion && widget.groupId == EditableText);
+  }
+
+  if (isEditor(context)) return true;
+  var found = false;
+  context.visitAncestorElements((ancestor) {
+    found = isEditor(ancestor);
+    return !found;
+  });
+  return found;
 }
 
 /// One handoff for the app: a gain anywhere cancels a pending hide anywhere.

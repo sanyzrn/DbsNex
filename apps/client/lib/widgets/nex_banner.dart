@@ -586,6 +586,17 @@ class _CapsulePainter extends CustomPainter {
       ),
       Radius.circular(math.min(dropRadius, radius.x)),
     );
+    // Once the thread has let go (`letGo` reaches 1 at six tenths of the
+    // entrance) the island and the thread are both gone, and the capsule is
+    // the only shape left. Blurring one shape and thresholding it again is
+    // that same shape with a softer edge; drawing it once is the same
+    // picture without the two offscreen layers. That is the last 40% of the
+    // entrance — and of the exit, which is this film run backwards — off the
+    // GPU on a mid-range device.
+    if (t >= .6) {
+      canvas.drawRRect(capsule, Paint()..color = color);
+      return;
+    }
     final thread = ui.lerpDouble(7, 0, letGo)!;
     nexPaintGooey(
       canvas,

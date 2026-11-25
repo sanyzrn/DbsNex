@@ -63,6 +63,30 @@ tens.
 The delete path also no longer starts a brief pass on the frame that shows the
 Undo: see §3 (a write-triggered pass is trailing by 250 ms).
 
+**Follow-up: what the animation itself costs.** The timer was idle work; it was
+not what animates the entrance and exit. Auditing the rest:
+
+- the page below is inside a route `RepaintBoundary`, so the banner's motion
+  does not repaint the list;
+- the gooey pass is bounded to roughly the capsule plus the drip area — never
+  the screen — and is the only part of the banner that creates offscreen
+  layers (two `saveLayer`s plus a blurred mask pass);
+- the shadow (`drawShadow`) is painted only at rest (`t == 1`), once, not on
+  every frame of the transition;
+- the gooey ran for the whole 360 ms entrance and 300 ms exit, even after the
+  island and the thread had shrunk to nothing at 60% of the film. With a
+  single shape left, the blur-and-threshold pass produces that same shape
+  with a softer edge; the painter now draws the capsule directly from
+  `t >= 0.6`. That takes the last 40% of both transitions off the GPU without
+  changing the resting or moving capsule's geometry, colour or shadow.
+
+What remains is the first 60% of the entrance/exit: two bounded offscreen
+layers, a blur over the drop/thread/island, and the content's opacity layer.
+That is the effect as designed; removing it would change the visual identity.
+It is small (the layer is below 0.1 MP at a 1x scale, around 0.7 MP per layer
+at 3x) and short, and the device check remains the way to confirm its frame
+time.
+
 ## 3. The brief was reread for every write
 
 **Root cause.** `_onModelChange` called `_loadAiSummary()` on every
@@ -167,6 +191,20 @@ cancels its own pending hide on dispose, so a sheet closing cannot leave a
 timer behind that hides a keyboard someone else is using. `nexDismissKeyboard`
 (route teardown) cancels any pending handoff and hides immediately.
 
+**Follow-up: order independence.** A timer cancelled only by a *gain* has a
+hole: if the old field's loss notification is delivered after the next field
+has already taken focus, the gain has happened and cannot cancel a hide that
+is scheduled afterwards. `lose()` therefore asks the focus tree whether a
+text editor holds focus before scheduling, and asks again when the timer
+fires (`nexTextInputHasFocus`; a focus node under `EditableText`, or under the
+`TextFieldTapRegion` of a native field). This also covers a field that gains
+focus during the settle window, and it is current at the moment it is read
+rather than a frame behind. The 150 ms is still needed for one case no focus
+event can predict: a tap that opens a sheet or dialog whose field requests
+focus later than the settle window. There the keyboard is hidden and reopened
+by that field — the same thing that would happen if the handoff guessed it was
+coming.
+
 The controller, selection, native editing, `NexKeyboardDismisser` and
 `NexFocusReveal` are untouched; the change is only when `unfocus` is sent.
 
@@ -176,8 +214,8 @@ The controller, selection, native editing, `NexKeyboardDismisser` and
   test/nex_markdown_test.dart test/nex_text_direction_test.dart` — 57 passing
   (Flutter 3.47.9).
 - `apps/client`: `flutter test test/nex_text_field_test.dart
-  test/keyboard_dismisser_test.dart` — 42 passing, including the new two-field
-  handoff regression.
+  test/keyboard_dismisser_test.dart` — 43 passing, including the two-field
+  handoff and the Flutter-field ordering regressions.
 - `apps/client`: `flutter test test/nex_banner_test.dart` — 15 passing with
   the single-timer countdown.
 - `apps/client`: `flutter test test/capture_kind_switch_test.dart` — 2
