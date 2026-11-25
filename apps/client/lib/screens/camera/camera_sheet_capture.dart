@@ -333,7 +333,7 @@ extension _NexCameraCapture on _NexCameraSheetState {
       if (canDeliver()) _say(_Notice.tooLarge);
       return;
     }
-    if (canDeliver()) {
+    if (mounted && canDeliver()) {
       Navigator.of(context).pop(NexCameraShot(file, isVideo: true));
     } else {
       await _NexCameraSheetState._discard(file);
