@@ -5105,6 +5105,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraRecordVideo => 'Record a video';
 
   @override
+  String get cameraGallery => 'Photos and videos';
+
+  @override
   String get cameraStopRecording => 'Stop recording';
 
   @override
@@ -5118,6 +5121,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cameraVideoTooShort => 'Hold a little longer to record';
+
+  @override
+  String get cameraVideoTooLarge => 'That clip is too large to keep';
 
   @override
   String get disclosuresTitle => 'What left this device';

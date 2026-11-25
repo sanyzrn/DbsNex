@@ -8030,6 +8030,12 @@ abstract class AppLocalizations {
   /// **'Record a video'**
   String get cameraRecordVideo;
 
+  /// Camera options menu: picks an existing photo or video from the phone instead of taking a new one.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos and videos'**
+  String get cameraGallery;
+
   /// Tooltip on the shutter and the stop button while a video is being recorded.
   ///
   /// In en, this message translates to:
@@ -8053,6 +8059,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hold a little longer to record'**
   String get cameraVideoTooShort;
+
+  /// Shown when a recording came out larger than the attachment limit; the clip was discarded.
+  ///
+  /// In en, this message translates to:
+  /// **'That clip is too large to keep'**
+  String get cameraVideoTooLarge;
 
   /// No description provided for @disclosuresTitle.
   ///

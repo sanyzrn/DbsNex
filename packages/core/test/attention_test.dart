@@ -20,6 +20,7 @@ void main() {
     bool deleted = false,
     DateTime? aside,
     NoteType type = NoteType.text,
+    List<Tag> tags = const [],
   }) => Note(
     id: id,
     type: type,
@@ -30,10 +31,13 @@ void main() {
     updatedAt: updatedAt ?? at,
     deletedAt: deleted ? at : null,
     setAsideAt: aside,
+    tags: tags,
     deviceId: 'test',
     rev: 1,
     syncState: SyncState.pending,
   );
+
+  Tag tag(String name) => Tag(id: name, name: name, createdAt: at);
 
   NexCommitment commitment({
     required String id,
@@ -299,6 +303,184 @@ void main() {
         reason: 'there really is nothing overdue in this library',
       );
       expect(nexAttentionContradicts('', waiting), isFalse);
+    });
+  });
+
+  group('two records about one subject are found, not guessed', () {
+    test('a shared tag groups titles that share no word', () {
+      final attention = nexAttention([
+        note(id: 'a', text: 'flight booking', tags: [tag('Tabriz trip')]),
+        note(id: 'b', text: 'hotel deposit', tags: [tag('Tabriz trip')]),
+        note(id: 'c', text: 'buy milk'),
+      ], now: at);
+      final group = attention.clusters.single;
+      expect(group.items.map((item) => item.id), ['note:a', 'note:b']);
+      expect(group.label, 'tabriz trip');
+      expect(attention.byId('note:c')!.cluster, 'note:c');
+    });
+
+    test('the same word typed two ways is one word', () {
+      // The two letter forms Persian keyboards produce, and the plural beside
+      // the singular: «قبضهاي» and «قبض» are one subject, «قبض».
+      final attention = nexAttention([
+        note(id: 'a', text: 'قبضهاي برق'),
+        note(id: 'b', text: 'قبض برق'),
+      ], now: at);
+      expect(attention.clusters, hasLength(1));
+      expect(attention.clusters.single.items, hasLength(2));
+      expect(nexAttentionStem('قبضهاي'), nexAttentionStem('قبض'));
+      expect(nexAttentionStem('invoices'), nexAttentionStem('invoice'));
+    });
+
+    test('a word every third note carries groups nothing', () {
+      final note1 = note(
+        id: 'a',
+        text: 'shopping for the trip',
+        tags: const [],
+      );
+      final attention = nexAttention([
+        note1,
+        note(id: 'b', text: 'shopping for the office'),
+        note(id: 'c', text: 'shopping for the school'),
+        note(id: 'd', text: 'shopping for the car'),
+      ], now: at);
+      // "shopping" appears in every title, which says nothing about these four
+      // being one subject; "trip", "office", "school" and "car" do, and
+      // each belongs to one note.
+      expect(attention.clusters, isEmpty);
+    });
+  });
+
+  group('the moment the facts change is known in advance', () {
+    test('the next boundary is the next due time', () {
+      final attention = nexAttention([
+        note(id: 'a', text: 'call', dueAt: DateTime(2026, 3, 10, 11, 20)),
+        note(id: 'b', text: 'send', dueAt: DateTime(2026, 3, 10, 11, 46)),
+      ], now: at);
+      expect(
+        nexAttentionNextBoundary(attention),
+        DateTime(2026, 3, 10, 11, 20),
+      );
+    });
+
+    test('a day with nothing left falls back to midnight', () {
+      final attention = nexAttention([
+        note(id: 'a', text: 'an idea worth keeping'),
+      ], now: at);
+      expect(nexAttentionNextBoundary(attention), DateTime(2026, 3, 11));
+    });
+
+    test('an early window opening is a boundary too', () {
+      final attention = nexAttention(
+        const [],
+        commitments: [
+          commitment(
+            id: 'dose',
+            cadence: NexCadence.days,
+            dueAt: DateTime(2026, 3, 10, 22),
+            details: {'earlyWindowMinutes': 60},
+          ),
+        ],
+        now: at,
+      );
+      // The moment the tick becomes available is the next thing that changes,
+      // and it comes before the new day.
+      expect(nexAttentionNextBoundary(attention), DateTime(2026, 3, 10, 21));
+    });
+
+    test('nothing after now means no boundary but the new day', () {
+      expect(
+        nexAttentionNextBoundary(nexAttention(const [], now: at)),
+        DateTime(2026, 3, 11),
+      );
+    });
+  });
+
+  group('a brief is held to the ledger, not to a word list', () {
+    final attention = nexAttention([
+      note(
+        id: 'first',
+        text: 'call the bank',
+        dueAt: DateTime(2026, 3, 10, 11, 20),
+      ),
+      note(
+        id: 'late',
+        text: 'pay the rent',
+        dueAt: at.subtract(const Duration(days: 2)),
+      ),
+    ], now: at);
+
+    test('a future time is not called past', () {
+      final violations = nexAttentionViolations(
+        'The 11:20 call was missed.',
+        attention,
+      );
+      expect(violations, hasLength(1));
+      expect(violations.single.reason, contains('still ahead'));
+    });
+
+    test('a line that also names what really slipped is left alone', () {
+      expect(
+        nexAttentionViolations(
+          'Pay the rent: it is overdue. Call the bank at 11:20.',
+          attention,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a count the app did not compute is refused', () {
+      expect(
+        nexAttentionContradicts('3 overdue and 1 due today.', attention),
+        isTrue,
+      );
+      expect(
+        nexAttentionContradicts('1 overdue and 1 due today.', attention),
+        isFalse,
+      );
+    });
+
+    test('a negation keeps an honest line honest', () {
+      expect(
+        nexAttentionViolations(
+          'Call the bank at 11:20 — it is not done yet.',
+          attention,
+        ),
+        isEmpty,
+      );
+    });
+  });
+
+  group('the ledger is bounded but never silent about the cut', () {
+    test('what did not fit is counted out loud', () {
+      final many = [
+        for (var i = 0; i < 60; i++)
+          note(
+            id: 'n$i',
+            text: 'item number $i with a title long enough to fill the budget',
+            dueAt: DateTime(2026, 3, 10, 12).add(Duration(minutes: i)),
+          ),
+      ];
+      final ledger = nexAttentionLedger(
+        nexAttention(many, now: at),
+        budget: 900,
+      );
+      expect(ledger, contains('FACTS COMPUTED BY THE APP'));
+      expect(ledger, contains('more waiting and not listed here'));
+      expect(ledger.length, lessThan(1400));
+    });
+
+    test('items beyond the horizon are counted, not left to be guessed', () {
+      final ledger = nexAttentionLedger(
+        nexAttention([
+          note(
+            id: 'a',
+            text: 'renew the passport',
+            dueAt: DateTime(2026, 5, 1),
+          ),
+        ], now: at),
+      );
+      expect(ledger, contains('1 beyond it'));
     });
   });
 }

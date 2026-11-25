@@ -355,6 +355,14 @@ class TimelineScreenState extends State<TimelineScreen>
   /// The running brief flight, shared with a manual pull.
   Future<void>? _aiSummaryInFlight;
   Timer? _aiSummaryWake;
+
+  /// The next instant the brief's facts change on their own — an item's
+  /// moment passing, a recurring item's window opening, the day turning.
+  ///
+  /// Recomputed on every pass over the library and kept so the wake-up timer
+  /// can be armed for it: a status is not a row, so nothing else would tell
+  /// the card that it is out of date.
+  DateTime? _briefBoundary;
   Timer? _ringingSync;
 
   /// Bumped when a pull-to-refresh finishes: the completion accent plays once.

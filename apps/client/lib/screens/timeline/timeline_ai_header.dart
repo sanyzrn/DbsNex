@@ -137,12 +137,7 @@ extension _TimelineAiHeader on TimelineScreenState {
   void _armBriefRefresh() {
     _aiSummaryWake?.cancel();
     final prefs = widget.preferences;
-    if (!_aiHeaderAvailable ||
-        !prefs.showDaySummary ||
-        !prefs.briefStyle.usesModel ||
-        !_briefForeground) {
-      return;
-    }
+    if (!_briefAvailable || !prefs.showDaySummary || !_briefForeground) return;
     // One build of the source answers both questions: whether there is
     // anything to describe, and (through the fingerprint) whether what is
     // on file was written from it. The fingerprint variant carries the same
@@ -152,12 +147,37 @@ extension _TimelineAiHeader on TimelineScreenState {
     final fingerprint = TimelineScreenState.recapFingerprint(
       _briefSignatureBody(source),
     );
-    // No recurring timer: unchanged information never generates another brief.
-    if (prefs.aiDaySummarySource == fingerprint) return;
-    final next = widget.services.briefRefresh.nextAllowedAt();
-    final wait = next.difference(DateTime.now());
-    // A changed input arriving during a flight also gets checked here.
-    _aiSummaryWake = Timer(wait.isNegative ? Duration.zero : wait, () {
+    final now = DateTime.now();
+    DateTime? wakeAt;
+    // Two reasons to wake, and they are different questions. The first is
+    // that the words on file were written from something else — a capture, a
+    // tick, a setting. Only a style that asks anybody can act on it, and the
+    // retry is bounded by the cooldown, so a failure cannot spin here.
+    if (_aiHeaderAvailable && prefs.briefStyle.usesModel) {
+      final stale =
+          prefs.aiDaySummarySource != fingerprint || !prefs.aiDaySummaryFresh;
+      if (stale) {
+        final next = widget.services.briefRefresh.nextAllowedAt();
+        wakeAt = next.isAfter(now) ? next : now;
+      }
+    }
+    // The second is that nothing was written at all since the words were:
+    // the clock has moved past a fact they state, and no write will announce
+    // it. Every style needs this one — the report's own lines say "today at
+    // 11:20" until something asks them again — which is why it is armed
+    // outside the model branch above.
+    final boundary = _briefBoundary;
+    if (boundary != null &&
+        boundary.isAfter(now) &&
+        (wakeAt == null || boundary.isBefore(wakeAt))) {
+      wakeAt = boundary;
+    }
+    if (wakeAt == null) return;
+    var wait = wakeAt.difference(now);
+    // A timer that fires a hair before its own boundary would compute the
+    // same boundary again; a second is enough to have moved past it.
+    if (wait < const Duration(seconds: 1)) wait = const Duration(seconds: 1);
+    _aiSummaryWake = Timer(wait, () {
       if (mounted) unawaited(_loadAiSummary());
     });
   }
@@ -178,8 +198,13 @@ extension _TimelineAiHeader on TimelineScreenState {
     // on, so they are not adopted — and, if they are the ones on screen, they
     // are taken down rather than left to outlive their date.
     final cachedAt = prefs.aiDaySummaryAt;
+    // Today's, and not past the moment its facts moved. The second half is
+    // what 2.9.0 added: a brief written at ten that says nothing is overdue
+    // is false at eleven past an item's time, and no write accompanies that.
     final cacheIsToday =
-        cachedAt != null && _sameBriefDay(cachedAt, DateTime.now());
+        cachedAt != null &&
+        _sameBriefDay(cachedAt, DateTime.now()) &&
+        prefs.aiDaySummaryFresh;
     // The cache is a model-written brief, and only that: the report style
     // writes its own lines from the library on the next few lines of this
     // very pass, so adopting a stale cache first would paint a brief that
@@ -257,6 +282,9 @@ extension _TimelineAiHeader on TimelineScreenState {
       now: DateTime.now(),
     );
     final statusLedger = nexAttentionLedger(attention);
+    // The next instant these facts change without a row being written. Stored
+    // with the answer below and used to wake the card by itself.
+    _briefBoundary = nexAttentionNextBoundary(attention);
     // Which notes the brief is written from, for the log of what left the
     // phone: it used to name none (1.99.96 reviews, SEC-01).
     final sourceNotes = nexRecapNoteIds(
@@ -333,6 +361,7 @@ extension _TimelineAiHeader on TimelineScreenState {
         // local report is a walk over the library and is not spent on the
         // briefs that cannot use it.
         notesOnlyFallback: includesHabits ? _notesOnlyBrief() : null,
+        validUntil: _briefBoundary,
         request: () async {
           // Marked before anything can fail: the flag says a provider was
           // asked, not that it answered.
@@ -370,11 +399,15 @@ extension _TimelineAiHeader on TimelineScreenState {
             // no model line at all: the local facts already said it correctly.
             // Rejecting it here keeps it out of the cache, the widget and the
             // notification, and the retry interval absorbs the request.
-            if (nexAttentionContradicts(answer, attention)) {
+            final violations = nexAttentionViolations(answer, attention);
+            if (violations.isNotEmpty) {
+              // The reason names the claim and the fact that refused it, so a
+              // recurrence in the diagnostics can be read without guessing
+              // which sentence was the problem.
               unawaited(
                 NexCrashLog.failed(
                   'brief.contradiction',
-                  'generated brief contradicted computed facts',
+                  '${violations.first}',
                 ),
               );
               return null;
@@ -397,10 +430,18 @@ extension _TimelineAiHeader on TimelineScreenState {
       // local lines are already on screen and the cache will be asked again
       // under the new fingerprint.
       if (fingerprint != _briefFingerprint()) return;
+      // A failed refresh hands the old text back. When that text has expired
+      // it is not adopted again: the local lines are the current truth, and
+      // the words it would restore describe a moment that has passed.
+      final usable = prefs.aiDaySummaryFresh;
       _rebuild(() {
-        _aiSummaryText = result.text ?? _aiSummaryText ?? written;
+        _aiSummaryText = usable
+            ? (result.text ?? _aiSummaryText ?? written)
+            : written;
         _aiSummaryHasHabits =
-            prefs.aiDaySummaryIncludesHabits && prefs.briefHabitsAllowed;
+            usable &&
+            prefs.aiDaySummaryIncludesHabits &&
+            prefs.briefHabitsAllowed;
       });
       if ((force || _aiSummaryManualRequested) && result.failed) {
         NexBannerHost.of(context)?.show(

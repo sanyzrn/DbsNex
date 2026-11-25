@@ -790,3 +790,150 @@ read: the Dart builders in `lib/platform/reminders*` and the native posters.
   Android's grouping/bundling on a phone with several reminders at once. Those
   need a device; what is checked here is the exact text, style and action
   objects handed to the plugin, plus the native poster's compilation.
+
+---
+
+## 9. The final audit — what the eight steps had left open
+
+Nothing here was taken on trust from the steps above; each was re-read
+against the requirement it claimed to meet.
+
+### CI, from the root
+
+Six `flutter analyze --fatal-infos` findings, not weakened but removed:
+
+- **`lib/screens/camera_sheet.dart`** called `SemanticsService.announce`,
+  deprecated after Flutter 3.35 in favour of `sendAnnouncement(view, …)`. It
+  now passes `View.of(context)` and `Directionality.of(context)` — the old
+  call also spoke the failure left-to-right in a Persian interface.
+- **Five unnecessary imports** in two new test files
+  (`capture_kind_switch_test`, `focus_reveal_test`): both import
+  `modules/module_api.dart`, which already re-exports the localizations, the
+  field and `nex_ui`.
+- **`test/brief_window_test.dart` answered “Good morning” and waited for it on
+  screen.** Step 3 made a phrase that names another part of the day refused,
+  so this test passed before noon and failed after it — a red CI that depended
+  on the runner's clock rather than on the code. The fixture now answers with a
+  neutral phrase and waits for that.
+- **The same test left the release check's 15-second timeout pending**, because
+  it is the one test that removes the HTTP override for its own loopback
+  server. Turned off in the harness, so the test no longer depends on whether
+  `api.github.com` answered in time.
+
+### The engine: what was incomplete
+
+- **The dependency on a window.** The brief already merged the timeline window
+  with `listBriefWaiting`, but the nudge read `nudgeSnapshot`, which cut every
+  category at sixty rows ordered by edit time (repeats) or distance from now
+  (dated notes). A note due on the plan's last day was crowded out by busier
+  ones before it, and a repeat edited long ago lost its place to sixty edited
+  since. The candidate set is now bounded by the window it can matter in
+  ([-7, +33] days) and repeats are read whole, ordered by id so two reads of an
+  unchanged library give the plan the same set.
+- **Grouping beyond identical spelling.** `_clusters` compared raw, lower-cased
+  words and ignored tags entirely, although the doc comment promised them.
+  `nexAttentionFold` now erases the differences two keyboards make (ي/ی, ك/ک,
+  ZWNJ, tatweel, diacritics, Persian and Arabic digits), `nexAttentionStem`
+  removes the plural an item shares with its subject («قبضها» beside «قبض»,
+  "invoices" beside "invoice") without over-stemming, tags travel on
+  `NexAttentionItem` and always group, and a word carried by a third of the
+  library is no longer allowed to merge anything by itself.
+- **A real check on the answer.** The old guard matched a short list of fixed
+  phrases in two languages; it passed "the 11:20 call was missed" at 10:30
+  because nobody had listed that sentence. `nexAttentionViolations` now reads
+  the answer line by line against the ledger: a claim that nothing is overdue,
+  a day called clear, a stated count that disagrees with the computed one, and
+  a future item's clock paired with a past-tense claim. It errs towards
+  silence — an unrecognised time or name is ignored, and a line that also names
+  something that really has slipped is left alone.
+- **The ledger's fixed cut.** Twenty-four items, or six clusters, was a third
+  of a busy day handed over as if it were all of it. The block is now bounded
+  by a character budget and says how many waiting items it left out, so the
+  model cannot quietly count them.
+- **A status that changes with no write behind it.** A note due at 11:20 is
+  `due-today` at 11:19 and `overdue` at 11:21 with every stored field
+  identical; midnight does the same to every relative phrase.
+  `nexAttentionNextBoundary` returns the next such instant (an item's due time,
+  a recurring item's window opening, or midnight), the header stores it with
+  the brief and arms one timer for it, and the report style — which asks nobody
+  — wakes for it too. Without this the card could sit on yesterday's statuses
+  until somebody edited a note.
+- **Expired words, kept and republished.** The summary's cache had no notion of
+  when it stopped being true, so `aiDaySummaryText` was shown on the card and
+  published to the home-screen widget (`nex_widget.dart`, with no date gate at
+  all) and available to the nudge. `aiDaySummaryValidUntil` is now written with
+  every summary, `currentAiBrief` is the one question every surface asks, and
+  `NexBriefRefresh` replaces an expired brief after two minutes rather than
+  after the hourly cooldown — still bounded, so a library with several items
+  falling due close together spends one request, not one each.
+
+### The camera: what was wrong underneath
+
+- **The photo paid for the video.** The video panel created its controller at
+  `ResolutionPreset.veryHigh`, which caps *image capture* at 1080p as well as
+  video — the timeline's own camera had been taking twelve-megapixel stills and
+  started taking two-megapixel ones the day recording arrived. Both panels use
+  `ResolutionPreset.max` again, and the clip is bounded by `videoBitrate`
+  (16 Mbit/s) and `audioBitrate` instead: about 363 MB for the three-minute
+  ceiling, inside the 500 MiB attachment limit with room to spare.
+- **A recording could be lost to a phone call.** On `inactive` the panel
+  started `_stopVideo` and then released the controller in the same callback,
+  so `stopVideoRecording` was still in flight on a disposed controller. One
+  path now stops — and awaits — the recording before letting the camera go.
+- **The wrong sentence for a failed recording.** A failure set the same flag as
+  "hold a little longer", so a camera that refused a long hold told the person
+  to hold longer. `_Notice` carries the three cases separately, in the
+  interface's direction.
+- **Five rebuilds a second.** The recording clock redrew the live preview and
+  the controls every 200 ms; it now ticks once a second, with a separate
+  one-shot timer for the three-minute ceiling so the ceiling is still exact.
+- **A file the app would refuse.** A finished clip is measured before it is
+  handed back; one over the attachment limit is discarded in the panel with a
+  line saying so, rather than reaching a capture path that refuses it silently.
+- **The panel is the system camera's replacement.** Its ⋮ menu now offers
+  **Photos and videos**, which picks an existing photo or video (a video panel
+  takes a video, a still panel a photo); the new strings are in both languages.
+
+### Checks run in this environment
+
+- `packages/core`: `dart analyze --fatal-infos` clean; `dart test` **363**
+  passed (13 new: tag grouping, folding and stemming, distinctiveness,
+  boundaries, the two-sided ledger cut, and the four kinds of contradiction).
+- `packages/data`: `dart analyze lib --fatal-infos` clean (the whole-suite run
+  is recorded below).
+- `packages/ai`, `packages/ui`: untouched by this pass.
+- `apps/client`: `flutter analyze --fatal-infos` clean, and `flutter test` green
+  for the camera/capture/focus group (57), the notification/reminder/recurring
+  group (47), the brief/nudge/commitment group, and the new
+  `brief_expiry_test` (5).
+- The two CI-breaking findings are gone rather than downgraded: no lint rule,
+  test or gate was relaxed anywhere in this change.
+
+### Not run here, and why
+
+- **pub.dev is unreachable from this machine** (HTTP 403 on every request), so
+  dependencies were resolved through the pub mirror already present in the
+  local cache. `pubspec.lock` was restored afterwards, so the committed
+  lockfiles are untouched; a dependency set resolved from a mirror is not
+  identical to the locked one, which is a limitation of this run and not of the
+  change.
+- `packages/data`'s suite ran **455 passed, 15 skipped, 2 failed**: `
+  statement_cache_test` could not delete its temporary directory (a Windows
+  file lock, `errno = 32`) and `performance_budget_test`'s timing budget was
+  missed on this machine. Both are environment failures in files this change
+  does not touch.
+- No camera, microphone, keyboard, notification shade or emulator exists here,
+  so nothing below is claimed as tested. **They need a device:**
+
+  1. Take a photo from the timeline's camera and confirm its resolution is the
+     sensor's maximum, then hold for a three-minute clip and confirm it plays
+     and attaches (about 360 MB expected).
+  2. Start a recording and take a phone call: the clip must be kept, not lost,
+     and the panel must reopen on return.
+  3. Hold the shutter for under a second ("hold a little longer" is shown),
+     then let a recording fail and check the failure line, in Persian and RTL.
+  4. Choose **Photos and videos** and pick a photo and a video from the gallery.
+  5. Leave the app open across 11:20 with a note due then, and across midnight:
+     the brief card must redraw by itself, and an expired model summary must
+     disappear in favour of the local lines.
+  6. Check the home-screen widget before and after a cached summary expires.

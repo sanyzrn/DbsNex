@@ -15,6 +15,17 @@ class NexBriefRefresh {
   final DateTime Function() _clock;
   static const successInterval = Duration(hours: 1);
   static const failureInterval = Duration(minutes: 15);
+
+  /// How soon an expired brief may be replaced.
+  ///
+  /// The hourly interval is what stops a library somebody is typing into from
+  /// spending a request a minute. Expiry is a different event: the facts moved
+  /// by themselves, and the words on file are no longer true. They are not
+  /// shown any more either way — the local lines stand in — so this is only
+  /// about how quickly a replacement is asked for, and a couple of minutes is
+  /// enough for a library where several items fall due close together to
+  /// spend one request rather than one each.
+  static const expiredInterval = Duration(minutes: 2);
   Future<NexBriefRefreshResult>? _pending;
   Future<String?>? _headlinePending;
   String? _headlinePendingKey;
@@ -86,6 +97,12 @@ class NexBriefRefresh {
     return flight;
   }
 
+  /// Whether the recap on file has stopped describing the library, and enough
+  /// time has passed for that to be worth a request.
+  ///
+  /// [expired] is the third reason, and the one the data alone cannot see: the
+  /// words were true when they were written and the clock has since moved
+  /// past a fact they state.
   static bool needsRefresh({
     required DateTime? at,
     required String? text,
@@ -93,15 +110,23 @@ class NexBriefRefresh {
     required String fingerprint,
     required DateTime now,
     DateTime? failedAt,
+    bool expired = false,
   }) {
     if (failedAt != null && now.difference(failedAt) < failureInterval) {
       return false;
     }
+    final has = at != null && text != null && text.isNotEmpty;
+    if (has && expired) return now.difference(at) >= expiredInterval;
     if (at != null && now.difference(at) < successInterval) return false;
-    return at == null ||
-        text == null ||
-        text.isEmpty ||
-        storedSource != fingerprint;
+    return !has || storedSource != fingerprint;
+  }
+
+  /// Whether the words on file have outlived the moment they describe.
+  bool get expired {
+    final until = preferences.aiDaySummaryValidUntil;
+    final text = preferences.aiDaySummaryText;
+    if (until == null || text == null || text.isEmpty) return false;
+    return !_clock().isBefore(until);
   }
 
   bool needs(String fingerprint) => needsRefresh(
@@ -111,11 +136,23 @@ class NexBriefRefresh {
     fingerprint: fingerprint,
     now: _clock(),
     failedAt: preferences.aiDaySummaryFailedAt,
+    expired: expired,
   );
 
   /// Only used for changed data awaiting its cooldown, never periodic polling.
   DateTime nextAllowedAt() {
     var next = _clock();
+    final failedAt = preferences.aiDaySummaryFailedAt;
+    // A failed attempt is the cooldown even when the words have expired:
+    // retrying a provider that has just refused would spend a request on
+    // every wake-up and learn nothing.
+    if (failedAt != null && next.difference(failedAt) < failureInterval) {
+      return failedAt.add(failureInterval);
+    }
+    if (expired) {
+      final retry = preferences.aiDaySummaryAt?.add(expiredInterval);
+      return retry != null && retry.isAfter(next) ? retry : next;
+    }
     for (final date in [
       if (preferences.aiDaySummaryCurrent)
         preferences.aiDaySummaryAt?.add(successInterval),
@@ -133,6 +170,7 @@ class NexBriefRefresh {
     bool force = false,
     bool includesHabits = false,
     String? notesOnlyFallback,
+    DateTime? validUntil,
   }) {
     final pending = _pending;
     if (pending != null) return pending;
@@ -168,6 +206,7 @@ class NexBriefRefresh {
         source: fingerprint,
         includesHabits: includesHabits,
         notesOnlyFallback: notesOnlyFallback,
+        validUntil: validUntil,
       );
       return NexBriefRefreshResult(text, updated: true);
     }).then(completer.complete, onError: completer.completeError);

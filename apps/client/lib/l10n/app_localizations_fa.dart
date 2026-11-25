@@ -5038,6 +5038,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cameraRecordVideo => 'ضبط ویدئو';
 
   @override
+  String get cameraGallery => 'عکس و ویدئو';
+
+  @override
   String get cameraStopRecording => 'پایان ضبط';
 
   @override
@@ -5050,6 +5053,9 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get cameraVideoTooShort => 'برای ضبط، کمی بیشتر نگه دارید';
+
+  @override
+  String get cameraVideoTooLarge => 'این ویدئو برای نگه داشتن خیلی بزرگ است';
 
   @override
   String get disclosuresTitle => 'آنچه از این گوشی خارج شد';

@@ -77,6 +77,7 @@ class NexAttentionItem {
     this.recurring = false,
     this.remaining,
     this.total,
+    this.tags = const [],
     this.stale = false,
     this.score = 0,
     this.cluster = '',
@@ -112,6 +113,14 @@ class NexAttentionItem {
   /// Unticked items, and how many there were, for a checklist.
   final int? remaining;
   final int? total;
+
+  /// The note's own tags, by name.
+  ///
+  /// They are here because a tag is the person's own statement that two
+  /// records are about one thing — the strongest grouping signal there is,
+  /// and the one that needs no guessing about which words matter. The
+  /// grouping doc comment promised them before this field existed.
+  final List<String> tags;
 
   /// How recently the note was touched, for the "not worth saying yet" rule
   /// and for a deterministic tie-break.
@@ -334,6 +343,7 @@ NexAttention nexAttention(
       urgent: note.isUrgent,
       remaining: hasOpenItems ? left : null,
       total: hasOpenItems ? items.length : null,
+      tags: [for (final tag in note.tags) tag.name],
       stale: stale,
       score: _scoreFor(
         kind: kind,
@@ -537,16 +547,38 @@ int _scoreFor({
     if (ra != rb) parent[rb] = ra;
   }
 
+  // A word every third note carries ("shopping", "work") says nothing about
+  // two notes being about one thing, so it is not allowed to merge them. A
+  // tag always is: it is the person's own word for the subject.
   final byToken = <String, List<String>>{};
   final tokensById = <String, List<String>>{};
+  final tagsById = <String, List<String>>{};
   for (final item in items) {
     final tokens = nexAttentionTokens(item.title);
     tokensById[item.id] = tokens;
+    tagsById[item.id] = [for (final tag in item.tags) nexAttentionStem(tag)];
     for (final token in tokens) {
       byToken.putIfAbsent(token, () => []).add(item.id);
     }
   }
-  for (final ids in byToken.values) {
+  final tooCommon = (items.length / 3).ceil().clamp(3, 1 << 30);
+  bool distinct(String token) => (byToken[token]?.length ?? 0) < tooCommon;
+  for (final entry in byToken.entries) {
+    if (!distinct(entry.key)) continue;
+    final ids = entry.value;
+    for (var i = 1; i < ids.length; i++) {
+      union(ids.first, ids[i]);
+    }
+  }
+  // Two notes that share a tag are about the same thing even when neither
+  // title carries a word the other does — the tag *is* that word.
+  final byTag = <String, List<String>>{};
+  for (final entry in tagsById.entries) {
+    for (final tag in entry.value) {
+      byTag.putIfAbsent(tag, () => []).add(entry.key);
+    }
+  }
+  for (final ids in byTag.values) {
     for (var i = 1; i < ids.length; i++) {
       union(ids.first, ids[i]);
     }
@@ -559,18 +591,39 @@ int _scoreFor({
   final labelOf = <String, String>{};
   for (final entry in members.entries) {
     if (entry.value.length < 2) continue;
+    // The tag first — it is a name the person chose — then the word the most
+    // members share, with the rarer word winning a tie: "tabriz" says more
+    // than "trip" does about which trip.
+    final tags = <String, int>{};
     final counts = <String, int>{};
     for (final item in entry.value) {
+      for (final tag in tagsById[item.id] ?? const <String>[]) {
+        tags[tag] = (tags[tag] ?? 0) + 1;
+      }
       for (final token in tokensById[item.id] ?? const <String>[]) {
         counts[token] = (counts[token] ?? 0) + 1;
       }
     }
-    final best = counts.entries.toList()
-      ..sort((a, b) {
-        final byCount = b.value.compareTo(a.value);
-        return byCount != 0 ? byCount : a.key.compareTo(b.key);
-      });
-    labelOf[entry.key] = best.isEmpty ? '' : best.first.key;
+    MapEntry<String, int>? pick(Map<String, int> from) {
+      final sorted = from.entries.toList()
+        ..sort((a, b) {
+          final byCount = b.value.compareTo(a.value);
+          if (byCount != 0) return byCount;
+          final byRarity = (byToken[a.key]?.length ?? 0).compareTo(
+            byToken[b.key]?.length ?? 0,
+          );
+          return byRarity != 0 ? byRarity : a.key.compareTo(b.key);
+        });
+      return sorted.isEmpty ? null : sorted.first;
+    }
+
+    final tag = pick(tags);
+    if (tag != null && tag.value > 1) {
+      labelOf[entry.key] = tag.key;
+      continue;
+    }
+    final best = pick(counts);
+    labelOf[entry.key] = best == null ? '' : best.key;
   }
 
   final groups = <NexAttentionCluster>[];
@@ -600,6 +653,7 @@ int _scoreFor({
           recurring: item.recurring,
           remaining: item.remaining,
           total: item.total,
+          tags: item.tags,
           updatedAt: item.updatedAt,
           waiting: item.waiting,
           stale: item.stale,
@@ -611,15 +665,15 @@ int _scoreFor({
   );
 }
 
-/// The words of [text] that can group two items: lower-cased, four letters or
-/// more, minus the words that appear in everything.
+/// The words of [text] that can group two items: folded, stemmed, three
+/// letters or more, minus the words that appear in everything.
 List<String> nexAttentionTokens(String text) {
   final tokens = <String>{};
   for (final match in RegExp(
     r'[\p{L}\p{N}]+',
     unicode: true,
-  ).allMatches(text.toLowerCase())) {
-    final token = match.group(0)!;
+  ).allMatches(text)) {
+    final token = nexAttentionStem(match.group(0)!);
     if (token.length < 3) continue;
     if (_stopWords.contains(token)) continue;
     tokens.add(token);
@@ -627,18 +681,113 @@ List<String> nexAttentionTokens(String text) {
   return [...tokens];
 }
 
+/// [text] with the differences two keyboards make erased: the two letter
+/// forms Persian types interchangeably, the diacritics most people leave out,
+/// the zero-width non-joiner some keyboards insert and others do not, the
+/// tatweel nobody means, and the digits of both scripts.
+///
+/// Grouping used to compare raw strings, so «خريد» and «خرید» — the same
+/// word — never met, and neither did «می‌شود» and «میشود». This is the local
+/// half of "meaning": the same subject written two ways, without a model,
+/// without a network and without reading anything the person did not write.
+String nexAttentionFold(String text) {
+  final buffer = StringBuffer();
+  for (final rune in text.runes) {
+    // Combining marks, the two joiners and the tatweel carry no meaning a
+    // token needs, and every one of them splits a word that should match.
+    if (rune >= 0x064B && rune <= 0x065F) continue;
+    if (rune == 0x0670 || rune == 0x0640) continue;
+    if (rune == 0x200C || rune == 0x200D || rune == 0xFEFF) continue;
+    if (rune >= 0x06F0 && rune <= 0x06F9) {
+      buffer.writeCharCode(0x30 + (rune - 0x06F0)); // ۰-۹
+      continue;
+    }
+    if (rune >= 0x0660 && rune <= 0x0669) {
+      buffer.writeCharCode(0x30 + (rune - 0x0660)); // ٠-٩
+      continue;
+    }
+    const forms = {
+      0x064A: 0x06CC, // ي -> ی
+      0x0643: 0x06A9, // ك -> ک
+      0x0623: 0x0627, // أ -> ا
+      0x0625: 0x0627, // إ -> ا
+      0x0622: 0x0627, // آ -> ا
+      0x0629: 0x0647, // ة -> ه
+      0x0624: 0x0648, // ؤ -> و
+      0x0626: 0x06CC, // ئ -> ی
+    };
+    buffer.writeCharCode(forms[rune] ?? rune);
+  }
+  return buffer.toString().toLowerCase();
+}
+
+/// One word, reduced to the form two notes about the same subject share.
+///
+/// Plural forms are the common case in both languages — «خریدها» beside
+/// «خرید», "invoices" beside "invoice" — and a plural is not a different
+/// subject. Only the shortest endings are removed, and only when what is left
+/// is still a word: over-stemming («کارت» to «کار») would invent a relation
+/// that is not there.
+String nexAttentionStem(String word) {
+  var value = nexAttentionFold(word);
+  if (value.length > 4) {
+    for (final suffix in _faSuffixes) {
+      if (value.endsWith(suffix) && value.length - suffix.length >= 3) {
+        value = value.substring(0, value.length - suffix.length);
+        break;
+      }
+    }
+    value = _englishStem(value);
+  }
+  return value;
+}
+
+/// English plurals and progressives, reduced the way a person reads them.
+///
+/// The plural of "invoice" is "invoices", not "invoic": an "es" is only a
+/// plural ending of its own after a sibilant, and everywhere else the "s" is.
+/// A doubled consonant before "ing" is the same kind of rule — "shopping" is
+/// "shop", not "shopp" — and keeping both is what makes two notes about one
+/// subject meet.
+String _englishStem(String value) {
+  String cut(int n) => value.substring(0, value.length - n);
+  bool keeps(int n) => value.length - n >= 4;
+  String dedouble(String stem) =>
+      stem.length > 2 && stem[stem.length - 1] == stem[stem.length - 2]
+      ? stem.substring(0, stem.length - 1)
+      : stem;
+
+  if (value.endsWith('ies') && keeps(3)) {
+    return '${cut(3)}y';
+  }
+  if (value.endsWith('ing') && keeps(3)) return dedouble(cut(3));
+  if (value.endsWith('es') && keeps(2) && _sibilant(cut(2))) return cut(2);
+  if (value.endsWith('s') && keeps(1)) return cut(1);
+  return value;
+}
+
+bool _sibilant(String stem) {
+  if (stem.isEmpty) return false;
+  final last = stem[stem.length - 1];
+  return last == 's' || last == 'x' || last == 'z' || last == 'h';
+}
+
+/// Longest first: «های» before «ها», or the shorter one eats the longer.
+const _faSuffixes = ['هایم', 'هایت', 'هایش', 'های', 'ها', 'شان', 'مان', 'تان'];
+
 const _stopWords = {
-  // English
-  'the', 'and', 'for', 'with', 'that', 'this', 'from', 'have', 'has', 'had',
+  // English, stemmed the way nexAttentionStem leaves them.
+  'the', 'and', 'for', 'with', 'that', 'thi', 'from', 'have', 'has', 'had',
   'was', 'were', 'are', 'not', 'but', 'his', 'her', 'their', 'our', 'you',
   'your', 'about', 'into', 'over', 'after', 'before', 'when', 'what', 'who',
   'will', 'would', 'should', 'could', 'there', 'then', 'than', 'them', 'they',
   'she', 'him', 'its', 'all', 'any', 'can', 'just', 'get', 'got', 'one',
   'two', 'new', 'day', 'today', 'tomorrow', 'call', 'note', 'notes',
-  // Persian — the words that appear in every second note
+  // Persian — the words that appear in every second note.
   'برای', 'از', 'به', 'که', 'این', 'آن', 'با', 'را', 'در', 'و', 'یا', 'تا',
   'هم', 'یک', 'دو', 'روز', 'امروز', 'فردا', 'یادداشت', 'کار', 'های', 'ها',
-  'می', 'شود', 'کرد', 'است', 'بود', 'شد', 'کردن', 'تهیه', 'خرید',
+  'می', 'شود', 'کرد', 'است', 'بود', 'شد', 'کردن', 'تهیه', 'خرید', 'باید',
+  'شده', 'دیگه', 'چیز', 'موقع', 'وقت',
 };
 
 /// Whole calendar days from [from] to [to], negative when [to] is earlier.
@@ -655,18 +804,21 @@ int _dayGap(DateTime from, DateTime to) => DateTime.utc(
 /// invent an overdue one. The brief formats these again for the reader, in the
 /// reader's language — this block is deliberately in English and terse,
 /// because it is prompt material, not copy.
-String nexAttentionLedger(NexAttention attention) {
+String nexAttentionLedger(NexAttention attention, {int budget = 3200}) {
   final counts = [
     '${attention.overdue.length} overdue',
     '${attention.today.length} due today',
     '${attention.soon.length} due within the horizon',
+    '${attention.upcoming.length} beyond it',
     '${attention.unfinished.length} unfinished checklists',
   ];
   final lines = <String>[
     'FACTS COMPUTED BY THE APP (authoritative; never contradict them):',
     '- ${counts.join(', ')}.',
   ];
-  for (final item in attention.items.take(24)) {
+  var used = lines.first.length + lines.last.length + 2;
+  var hidden = 0;
+  for (final item in attention.items) {
     if (!item.isWaiting) continue;
     final when = item.dueAt == null
         ? ''
@@ -675,61 +827,235 @@ String nexAttentionLedger(NexAttention attention) {
         ? ''
         : ' | ${item.remaining}/${item.total} left';
     final early = item.canCompleteEarly ? ' | window open to tick it off' : '';
+    final line =
+        '- ${item.state.toUpperCase()}$when$progress$early | '
+        '${item.urgent ? 'URGENT ' : ''}"${item.title}"';
+    // Bounded by a budget rather than by a fixed number of items, and what
+    // does not fit is counted out loud. The old cut at twenty-four was a
+    // third of a busy day: the model was asked to describe the day from a
+    // slice it had no way to know was a slice.
+    if (used + line.length + 1 > budget) {
+      hidden++;
+      continue;
+    }
+    lines.add(line);
+    used += line.length + 1;
+  }
+  if (hidden > 0) {
     lines.add(
-      '- ${item.state.toUpperCase()}$when$progress$early | '
-      '${item.urgent ? 'URGENT ' : ''}"${item.title}"',
+      '- ($hidden more waiting and not listed here: do not count them, do '
+      'not invent them, and do not say there are none.)',
     );
   }
-  for (final group in attention.clusters.take(6)) {
-    lines.add(
-      '- RELATED: ${group.items.length} items about "${group.label}" — '
-      '${group.items.map((item) => '"${item.title}"').join(', ')}',
-    );
+  for (final group in attention.clusters) {
+    final line =
+        '- RELATED: ${group.items.length} items about "${group.label}" — '
+        '${group.items.map((item) => '"${item.title}"').join(', ')}';
+    if (used + line.length + 1 > budget) break;
+    lines.add(line);
+    used += line.length + 1;
   }
   return lines.join('\n');
+}
+
+/// The next instant at which what [attention] says stops being true.
+///
+/// Nothing in the database changes at any of these moments, which is exactly
+/// why a cache keyed only on the data cannot notice them: a note due at 11:20
+/// is `due-today` at 11:19 and `overdue` at 11:21 with every stored field
+/// identical, a recurring item's tick becomes available when its early window
+/// opens, and at midnight "today at 09:00" names the wrong day. A surface
+/// that shows words computed from these facts can therefore time its own
+/// wake-up from here instead of polling or waiting for a write.
+DateTime? nexAttentionNextBoundary(NexAttention attention) {
+  final at = attention.at;
+  DateTime? next;
+  void consider(DateTime? when) {
+    if (when == null || !when.isAfter(at)) return;
+    if (next == null || when.isBefore(next!)) next = when;
+  }
+
+  for (final item in attention.items) {
+    consider(item.dueAt);
+    consider(item.opensAt);
+  }
+  // The day is the coarsest status there is, and the one every relative
+  // phrase in a brief is written against.
+  consider(DateTime(at.year, at.month, at.day + 1));
+  return next;
 }
 
 String _clock(DateTime value) =>
     '${value.hour.toString().padLeft(2, '0')}:'
     '${value.minute.toString().padLeft(2, '0')}';
 
-/// Whether a generated brief says something the facts contradict.
+/// One thing a generated brief says that the facts it was given contradict.
 ///
-/// Narrow on purpose. It does not judge style, usefulness or completeness —
-/// those are the model's job — and it does not try to check every date in a
-/// sentence, which would reject correct rephrasing. It catches the two claims
-/// that are worse than a bad line because they are *actionable*: calling
-/// nothing overdue when something is, and calling the day clear when it is
-/// not. A brief that fails this is not shown; the locally written facts stand
-/// in for it.
-///
-/// [text] is the model's answer, already joined with the local lines.
-bool nexAttentionContradicts(String text, NexAttention attention) {
-  if (text.trim().isEmpty) return false;
-  final lower = text.toLowerCase();
-  bool claims(List<String> words) => words.any(lower.contains);
+/// The reason is written for the log, the line for the record: together they
+/// say which sentence was refused and against which fact.
+class NexAttentionViolation {
+  const NexAttentionViolation(this.reason, this.line);
 
-  // "Nothing overdue" is a claim about the library; on a library with an
-  // overdue item it is false whichever way the rest of the line reads.
-  if (claims(_clearOfOverdue) && attention.overdue.isNotEmpty) return true;
+  final String reason;
+  final String line;
 
-  // "Nothing is due" / "everything is done" on a day with items waiting.
-  final clearClaim =
-      claims(_dayIsClear) &&
-      !claims(const ['but ', 'except', 'only ', 'however', 'اما ', 'ولی ']);
-  if (clearClaim && attention.waiting.isNotEmpty) return true;
-
-  return false;
+  @override
+  String toString() => '$reason: $line';
 }
+
+/// Every claim in [text] that the computed facts contradict.
+///
+/// This replaced a check against a list of fixed phrases, which could only
+/// ever recognise the sentences somebody had thought of — and which passed a
+/// brief that said "the 11:20 call was missed" at ten thirty, because nobody
+/// had thought of that one. The ledger states, for every item that matters,
+/// its status and its clock, so the question becomes a comparison with *this*
+/// library instead of a comparison with a vocabulary.
+///
+/// Four kinds of claim are decided that way, each per line:
+///
+/// - **nothing has slipped**, on a day that has something overdue;
+/// - **the day is clear**, on a day with something waiting;
+/// - **the wrong count** — "2 overdue" when the app counted one;
+/// - **the wrong clock** — a future item's time paired with a past-tense
+///   claim, which is the shape of "the 11:20 call was missed" at 10:30.
+///
+/// Narrow on purpose, and it errs towards silence: it does not judge style,
+/// usefulness or coverage, it ignores a time or a name it does not recognise
+/// (a brief may mention a note the ledger had no room for), and one line that
+/// also cites an item that really has slipped is left alone, because the past
+/// tense in it may be about that item.
+List<NexAttentionViolation> nexAttentionViolations(
+  String text,
+  NexAttention attention,
+) {
+  if (text.trim().isEmpty) return const [];
+  final violations = <NexAttentionViolation>[];
+  final at = attention.at;
+
+  // What the ledger says, by the clock a line could name it by.
+  final byClock = <String, List<NexAttentionItem>>{};
+  final slipped = <String>{};
+  final slippedNames = <List<String>>[];
+  for (final item in attention.items) {
+    final due = item.dueAt;
+    if (due == null) continue;
+    final clock = _clock(at.isUtc ? due.toUtc() : due.toLocal());
+    byClock.putIfAbsent(clock, () => []).add(item);
+    if (item.kind == NexAttentionKind.overdue) {
+      slipped.add(clock);
+      final stems = nexAttentionTokens(item.title);
+      if (stems.isNotEmpty) slippedNames.add(stems);
+    }
+  }
+
+  /// Whether the line names something that really has slipped. A sentence
+  /// that says "the rent is overdue, and the 11:20 call" is talking about two
+  /// things, and the past tense belongs to the first.
+  bool namesSlipped(String line) {
+    for (final stems in slippedNames) {
+      final hits = stems.where(line.contains).length;
+      if (hits >= (stems.length == 1 ? 1 : 2)) return true;
+    }
+    return false;
+  }
+
+  for (final raw in text.split('\n')) {
+    final line = raw.trim();
+    if (line.isEmpty) continue;
+    final folded = nexAttentionFold(line);
+    final excepted = _anyIn(folded, _exceptions);
+
+    if (attention.overdue.isNotEmpty &&
+        !excepted &&
+        _anyIn(folded, _clearOfOverdue)) {
+      violations.add(NexAttentionViolation('claims nothing is overdue', line));
+      continue;
+    }
+
+    if (attention.waiting.isNotEmpty &&
+        !excepted &&
+        _anyIn(folded, _dayIsClear)) {
+      violations.add(NexAttentionViolation('claims the day is clear', line));
+      continue;
+    }
+
+    for (final claim in _countClaims(folded)) {
+      final truth = switch (claim.unit) {
+        _CountUnit.overdue => attention.overdue.length,
+        _CountUnit.today => attention.today.length,
+      };
+      if (claim.count != truth) {
+        violations.add(
+          NexAttentionViolation(
+            'says ${claim.count} ${claim.unit.label} where the app counted '
+            '$truth',
+            line,
+          ),
+        );
+      }
+    }
+
+    final cited = _clocksIn(folded);
+    if (cited.isEmpty || cited.any(slipped.contains)) continue;
+    if (namesSlipped(folded)) continue;
+    if (!_pastCue(folded)) continue;
+    for (final clock in cited) {
+      final items = byClock[clock];
+      if (items == null || items.isEmpty) continue;
+      if (items.every((item) => item.kind != NexAttentionKind.overdue)) {
+        violations.add(
+          NexAttentionViolation(
+            'calls the $clock item past while it is still ahead',
+            line,
+          ),
+        );
+        break;
+      }
+    }
+  }
+  return violations;
+}
+
+/// Whether a generated brief says something the facts contradict — the
+/// question the timeline asks before a model's words may be cached, shown or
+/// published. [text] is the model's answer, already joined with the local
+/// lines.
+bool nexAttentionContradicts(String text, NexAttention attention) =>
+    nexAttentionViolations(text, attention).isNotEmpty;
+
+/// Whether any needle appears in [text]. The text is already folded, so each
+/// needle is folded too — written the way a person types it, matched the way
+/// the line was normalised — rather than requiring every list below to be
+/// kept in its folded form by hand.
+bool _anyIn(String text, List<String> needles) =>
+    needles.any((needle) => text.contains(nexAttentionFold(needle)));
+
+/// Phrases that make a blanket claim narrower: "all done, except the rent".
+const _exceptions = [
+  'but ',
+  'except',
+  'only ',
+  'however',
+  'apart from',
+  'اما ',
+  'ولی ',
+  'به جز',
+  'فقط',
+];
 
 /// Stems that mean "nothing has slipped" on their own.
 const _clearOfOverdue = [
   'nothing overdue',
   'no overdue',
   'overdue: none',
+  'nothing is overdue',
+  'none overdue',
   'چیزی عقب نیفتاده',
   'هیچ موردی عقب نیفتاده',
   'هیچ عقب‌افتادگی',
+  'عقب افتاده‌ای نداری',
+  'هیچ چیز عقب',
 ];
 
 const _dayIsClear = [
@@ -741,9 +1067,100 @@ const _dayIsClear = [
   'everything is done',
   'everything is finished',
   'all done',
+  'nothing left',
   'چیزی برای انجام نمانده',
   'هیچ کاری نمانده',
   'همه انجام شده',
   'همه‌چیز انجام شده',
   'چیزی سررسید نشده',
+  'کاری برای انجام نمانده',
 ];
+
+/// What a sentence says has already happened, in either language, in the
+/// forms a line about a past item takes.
+const _pastCues = [
+  'done',
+  'completed',
+  'finished',
+  'missed',
+  'overdue',
+  'passed',
+  'went past',
+  'already',
+  'reminded',
+  'forgot',
+  'forgotten',
+  'was due',
+  'should have',
+  'skipped',
+  'expired',
+  'lapsed',
+  'انجام شد',
+  'انجام شده',
+  'تمام شد',
+  'گذشت',
+  'گذشته',
+  'عقب',
+  'فراموش',
+  'یادآوری شد',
+  'از دست رفت',
+  'پرید',
+  'دیر شده',
+];
+
+/// Words that turn a past cue into its opposite: "not done", "هنوز انجام نشده".
+const _negations = [
+  'not ',
+  "n't",
+  'no ',
+  'never',
+  'yet',
+  'هنوز',
+  'نشده',
+  'نکرد',
+  'نه ',
+  'بدون',
+  'قرار نیست',
+];
+
+bool _pastCue(String folded) =>
+    !_anyIn(folded, _negations) && _anyIn(folded, _pastCues);
+
+/// Every `HH:MM` the line names, in the 24-hour form the ledger uses.
+Iterable<String> _clocksIn(String folded) sync* {
+  for (final match in RegExp(
+    r'(?<!\d)([01]?\d|2[0-3])[:.]([0-5]\d)(?!\d)',
+  ).allMatches(folded)) {
+    final hour = int.tryParse(match.group(1)!);
+    if (hour == null) continue;
+    yield '${hour.toString().padLeft(2, '0')}:${match.group(2)}';
+  }
+}
+
+enum _CountUnit {
+  overdue('overdue'),
+  today('due today');
+
+  const _CountUnit(this.label);
+  final String label;
+}
+
+/// A number stated next to a status the app computed. Only the two counts a
+/// line can state without ambiguity are read: "3 unfinished items" may mean
+/// items inside one list rather than lists, and guessing would refuse honest
+/// sentences.
+Iterable<({int count, _CountUnit unit})> _countClaims(String folded) sync* {
+  for (final match in RegExp(
+    r'(\d{1,3})\s*(?:items?\s+|مورد\s+)?(overdue|due today|عقب ?افتاده|برای امروز)',
+  ).allMatches(folded)) {
+    final count = int.tryParse(match.group(1)!);
+    if (count == null) continue;
+    final word = match.group(2)!;
+    yield (
+      count: count,
+      unit: word.contains('today') || word.contains('امروز')
+          ? _CountUnit.today
+          : _CountUnit.overdue,
+    );
+  }
+}

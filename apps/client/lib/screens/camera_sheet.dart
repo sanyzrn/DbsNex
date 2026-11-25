@@ -115,6 +115,17 @@ Future<XFile?> nexTakePhoto(BuildContext context) async =>
 
 const _openTimeout = Duration(seconds: 8);
 
+/// The recording budget, in bits per second.
+///
+/// The still capture stays at the sensor's full size in every panel — adding
+/// video must not cost a photo its resolution, and a lower
+/// `resolutionPreset` would cap both — so the clip is bounded by its bitrate
+/// instead. 16 Mbit/s of video and 128 kbit/s of audio is about 363 MB for
+/// the three-minute ceiling: inside the 500 MiB attachment limit with room to
+/// spare, and encoded by the camera at its highest available video quality.
+const nexCameraVideoBitrate = 16000000;
+const nexCameraAudioBitrate = 128000;
+
 /// The recording clock, as the panel shows it: minutes and seconds, counting
 /// past an hour without wrapping.
 String nexCameraClock(Duration elapsed) =>
@@ -136,6 +147,12 @@ class NexCameraSheet extends StatefulWidget {
   /// The longest a hold records. A held shutter left alone stops here rather
   /// than filling the phone.
   static const maxVideo = Duration(minutes: 3);
+
+  /// The most a clip may weigh: the same 500 MiB the attachment path streams
+  /// to disk. A recording that came out bigger is discarded here, with a line
+  /// that says so, rather than handed to a capture path that would refuse it
+  /// without a word.
+  static const maxVideoBytes = 500 * 1024 * 1024;
 
   /// The share of the screen's height the panel takes.
   static const heightFactor = .62;
@@ -169,8 +186,12 @@ class _NexCameraSheetState extends State<NexCameraSheet>
   /// Recording without sound — the microphone was refused, the camera was not.
   bool _silentVideo = false;
 
-  /// A hold too quick to keep: said once, quietly, and not repeated.
-  bool _tooShort = false;
+  /// The one-shot timer that ends a held recording exactly at [maxVideo].
+  Timer? _limit;
+
+  /// What the panel has to say about the last recording, until its timer
+  /// clears it.
+  _Notice? _noticeKind;
   DateTime? _startedAt;
   Timer? _ticker;
   Timer? _notice;
@@ -272,10 +293,16 @@ class _NexCameraSheetState extends State<NexCameraSheet>
 
   CameraController _controllerFor({required bool audio}) => CameraController(
     widget.cameras[_index],
-    // A recording is kept smaller than a still: 1080p rather than whatever
-    // the sensor's largest is, so three minutes of video stays reasonable.
-    widget.video ? ResolutionPreset.veryHigh : ResolutionPreset.max,
+    // Full size for a still in every panel, including the one that can also
+    // record: `veryHigh` capped photographs at 1080p, so the day video
+    // arrived every picture from the timeline's own camera dropped from the
+    // sensor's twelve megapixels to two. The clip is bounded by its bitrate
+    // below instead — see [nexCameraVideoBitrate] — and by the three-minute
+    // ceiling, so the file stays inside the attachment limit either way.
+    ResolutionPreset.max,
     enableAudio: audio,
+    videoBitrate: widget.video ? nexCameraVideoBitrate : null,
+    audioBitrate: widget.video && audio ? nexCameraAudioBitrate : null,
     imageFormatGroup: ImageFormatGroup.jpeg,
   );
 
@@ -303,22 +330,33 @@ class _NexCameraSheetState extends State<NexCameraSheet>
     // The camera is released while Nex is in the background, as Android
     // expects, and opened again on return. Only an open camera: Android's own
     // permission dialog also makes the app inactive, while it is opening.
-    final controller = _controller;
-    if (state == AppLifecycleState.inactive && _recording) {
-      // The sensor is about to be taken back: stop now, keep what was
-      // recorded rather than a file Android will cut off mid-frame.
-      unawaited(_stopVideo());
-    }
-    if (state == AppLifecycleState.inactive &&
-        controller != null &&
-        controller.value.isInitialized) {
-      _released = true;
-      setState(() => _controller = null);
-      _release(controller);
+    if (state == AppLifecycleState.inactive) {
+      // One path, in this order: the recording ends *before* the camera is
+      // let go. Releasing first disposed the controller under a
+      // `stopVideoRecording` that was still in flight, so the clip was lost
+      // exactly when it mattered most — a phone call arriving mid-recording.
+      unawaited(_suspend(_controller));
     } else if (state == AppLifecycleState.resumed && _released) {
       _released = false;
       unawaited(_open());
     }
+  }
+
+  /// Stops a recording, keeps it, then lets the camera go.
+  Future<void> _suspend(CameraController? controller) async {
+    if (_recording) {
+      await _stopVideo();
+    } else if (_startingVideo) {
+      // The sensor has not answered yet; stop the instant it does. Releasing
+      // the controller now would fail that start anyway, and this way the
+      // panel is never left with a shutter that thinks it is recording.
+      _stopRequested = true;
+    }
+    if (!mounted || controller == null || _controller != controller) return;
+    if (!controller.value.isInitialized || _released) return;
+    _released = true;
+    setState(() => _controller = null);
+    _release(controller);
   }
 
   @override
@@ -326,6 +364,7 @@ class _NexCameraSheetState extends State<NexCameraSheet>
     WidgetsBinding.instance.removeObserver(this);
     _systemCameraAt?.cancel();
     _ticker?.cancel();
+    _limit?.cancel();
     _notice?.cancel();
     _release(_controller);
     super.dispose();
@@ -399,7 +438,7 @@ class _NexCameraSheetState extends State<NexCameraSheet>
     setState(() {
       _startingVideo = true;
       _stopRequested = false;
-      _tooShort = false;
+      _noticeKind = null;
       _menuOpen = false;
     });
     nexBump();
@@ -425,14 +464,18 @@ class _NexCameraSheetState extends State<NexCameraSheet>
 
   void _beginTicking() {
     _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
+    _limit?.cancel();
+    // The clock shows whole seconds, so it is redrawn once a second rather
+    // than five times: every tick rebuilt the live preview and the controls
+    // with it. The ceiling is a timer of its own, to the millisecond, so the
+    // slower clock cannot let a clip run past three minutes.
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       final started = _startedAt;
       if (!mounted || started == null) return;
-      final elapsed = DateTime.now().difference(started);
-      setState(() => _elapsed = elapsed);
-      // A held shutter left alone stops itself: three minutes is plenty, and
-      // the file stays well inside the attachment limit.
-      if (elapsed >= NexCameraSheet.maxVideo) unawaited(_stopVideo());
+      setState(() => _elapsed = DateTime.now().difference(started));
+    });
+    _limit = Timer(NexCameraSheet.maxVideo, () {
+      if (mounted) unawaited(_stopVideo());
     });
   }
 
@@ -449,6 +492,7 @@ class _NexCameraSheetState extends State<NexCameraSheet>
     final controller = _controller;
     if (!_recording || controller == null) return;
     _ticker?.cancel();
+    _limit?.cancel();
     final elapsed = _startedAt == null
         ? Duration.zero
         : DateTime.now().difference(_startedAt!);
@@ -466,36 +510,103 @@ class _NexCameraSheetState extends State<NexCameraSheet>
       return;
     }
     if (!deliver || elapsed < NexCameraSheet.minVideo) {
-      try {
-        await File(file.path).delete();
-      } on Object {
-        // A recording the app will not show is still its own to tidy; a
-        // camera that already removed it changes nothing.
-      }
-      if (mounted && deliver) _sayTooShort();
+      await _discard(file);
+      if (mounted && deliver) _say(_Notice.tooShort);
+      return;
+    }
+    // The bitrate budget keeps a full clip well inside this, so a file that
+    // reaches it came from a camera that ignored the request. Better a line
+    // here than a capture path silently refusing it a moment later.
+    if (await _sizeOf(file) > NexCameraSheet.maxVideoBytes) {
+      await _discard(file);
+      if (mounted && deliver) _say(_Notice.tooLarge);
       return;
     }
     if (mounted) Navigator.of(context).pop(NexCameraShot(file, isVideo: true));
   }
 
-  void _sayTooShort() {
+  static Future<int> _sizeOf(XFile file) async {
+    try {
+      return await File(file.path).length();
+    } on Object {
+      // A file the app cannot measure is not one it should throw away.
+      return 0;
+    }
+  }
+
+  /// A recording the app will not show is still its own to tidy; a camera
+  /// that already removed it changes nothing.
+  static Future<void> _discard(XFile file) async {
+    try {
+      await File(file.path).delete();
+    } on Object {
+      // Nothing to do: the clip is gone either way.
+    }
+  }
+
+  /// One line under the clock for a few seconds.
+  void _say(_Notice notice) {
     _notice?.cancel();
-    setState(() => _tooShort = true);
-    _notice = Timer(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _tooShort = false);
+    setState(() => _noticeKind = notice);
+    // Three seconds is enough to read four words, and the line is not a
+    // dialog: it must never need dismissing.
+    _notice = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _noticeKind = null);
     });
   }
 
   void _sayRecordingFailed() {
     final l10n = AppLocalizations.of(context);
-    _notice?.cancel();
-    setState(() => _tooShort = true);
-    _notice = Timer(const Duration(seconds: 3), () {
-      if (mounted) setState(() => _tooShort = false);
-    });
+    // The failure has its own words. It used to borrow the "hold a little
+    // longer" line, which described the wrong thing: the hold was long
+    // enough, the camera refused it.
+    _say(_Notice.failed);
     // The panel says it with a line of its own; the screen reader gets the
-    // same sentence once, not on a loop.
-    SemanticsService.announce(l10n.captureFailed, TextDirection.ltr);
+    // same sentence once, not on a loop — in the direction the interface is
+    // being read in.
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      l10n.captureFailed,
+      Directionality.of(context),
+    );
+  }
+
+  /// The panel is what replaces the system camera, so it also does the one
+  /// thing that camera does besides taking: choosing something already on the
+  /// phone. A panel that can record takes a video, a still panel a photo —
+  /// the same split the shutter itself draws.
+  Future<void> _pickFromGallery() async {
+    if (_taking || _recording || _startingVideo) return;
+    setState(() => _menuOpen = false);
+    XFile? picked;
+    try {
+      final picker = ImagePicker();
+      picked = widget.video
+          ? await picker.pickMedia()
+          : await picker.pickImage(source: ImageSource.gallery);
+    } on Object {
+      picked = null;
+    }
+    if (!mounted || picked == null) return;
+    Navigator.of(context)
+        .pop(NexCameraShot(picked, isVideo: widget.video && _isVideo(picked)));
+  }
+
+  /// Whether a picked file is a recording. The picker names its temporary
+  /// copy with the original extension, and a video panel is the only place
+  /// the answer can change anything.
+  static bool _isVideo(XFile file) {
+    final path = file.path.toLowerCase();
+    return const [
+      '.mp4',
+      '.mov',
+      '.m4v',
+      '.3gp',
+      '.3gpp',
+      '.webm',
+      '.mkv',
+      '.avi',
+    ].any(path.endsWith);
   }
 
   /// Closes the panel. A recording in flight is stopped and thrown away: the
@@ -579,11 +690,12 @@ class _NexCameraSheetState extends State<NexCameraSheet>
       nexCameraClock(_elapsed),
       persian: l10n.localeName == 'fa',
     );
-    final note = _tooShort
-        ? l10n.cameraVideoTooShort
-        : _silentVideo
-        ? l10n.cameraSilentVideo
-        : null;
+    final note = switch (_noticeKind) {
+      _Notice.tooShort => l10n.cameraVideoTooShort,
+      _Notice.tooLarge => l10n.cameraVideoTooLarge,
+      _Notice.failed => l10n.captureFailed,
+      null => _silentVideo ? l10n.cameraSilentVideo : null,
+    };
     return Positioned(
       left: NexSpacing.md,
       right: NexSpacing.md,
@@ -836,6 +948,11 @@ class _NexCameraSheetState extends State<NexCameraSheet>
                   duration: NexMotion.of(context, NexMotion.fast),
                   child: _Menu(
                     children: [
+                      _MenuItem(
+                        icon: Icons.photo_library_outlined,
+                        label: l10n.cameraGallery,
+                        onTap: () => unawaited(_pickFromGallery()),
+                      ),
                       if (widget.video && _controller != null)
                         _MenuItem(
                           icon: Icons.videocam_outlined,
@@ -1101,6 +1218,9 @@ class _Menu extends StatelessWidget {
     ),
   );
 }
+
+/// What the panel has to say about the last recording.
+enum _Notice { tooShort, tooLarge, failed }
 
 class _MenuItem extends StatelessWidget {
   const _MenuItem({

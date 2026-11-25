@@ -119,35 +119,57 @@ class SqliteNoteRepository implements NoteRepository {
 
   Database get db => _db.db;
 
-  /// Each category gets its own small budget; an old quiet library is not
+  /// Each category gets its own budget; an old quiet library is not
   /// mistaken for an empty one. No media, private-vault content or AI calls.
+  ///
+  /// The budget is the window a note can matter in, not a count. The plan the
+  /// nudge writes covers a month — nothing can compose a sentence at seven in
+  /// the morning while the app is not running — so "the sixty nearest" was a
+  /// set that could drop the one note a day twenty-five is written for, and a
+  /// repeat edited long ago lost its place to sixty edited since. `limit` is
+  /// used only where the person's own library is the only bound.
   NexNudgeSnapshot nudgeSnapshot(List<NexCommitment> commitments) {
     final candidates = <String, Note>{};
     // The injected clock, like every other read that stamps a row: a test
     // that pins "now" must not have one path quietly use the wall clock.
     final now = _now().toUtc();
     final categories = [
-      (where: 'is_urgent = 1', order: 'updated_at DESC', args: <Object?>[]),
-      // A repeat's stored start can be years old. Keep a separate budget so
-      // old one-off reminders cannot hide either repeats or the nearest due.
       (
-        where: "due_at IS NOT NULL AND due_repeat != 'once'",
+        where: 'is_urgent = 1',
         order: 'updated_at DESC',
         args: <Object?>[],
+        limit: 200,
       ),
+      // A repeat's stored start can be years old and its next occurrence is
+      // always within one period, so every repeat is a candidate. Ordered by
+      // id rather than by edit time: two reads of an unchanged library must
+      // hand the planner the same set, because the plan is keyed on a hash of
+      // it, and "most recently edited" is not a claim about what is due.
       (
-        where: "due_at BETWEEN ? AND ? AND (due_repeat IS NULL OR due_repeat = 'once')",
-        order: 'ABS(julianday(due_at) - julianday(?))',
+        where: "due_at IS NOT NULL AND due_repeat != 'once'",
+        order: 'id',
+        args: <Object?>[],
+        limit: -1,
+      ),
+      // The whole [-7, +33] day window, nearest first. A note due on the
+      // plan's last day belongs in that day's notification, and a cap could
+      // only ever drop the far end of a busy month.
+      (
+        where:
+            "due_at BETWEEN ? AND ? "
+            "AND (due_repeat IS NULL OR due_repeat = 'once')",
+        order: 'due_at ASC, id',
         args: <Object?>[
           now.subtract(const Duration(days: 7)).toIso8601String(),
           now.add(const Duration(days: 33)).toIso8601String(),
-          now.toIso8601String(),
         ],
+        limit: -1,
       ),
       (
         where: "type = 'checklist'",
         order: 'updated_at DESC',
         args: <Object?>[],
+        limit: 120,
       ),
     ];
     for (final category in categories) {
@@ -155,7 +177,8 @@ class SqliteNoteRepository implements NoteRepository {
         'SELECT * FROM notes WHERE deleted_at IS NULL '
         'AND (set_aside_at IS NULL OR set_aside_until IS NOT NULL) '
         'AND scheduled_until IS NULL '
-        'AND (${category.where}) ORDER BY ${category.order} LIMIT 60',
+        'AND (${category.where}) ORDER BY ${category.order}'
+        '${category.limit < 0 ? '' : ' LIMIT ${category.limit}'}',
         category.args,
       )) {
         final note = Note.fromRow(row);
