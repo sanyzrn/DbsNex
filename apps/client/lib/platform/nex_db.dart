@@ -339,6 +339,12 @@ abstract interface class NexDb {
   /// `NoteRepository.listBriefCandidates`.
   Future<List<Note>> briefCandidates();
 
+  /// Pairs among [noteIds] whose stored embeddings say they are about one
+  /// subject — see `NoteRepository.similarNotePairs`.
+  Future<List<({String a, String b, double score})>> briefSemanticPairs(
+    List<String> noteIds,
+  );
+
   Future<void> backup(
     String backupDir, {
     required String mediaDir,

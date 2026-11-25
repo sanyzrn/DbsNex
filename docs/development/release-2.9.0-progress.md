@@ -999,6 +999,52 @@ failure exists on the clean tree before touching the test.
 touched/related files 84 green. `packages/data`: analyze clean;
 `brief_candidates`, `urgent_and_note_caption`, `nudge_memories` green.
 `apps/client`: `flutter analyze --fatal-infos` clean; the brief / nudge /
-headline / timeline group (23 files) **222 green**. Dependencies resolved
+headline / timeline group (23 files) **225 green**. Dependencies resolved
 through the pub mirror (pub.dev is unreachable here); the committed lockfiles
 were restored afterwards, as in the earlier steps.
+
+### Set 2 — meaning the library already has, and a check that reads names
+
+**What was wrong.** Grouping knew only shared words, stems and tags, although
+the library already stores an embedding per note — meaning read locally,
+with no provider, that the brief never used. And the contradiction check
+could only see a future item's *clock*: "the bank call was missed" at 10:30,
+with no time in the sentence, passed.
+
+**What changed.**
+
+- **`SqliteNoteRepository.similarNotePairs`** (port, worker plumbing and a
+  services wrapper alongside): pairwise cosine among the stored `vec` blobs
+  of the caller's ids — unit-length already, so a dot product. The floor is
+  0.7 by default, deliberately above a search floor: a search may offer a
+  maybe, a cluster tells the model two records are one subject. Deleted and
+  not-yet-arrived notes are out; one vector space at a time; the read keeps
+  the first 120 ids in the caller's priority order, so the cost is bounded on
+  a library of any size. Nothing is embedded here and nothing leaves the
+  device.
+- **`nexAttention(semanticPairs: …)`** unions those pairs exactly like a
+  shared tag: records keep their own ids, titles and dates; only the reading
+  aid merges. A pair naming a note outside the reading groups nothing. The
+  ledger's RELATED lines carry the semantic groups to the model.
+- **The brief pass reads the pairs** for the styles that hand a ledger to a
+  model; the report style asks nobody and does not pay for the read. A failed
+  read is no pairs — words and tags still group what they always did.
+- **`nexAttentionViolations` now reads names too.** A still-ahead item
+  (due today / due soon) named in the past tense with no clock in the
+  sentence is the same false claim the clock check catches. Only distinctive
+  words convict — a word a third of the library carries is not a name — and
+  the same exemptions hold: a line that also names what really slipped, and
+  a negation ("not done yet", «هنوز انجام نشده»), are left alone. English and
+  Persian, through the same folding the grouping uses.
+
+**Tests.** Core: three semantic-grouping tests (no shared word or tag, the
+outside-the-reading pair, the ledger line) and four name-based contradiction
+tests (English, Persian, the honest line and the slipped-name exemption, the
+generic word). Data: `semantic_pairs_test` (5) — the floor, the exclusions,
+the missing vector, the bound.
+
+**Checks run here.** `packages/core`: analyze clean; `attention_test` +
+`tool_registry_test` 36 green. `packages/data`: analyze clean;
+`semantic_pairs`, `embedding_space`, `vector_index` 24 green. `apps/client`:
+`flutter analyze --fatal-infos` clean; the set-1 group plus
+`db_worker_spawn_test` **230 green**.

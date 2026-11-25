@@ -638,6 +638,11 @@ class InProcessDb implements NexDb {
   Future<List<Note>> briefCandidates() async => _repo.listBriefCandidates();
 
   @override
+  Future<List<({String a, String b, double score})>> briefSemanticPairs(
+    List<String> noteIds,
+  ) async => _repo.similarNotePairs(noteIds);
+
+  @override
   Future<void> backup(
     String backupDir, {
     required String mediaDir,

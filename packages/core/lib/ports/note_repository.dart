@@ -107,6 +107,19 @@ abstract interface class NoteRepository {
   /// set-aside and arrival rules as the timeline.
   List<Note> listBriefCandidates();
 
+  /// Pairs among [noteIds] whose stored embeddings say they are about the
+  /// same thing, strongest first — the brief's grouping beyond shared words.
+  ///
+  /// Reads the vectors enrichment already wrote; nothing is embedded here
+  /// and nothing leaves the device. [minScore] is a clustering floor, higher
+  /// than a search floor: a wrong merge tells the model two records are one
+  /// subject. Ids past the implementation's bound are dropped from the back,
+  /// so the caller passes them in priority order.
+  List<({String a, String b, double score})> similarNotePairs(
+    List<String> noteIds, {
+    double minScore,
+  });
+
   /// Notes the intelligence layer has never been able to read.
   ///
   /// Enrichment runs once, at capture. That leaves every note captured before

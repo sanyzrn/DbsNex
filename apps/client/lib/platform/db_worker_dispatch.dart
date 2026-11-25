@@ -383,6 +383,9 @@ class _Worker {
         limit: arg('limit')! as int,
       ),
       _DbCommand.briefCandidates => repo.listBriefCandidates(),
+      _DbCommand.briefSemanticPairs => repo.similarNotePairs(
+        (arg('ids')! as List).cast<String>(),
+      ),
       // The snapshot runs in its own isolate on its own connection (see
       // `snapshotDatabaseFromPath`): `VACUUM INTO` is a synchronous call that
       // grows with the library, and on this isolate it was a pause every

@@ -95,10 +95,22 @@ extension _TimelineAiBrief on TimelineScreenState {
     // ledger the model is held to. The statuses are computed here rather
     // than inferred from the lines, so "due later today" can never come back
     // as "done" or "overdue".
+    //
+    // The semantic pairs are the library's own embeddings' judgement about
+    // which candidates are one subject — read locally for the styles that
+    // hand a ledger to a model; the report style asks nobody, so it does not
+    // pay for the read.
+    final semanticPairs = prefs.briefStyle.usesModel
+        ? await widget.services.briefSemanticPairs([
+            for (final note in briefNotes) note.id,
+          ])
+        : const <({String a, String b})>[];
+    if (!mounted) return;
     final attention = nexAttention(
       briefNotes,
       commitments: _model.commitments,
       now: DateTime.now(),
+      semanticPairs: semanticPairs,
     );
     final statusLedger = nexAttentionLedger(attention);
     // The next instant these facts change without a row being written. Stored

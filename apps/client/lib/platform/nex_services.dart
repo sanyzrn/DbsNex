@@ -198,6 +198,21 @@ class NexServices {
     }
   }
 
+  /// Which of the brief's candidates the library's own embeddings call one
+  /// subject — grouping beyond shared words, read locally, nothing sent
+  /// anywhere. A failed read is no pairs, not a failed brief: words and tags
+  /// still group what they always did.
+  Future<List<({String a, String b})>> briefSemanticPairs(
+    List<String> noteIds,
+  ) async {
+    try {
+      final pairs = await worker.briefSemanticPairs(noteIds);
+      return [for (final pair in pairs) (a: pair.a, b: pair.b)];
+    } catch (_) {
+      return const [];
+    }
+  }
+
   EditorDrafts? get editorDrafts => _preferences.editorDrafts;
   bool get solarCalendar => _preferences.solarCalendar;
 

@@ -99,6 +99,12 @@ class _FakeNoteRepository implements NoteRepository {
   List<Note> listBriefCandidates() => [];
 
   @override
+  List<({String a, String b, double score})> similarNotePairs(
+    List<String> noteIds, {
+    double minScore = 0.7,
+  }) => [];
+
+  @override
   List<Note> listNeedingEnrichment({int limit = 50}) => [];
 }
 
