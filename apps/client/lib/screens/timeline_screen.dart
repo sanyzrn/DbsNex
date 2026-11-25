@@ -116,6 +116,10 @@ import 'threads_screen.dart';
 import 'photo_preview_screen.dart';
 import 'settings_sheet.dart';
 
+part 'timeline/timeline_screen_ties.dart';
+
+part 'timeline/timeline_ai_brief.dart';
+
 part 'timeline/timeline_brief_widgets.dart';
 part 'timeline/timeline_header_widgets.dart';
 part 'timeline/timeline_desktop.dart';
@@ -218,14 +222,6 @@ class TimelineScreenState extends State<TimelineScreen>
   /// every control that must not act meanwhile is a [NexTapGuarded].
   final NexTapGuardController _guard = NexTapGuardController();
 
-  void _onSwipeChanged() {
-    if (_swipe.openCard != null) {
-      _guard.open(_swipe, close: _swipe.closeAll);
-    } else {
-      _guard.closed(_swipe);
-    }
-  }
-
   /// One controller per moving group, shared by list and grid.
   final _groupFolds = <String, AnimationController>{};
 
@@ -311,11 +307,6 @@ class TimelineScreenState extends State<TimelineScreen>
   /// Whether this launch's first notes have been shown — see
   /// `_onModelChange`.
   bool _firstNotesShown = false;
-
-  void _fadeInBody() {
-    _searchFade.duration = NexMotion.of(context, NexMotion.enter);
-    unawaited(_searchFade.forward(from: 0).whenComplete(_dissolve.clear));
-  }
 
   /// The old view's last frame, fading out over the new — see
   /// [_ViewDissolve].
@@ -617,25 +608,6 @@ class TimelineScreenState extends State<TimelineScreen>
     }
     return '${source.length}:${hash.toRadixString(16)}';
   }
-
-  void _onSearchChanged() {
-    if (mounted) setState(() {});
-  }
-
-  Future<void> _loadTimeline() async {
-    // Both sides of this matter and neither replaces the other: the model's
-    // failure state is what a read that never returns needs, and the tour
-    // check is what a read that *does* return can make due.
-    final loaded = await _model.load();
-    if (!mounted || loaded == null) return;
-    _requestAiHeader(loaded);
-    _tourWhenReady();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => NexMetrics.shared.recordTimelineShown(),
-    );
-  }
-
-  void _onModelChanged() => _onModelChange();
 
   /// Marks a note as the one just captured, the way the capture paths do.
   ///
