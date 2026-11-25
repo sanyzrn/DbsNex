@@ -19,20 +19,26 @@ import '../tokens/nex_tokens.dart';
 ///
 /// ## Direction
 ///
-/// The same rule as [NexTextSurface], and the reason this is a widget rather than
-/// a call to `MarkdownBody` at each site. `flutter_markdown_plus` takes its
-/// direction from the ambient [Directionality] — which is the interface
-/// language, and in this app the interface language is not what decides. A
-/// Persian document read while the app is in English would otherwise come out
-/// left-aligned with its bullets on the wrong side: correct glyphs, wrong page.
-/// So the direction is derived from the text and imposed here.
+/// `flutter_markdown_plus` takes its direction from the ambient
+/// [Directionality] — which is the interface language, and in this app the
+/// interface language is not what decides. A Persian document read while the
+/// app is in English would otherwise come out left-aligned with its bullets on
+/// the wrong side: correct glyphs, wrong page. So the direction is derived
+/// from the text and imposed here.
 ///
-/// That is a whole-document decision, and it is the honest limit of this
-/// widget: a file whose paragraphs alternate between Persian and English gets
-/// one direction for all of them, chosen by whichever script dominates. Every
-/// renderer surveyed either did the same thing or ignored the ambient
-/// direction entirely, and per-block direction is a larger piece of work than
-/// the problem has so far earned.
+/// **Each block decides for itself** (2.9.1). A heading, a paragraph, a list
+/// item, a blockquote and a table cell are separate things to read, and each
+/// is laid out in the direction its own words are mostly written in
+/// ([nexDominantDirectionOf]) — so a Persian paragraph that opens with an
+/// English product name stays right to left, while an English paragraph in the
+/// same document stays left to right. Fenced code is always left to right.
+///
+/// The document still has one direction of its own, used for the things that
+/// are layout rather than text — a list's bullet column, a blockquote's rule —
+/// and it is chosen the same way, by what dominates the document. Callers that
+/// render one document as several bodies may pass that direction in
+/// ([direction]), and it is also the fallback for a block whose words carry no
+/// direction at all: a line of numbers, a table of dates.
 ///
 /// ## Styling
 ///
@@ -57,15 +63,18 @@ class NexMarkdown extends StatefulWidget {
   /// The raw Markdown source.
   final String text;
 
-  /// The direction this text reads in, when the caller has already decided.
+  /// The direction the document reads in, when the caller has already decided.
   ///
   /// Null — the default, and every caller until long documents began to be
   /// opened in slices — is derived from the text itself, as documented on
   /// this class. A caller that renders one document as several bodies passes
-  /// the whole document's direction here, so an English paragraph inside a
-  /// Persian document keeps the page's direction instead of flipping the
-  /// slice that happens to hold it: the document is what reads one way, not
-  /// whichever part of it fit in a slice.
+  /// the whole document's direction here, so a block with no strong letters of
+  /// its own keeps the page's direction instead of flipping the slice that
+  /// happens to hold it.
+  ///
+  /// This is the fallback, not an override: a block whose own words decide a
+  /// direction still takes it. That is what lets one Persian document hold an
+  /// English code sample's introduction and a Persian note around it.
   final TextDirection? direction;
 
   /// Base style for paragraph text. Defaults to `bodyLarge`, matching
@@ -116,16 +125,63 @@ class NexMarkdown extends StatefulWidget {
   State<NexMarkdown> createState() => _NexMarkdownState();
 }
 
-/// Stateful only so that something owns the tap recognizers the code-span
-/// builder hands out. Nothing here is state the user can see.
+/// The tag a block's inline runs are wrapped in before they are visited.
+///
+/// A synthetic inline element rather than a real Markdown tag: it exists only
+/// long enough for the renderer to hand one run of words to the direction
+/// builder, and the block it lands in — its padding, bullet, rule, cell, or
+/// nested list — stays the package's.
+const _textTag = 'nex-text';
+
+/// The block tags whose inline runs read as text and choose a direction.
+const _wrappedBlocks = <String>[
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'li',
+  'blockquote',
+];
+
+/// Tags that are structure, not words, inside a list item or a blockquote.
+///
+/// A run of inline text ends at one of these; the package still renders it as
+/// the block it is, so a nested list or a code fence keeps its own layout.
+const _blockTags = <String>{
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'li',
+  'blockquote',
+  'ul',
+  'ol',
+  'pre',
+  'table',
+  'thead',
+  'tbody',
+  'tr',
+  'hr',
+  'section',
+};
+
+/// Stateful only so that something owns the tap recognizers the link and
+/// code-span builders hand out. Nothing here is state the user can see.
 class _NexMarkdownState extends State<NexMarkdown> {
-  final _NexCodeSpanBuilder _codeSpans = _NexCodeSpanBuilder();
-  final _NexLinkSpanBuilder _links = _NexLinkSpanBuilder();
+  final _codeSpans = _NexCodeSpanBuilder();
+  final _links = NexLinkRecognizers();
+  final _blocks = _NexDirectionalBlockBuilder();
 
   @override
   void dispose() {
     _codeSpans.dispose();
-    _links.recognizers.dispose();
+    _links.dispose();
     super.dispose();
   }
 
@@ -134,9 +190,11 @@ class _NexMarkdownState extends State<NexMarkdown> {
     final theme = Theme.of(context);
     final text = widget.text;
     final direction =
-        widget.direction ?? nexDirectionOf(text) ?? Directionality.of(context);
+        widget.direction ??
+        nexDominantDirectionOf(text) ??
+        Directionality.of(context);
     _codeSpans.onTap = widget.onCopyCode;
-    _links.recognizers
+    _links
       ..onTap = widget.onTapLink
       ..onHold = widget.onHoldLink;
     final sheet =
@@ -152,6 +210,12 @@ class _NexMarkdownState extends State<NexMarkdown> {
           ),
           tableScrollbarThumbVisibility: true,
         );
+    _blocks
+      ..styleSheet = sheet
+      ..documentDirection = direction
+      ..preserveLineBreaks = widget.preserveLineBreaks
+      ..links = _links
+      ..codeSpans = _codeSpans;
     // Every paragraph, heading and list item is its own text widget, so a
     // copy across them needs its line breaks put back — see
     // [NexSelectableLines].
@@ -173,8 +237,13 @@ class _NexMarkdownState extends State<NexMarkdown> {
               style: sheet.code,
               padding: sheet.codeblockPadding,
             ),
-            if (widget.onCopyCode != null) 'code': _codeSpans,
-            if (widget.onHoldLink != null) 'a': _links,
+            // Registered for their `visitElementBefore` only, which wraps
+            // each block's inline runs in [_textTag] before the renderer
+            // reaches them. The blocks themselves stay the package's — its
+            // own cell hook, for instance, is an inline branch that would
+            // drop the `TableCell` and leave a row empty.
+            for (final tag in [..._wrappedBlocks, 'table']) tag: _blocks,
+            _textTag: _blocks,
           },
           styleSheet: sheet,
           onTapLink: widget.onTapLink == null
@@ -300,6 +369,386 @@ class _NexFencedCodeBuilder extends MarkdownElementBuilder {
   }
 }
 
+/// Builds each run of block text in the direction its own words are mostly
+/// written in.
+///
+/// The package takes one direction for the whole document from the ambient
+/// [Directionality], and it builds a block's inline runs itself, so there is
+/// no point at which a paragraph can be handed a direction other than the
+/// document's. This builder wraps every block's inline runs in a synthetic
+/// element before the renderer visits them; when that element closes, its
+/// words are built here — with the same styles, link recognizers, inline-code
+/// taps and images the package would have used — as a [Text] under a
+/// [Directionality] of its own.
+///
+/// The block is still the package's, not a replacement for it: a paragraph
+/// keeps its padding, a list item its bullet and nested list, a blockquote its
+/// rule, a table cell its border and sizing. Only the reading direction of the
+/// words is local, which is what makes it safe in a document whose structure
+/// the renderer already got right.
+class _NexDirectionalBlockBuilder extends MarkdownElementBuilder {
+  MarkdownStyleSheet? styleSheet;
+  TextDirection? documentDirection;
+  bool preserveLineBreaks = false;
+  NexLinkRecognizers? links;
+  _NexCodeSpanBuilder? codeSpans;
+
+  static final _softBreak = RegExp(r' ?\n *');
+  static final _leadingSpaces = RegExp(r'^ *');
+
+  @override
+  void visitElementBefore(md.Element element) {
+    if (element.tag == 'table') {
+      _cellsOf(element);
+    } else if (_wrappedBlocks.contains(element.tag)) {
+      _wrapRuns(element);
+    }
+  }
+
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final sheet = styleSheet;
+    if (sheet == null || element.tag != _textTag) return null;
+    return _textRun(context, element, preferredStyle, parentStyle, sheet);
+  }
+
+  /// Every table cell, however deeply its section and rows nest it.
+  void _cellsOf(md.Node node) {
+    if (node is! md.Element) return;
+    if (node.tag == 'th' || node.tag == 'td') {
+      _wrapRuns(node);
+      return;
+    }
+    for (final child in node.children ?? const <md.Node>[]) {
+      _cellsOf(child);
+    }
+  }
+
+  /// Wraps each run of inline content in [block] in a [_textTag] element.
+  ///
+  /// Runs are split at structure — a nested list, a code fence, a nested
+  /// paragraph, a task list's checkbox — so the package still lays those out
+  /// as the blocks they are. The tree has not been visited yet when a block is
+  /// entered, so this changes the parse of this build, not anything already
+  /// rendered.
+  void _wrapRuns(md.Element block) {
+    final children = block.children;
+    if (children == null || children.isEmpty) return;
+    final out = <md.Node>[];
+    var run = <md.Node>[];
+    var trimNext = block.tag == 'p' || block.tag == 'li';
+
+    void flush() {
+      if (run.isEmpty) return;
+      final wrapper = md.Element(_textTag, List.of(run));
+      final cell = block.tag == 'th' || block.tag == 'td';
+      if (cell) {
+        wrapper.attributes['header'] = block.tag == 'th' ? '1' : '0';
+        final align = block.attributes['align'];
+        if (align != null) wrapper.attributes['align'] = align;
+      }
+      if (trimNext) {
+        wrapper.attributes['trim'] = '1';
+        trimNext = false;
+      }
+      out.add(wrapper);
+      run = <md.Node>[];
+    }
+
+    for (final node in children) {
+      final checkbox =
+          node is md.Element &&
+          node.tag == 'input' &&
+          node.attributes['type'] == 'checkbox';
+      if (node is md.Element && (_blockTags.contains(node.tag) || checkbox)) {
+        flush();
+        out.add(node);
+      } else {
+        run.add(node);
+      }
+    }
+    flush();
+    children
+      ..clear()
+      ..addAll(out);
+  }
+
+  /// One run of block text, in its own direction.
+  ///
+  /// The package still adds the paragraph's padding, the cell's border and
+  /// padding, the list item's bullet and the blockquote's rule; this fills the
+  /// width it is given and aligns the words to their own leading edge, so a
+  /// short Persian line reaches the right side of the page it sits on.
+  Widget? _textRun(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+    MarkdownStyleSheet sheet,
+  ) {
+    final header = element.attributes['header'];
+    final base = header == null
+        ? (preferredStyle ?? parentStyle ?? sheet.p)
+        : (header == '1' ? sheet.tableHead : sheet.tableBody);
+    final spans = _spans(
+      element.children ?? const <md.Node>[],
+      base,
+      sheet,
+      trimLeading: element.attributes['trim'] == '1',
+    );
+    if (spans.isEmpty) return null;
+    final direction =
+        nexDominantDirectionOf(element.textContent) ??
+        documentDirection ??
+        Directionality.of(context);
+    final align = _cellAlign(element);
+    final text = Text.rich(
+      TextSpan(children: spans),
+      style: base,
+      textDirection: direction,
+      textAlign: align,
+      // The package forces a strut so a bold word inside a paragraph cannot
+      // change that paragraph's line height. Keep it, with the run's own
+      // base style, or a rendered note's lines would move against a plain one.
+      strutStyle: base == null
+          ? null
+          : StrutStyle(
+              fontFamily: base.fontFamily,
+              fontSize: base.fontSize,
+              height: base.height,
+              leading: 0,
+              forceStrutHeight: true,
+            ),
+    );
+    // Aligned to its own edge rather than stretched: a short right-to-left
+    // line has to reach the right edge of the page it sits on, but a `Text`
+    // drawn the full width of the row would also answer taps in the empty
+    // half beside its words. The `Align` takes the row's width and the text
+    // keeps its own, so the glyphs are both placed and touchable where they
+    // read.
+    return Directionality(
+      textDirection: direction,
+      child: Align(
+        alignment: switch (align) {
+          TextAlign.center => Alignment.center,
+          TextAlign.left => Alignment.centerLeft,
+          TextAlign.right => Alignment.centerRight,
+          _ =>
+            direction == TextDirection.rtl
+                ? Alignment.centerRight
+                : Alignment.centerLeft,
+        },
+        child: text,
+      ),
+    );
+  }
+
+  /// The inline spans of [element], built once, in the block's style.
+  ///
+  /// Anything the package can draw as text is handled here: styled leaves,
+  /// links with their recognizers, inline code with its tap, line breaks,
+  /// superscripts and images. A task list's `input` is skipped, because the
+  /// renderer draws that checkbox as the list's bullet.
+  List<InlineSpan> _spans(
+    Iterable<md.Node> nodes,
+    TextStyle? style,
+    MarkdownStyleSheet sheet, {
+    bool trimLeading = false,
+    GestureRecognizer? recognizer,
+  }) {
+    final spans = <InlineSpan>[];
+    var first = trimLeading;
+    void addText(String text) {
+      if (first) {
+        text = text.replaceFirst(_leadingSpaces, '');
+        first = false;
+      }
+      if (text.isEmpty) return;
+      spans.add(
+        TextSpan(
+          text: text,
+          style: style,
+          recognizer: recognizer,
+          mouseCursor: recognizer == null ? null : SystemMouseCursors.click,
+        ),
+      );
+    }
+
+    for (final node in nodes) {
+      if (node is md.Text) {
+        addText(
+          preserveLineBreaks
+              ? node.text
+              : node.text.replaceAll(_softBreak, ' '),
+        );
+        continue;
+      }
+      if (node is! md.Element) continue;
+      final children = node.children ?? const <md.Node>[];
+      switch (node.tag) {
+        case 'br':
+          spans.add(const TextSpan(text: '\n'));
+          first = true;
+          break;
+        case 'strong':
+          spans.addAll(
+            _spans(
+              children,
+              style?.merge(sheet.strong) ?? sheet.strong,
+              sheet,
+              recognizer: recognizer,
+            ),
+          );
+          break;
+        case 'em':
+          spans.addAll(
+            _spans(
+              children,
+              style?.merge(sheet.em) ?? sheet.em,
+              sheet,
+              recognizer: recognizer,
+            ),
+          );
+          break;
+        case 'del':
+          spans.addAll(
+            _spans(
+              children,
+              style?.merge(sheet.del) ?? sheet.del,
+              sheet,
+              recognizer: recognizer,
+            ),
+          );
+          break;
+        case 'code':
+          final code = node.textContent;
+          final codeStyle = style?.merge(sheet.code) ?? sheet.code;
+          // A link's own gesture wins: a code span inside a link is still the
+          // link, and its menu is the link's.
+          final tap = recognizer == null && !code.contains('\n')
+              ? codeSpans?.recognizerFor(code)
+              : null;
+          spans.add(
+            TextSpan(
+              text: code,
+              style: codeStyle,
+              recognizer: tap,
+              mouseCursor: tap == null ? null : SystemMouseCursors.click,
+            ),
+          );
+          break;
+        case 'a':
+          final href = node.attributes['href'];
+          final hasHref = href != null && href.isNotEmpty;
+          final linkStyle = hasHref ? style?.merge(sheet.a) ?? sheet.a : style;
+          final link = !hasHref || recognizer != null
+              ? recognizer
+              : links?.forHref(href);
+          spans.addAll(_spans(children, linkStyle, sheet, recognizer: link));
+          break;
+        case 'img':
+          spans.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: _image(node.attributes['src'] ?? ''),
+            ),
+          );
+          break;
+        case 'sup':
+          spans.add(
+            TextSpan(
+              text: node.textContent,
+              style: (style ?? const TextStyle()).copyWith(
+                fontFeatures: const [FontFeature.enable('sups')],
+              ),
+              recognizer: recognizer,
+            ),
+          );
+          break;
+        case 'input':
+          // The task list's checkbox: the renderer draws it as the bullet of
+          // the list item, and drawing it again would show it twice.
+          break;
+        default:
+          spans.addAll(_spans(children, style, sheet, recognizer: recognizer));
+          break;
+      }
+    }
+    return spans;
+  }
+
+  /// A cell's own alignment, when the document asks for one; otherwise the
+  /// cell's direction's start edge.
+  TextAlign _cellAlign(md.Element element) =>
+      switch (element.attributes['align']) {
+        'center' => TextAlign.center,
+        'right' => TextAlign.right,
+        'left' => TextAlign.left,
+        _ => TextAlign.start,
+      };
+
+  /// An inline image, drawn with the same sources the renderer accepts:
+  /// network, bundled asset, and an embedded data URI. A relative or local
+  /// file path is not resolvable here — the app's Markdown is read from a
+  /// note or a model, neither of which carries a base directory — so it draws
+  /// nothing rather than a broken box.
+  Widget _image(String source) {
+    final parts = source.split('#');
+    if (parts.isEmpty) return const SizedBox();
+    double? width;
+    double? height;
+    if (parts.length == 2) {
+      final dimensions = parts.last.split('x');
+      if (dimensions.length == 2) {
+        width = double.tryParse(dimensions[0]);
+        height = double.tryParse(dimensions[1]);
+      }
+    }
+    final uri = Uri.tryParse(parts.first);
+    if (uri == null) return const SizedBox();
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      return Image.network(
+        uri.toString(),
+        width: width,
+        height: height,
+        errorBuilder: _noImage,
+      );
+    }
+    if (uri.scheme == 'resource') {
+      return Image.asset(
+        uri.path,
+        width: width,
+        height: height,
+        errorBuilder: _noImage,
+      );
+    }
+    if (uri.scheme == 'data') {
+      try {
+        return Image.memory(
+          uri.data!.contentAsBytes(),
+          width: width,
+          height: height,
+          errorBuilder: _noImage,
+        );
+      } on Object {
+        return const SizedBox();
+      }
+    }
+    return const SizedBox();
+  }
+
+  static Widget _noImage(
+    BuildContext context,
+    Object error,
+    StackTrace? stackTrace,
+  ) => const SizedBox();
+}
+
 /// Keep the code's horizontal scrollbar independent of the RTL page scroll.
 class _NexFencedCode extends StatefulWidget {
   const _NexFencedCode({
@@ -365,110 +814,33 @@ class _NexMarkdownColumnWidth extends IntrinsicColumnWidth {
           .toDouble();
 }
 
-/// Keeps links inside the paragraph, with tap and hold recognizers on each
-/// styled text run. Image links retain the renderer's existing image layout.
-class _NexLinkSpanBuilder extends MarkdownElementBuilder {
-  final recognizers = NexLinkRecognizers();
-
-  @override
-  Widget? visitElementAfterWithContext(
-    BuildContext context,
-    md.Element element,
-    TextStyle? preferredStyle,
-    TextStyle? parentStyle,
-  ) {
-    final href = element.attributes['href'];
-    if (href == null || href.isEmpty) return null;
-    bool hasImage(md.Node node) =>
-        node is md.Element &&
-        (node.tag == 'img' || (node.children?.any(hasImage) ?? false));
-    if (element.children?.any(hasImage) ?? false) return null;
-    final recognizer = recognizers.forHref(href);
-    Iterable<TextSpan> spans(md.Node node, TextStyle? inherited) sync* {
-      if (node is md.Text) {
-        yield TextSpan(
-          text: node.textContent,
-          style: inherited,
-          recognizer: recognizer,
-          mouseCursor: SystemMouseCursors.click,
-        );
-        return;
-      }
-      final child = node as md.Element;
-      final style = switch (child.tag) {
-        'strong' => const TextStyle(fontWeight: FontWeight.w700),
-        'em' => const TextStyle(fontStyle: FontStyle.italic),
-        'del' => const TextStyle(decoration: TextDecoration.lineThrough),
-        'code' => const TextStyle(fontFamily: 'monospace'),
-        _ => null,
-      };
-      for (final node in child.children ?? <md.Node>[]) {
-        yield* spans(node, inherited?.merge(style) ?? style);
-      }
-    }
-
-    return Text.rich(
-      TextSpan(
-        // The renderer flattens one level when merging inline widgets, so
-        // pass styled leaves rather than nested spans that it would discard.
-        children: [
-          for (final node in element.children ?? <md.Node>[])
-            ...spans(
-              node,
-              parentStyle?.merge(preferredStyle) ?? preferredStyle,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A Text carrying spans is merged into the paragraph by the renderer;
-/// wrapping it in a gesture widget would break the sentence's inline layout.
-class _NexCodeSpanBuilder extends MarkdownElementBuilder {
+/// Hands out one tap recognizer per inline `code` span, released with the
+/// widget.
+///
+/// Only on dispose, not per rebuild: a recognizer is still attached to spans
+/// in the tree that produced it, and a re-parse (this renderer re-parses on a
+/// dependency change as well as a rebuild) would otherwise dispose one still
+/// in use. The cost is a handful of small objects per rebuild of a sheet that
+/// rebuilds a handful of times before it closes.
+class _NexCodeSpanBuilder {
   /// Set by the widget on every build; null until it has been.
   void Function(String code)? onTap;
 
-  /// Every recognizer handed to a span, so they can be disposed with the
-  /// widget.
-  ///
-  /// Only on dispose, not per rebuild: a recognizer is still attached to spans
-  /// in the tree that produced it, and a re-parse (this renderer re-parses on
-  /// a dependency change as well as a rebuild) would otherwise dispose one
-  /// still in use. The cost is a handful of small objects per rebuild of a
-  /// sheet that rebuilds a handful of times before it closes.
   final List<TapGestureRecognizer> _recognizers = <TapGestureRecognizer>[];
+
+  /// A recognizer for a tap on [code], or null when code spans are inert.
+  TapGestureRecognizer? recognizerFor(String code) {
+    final handler = onTap;
+    if (handler == null || code.isEmpty || code.contains('\n')) return null;
+    final recognizer = TapGestureRecognizer()..onTap = () => handler(code);
+    _recognizers.add(recognizer);
+    return recognizer;
+  }
 
   void dispose() {
     for (final recognizer in _recognizers) {
       recognizer.dispose();
     }
     _recognizers.clear();
-  }
-
-  @override
-  Widget? visitElementAfterWithContext(
-    BuildContext context,
-    md.Element element,
-    TextStyle? preferredStyle,
-    TextStyle? parentStyle,
-  ) {
-    final code = element.textContent;
-    // `code` is the tag for both an inline span and the body of a fenced
-    // block, and the two want opposite things: a block already scrolls
-    // sideways and must keep doing so. A fence keeps the line breaks of its
-    // source; an inline span cannot contain one, because the parser folds
-    // them into spaces. So the newline is the discriminator.
-    final handler = onTap;
-    if (handler == null || code.isEmpty || code.contains('\n')) return null;
-    final recognizer = TapGestureRecognizer()..onTap = () => handler(code);
-    _recognizers.add(recognizer);
-    return Text.rich(
-      TextSpan(
-        text: code,
-        style: preferredStyle ?? parentStyle,
-        recognizer: recognizer,
-      ),
-    );
   }
 }

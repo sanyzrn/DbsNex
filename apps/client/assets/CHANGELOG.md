@@ -4,6 +4,18 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.9.1
+
+- **Fields hand the keyboard to each other.** Tapping from one field to the next — in a form, a dialog, a sheet or the note editor — no longer closes and reopens the keyboard. The field losing focus waits a moment and lets go as soon as the next one is focused, so the page does not jump and the words keep their place.
+
+- **Switching between list and grid is lighter.** The old view that fades out is now kept at a fraction of the screen's resolution instead of a full-resolution copy taken on the frame of the tap, which is where mid-range phones and 120Hz screens felt the switch.
+
+- **Notices stop doing work while they wait.** A notice's countdown is one timer instead of a check ten times a second, and the brief no longer rereads the library on every keystroke of a note: a burst of changes is read once, after it settles.
+
+- **Markdown reads each block in its own direction.** A heading, paragraph, list item, blockquote or table cell now takes its direction from its own words instead of the first letter of the whole document. A Persian paragraph that opens with an English name stays right to left, an English paragraph in the same note stays left to right, a nested list keeps its structure, and code stays left to right.
+
+- **Summaries check faster.** The day's facts are matched against a generated summary without rebuilding the same language rules and patterns for every line.
+
 ## v2.9.0
 
 - **Notifications that say each thing once.** A reminder no longer repeats its own title under it, no blank line is left above or below the words, and a module or cycle reminder with more to say opens to all of it instead of one cut line. The buttons under a habit's reminder now use the same words and language as every other reminder.

@@ -347,6 +347,10 @@ class TimelineScreenState extends State<TimelineScreen>
   Future<void>? _aiSummaryInFlight;
   Timer? _aiSummaryWake;
 
+  /// A brief pass waiting for a burst of writes to finish — see
+  /// `_onModelChange`.
+  Timer? _briefReload;
+
   /// The next instant the brief's facts change on their own — an item's
   /// moment passing, a recurring item's window opening, the day turning.
   ///
@@ -729,6 +733,7 @@ class TimelineScreenState extends State<TimelineScreen>
     _tour = null;
     _sponsorReturn?.cancel();
     _aiSummaryWake?.cancel();
+    _briefReload?.cancel();
     _greetingRollover?.cancel();
     widget.preferences.removeListener(_onBriefPreferencesChanged);
     unawaited(_habitBriefChanges?.cancel());

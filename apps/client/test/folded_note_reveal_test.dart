@@ -220,13 +220,14 @@ void main() {
     expect(find.textContaining('[the site][nex]'), findsNothing);
   });
 
-  testWidgets('an English paragraph keeps a Persian document its direction', (
+  testWidgets('each block keeps its own direction inside a Persian document', (
     tester,
   ) async {
     // Sized so the paragraph after the first sixty Persian ones — the
-    // English one — starts the second slice: a slice whose own first strong
-    // character is English, so only the document's direction keeps it on
-    // the page's side.
+    // English one — starts the second slice. Since 2.9.1 direction is a
+    // property of the block, not the document or the slice: the English
+    // paragraph reads left to right while the Persian blocks around it keep
+    // the page's right-to-left.
     String persian(int from, int to) => [
       for (var i = from; i < to; i++)
         'پاراگراف فارسی شماره‌ی $i درباره‌ی موضوعاتی که متن را بلند می‌کنند.',
@@ -245,14 +246,17 @@ void main() {
     await tester.tap(find.text('More').first);
     await tester.pumpAndSettle();
 
+    TextDirection? directionOf(Finder finder) => tester
+        .element(finder)
+        .findAncestorWidgetOfExactType<Directionality>()
+        ?.textDirection;
     final english = find.textContaining('A LATE paragraph');
     expect(english, findsOneWidget);
-    // The document is Persian: its direction is the one every slice renders
-    // in, including the one holding only English words.
-    final page = tester
-        .element(english)
-        .findAncestorWidgetOfExactType<Directionality>();
-    expect(page?.textDirection, TextDirection.rtl);
+    expect(directionOf(english), TextDirection.ltr);
+    // The Persian paragraph on the same page still reads right to left.
+    final persianBlock = find.textContaining('پاراگراف فارسی شماره‌ی 60');
+    expect(persianBlock, findsOneWidget);
+    expect(directionOf(persianBlock), TextDirection.rtl);
   });
 
   testWidgets('source code stays one block, whatever its size', (tester) async {

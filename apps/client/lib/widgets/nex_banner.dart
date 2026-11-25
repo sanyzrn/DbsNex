@@ -178,6 +178,10 @@ class _NexBannerState extends State<_NexBanner>
   /// starting it over.
   int _lifeMs = 0;
 
+  /// How much of [_lifeMs] has run. Read only when a finger pauses the
+  /// banner; the countdown itself is one timer, not a poll.
+  final Stopwatch _clock = Stopwatch();
+
   /// How long the banner stays. Given outright by callers who know better —
   /// a module's retry window — and otherwise earned: 45ms a character, so a
   /// message is gone roughly when it has been read, clamped to a floor that
@@ -237,39 +241,36 @@ class _NexBannerState extends State<_NexBanner>
     _scheduleLife(_life);
   }
 
+  /// One timer for the whole lifetime, not a 100 ms poll.
+  ///
+  /// The banner used to wake ten times a second just to subtract its own
+  /// age — a timer interrupt competing with the entrance animation it was
+  /// counting, for a message whose only deadline is its own end. The time
+  /// left is read from [_clock] only when a finger pauses it, and the one
+  /// timer is re-armed for exactly what remains.
   void _scheduleLife(Duration remaining) {
     _timer?.cancel();
     _lifeMs = remaining.inMilliseconds;
-    _tickLife();
-  }
-
-  /// A one-shot Timer cannot report elapsed time before it fires; its tick
-  /// remains zero, which incorrectly restarted a held Undo's entire lifetime.
-  /// Small clock slices let a pause preserve the remaining time without
-  /// relying on a frame timestamp (gestures can arrive between frames).
-  void _tickLife() {
-    if (_leaving || !mounted) return;
-    if (_keepActionUntilDismissed) {
-      _timer?.cancel();
-      _timer = null;
-      return;
-    }
     if (_lifeMs <= 0) {
       unawaited(_dismiss());
       return;
     }
-    final slice = math.min(_lifeMs, 100);
-    _timer = Timer(Duration(milliseconds: slice), () {
-      _lifeMs -= slice;
-      _tickLife();
+    _clock
+      ..reset()
+      ..start();
+    _timer = Timer(Duration(milliseconds: _lifeMs), () {
+      _timer = null;
+      if (mounted && !_leaving) unawaited(_dismiss());
     });
   }
 
   void _pauseLife() {
-    if (_holding || _timer == null) return;
+    if (_holding) return;
     _holding = true;
-    _timer!.cancel();
+    _timer?.cancel();
     _timer = null;
+    _lifeMs = math.max(0, _lifeMs - _clock.elapsedMilliseconds);
+    _clock.stop();
   }
 
   void _resumeLife() {
@@ -310,6 +311,7 @@ class _NexBannerState extends State<_NexBanner>
   void dispose() {
     widget.session.state = null;
     _timer?.cancel();
+    _clock.stop();
     _controller.dispose();
     super.dispose();
   }
@@ -584,6 +586,17 @@ class _CapsulePainter extends CustomPainter {
       ),
       Radius.circular(math.min(dropRadius, radius.x)),
     );
+    // Once the thread has let go (`letGo` reaches 1 at six tenths of the
+    // entrance) the island and the thread are both gone, and the capsule is
+    // the only shape left. Blurring one shape and thresholding it again is
+    // that same shape with a softer edge; drawing it once is the same
+    // picture without the two offscreen layers. That is the last 40% of the
+    // entrance — and of the exit, which is this film run backwards — off the
+    // GPU on a mid-range device.
+    if (t >= .6) {
+      canvas.drawRRect(capsule, Paint()..color = color);
+      return;
+    }
     final thread = ui.lerpDouble(7, 0, letGo)!;
     nexPaintGooey(
       canvas,

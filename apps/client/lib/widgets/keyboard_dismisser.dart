@@ -29,12 +29,107 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
+/// Hands the IME from the field that lost focus to the field that gained it.
+///
+/// Android hides the keyboard the moment an editor is told to unfocus. When
+/// the next tap lands on another field on the same screen, that hide races the
+/// new field's focus: the keyboard closes, the layout jumps, and it opens
+/// again. So a lost focus waits [delay] before hiding, and any field gaining
+/// focus in that window cancels it — the keyboard never left. When nothing
+/// takes over, it is still hidden [delay] later, which is below the threshold
+/// at which the closing is perceptible.
+class NexImeHandoff {
+  NexImeHandoff();
+
+  /// How long a lost focus waits for another field to claim the keyboard.
+  static const delay = Duration(milliseconds: 150);
+
+  NexImeHide? _pending;
+
+  /// A field gained focus: the keyboard is staying up after all.
+  void gain() => cancel();
+
+  /// A field lost focus: hide unless another field takes over first.
+  ///
+  /// The returned handle lets the field that scheduled it cancel the hide
+  /// when it is disposed — a field that leaves with its sheet has no session
+  /// left to end.
+  ///
+  /// The decision is made from the focus tree, not only from the order events
+  /// arrive in: a loss notification delivered *after* the next field has
+  /// already taken focus would otherwise schedule a hide with nothing left to
+  /// cancel it. Checking again when the timer fires covers a field that takes
+  /// focus while the handoff is settling.
+  NexImeHide? lose(VoidCallback hide) {
+    cancel();
+    if (nexTextInputHasFocus()) return null;
+    return _pending = NexImeHide(hide, skip: nexTextInputHasFocus);
+  }
+
+  /// The keyboard is meant to go now — a route is leaving, a sheet closing.
+  void cancel() {
+    _pending?.cancel();
+    _pending = null;
+  }
+}
+
+/// One deferred hide, cancellable by the field that asked for it.
+class NexImeHide {
+  NexImeHide(VoidCallback hide, {bool Function()? skip}) {
+    _timer = Timer(NexImeHandoff.delay, () {
+      _timer = null;
+      if (skip?.call() ?? false) return;
+      hide();
+    });
+  }
+
+  Timer? _timer;
+
+  void cancel() {
+    _timer?.cancel();
+    _timer = null;
+  }
+}
+
+/// Whether a text editor holds the primary focus — one of this app's native
+/// fields or a Flutter field.
+///
+/// The focus node of either kind sits inside its editor: beneath a
+/// [TextFieldTapRegion] for a [NexTextField]'s platform view, beneath
+/// [EditableText] for a Flutter field. Walking the focused element's ancestry
+/// answers the question without knowing which kind of field is asking, and it
+/// is current at the moment it is read rather than a frame behind.
+@visibleForTesting
+bool nexTextInputHasFocus() {
+  final context = FocusManager.instance.primaryFocus?.context;
+  if (context is! Element || !context.mounted) return false;
+  bool isEditor(Element element) {
+    final widget = element.widget;
+    return widget is EditableText ||
+        (widget is TextFieldTapRegion && widget.groupId == EditableText);
+  }
+
+  if (isEditor(context)) return true;
+  var found = false;
+  context.visitAncestorElements((ancestor) {
+    found = isEditor(ancestor);
+    return !found;
+  });
+  return found;
+}
+
+/// One handoff for the app: a gain anywhere cancels a pending hide anywhere.
+final nexImeHandoff = NexImeHandoff();
+
 /// Ends an editor session before its route leaves. Unfocusing alone cannot
 /// hide an IME handed between Android's embedded editor and a Flutter dialog:
 /// neither field may still report focus, while the keyboard remains visible.
 /// Flutter also deliberately leaves physical platform-view IMEs alone when
 /// handling TextInput.hide. Android therefore dismisses at the activity window.
 void nexDismissKeyboard(BuildContext context) {
+  // A field leaving with its route is not handing the keyboard to another
+  // field, so a hide this session deferred must not outlive it.
+  nexImeHandoff.cancel();
   FocusScope.of(context).unfocus();
   // The request precedes the pop, but saving never waits for an IME reply.
   // The activity window remains valid after the editor view has gone.
@@ -44,9 +139,8 @@ void nexDismissKeyboard(BuildContext context) {
 Future<void> _hideKeyboard() async {
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
     try {
-      await const MethodChannel(
-        'nex/os_capture',
-      ).invokeMethod<void>('hideKeyboard');
+      await const MethodChannel('nex/os_capture')
+          .invokeMethod<void>('hideKeyboard');
       return;
     } on MissingPluginException {
       // Desktop, tests, or an older native host use Flutter's connection.

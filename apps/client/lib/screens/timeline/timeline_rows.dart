@@ -327,7 +327,16 @@ extension _TimelineRows on TimelineScreenState {
     // can decide nothing moved; it is not spent on a change that never
     // reaches its source.
     if (kind == TimelineChange.notes || kind == TimelineChange.commitments) {
-      unawaited(_loadAiSummary());
+      // One pass after the burst, not one per write. A note saved on every
+      // keystroke, a batch delete and an import each announce themselves
+      // here, and every pass reads the habits, the whole candidate library
+      // and the semantic pairs before it can discover that nothing it cares
+      // about moved. A short wait costs the brief nothing a reader can see
+      // and keeps that read off the frame doing the writing.
+      _briefReload?.cancel();
+      _briefReload = Timer(const Duration(milliseconds: 250), () {
+        if (mounted) unawaited(_loadAiSummary());
+      });
     }
   }
 
