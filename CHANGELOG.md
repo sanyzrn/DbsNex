@@ -16,6 +16,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - **Summaries check faster.** The day's facts are matched against a generated summary without rebuilding the same language rules and patterns for every line.
 
+- **Quit Habits: hookah, and a week that starts where yours does.** Hookah is now a habit you can pick. The five-week view follows Saturday-first weeks in Persian and marks days still to come instead of treating them as silence. An SOS log now keeps the time the urge began, even when you save it later.
+
+- **Quit Habits: help at a glance, and a pattern in the hour.** The module's home offers Help now for the longest run. The 30-day review names the part of the day reports cluster in, finished attempts read as how long they lasted, and the quick view keeps each attempt's own currency.
+
 ## v2.9.0
 
 - **Notifications that say each thing once.** A reminder no longer repeats its own title under it, no blank line is left above or below the words, and a module or cycle reminder with more to say opens to all of it instead of one cut line. The buttons under a habit's reminder now use the same words and language as every other reminder.
