@@ -333,7 +333,13 @@ extension _CaptureModes on _CaptureSheetState {
           // something the person writing a snippet has to see or maintain.
           textDirection: code ? TextDirection.ltr : null,
           monospace: code,
-          useNativeEditor: !code,
+          // Every kind keeps the same editor, which is the whole point: an
+          // editor swapped out when Code is chosen takes the keyboard with
+          // it (its platform view goes, the IME closes, the sheet's inset
+          // collapses and the next field asks for the keyboard again). The
+          // native editor carries the code gestures itself now, so nothing
+          // here changes when the kind does.
+          code: code,
           inputFormatters: code ? const [NexCodeInputFormatter()] : null,
           // The same keyboard for every kind. A URL keyboard has no
           // suggestion strip, so switching to Link and back made the keyboard

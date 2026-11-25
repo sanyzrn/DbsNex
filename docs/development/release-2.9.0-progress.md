@@ -16,10 +16,10 @@ user-facing copy lives in `CHANGELOG.md` / `CHANGELOG.fa.md`.
 | # | Brief | Status |
 |---|---|---|
 | 1 | Recurring: central early-completion window | **done — this commit** |
-| 2 | One engine for Smart Summary and Daily Nudge | not started |
-| 3 | Intelligent greeting: local first, AI second | not started |
-| 4 | Keyboard / focus / input audit | not started |
-| 5 | Quick Capture: seamless code mode | not started |
+| 2 | One engine for Smart Summary and Daily Nudge | **done** |
+| 3 | Intelligent greeting: local first, AI second | **done** |
+| 4 | Keyboard / focus / input audit | **done** |
+| 5 | Quick Capture: seamless code mode | **done** |
 | 6 | Smart Paste / Submit button | not started |
 | 7 | In-app camera: photo and video | not started |
 | 8 | Android notification audit | not started |
@@ -422,3 +422,80 @@ the decorator's box, not the text's. With the old resolution it fails with
 - The reveal targets the nearest `TextField`; a custom editor that is not a
   `TextField` and not the native one falls back to the focus node's render
   object, which is the text rather than its frame.
+
+## 5. Quick Capture — one box for every kind
+
+### The brief
+
+Note, checklist and link already moved between each other smoothly. Code did
+not: choosing it, or leaving it, closed and reopened the keyboard and the
+panel moved with it.
+
+### Root cause
+
+Not the field, and not the focus: the **editor was swapped**. 2.8.20 gave the
+code box bracket pairs and automatic indentation through
+`NexCodeInputFormatter` (`inputFormatters`), which only Flutter's editor can
+run, so capture passed `useNativeEditor: !code`. Every other kind used
+Android's own editor. Choosing Code therefore destroyed the platform view —
+and `NexEditTextView.dispose()` hides the keyboard when the view it is
+attached to goes — then the Flutter field autofocused and the keyboard came
+back. Measured with the platform view mocked: **create count 1 → 2** across a
+Code → Note round trip; the keyboard-height inset collapsing and returning is
+what made the panel jump.
+
+The remaining vertical movement was not the swap: it is the code tool row
+above the input row (about 48 px, one row, animated) and, once, the schedule
+hint line under the box.
+
+### What changed
+
+- **One editor for all four kinds.** Capture no longer opts out of the native
+  editor: `useNativeEditor` stays true, and the editor is not rebuilt when the
+  kind changes. LTR, monospace, no autocorrect, no suggestions, the language
+  picker, Tab indentation and language detection are all unchanged; they were
+  already native settings, not Flutter ones.
+- **The code gestures moved to where the text is.** `NexTextField.code`
+  travels to the native editor as a config flag, and `NexEditText` now applies
+  the same two rules as `NexCodeInputFormatter`, in its own `TextWatcher` and
+  *before* the change is reported: Enter keeps the current line's indent, a
+  closing bracket or quote typed over its twin steps past it, and an opening
+  one writes its partner with the caret between. A paste, a selection, an IME
+  composition and a value from Dart are left exactly as they are. Because it
+  happens inside the change, Dart and the draft see one text, never a
+  correction arriving after it.
+- `inputFormatters` stays for the Flutter editor, which is still what iOS and
+  desktop use; nothing there changes.
+- The code tool row stays **above** the input row, so the words being typed
+  keep their exact place when Code is chosen; the panel grows by that one row
+  and its own `AnimatedSize` covers the transition.
+
+### Tests added
+
+- `apps/client/test/capture_kind_switch_test.dart` (2):
+  - every kind keeps one platform view (no re-create), the typed text, the
+    box's height, and a box above the keyboard, with no `unfocus` sent while
+    the kind changes; Code leaves the row's top exactly where it was.
+  - the native config carries `code: true`, `monospace: true` and `ltr` for a
+    Code box and `code: false` for a note.
+  - Checked by putting the old `useNativeEditor: !code` back: the first test
+    fails with `creates` 2, which is the bug.
+
+### Checks run here
+
+- `apps/client`: the capture/keyboard group — new test, `code_snippet_capture`
+  (including the Code↔Note focus test), `capture_sheet_draft`,
+  `text_keyboard_lifecycle`, `nex_text_field`, `note_editor_native_resize`,
+  `capture_native_paste_focus`, `focus_reveal`, prompt-studio editor — **112
+  tests, all green**; `flutter analyze` no errors or warnings.
+- The Kotlin was compiled: `kotlinc 2.1.0` over `NexEditText.kt` and
+  `NexMagnifierBridge.kt` against `android-36/android.jar` and Flutter's
+  `flutter.jar` — no errors. An APK/Gradle build was not possible here (no
+  Android SDK or Gradle in this environment).
+
+### Not run here
+
+- A real keyboard on an Android device: the gestures' runtime behaviour
+  (pairing, stepping over a closer, indentation) and the IME staying up across
+  a kind change. They are the mirror of the Dart formatter, which is covered by
+  unit tests, but the Android path itself needs a device test.
