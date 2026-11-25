@@ -133,6 +133,13 @@ Wrapping the inline runs leaves the package's block work intact and puts the
 direction exactly where the text is. A table cell's explicit `align` still
 wins over its direction; untagged cells align to their own start edge.
 
+**Cost.** `packages/ui/benchmark/nex_direction_benchmark.dart` (`flutter test benchmark/nex_direction_benchmark.dart`) over a 266k-character
+bilingual document: `nexDirectionOf` ≈ 0.000 ms/scan (it stops at the first
+strong letter), `nexDominantDirectionOf` 2.587 ms/scan. The count is linear
+and runs once per parse, on the same pass that lays the document out; a
+5k-character note is ≈ 0.05 ms, and each block scans only its own words.
+There is no per-frame work and no extra rebuild.
+
 Regression coverage is `packages/ui/test/nex_markdown_direction_test.dart`
 (Persian-only, English-only, mixed, English-leading Persian, Persian-leading
 English, nested lists, task lists, blockquotes, mixed tables, explicit cell
@@ -178,6 +185,8 @@ The controller, selection, native editing, `NexKeyboardDismisser` and
 - `packages/core`: `dart test test/attention_test.dart` — 31 passing.
 - `packages/core`: `dart analyze benchmark/attention_benchmark.dart`,
   `dart run benchmark/attention_benchmark.dart`.
+- `packages/ui`: `flutter test benchmark/nex_direction_benchmark.dart` (a
+  benchmark that prints its numbers and asserts nothing about them).
 
 The container only ships `libsqlite3.so.0`; tests that open the database need
 the unversioned `libsqlite3.so`. They were run with
