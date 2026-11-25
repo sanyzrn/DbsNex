@@ -67,6 +67,7 @@ part 'services/backup_services.dart';
 part 'services/integrity_services.dart';
 part 'services/library_services.dart';
 part 'services/daily_nudge_services.dart';
+part 'services/brief_services.dart';
 part 'services/scheduled_services.dart';
 part 'services/cycle_services.dart';
 part 'services/note_services.dart';
@@ -160,58 +161,13 @@ class NexServices {
   /// comment for why a queue exists at all.
   Future<void>? _reminderLane;
 
-  Future<HabitsBrief> habitsForBrief() async {
-    await applyHabitActions();
-    if (!_preferences.briefHabitsAllowed) {
-      return HabitsBrief.empty;
-    }
-    final day = NexPreferences.daySummaryDateKey(DateTime.now());
-    if (_habitBriefDay != day) _habitBrief = null;
-    _habitBriefDay = day;
-    return _habitBrief ??=
-        HabitsBrief.read(
-          NexModuleStore(this, 'habits'),
-          DateTime.now(),
-        ).catchError((Object error) {
-          _habitBrief = null;
-          return HabitsBrief.empty;
-        });
-  }
+  Future<HabitsBrief> habitsForBrief() => _readHabitsForBrief();
 
-  /// The notes the brief chooses from: the library's own candidate set —
-  /// everything that can be waiting, plus the newest ordinary prose —
-  /// whatever the timeline window happens to carry. See
-  /// `NoteRepository.listBriefCandidates`.
-  ///
-  /// Refreshed on each brief pass rather than cached: unlike the habits,
-  /// whose day-shaped state changes only through a write that already
-  /// invalidates the cache, a note gains or loses a reminder through the
-  /// ordinary note paths this call rides along with.
-  ///
-  /// A failed read is an empty list, not a failed brief: the timeline window
-  /// still carries everything recent, which is what the brief falls back to.
-  Future<List<Note>> briefCandidates() async {
-    try {
-      return await worker.briefCandidates();
-    } catch (_) {
-      return const [];
-    }
-  }
+  Future<List<Note>> briefCandidates() => _readBriefCandidates();
 
-  /// Which of the brief's candidates the library's own embeddings call one
-  /// subject — grouping beyond shared words, read locally, nothing sent
-  /// anywhere. A failed read is no pairs, not a failed brief: words and tags
-  /// still group what they always did.
   Future<List<({String a, String b})>> briefSemanticPairs(
     List<String> noteIds,
-  ) async {
-    try {
-      final pairs = await worker.briefSemanticPairs(noteIds);
-      return [for (final pair in pairs) (a: pair.a, b: pair.b)];
-    } catch (_) {
-      return const [];
-    }
-  }
+  ) => _readBriefSemanticPairs(noteIds);
 
   EditorDrafts? get editorDrafts => _preferences.editorDrafts;
   bool get solarCalendar => _preferences.solarCalendar;

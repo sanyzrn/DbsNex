@@ -123,7 +123,7 @@ Future<bool?> _chooseSystemCameraMode(BuildContext context) {
   final l10n = AppLocalizations.of(context);
   return nexShowDialog<bool>(
     context: context,
-    builder: (dialog) => AlertDialog(
+    builder: (dialog) => NexAlertDialog(
       title: Text(l10n.cameraUseSystem),
       actions: [
         TextButton(
