@@ -41,6 +41,7 @@ class _SosSheetState extends State<_SosSheet> with WidgetsBindingObserver {
   DateTime? _deadline;
   Timer? _timer;
   bool _loading = true, _failed = false, _leaving = false;
+  late DateTime _helpAt;
   late final _draft = FormDraft(
     widget.store,
     'sos:${widget.attempt.key}',
@@ -50,6 +51,7 @@ class _SosSheetState extends State<_SosSheet> with WidgetsBindingObserver {
     },
     const {},
     () => {
+      'at': _helpAt.toIso8601String(),
       'before': _before,
       'after': _after,
       'mode': _mode.name,
@@ -62,6 +64,7 @@ class _SosSheetState extends State<_SosSheet> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _helpAt = DateTime.now();
     WidgetsBinding.instance.addObserver(this);
     unawaited(_load());
   }
@@ -90,6 +93,8 @@ class _SosSheetState extends State<_SosSheet> with WidgetsBindingObserver {
           ? (body['left'] as int).clamp(0, _minutes * 60)
           : _minutes * 60;
       _deadline = DateTime.tryParse('${body['deadline'] ?? ''}');
+      final restoredAt = DateTime.tryParse('${body['at'] ?? ''}');
+      if (restoredAt != null) _helpAt = restoredAt;
       if (_deadline != null) _sync();
     }
     _draft.start();
@@ -188,8 +193,14 @@ class _SosSheetState extends State<_SosSheet> with WidgetsBindingObserver {
       initialIntensity: _before,
       initialCoping: coping,
       afterIntensity: _after,
+      at: _helpAt,
     );
-    await _draft.clear();
+    try {
+      await _draft.clear();
+    } catch (_) {
+      // The craving is durable; a checkpoint that cannot be cleared is
+      // stale, not a reason to surface a failure after the log is saved.
+    }
   }
 
   Widget _ratings({required bool after}) => CravingRating(

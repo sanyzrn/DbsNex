@@ -20,6 +20,7 @@ Future<void> showCravingSheet(
   int? initialIntensity,
   String? initialCoping,
   int? afterIntensity,
+  DateTime? at,
 }) => nexShowSheet<void>(
   context: context,
   dismissible: false,
@@ -31,6 +32,7 @@ Future<void> showCravingSheet(
     initialIntensity: initialIntensity,
     initialCoping: initialCoping,
     afterIntensity: afterIntensity,
+    at: at,
   ),
 );
 
@@ -42,6 +44,7 @@ class _CravingSheet extends StatefulWidget {
     this.initialIntensity,
     this.initialCoping,
     this.afterIntensity,
+    this.at,
   });
 
   final NexModuleStore store;
@@ -51,6 +54,10 @@ class _CravingSheet extends StatefulWidget {
   final String habit;
   final int? initialIntensity, afterIntensity;
   final String? initialCoping;
+
+  /// When the urge began, for a log opened from Help now. A new form saved
+  /// ten minutes after the pause must not move the report to the wrong day.
+  final DateTime? at;
 
   @override
   State<_CravingSheet> createState() => _CravingSheetState();
@@ -65,6 +72,7 @@ class _CravingSheetState extends State<_CravingSheet> {
   bool _loadFailed = false;
   bool _saving = false;
   bool _restoring = true;
+  late DateTime _at;
   late final FormDraft _draft;
   late final String _recordId = widget.editing?.id ?? widget.store.newId();
 
@@ -72,6 +80,7 @@ class _CravingSheetState extends State<_CravingSheet> {
   void initState() {
     super.initState();
     final editing = widget.editing;
+    _at = editing?.at ?? widget.at ?? DateTime.now();
     _note = TextEditingController(text: editing?.note ?? '');
     _intensity = editing?.intensity ?? widget.initialIntensity ?? 2;
     _triggers = {...?editing?.triggers};
@@ -88,6 +97,7 @@ class _CravingSheetState extends State<_CravingSheet> {
       {'note': _note},
       () => {
         'recordId': _recordId,
+        'at': _at.toIso8601String(),
         'intensity': _intensity,
         'triggers': _triggers.toList(),
         'coping': _coping,
@@ -123,6 +133,12 @@ class _CravingSheetState extends State<_CravingSheet> {
       _coping = cravingCopingKeys.contains(body['coping'])
           ? body['coping'] as String
           : null;
+      // A new log resumed from its draft keeps the time it was first opened;
+      // an edit always keeps the saved record's own time.
+      if (widget.editing == null) {
+        final restoredAt = DateTime.tryParse('${body['at'] ?? ''}');
+        if (restoredAt != null) _at = restoredAt;
+      }
     }
     _draft.start();
     // SOS ratings are user input even if the person leaves without typing.
@@ -144,9 +160,7 @@ class _CravingSheetState extends State<_CravingSheet> {
     if (_saving) return;
     setState(() => _saving = true);
     final body = <String, Object?>{
-      'at':
-          widget.editing?.at.toIso8601String() ??
-          DateTime.now().toIso8601String(),
+      'at': _at.toIso8601String(),
       'intensity': _intensity,
       if (_afterIntensity != null || widget.editing?.afterIntensity != null)
         'afterIntensity': _afterIntensity,
@@ -165,7 +179,12 @@ class _CravingSheetState extends State<_CravingSheet> {
     if (!mounted) return;
     if (!saved) setState(() => _saving = false);
     if (saved) {
-      await _draft.clear();
+      try {
+        await _draft.clear();
+      } catch (_) {
+        // The record is already saved; a draft that could not be cleared is
+        // stale, not a reason to keep the sheet open or lose the save.
+      }
       if (mounted) {
         setState(() => _saving = false);
         Navigator.of(context).pop();
@@ -193,7 +212,11 @@ class _CravingSheetState extends State<_CravingSheet> {
       setState(() => _saving = false);
       return;
     }
-    await _draft.clear();
+    try {
+      await _draft.clear();
+    } catch (_) {
+      // The deletion stands; the Undo below is the recovery path.
+    }
     if (!mounted) return;
     setState(() => _saving = false);
     Navigator.of(context).pop();
