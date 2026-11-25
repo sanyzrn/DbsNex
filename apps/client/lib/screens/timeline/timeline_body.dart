@@ -133,7 +133,7 @@ extension _TimelineBody on TimelineScreenState {
     final theme = Theme.of(context);
     final showGreeting = widget.preferences.showGreeting;
     final greeting = showGreeting
-        ? _greeting(l10n, aiPhrase: _aiHeadlineText)
+        ? _greeting(l10n, aiPhrase: _greetingPhrase())
         : null;
     // The line is there either because there is a greeting to say or because
     // a provider is going to write one — the slot is a skeleton first and
@@ -201,7 +201,7 @@ extension _TimelineBody on TimelineScreenState {
                     _TodayLine(solar: widget.services.solarCalendar),
                     const SizedBox(height: NexSpacing.xs),
                     _GreetingLine(
-                      text: greeting ?? _aiHeadlineText ?? '',
+                      text: greeting ?? '',
                       loading: hasHeadlineSlot && _aiHeadlineLoading,
                       style: headlineStyle,
                     ),

@@ -429,22 +429,88 @@ extension _TimelineAiHeader on TimelineScreenState {
       ? AiOutputLanguage.persian
       : AiOutputLanguage.english;
 
+  /// The moment the greeting on screen belongs to: this day, this part of it,
+  /// this language. The one reading of the clock the whole line is built from.
+  NexGreetingMoment get _greetingMoment =>
+      nexGreetingMomentAt(DateTime.now(), language: _headlineLanguage.wireName);
+
+  /// The model's phrase for the current moment, or null when the cached and
+  /// in-memory phrases belong to another one.
+  ///
+  /// Called from build, so it has to be synchronous and cheap: two map reads
+  /// and a validation of at most ninety characters. It is also the last line
+  /// of defence for the bug this step exists for — even if a timer is missed
+  /// and the cache is old, a night phrase is not shown in the morning.
+  String? _greetingPhrase() {
+    final moment = _greetingMoment;
+    if (_aiHeadlineMoment == moment.key &&
+        nexGreetingFits(_aiHeadlineText, moment: moment)) {
+      return _aiHeadlineText!.trim();
+    }
+    final prefs = widget.preferences;
+    final cached = prefs.aiHeadlineText;
+    if (prefs.aiHeadlineDate == moment.dateKey &&
+        prefs.aiHeadlinePart == moment.part.wireName &&
+        prefs.aiHeadlineLang == moment.language &&
+        nexGreetingFits(cached, moment: moment)) {
+      return cached!.trim();
+    }
+    return null;
+  }
+
+  /// Arms one timer for the next boundary (05:00, 12:00, 17:00, 23:00 or
+  /// midnight) and re-arms itself from the handler.
+  ///
+  /// One timer, not a periodic tick: the line changes at four moments a day,
+  /// and a minute-by-minute wake-up to find that out would cost more than the
+  /// greeting is worth.
+  void _scheduleGreetingRollover() {
+    _greetingRollover?.cancel();
+    final now = DateTime.now();
+    final next = nexGreetingBoundaries(now).firstWhere(
+      (at) => at.isAfter(now),
+      orElse: () => now.add(const Duration(hours: 1)),
+    );
+    _greetingRollover = Timer(next.difference(now), () {
+      if (!mounted) return;
+      _onGreetingMomentChanged();
+      _scheduleGreetingRollover();
+    });
+  }
+
+  /// The day or the part of it has turned: stale words go now, the local
+  /// phrasing holds the line, and a phrase for the new moment is asked for.
+  void _onGreetingMomentChanged() {
+    final moment = _greetingMoment;
+    if (_aiHeadlineMoment != null && _aiHeadlineMoment != moment.key) {
+      _rebuild(() {
+        _aiHeadlineText = null;
+        _aiHeadlineMoment = null;
+      });
+    }
+    unawaited(_loadAiHeadline());
+  }
+
   /// The headline over the timeline. Same shape as [_loadAiSummary] — cached
-  /// per day, forced by a tap on the line itself.
+  /// per moment, forced by a tap on the line itself.
   Future<void> _loadAiHeadline({bool force = false}) async {
     final prefs = widget.preferences;
     if (!_aiHeaderAvailable) return;
     // Drawn only beside the greeting; with the greeting hidden it is not
     // asked for.
     if (!force && !prefs.showGreeting) return;
-    final today = _aiSummaryDateKey();
+    final moment = _greetingMoment;
+    // This moment's phrase is already on screen — from the cache or from the
+    // last answer. Asking again would rebuild the line to say the same thing.
+    if (!force && _greetingPhrase() != null) return;
     final language = _headlineLanguage;
     final langKey = language.wireName;
     if (_aiHeadlineLoading) return;
     _rebuild(() => _aiHeadlineLoading = true);
     try {
       final text = await widget.services.briefRefresh.headline(
-        dateKey: today,
+        dateKey: moment.dateKey,
+        part: moment.part.wireName,
         language: langKey,
         force: force,
         request: () async {
@@ -466,20 +532,26 @@ extension _TimelineAiHeader on TimelineScreenState {
           }
         },
       );
-      if (mounted && language == _headlineLanguage) {
+      // The answer is only this request's answer if the clock still says so.
+      // A phrase for 22:00 that lands at 00:05 is not a greeting for now, and
+      // a language change rewrites the line just as completely.
+      if (mounted && moment == _greetingMoment) {
         // A greeting kept from before 2.8.6 may have been cut off with an
-        // ellipsis; the app's own line stands in for it rather than a phrase
-        // broken off before the name.
+        // ellipsis; a phrase that names another part of the day is just as
+        // unusable, and the app's own line stands in for it.
         final clean = CloudAIAdapter.cleanDecorativeReply(text);
-        _rebuild(
-          () => _aiHeadlineText =
-              clean != null && clean.trimRight().endsWith('…') ? null : clean,
-        );
+        final phrase = nexGreetingFits(clean, moment: moment)
+            ? clean!.trim()
+            : null;
+        _rebuild(() {
+          _aiHeadlineText = phrase;
+          _aiHeadlineMoment = phrase == null ? null : moment.key;
+        });
       }
     } finally {
       if (mounted) {
         _rebuild(() => _aiHeadlineLoading = false);
-        if (language != _headlineLanguage) unawaited(_loadAiHeadline());
+        if (moment != _greetingMoment) unawaited(_loadAiHeadline());
       }
     }
   }
@@ -677,6 +749,7 @@ extension _TimelineAiHeader on TimelineScreenState {
     // screen restless.
     if (_aiSummaryRequested) return;
     _aiSummaryRequested = true;
+    _scheduleGreetingRollover();
     unawaited(_loadAiHeadline());
   }
 
@@ -757,7 +830,7 @@ extension _TimelineAiHeader on TimelineScreenState {
     };
     // A comma in the interface's script — the phrase came back in that
     // language.
-    if (_headlineLanguage.acceptsGreeting(aiPhrase)) {
+    if (aiPhrase != null && aiPhrase.isNotEmpty) {
       if (name == null) return aiPhrase;
       final comma = Localizations.localeOf(context).languageCode == 'fa'
           ? '،'

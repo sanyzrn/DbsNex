@@ -6,6 +6,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.9.0
 
+- **The greeting keeps up with the hour.** The line above your notes now belongs to the day and the part of the day it was written for, so last night's phrase no longer greets you in the morning. The app's own greeting appears at once while a fresh one is written, and it is replaced without a jump when you come back to the app, cross noon, evening or midnight, or change the interface language. A phrase about the wrong time of day is never shown.
+
 - **The brief and the daily nudge read the day the same way.** One reading of the library now feeds both, so a reminder later today is a plan and is never called finished or missed — at 10:30, reminders for 11:20 and 11:46 are still ahead of you — and an item whose early window is open says so without pretending it is due. Overdue, due now, open early and merely upcoming are four different things, and each is named as itself. The model is given these facts and cannot overwrite them: a summary that contradicts them, or that arrives after the notes have changed, is dropped instead of shown.
 
 - **A recurring item cannot be finished in advance.** After you mark an occurrence done, the next one waits: its tick opens a set time before it falls due — a few minutes for an hourly item, three hours for a daily one, a day for a weekly, three days for a monthly and a week for a yearly — and the card says when. You can set that window for each item, including "only when it is due". Ticking one off ahead of time keeps the schedule where it was, and the history now shows both when it was done and which occurrence it answered. A paused item no longer looks like it can be done.

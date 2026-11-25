@@ -17,36 +17,41 @@ class NexBriefRefresh {
   static const failureInterval = Duration(minutes: 15);
   Future<NexBriefRefreshResult>? _pending;
   Future<String?>? _headlinePending;
-  String? _headlinePendingLanguage;
+  String? _headlinePendingKey;
 
   Future<String?> headline({
     required String dateKey,
     required String? language,
     required Future<String?> Function() request,
     bool force = false,
+    String? part,
   }) {
     bool accepts(String? text) =>
         AiOutputLanguage.fromWire(language).acceptsGreeting(text);
+    // A cached line is only this moment's line: same day, same part of it,
+    // same language. The part is what 2.9.0 added — without it, last night's
+    // phrase was a valid cache hit all through the morning.
     String? cachedHeadline() {
       final text = preferences.aiHeadlineText;
-      return preferences.aiHeadlineLang == language && accepts(text)
-          ? text
-          : null;
+      final sameMoment =
+          preferences.aiHeadlineDate == dateKey &&
+          preferences.aiHeadlinePart == part &&
+          preferences.aiHeadlineLang == language;
+      return sameMoment && accepts(text) ? text : null;
     }
 
+    // The flight belongs to a moment too. A request for another part of the
+    // day cannot answer this one, and waiting on it would hold the line until
+    // a phrase about the wrong hour came back.
+    final flightKey = '$dateKey|$part|$language';
     final pending = _headlinePending;
     if (pending != null) {
-      if (_headlinePendingLanguage == language) return pending;
-      return pending.then((text) => accepts(text) ? text : null);
+      if (_headlinePendingKey == flightKey) return pending;
+      return Future.value(cachedHeadline());
     }
     if (!force) {
       final cached = cachedHeadline();
-      if (preferences.aiHeadlineDate == dateKey &&
-          preferences.aiHeadlineLang == language &&
-          cached != null &&
-          cached.isNotEmpty) {
-        return Future.value(cached);
-      }
+      if (cached != null && cached.isNotEmpty) return Future.value(cached);
       final failed = preferences.aiHeadlineFailedAt;
       if (failed != null && _clock().difference(failed) < failureInterval) {
         return Future.value(cached);
@@ -55,10 +60,10 @@ class NexBriefRefresh {
     final completer = Completer<String?>();
     final flight = completer.future.whenComplete(() {
       _headlinePending = null;
-      _headlinePendingLanguage = null;
+      _headlinePendingKey = null;
     });
     _headlinePending = flight;
-    _headlinePendingLanguage = language;
+    _headlinePendingKey = flightKey;
     Future.sync(() async {
       String? text;
       try {
@@ -74,6 +79,7 @@ class NexBriefRefresh {
         text: text!,
         dateKey: dateKey,
         lang: language,
+        part: part,
       );
       return text;
     }).then(completer.complete, onError: completer.completeError);

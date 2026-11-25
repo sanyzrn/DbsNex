@@ -2292,7 +2292,11 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
       'would say it. A short phrase of two to seven words that a name can '
       'follow, the way "Good morning" precedes one. Tie it to the hour and, '
       'lightly, to their mood and what they have been writing down: warm, '
-      'friendly, a little playful, never flat. '
+      'friendly, a little playful, never flat. If it names a part of the day, '
+      'name the one given below and never another — a morning line at midnight '
+      'is not a near miss, it is the wrong greeting. Avoid the stock lines a '
+      'calendar app would write ("ready to conquer the day", "a fresh start"); '
+      'say something only this person\'s day could prompt. '
       // No name in the prompt and none in the reply. The user's name never
       // leaves this device — not to a provider, not to sync — so the app
       // appends it to whatever comes back. That is also why this asks for a

@@ -182,6 +182,14 @@ mixin _BriefPreferences on _PreferencesStore {
   String? get aiHeadlineText => _prefs.getString('ai.headline.text');
   String? get aiHeadlineDate => _prefs.getString('ai.headline.date');
 
+  /// The part of the day the cached line was written for: `morning`,
+  /// `afternoon`, `evening` or `night`.
+  ///
+  /// Absent on a line cached before 2.9.0, which is exactly why it is checked
+  /// rather than assumed: a cache with no part is not a cache for the current
+  /// moment, so the local greeting is used until a new line arrives.
+  String? get aiHeadlinePart => _prefs.getString('ai.headline.part');
+
   DateTime? get aiHeadlineFailedAt {
     final value = _prefs.getInt('ai.headline.failedAt');
     return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
@@ -201,6 +209,7 @@ mixin _BriefPreferences on _PreferencesStore {
     required String text,
     required String dateKey,
     String? lang,
+    String? part,
   }) async {
     await _prefs.setString('ai.headline.text', text);
     await _prefs.setString('ai.headline.date', dateKey);
@@ -209,6 +218,11 @@ mixin _BriefPreferences on _PreferencesStore {
       await _prefs.remove('ai.headline.lang');
     } else {
       await _prefs.setString('ai.headline.lang', lang);
+    }
+    if (part == null) {
+      await _prefs.remove('ai.headline.part');
+    } else {
+      await _prefs.setString('ai.headline.part', part);
     }
   }
 }

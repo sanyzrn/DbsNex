@@ -63,6 +63,7 @@ export 'ai/ai_adapter_binding.dart';
 export 'ai/ai_capabilities.dart';
 export 'ai/attention.dart';
 export 'ai/brief_facts.dart';
+export 'ai/greeting.dart';
 export 'ai/chat_adapter.dart';
 export 'ai/chat_adapter_binding.dart';
 export 'ai/chat_scope_policy.dart';

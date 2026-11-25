@@ -237,3 +237,81 @@ for both, in English and Persian (Persian digits included).
 - Idea lines in the nudge are only reachable when a fact already exists, so
   the pinned silence tests still hold; if the product later wants ideas to
   open a nudge, that is a deliberate policy change and needs its own test.
+
+## Step 3 — the greeting belongs to its moment
+
+### What changed
+
+- **`packages/core/lib/ai/greeting.dart` (new).** The rule, not the widget:
+  `nexGreetingPartOf` (05:00 / 12:00 / 17:00 / 23:00, the boundaries the local
+  phrasings were written for), `NexGreetingMoment` (local day + part +
+  interface language, with a `key`), `nexGreetingBoundaries` (the next four
+  instants the line can change at), and `nexGreetingFits` — one line, short
+  enough for the card, in the moment's language, and naming no part of the day
+  other than the current one. The night list carries the exact phrase from the
+  report ("still up", «هنوز بیداری»), which is why last night's line can no
+  longer pass as a morning one.
+- **The cache key gained its missing half.** `ai.headline.part` is stored with
+  the text, and `NexBriefRefresh.headline` only returns a cached phrase for the
+  same day *and* part *and* language. A cache written before 2.9.0 has no part,
+  so it is not a hit — the local greeting holds the line until the new phrase
+  arrives. The in-flight request is keyed the same way: a flight for the night
+  cannot answer the morning.
+- **The header lives in the moment.** `_greetingPhrase` is synchronous and runs
+  in build: it accepts the in-memory phrase only when its moment key matches,
+  otherwise it re-reads the cache under the same three conditions. This is the
+  last line of defence — no timer and no provider are needed for a stale phrase
+  to be refused. The model's answer is applied only if the moment still matches
+  when it lands, and an answer naming another part of the day is dropped.
+- **The line changes when the clock does.** One timer is armed for the next
+  boundary (and re-arms in its handler), the app's resume path checks the
+  moment again, and a language change is part of the moment, so all three
+  replace the line without a restart. Stale words are cleared before the
+  request, so the local greeting is what is on screen in the meantime.
+- **Fewer requests and fewer rebuilds.** If this moment's phrase is already on
+  screen the loader returns before setting a loading flag, so a resume or a
+  no-op delivery rebuilds nothing and asks nobody. The prompt now also says to
+  name only the given part of the day and to avoid stock calendar lines.
+
+### Tests added
+
+- `packages/core/test/greeting_test.dart` — the four boundaries and the `0…23`
+  edges, wire round-trip (including the absent part of an old cache), moment
+  equality across day/part/language, the next boundary at 04:59, 10:00 and
+  23:30, and phrase validation: right part accepted, night phrase refused in
+  the morning (English and Persian), neutral phrase accepted at every hour,
+  multi-line and over-long refused, wrong-language refused.
+- `apps/client/test/brief_headline_moment_test.dart` — a night cache is not a
+  morning hit; a current-moment cache answers without a request; a partless
+  cache is not reused and is rewritten with a part; the answer is stored with
+  its part; a night flight cannot answer the morning; a failure at a new moment
+  never returns the old phrase.
+- `apps/client/test/greeting_moment_test.dart` — on the real screen, a phrase
+  cached for the current moment opens the screen, and one cached for another
+  part is absent while the local greeting is already there.
+
+### Checks run in this environment
+
+- `packages/core`: analyze clean; full suite 350 passed (10 new).
+- `packages/data`: 458 passed, 14 skipped.
+- `packages/ai`: analyze clean; 261 passed.
+- `apps/client`: `flutter analyze` no errors or warnings; 285 tests green across
+  the 41 header/home/brief/settings/timeline files, plus the two new files
+  (which also cover the AI-off path: no provider, no network, local text
+  immediately).
+
+### Not run here
+
+- A real clock crossing a boundary, a device time-zone change and a real
+  background/foreground cycle. The boundary timer is a single `Timer` cancelled
+  in `dispose`; the moment is recomputed on resume and in every build.
+
+### Remaining risks for the final audit
+
+- The phrase validator knows two languages; a third locale's phrase is
+  accepted as long as it is short and single-line. That is deliberate — an
+  unknown language is not a reason to show nothing — but the time-of-day check
+  only covers the English and Persian vocabularies in `_partWords`.
+- A model may answer with a neutral phrase at an odd hour ("Ready when you
+  are" at 03:00). It passes validation; the local phrasing is what names the
+  hour, and the prompt asks the model to.

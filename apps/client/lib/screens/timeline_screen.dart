@@ -377,7 +377,16 @@ class TimelineScreenState extends State<TimelineScreen>
 
   /// The AI-generated line across the top — see [_loadAiHeadline].
   String? _aiHeadlineText;
+
+  /// The moment the line above was written for (`date|part|language`).
+  ///
+  /// Kept beside the words rather than trusted from the cache: the greeting
+  /// must not outlive its hour even when nothing rewrites the cache.
+  String? _aiHeadlineMoment;
   bool _aiHeadlineLoading = false;
+
+  /// Fires at the next greeting boundary — see [_scheduleGreetingRollover].
+  Timer? _greetingRollover;
 
   /// Folds the brief down to its first lines; the heading and its arrow
   /// stay. Persisted in [NexPreferences.daySummaryFolded], and changed by a
@@ -700,12 +709,18 @@ class TimelineScreenState extends State<TimelineScreen>
         state == AppLifecycleState.hidden) {
       _aiSummaryWake?.cancel();
       _ringingSync?.cancel();
+      _greetingRollover?.cancel();
       unawaited(_model.retireSpentReminders());
       return;
     }
     if (state == AppLifecycleState.resumed) {
       _syncRinging();
       unawaited(_loadAiSummary());
+      // A night phrase must not survive a night in the background: returning
+      // to the app is one of the moments the greeting has to be looked at
+      // again, even though nothing in the database changed.
+      _onGreetingMomentChanged();
+      _scheduleGreetingRollover();
       unawaited(_releaseSetAside());
       // A failed sponsor fetch is retried on a real return to the app rather
       // than by leaving timers behind in the timeline. The service's
@@ -734,6 +749,7 @@ class TimelineScreenState extends State<TimelineScreen>
     _tour = null;
     _sponsorReturn?.cancel();
     _aiSummaryWake?.cancel();
+    _greetingRollover?.cancel();
     widget.preferences.removeListener(_onBriefPreferencesChanged);
     unawaited(_habitBriefChanges?.cancel());
     _model.removeListener(_onModelChanged);
