@@ -115,7 +115,7 @@ void main() {
     },
   );
 
-  test('an answer arriving after its facts expire is not cached', () async {
+  test('expired answers are not cached', () async {
     final reply = Completer<String?>();
     final flight = refresh.refresh(
       fingerprint: 'expired',
