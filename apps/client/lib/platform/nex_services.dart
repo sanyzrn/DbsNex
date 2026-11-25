@@ -67,6 +67,7 @@ part 'services/backup_services.dart';
 part 'services/integrity_services.dart';
 part 'services/library_services.dart';
 part 'services/daily_nudge_services.dart';
+part 'services/brief_services.dart';
 part 'services/scheduled_services.dart';
 part 'services/cycle_services.dart';
 part 'services/note_services.dart';
@@ -160,44 +161,13 @@ class NexServices {
   /// comment for why a queue exists at all.
   Future<void>? _reminderLane;
 
-  Future<HabitsBrief> habitsForBrief() async {
-    await applyHabitActions();
-    if (!_preferences.briefHabitsAllowed) {
-      return HabitsBrief.empty;
-    }
-    final day = NexPreferences.daySummaryDateKey(DateTime.now());
-    if (_habitBriefDay != day) _habitBrief = null;
-    _habitBriefDay = day;
-    return _habitBrief ??=
-        HabitsBrief.read(
-          NexModuleStore(this, 'habits'),
-          DateTime.now(),
-        ).catchError((Object error) {
-          _habitBrief = null;
-          return HabitsBrief.empty;
-        });
-  }
+  Future<HabitsBrief> habitsForBrief() => _readHabitsForBrief();
 
-  /// The notes the brief reads beyond the timeline window: every live note
-  /// carrying a reminder — overdue or not — and every urgent one, whatever
-  /// their place in the recency slice the timeline keeps — see
-  /// `NoteRepository.listBriefWaiting`.
-  ///
-  /// Refreshed on each brief pass rather than cached: unlike the habits,
-  /// whose day-shaped state changes only through a write that already
-  /// invalidates the cache, a note gains or loses a reminder through the
-  /// ordinary note paths this call rides along with.
-  ///
-  /// A failed read is an empty list, not a failed brief: the window still
-  /// carries everything recent, which is what it always carried before
-  /// this query existed.
-  Future<List<Note>> briefWaitingNotes({int limit = 200}) async {
-    try {
-      return await worker.briefWaitingNotes(limit: limit);
-    } catch (_) {
-      return const [];
-    }
-  }
+  Future<List<Note>> briefCandidates() => _readBriefCandidates();
+
+  Future<List<({String a, String b})>> briefSemanticPairs(
+    List<String> noteIds,
+  ) => _readBriefSemanticPairs(noteIds);
 
   EditorDrafts? get editorDrafts => _preferences.editorDrafts;
   bool get solarCalendar => _preferences.solarCalendar;

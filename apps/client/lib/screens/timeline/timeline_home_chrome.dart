@@ -180,7 +180,7 @@ extension _TimelineHomeChrome on TimelineScreenState {
             key: const ValueKey('timeline-recap'),
             loading: _aiSummaryLoading,
             text: !widget.preferences.briefHabitsAllowed && _aiSummaryHasHabits
-                ? widget.preferences.aiDaySummaryText ?? _notesOnlyBrief()
+                ? widget.preferences.currentAiBrief ?? _notesOnlyBrief()
                 : _aiSummaryText ?? '',
             emptyLabel: l10n.aiDaySummaryEmpty,
             collapsed: _aiSummaryCollapsed,

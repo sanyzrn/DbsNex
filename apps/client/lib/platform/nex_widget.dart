@@ -59,6 +59,7 @@ class NexWidgetSnapshot {
     required this.generatedAt,
     required this.notes,
     this.recap = '',
+    this.recapValidUntil,
   });
 
   /// Bumped only when the field set changes in a way the Android reader must
@@ -143,6 +144,17 @@ class NexWidgetSnapshot {
   /// notes say, so a locked library must not leave one on the home screen.
   final String recap;
 
+  /// The instant the recap stops being true, as the app computed it when the
+  /// words were written — the same expiry the card and the nudge respect.
+  ///
+  /// The widget provider is a broadcast receiver with no Flutter engine: it
+  /// cannot recompute the library's state, and the app may not run again
+  /// before the launcher redraws. Carrying the expiry lets the reader drop
+  /// the words itself the moment they stop being true, rather than leaving
+  /// yesterday's sentence on the home screen until the next write. Null means
+  /// "not known" — a recap written before 2.9.0 keeps the behaviour it had.
+  final DateTime? recapValidUntil;
+
   /// The pure part of the job, so the rules below are testable without a
   /// device, a database or a platform channel.
   ///
@@ -215,6 +227,7 @@ class NexWidgetSnapshot {
     required List<Note> notes,
     String recap = '',
     DateTime? now,
+    DateTime? recapValidUntil,
   }) {
     if (appLock) {
       // No content leaves the app while the lock is on. Not an empty-looking
@@ -230,6 +243,7 @@ class NexWidgetSnapshot {
       appLock: false,
       generatedAt: now ?? DateTime.now(),
       recap: CloudAIAdapter.cleanDecorativeReply(recap) ?? '',
+      recapValidUntil: recapValidUntil,
       notes: [
         for (final note in notes.take(maxNotes))
           NexWidgetNotePreview(
@@ -264,6 +278,8 @@ class NexWidgetSnapshot {
     'appLock': appLock,
     'generatedAt': generatedAt.millisecondsSinceEpoch,
     'recap': recap,
+    if (recapValidUntil case final until?)
+      'recapValidUntil': until.millisecondsSinceEpoch,
     'notes': [for (final note in notes) note.toJson()],
   };
 }
@@ -456,6 +472,7 @@ class NexWidgetBridge {
         types,
         tagIds: tagIds,
       );
+      final recap = preferences.currentAiBrief ?? '';
       final snapshot = NexWidgetSnapshot.build(
         appLock: lock,
         notes: notes,
@@ -464,7 +481,12 @@ class NexWidgetBridge {
         // It used to be the raw cache, so yesterday's sentence (and one whose
         // facts had moved on an hour ago) could be published on the home
         // screen as the state of the library now.
-        recap: preferences.currentAiBrief ?? '',
+        recap: recap,
+        // The expiry travels with the words: the reader drops them itself
+        // when they stop being true, even if the app never runs again.
+        recapValidUntil: recap.isEmpty
+            ? null
+            : preferences.aiDaySummaryValidUntil,
       );
       // Atomic swap. The reader runs whenever the launcher pleases; a
       // half-written file must never be the thing it finds.
@@ -488,6 +510,7 @@ class NexWidgetBridge {
       _lastWrittenLock = publishedLock;
       _lastWrittenFilter = _filterSignature;
       await _push();
+      _armRecapExpiry();
     } catch (error) {
       unawaited(NexCrashLog.handled('widget.snapshot', error));
       // The snapshot is a copy, not the library: any failure here leaves the
@@ -576,9 +599,36 @@ class NexWidgetBridge {
     }
   }
 
+  Timer? _recapExpiry;
+
+  /// The recap on file stops being true at a known instant, and no write
+  /// accompanies it — an item's moment passes, the day turns. The reader
+  /// gates on the expiry itself, but the file should stop carrying the words
+  /// too: one timer for the earlier of the expiry and midnight, re-armed
+  /// after every write, so a phone left alone still ends up with an honest
+  /// snapshot rather than yesterday's sentence.
+  void _armRecapExpiry() {
+    _recapExpiry?.cancel();
+    if (_disposed) return;
+    final recap = preferences.currentAiBrief;
+    if (recap == null || recap.isEmpty) return;
+    final now = DateTime.now();
+    final midnight = DateTime(now.year, now.month, now.day + 1);
+    final until = preferences.aiDaySummaryValidUntil;
+    final at = until != null && until.isBefore(midnight) ? until : midnight;
+    var wait = at.difference(now);
+    // A timer a hair before its own boundary would read the same state
+    // again; a second is enough to have moved past it.
+    if (wait < const Duration(seconds: 1)) wait = const Duration(seconds: 1);
+    _recapExpiry = Timer(wait, () {
+      if (!_disposed) unawaited(_write());
+    });
+  }
+
   void dispose() {
     _disposed = true;
     _timer?.cancel();
+    _recapExpiry?.cancel();
     unawaited(_subscription?.cancel());
     _subscription = null;
     unawaited(_cycleSubscription?.cancel());

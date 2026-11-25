@@ -437,8 +437,16 @@ mixin _DbClient implements NexDb {
       _send<List<Note>>(_DbCommand.upcomingReminders, {'limit': limit});
 
   @override
-  Future<List<Note>> briefWaitingNotes({int limit = 200}) =>
-      _send<List<Note>>(_DbCommand.briefWaitingNotes, {'limit': limit});
+  Future<List<Note>> briefCandidates() =>
+      _send<List<Note>>(_DbCommand.briefCandidates);
+
+  @override
+  Future<List<({String a, String b, double score})>> briefSemanticPairs(
+    List<String> noteIds,
+  ) => _send<List<({String a, String b, double score})>>(
+    _DbCommand.briefSemanticPairs,
+    {'ids': noteIds},
+  );
 
   @override
   Future<void> backup(

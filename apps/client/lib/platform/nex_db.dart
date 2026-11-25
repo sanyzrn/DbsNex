@@ -334,10 +334,16 @@ abstract interface class NexDb {
 
   Future<List<Note>> upcomingReminders({int limit});
 
-  /// The live notes the daily brief reads beyond the timeline window:
-  /// reminders and urgent notes, chosen by what is on them rather than by
-  /// when they were last touched — see `NoteRepository.listBriefWaiting`.
-  Future<List<Note>> briefWaitingNotes({int limit});
+  /// The daily brief's candidate set, read from the library itself: every
+  /// note that can be waiting plus the newest ordinary prose — see
+  /// `NoteRepository.listBriefCandidates`.
+  Future<List<Note>> briefCandidates();
+
+  /// Pairs among [noteIds] whose stored embeddings say they are about one
+  /// subject — see `NoteRepository.similarNotePairs`.
+  Future<List<({String a, String b, double score})>> briefSemanticPairs(
+    List<String> noteIds,
+  );
 
   Future<void> backup(
     String backupDir, {

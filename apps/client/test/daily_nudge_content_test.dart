@@ -369,6 +369,85 @@ void main() {
   });
 
   test(
+    'a recap whose facts have expired is not delivered, even within the hour',
+    () {
+      // Written at 07:00, an item falls due at 07:20, the nudge is at 07:30:
+      // the hour and the day still match, but the sentence stopped being true
+      // ten minutes ago. The local facts are what the notification carries.
+      final written = DateTime(2026, 11, 3, 7);
+      final expired = DateTime(2026, 11, 3, 7, 20);
+      expect(
+        NexDailyNudgeContent.canUseSummary(
+          aiEnabled: true,
+          summaryEnabled: true,
+          sourceMatches: true,
+          writtenAt: written,
+          deliveryAt: DateTime(2026, 11, 3, 7, 30),
+          text: 'nothing is overdue',
+          validUntil: expired,
+        ),
+        isFalse,
+      );
+      // Before the expiry the same recap is still usable.
+      expect(
+        NexDailyNudgeContent.canUseSummary(
+          aiEnabled: true,
+          summaryEnabled: true,
+          sourceMatches: true,
+          writtenAt: written,
+          deliveryAt: DateTime(2026, 11, 3, 7, 10),
+          text: 'nothing is overdue',
+          validUntil: expired,
+        ),
+        isTrue,
+      );
+      final plan = NexDailyNudgeContent.plan(
+        source: const NexNudgeSnapshot(
+          notes: [],
+          commitments: [],
+          hasData: true,
+        ),
+        now: DateTime(2026, 11, 3, 7),
+        minutes: 7 * 60 + 30,
+        persian: false,
+        title: 'Nex',
+        aiEnabled: true,
+        summaryEnabled: true,
+        sourceMatches: true,
+        summary: 'nothing is overdue',
+        summaryAt: written,
+        summaryValidUntil: expired,
+        secret: false,
+      );
+      final today = (plan['days'] as Map<String, Object?>)['2026-11-03'] as Map;
+      expect(today['ai'], isFalse);
+      expect(today['bodies'], isNot(contains('nothing is overdue')));
+    },
+  );
+
+  test('the expiry bounds the recap window when it comes before the hour', () {
+    final written = DateTime(2026, 11, 3, 7);
+    final expired = DateTime(2026, 11, 3, 7, 20);
+    final plan = NexDailyNudgeContent.plan(
+      source: const NexNudgeSnapshot(notes: [], commitments: [], hasData: true),
+      now: DateTime(2026, 11, 3, 7),
+      minutes: 7 * 60 + 10,
+      persian: false,
+      title: 'Nex',
+      aiEnabled: true,
+      summaryEnabled: true,
+      sourceMatches: true,
+      summary: 'fresh',
+      summaryAt: written,
+      summaryValidUntil: expired,
+      secret: false,
+    );
+    final today = (plan['days'] as Map<String, Object?>)['2026-11-03'] as Map;
+    expect(today['ai'], isTrue);
+    expect(today['expires'], expired.millisecondsSinceEpoch);
+  });
+
+  test(
     'only a fresh matching same-day slot uses AI; future days are local',
     () {
       final plan = NexDailyNudgeContent.plan(

@@ -937,3 +937,169 @@ Six `flutter analyze --fatal-infos` findings, not weakened but removed:
      the brief card must redraw by itself, and an expired model summary must
      disappear in favour of the local lines.
   6. Check the home-screen widget before and after a cached summary expires.
+
+---
+
+## 10. The targeted final corrections
+
+The independent audit's remaining findings, worked as four coherent sets.
+Same rules as the eight briefs: each set tested, committed and pushed on its
+own; nothing merged to `main`.
+
+### Set 1 — the brief reads the library, not the window
+
+**What was wrong.** `_briefLibrary` merged the timeline window with
+`listBriefWaiting`, so the brief's reach still depended on a recency slice:
+the window's depth moves with scrolling, the waiting query cut at two hundred
+rows (an urgent note survived the cut only because it sorted first), and an
+undated unfinished checklist below the window was invisible to the brief
+entirely. The source and the headline each carried one fixed size — twenty
+lines of a hundred and sixty characters — for every library.
+
+**What changed.**
+
+- **`SqliteNoteRepository.listBriefCandidates`** (replacing
+  `listBriefWaiting`, port and worker plumbing renamed with it) reads the
+  candidate set from the library itself: everything that can be waiting — a
+  reminder, an urgent mark, a checklist — with **no count cap**, plus the
+  newest two hundred ordinary notes so a quiet library's prose is still in
+  reach. Deleted, set-aside and not-yet-arrived notes are out by the
+  timeline's own terms. The UNION is wrapped in a subquery because SQLite
+  refuses an expression ORDER BY on a compound select.
+- **`_briefLibrary()`** is now the candidate set with the window used only as
+  a freshness overlay (the stream's copy of a candidate wins). An empty read
+  falls back to the window, so a failed read is never a blank card.
+- **`nexRecapSource` derives its budget** when no explicit limit is passed:
+  a character budget of 2400 + 150 per waiting item, clamped [2400, 12000];
+  the line count from it (clamped [20, 64]); the per-note share against the
+  lines actually expected (clamped [60, 240]). A quiet morning keeps the old
+  footprint; a busy one is given more lines, and one long note still cannot
+  take what the others were meant to share. An explicit `limit` keeps the
+  old fixed contract — which is what the tests that pin a line count pass.
+  The fingerprint variant derives the same set, so the disclosure log and
+  the cache identity cannot drift apart.
+- **`nexHeadlineSource`** (core, `greeting.dart`) replaces the headline's
+  fixed twenty × 160: one 1600-character budget, the per-note share divided
+  by what is actually there (few notes read deeply, many broadly), the walk
+  stopped when the budget is spent, and the selected indices returned so the
+  disclosure log names exactly the notes the prompt carried.
+
+**Tests.** `brief_candidates_test` (7, replacing `brief_waiting_test`):
+coverage however old, the bounded ordinary pool, ordering, the three
+exclusions, and no cap past two hundred reminders. Core: five derived-budget
+tests (quiet footprint, more than twenty lines when busy, the character
+ceiling, the moving per-note share, fingerprint parity) and four headline
+tests. `home_brief_balance_test` gained the same `setAutoUpdateCheck(false)`
+harness rule `brief_window_test` already uses: it removes the HTTP override
+for its loopback server, and the update check's 15-second timeout otherwise
+outlives the tree on a machine where the real API is slow. Verified the
+failure exists on the clean tree before touching the test.
+
+**Checks run here.** `packages/core`: analyze `--fatal-infos` clean; the six
+touched/related files 84 green. `packages/data`: analyze clean;
+`brief_candidates`, `urgent_and_note_caption`, `nudge_memories` green.
+`apps/client`: `flutter analyze --fatal-infos` clean; the brief / nudge /
+headline / timeline group (23 files) **225 green**. Dependencies resolved
+through the pub mirror (pub.dev is unreachable here); the committed lockfiles
+were restored afterwards, as in the earlier steps.
+
+### Set 2 — meaning the library already has, and a check that reads names
+
+**What was wrong.** Grouping knew only shared words, stems and tags, although
+the library already stores an embedding per note — meaning read locally,
+with no provider, that the brief never used. And the contradiction check
+could only see a future item's *clock*: "the bank call was missed" at 10:30,
+with no time in the sentence, passed.
+
+**What changed.**
+
+- **`SqliteNoteRepository.similarNotePairs`** (port, worker plumbing and a
+  services wrapper alongside): pairwise cosine among the stored `vec` blobs
+  of the caller's ids — unit-length already, so a dot product. The floor is
+  0.7 by default, deliberately above a search floor: a search may offer a
+  maybe, a cluster tells the model two records are one subject. Deleted and
+  not-yet-arrived notes are out; one vector space at a time; the read keeps
+  the first 120 ids in the caller's priority order, so the cost is bounded on
+  a library of any size. Nothing is embedded here and nothing leaves the
+  device.
+- **`nexAttention(semanticPairs: …)`** unions those pairs exactly like a
+  shared tag: records keep their own ids, titles and dates; only the reading
+  aid merges. A pair naming a note outside the reading groups nothing. The
+  ledger's RELATED lines carry the semantic groups to the model.
+- **The brief pass reads the pairs** for the styles that hand a ledger to a
+  model; the report style asks nobody and does not pay for the read. A failed
+  read is no pairs — words and tags still group what they always did.
+- **`nexAttentionViolations` now reads names too.** A still-ahead item
+  (due today / due soon) named in the past tense with no clock in the
+  sentence is the same false claim the clock check catches. Only distinctive
+  words convict — a word a third of the library carries is not a name — and
+  the same exemptions hold: a line that also names what really slipped, and
+  a negation ("not done yet", «هنوز انجام نشده»), are left alone. English and
+  Persian, through the same folding the grouping uses.
+
+**Tests.** Core: three semantic-grouping tests (no shared word or tag, the
+outside-the-reading pair, the ledger line) and four name-based contradiction
+tests (English, Persian, the honest line and the slipped-name exemption, the
+generic word). Data: `semantic_pairs_test` (5) — the floor, the exclusions,
+the missing vector, the bound.
+
+**Checks run here.** `packages/core`: analyze clean; `attention_test` +
+`tool_registry_test` 36 green. `packages/data`: analyze clean;
+`semantic_pairs`, `embedding_space`, `vector_index` 24 green. `apps/client`:
+`flutter analyze --fatal-infos` clean; the set-1 group plus
+`db_worker_spawn_test` **230 green**.
+
+### Set 3 — one expiry, respected everywhere the words travel
+
+**What was wrong.** The card had learned `aiDaySummaryValidUntil`, but the
+surfaces that republish the words had not all learned it with it. The daily
+nudge handed `canUseSummary` the raw cached text and checked only the hour
+and the day: a recap written at seven that said nothing was overdue could be
+delivered at half past, twenty minutes after an item's time had made it
+false. The widget file carried the recap with no expiry at all, so a phone
+left alone kept yesterday's sentence on the home screen until the next
+write. And three places on the timeline still showed the raw cache when
+habits were switched off mid-brief.
+
+**What changed.**
+
+- **The nudge plan carries the expiry.** `summaryValidUntil` travels through
+  `NexNudgePlanInput` into `canUseSummary` (a delivery at or past it is not a
+  usable recap, whatever the hour says) and into `expires` (the earlier of
+  the one-hour window and the expiry). Absent means "not known" — a cache
+  written before 2.9.0 keeps the behaviour it had. The native receiver needs
+  no change: it already honours `expires`.
+- **The widget snapshot carries it too.** `recapValidUntil` is an optional
+  field (version stays 2 — an added optional field is read field by field,
+  and the file on disk during an upgrade is whatever the old app wrote).
+  `NexWidgetSnapshot.liveRecap(nowMs)` on the Kotlin side drops the words at
+  the expiry *and* when the day has turned since the snapshot was written;
+  the provider and the list factory both ask it, so the frame and its rows
+  can never disagree.
+- **The bridge rewrites at the expiry.** One timer for the earlier of the
+  expiry and midnight, re-armed after every write and cancelled in dispose:
+  the words leave the file, not just the render, even if the app never opens
+  again. A fresh summary re-arms it through the existing `refresh()` call.
+- **The three raw-cache displays** (the card's habits-off fallback in the
+  chrome, the header's preference handler, the brief pass's own) now read
+  `currentAiBrief` — today's and still true — with the local report standing
+  in otherwise.
+
+**Tests.** `daily_nudge_content_test`: the expired-within-the-hour recap is
+refused and the local facts carry the day; before the expiry the same recap
+is usable; `expires` is bounded by the expiry when it comes first.
+`nex_widget_snapshot_test`: the field round-trips, is absent when unknown,
+and a locked snapshot carries neither words nor expiry.
+`widget_recap_expiry_test` (new): with no capture, no preference change and
+no app return, the expiry alone rewrites the file without the recap.
+
+**Checks run here.** `apps/client`: `flutter analyze --fatal-infos` clean;
+the nudge / widget / expiry group (11 files) **112 green**. The three Kotlin
+files compile with `kotlinc 2.1.0` against `android-36/android.jar` (with
+compile-check stubs for the generated R and the appearance/actions helpers;
+the real build is CI's). `tools/daily_nudge_native_test.py`: 38 assertions
+passed.
+
+**Needs a device.** The launcher actually redrawing the Recap widget after
+the expiry while the app is closed, and the bridge's timer surviving a real
+background/foreground cycle.

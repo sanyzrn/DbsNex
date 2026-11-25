@@ -2244,6 +2244,69 @@ ON CONFLICT(note_id) DO UPDATE SET
   /// candidates is far more than that can reorder past.
   static const _vectorCandidates = 200;
 
+  /// Pairs among [noteIds] whose stored vectors say they are about the same
+  /// thing — the brief's grouping beyond shared words, stems and tags.
+  ///
+  /// The vectors are the ones enrichment already wrote (the on-device
+  /// embedder or the provider's), so this reads meaning the library already
+  /// has without asking anybody anything: no network, no provider, nothing
+  /// new leaving the device. `vec` is stored at unit length, so cosine
+  /// similarity is a plain dot product.
+  ///
+  /// [minScore] is deliberately higher than a search floor: a search may
+  /// offer a maybe, but a cluster tells the model two records are one
+  /// subject, and a wrong merge is worse than a missed one. The caller passes
+  /// the ids in its own priority order; past a hundred and twenty the read
+  /// keeps the front, so the cost is bounded on a library of any size.
+  @override
+  List<({String a, String b, double score})> similarNotePairs(
+    List<String> noteIds, {
+    double minScore = 0.7,
+  }) {
+    if (noteIds.length < 2) return const [];
+    final ids = noteIds.length > 120 ? noteIds.sublist(0, 120) : noteIds;
+    final placeholders = List.filled(ids.length, '?').join(',');
+    final rows = db.select('''
+SELECT e.note_id, e.vec FROM note_embeddings e
+JOIN notes n ON n.id = e.note_id
+WHERE n.deleted_at IS NULL AND n.scheduled_until IS NULL
+  AND e.note_id IN ($placeholders)
+ORDER BY e.note_id
+''', ids);
+    final vectors = <String, Float32List>{};
+    int? dims;
+    for (final row in rows) {
+      final vec = VectorCodec.decode(row['vec']! as Uint8List);
+      if (vec.isEmpty) continue;
+      // One space at a time; a stray vector from another could not be
+      // compared anyway.
+      if (dims != null && vec.length != dims) continue;
+      dims ??= vec.length;
+      vectors[row['note_id']! as String] = vec;
+    }
+    final entries = vectors.entries.toList();
+    final pairs = <({String a, String b, double score})>[];
+    for (var i = 0; i < entries.length; i++) {
+      for (var j = i + 1; j < entries.length; j++) {
+        final x = entries[i].value, y = entries[j].value;
+        var dot = 0.0;
+        for (var k = 0; k < x.length; k++) {
+          dot += x[k] * y[k];
+        }
+        if (dot >= minScore) {
+          pairs.add((a: entries[i].key, b: entries[j].key, score: dot));
+        }
+      }
+    }
+    pairs.sort((p, q) {
+      final byScore = q.score.compareTo(p.score);
+      if (byScore != 0) return byScore;
+      final byA = p.a.compareTo(q.a);
+      return byA != 0 ? byA : p.b.compareTo(q.b);
+    });
+    return pairs;
+  }
+
   /// How far above the usual floor a plain match has to be to be shown when
   /// nothing stands out, and how many such matches at most.
   static const strongMargin = 0.1;
@@ -2486,25 +2549,55 @@ LIMIT ?
     return _withTags(rows);
   }
 
+  /// The brief's candidate set: every live note the choosing may pick from,
+  /// read from the library itself rather than from whatever slice of it the
+  /// timeline happens to have loaded (2.9.0).
+  ///
+  /// Two pools, merged by id:
+  ///
+  /// - **Everything that can be waiting** — a reminder on it, an urgent mark,
+  ///   or a checklist — with no count cap. A cap here is exactly the bug the
+  ///   window had: the two-hundred-and-first reminder is still something
+  ///   somebody asked to be told about, and "urgent first" only protected the
+  ///   urgent ones from the cut.
+  /// - **The newest two hundred ordinary notes**, so a quiet library's recent
+  ///   prose still reaches the choosing without reading the whole shelf. The
+  ///   source's own line budget is far below this, so the pool is a bound on
+  ///   the read, never on the selection.
+  ///
+  /// Ordered urgent first, then dated soonest first, then newest — the same
+  /// order the choosing groups by, so a caller truncating keeps the front of
+  /// each group. Deleted, set-aside and not-yet-arrived notes are out, by the
+  /// same terms the timeline uses.
   @override
-  List<Note> listBriefWaiting({int limit = 200}) {
+  List<Note> listBriefCandidates() {
     final nowIso = DateTime.now().toUtc().toIso8601String();
+    final recentIso = DateTime.now()
+        .toUtc()
+        .subtract(const Duration(days: 7))
+        .toIso8601String();
     final rows = db.select(
       '''
-SELECT * FROM notes
-WHERE deleted_at IS NULL
-  AND $_notSetAside
-  AND $_notWaiting
-  AND (due_at IS NOT NULL OR is_urgent = 1)
-  -- Urgent first, because a caller truncating by the limit must never be
-  -- able to drop them: with dated notes ahead, a library of more than the
-  -- limit in dated reminders left every urgent note outside the cap.
-  -- Within each side: dated soonest first, then the undated newest first.
-  -- A caller truncating by the limit keeps the front of each group.
+SELECT * FROM (
+  SELECT * FROM notes
+  WHERE deleted_at IS NULL
+    AND $_notSetAside
+    AND $_notWaiting
+    AND (due_at IS NOT NULL OR is_urgent = 1 OR type = 'checklist'
+         OR updated_at >= ?)
+  UNION
+  SELECT * FROM (
+    SELECT * FROM notes
+    WHERE deleted_at IS NULL
+      AND $_notSetAside
+      AND $_notWaiting
+    ORDER BY updated_at DESC
+    LIMIT 200
+  )
+)
 ORDER BY is_urgent DESC, (due_at IS NULL), due_at ASC, updated_at DESC
-LIMIT ?
 ''',
-      [nowIso, nowIso, limit],
+      [nowIso, nowIso, recentIso, nowIso, nowIso],
     );
     return _withTags(rows);
   }

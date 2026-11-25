@@ -154,6 +154,11 @@ void main() {
           await server.close(force: true);
         });
         await _seed(h, style);
+        // This test removes the HTTP override so its own loopback server can
+        // answer; the update check is the app's only other network call, and
+        // left on, its 15-second timeout outlives the tree on a machine where
+        // the real API is slow — the same harness rule brief_window_test uses.
+        await h.preferences.setAutoUpdateCheck(false);
         await h.preferences.setAiEnabled(true);
         await h.preferences.setAiProvider(
           AiProviderConfig(

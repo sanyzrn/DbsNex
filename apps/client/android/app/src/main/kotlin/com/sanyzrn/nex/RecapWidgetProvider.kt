@@ -94,7 +94,7 @@ class RecapWidgetProvider : AppWidgetProvider() {
             NexWidgetActions.openApp(context),
         )
 
-        val recap = snapshot?.recap.orEmpty()
+        val recap = snapshot?.liveRecap(System.currentTimeMillis()).orEmpty()
         when {
             snapshot?.appLock == true -> {
                 show(views, R.id.nex_recap_locked)

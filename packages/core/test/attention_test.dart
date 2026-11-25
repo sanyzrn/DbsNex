@@ -483,4 +483,129 @@ void main() {
       expect(ledger, contains('1 beyond it'));
     });
   });
+
+  group('the library\'s own meaning groups what words do not', () {
+    test('a semantic pair groups titles that share no word or tag', () {
+      final attention = nexAttention(
+        [
+          note(id: 'a', text: 'the dentist'),
+          note(id: 'b', text: 'tooth appointment'),
+          note(id: 'c', text: 'buy milk'),
+        ],
+        now: at,
+        semanticPairs: [(a: 'a', b: 'b')],
+      );
+      final group = attention.clusters.single;
+      expect(
+        group.items.map((item) => item.id),
+        containsAll(['note:a', 'note:b']),
+      );
+      expect(group.items, hasLength(2));
+      expect(attention.byId('note:a')!.cluster, group.label);
+      expect(attention.byId('note:b')!.cluster, group.label);
+      expect(attention.byId('note:c')!.cluster, 'note:c');
+      // Grouping never merges: both records keep their own ids and titles.
+      expect(attention.items, hasLength(3));
+    });
+
+    test('a pair naming a note outside the reading groups nothing', () {
+      final attention = nexAttention(
+        [note(id: 'a', text: 'the dentist')],
+        now: at,
+        semanticPairs: [(a: 'a', b: 'elsewhere')],
+      );
+      expect(attention.clusters, isEmpty);
+    });
+
+    test('the ledger carries the semantic group to the model', () {
+      final attention = nexAttention(
+        [
+          note(
+            id: 'a',
+            text: 'the dentist',
+            dueAt: DateTime(2026, 3, 10, 11, 20),
+          ),
+          note(
+            id: 'b',
+            text: 'tooth appointment',
+            dueAt: DateTime(2026, 3, 10, 12),
+          ),
+        ],
+        now: at,
+        semanticPairs: [(a: 'a', b: 'b')],
+      );
+      final ledger = nexAttentionLedger(attention);
+      expect(ledger, contains('RELATED: 2 items'));
+    });
+  });
+
+  group('a past tense about a still-ahead item, with no clock', () {
+    final attention = nexAttention([
+      note(
+        id: 'first',
+        text: 'call the bank',
+        dueAt: DateTime(2026, 3, 10, 11, 20),
+      ),
+      note(
+        id: 'late',
+        text: 'pay the rent',
+        dueAt: at.subtract(const Duration(days: 2)),
+      ),
+    ], now: at);
+
+    test('named in the past tense is refused', () {
+      final violations = nexAttentionViolations(
+        'The bank call was missed.',
+        attention,
+      );
+      expect(violations, hasLength(1));
+      expect(violations.single.reason, contains('by name'));
+    });
+
+    test('Persian is held to the same rule', () {
+      final fa = nexAttention([
+        note(
+          id: 'bank',
+          text: 'تماس با بانک',
+          dueAt: DateTime(2026, 3, 10, 11, 20),
+        ),
+      ], now: at);
+      expect(nexAttentionContradicts('تماس با بانک فراموش شد.', fa), isTrue);
+      expect(
+        nexAttentionContradicts('تماس با بانک هنوز انجام نشده.', fa),
+        isFalse,
+      );
+    });
+
+    test('an honest line about the same item is left alone', () {
+      expect(
+        nexAttentionViolations('Call the bank before noon.', attention),
+        isEmpty,
+      );
+      expect(
+        nexAttentionViolations(
+          'Pay the rent: it is overdue. The bank call was missed.',
+          attention,
+        ),
+        isEmpty,
+        reason: 'the past tense may belong to what really slipped',
+      );
+    });
+
+    test('a word every third note carries convicts nobody', () {
+      final generic = nexAttention([
+        for (var i = 0; i < 4; i++)
+          note(
+            id: 'n$i',
+            text: 'shopping for the house',
+            dueAt: DateTime(2026, 3, 10, 11, 20 + i),
+          ),
+      ], now: at);
+      // "shopping" and "house" are in every title; neither is a name.
+      expect(
+        nexAttentionViolations('The shopping was finished.', generic),
+        isEmpty,
+      );
+    });
+  });
 }

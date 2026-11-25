@@ -263,6 +263,11 @@ NexAttentionKind nexAttentionKindFor(
 /// [includeIdeas] adds notes with nothing due and nothing unticked. The nudge
 /// wants them as optional depth behind a real fact; the brief's report style
 /// already has its own recent-note pass, so it leaves them out.
+///
+/// [semanticPairs] are note-id pairs the caller's stored embeddings say are
+/// about the same thing — the local meaning the library already has, read
+/// without a provider. They group exactly like a shared tag does: the records
+/// keep their own ids, titles and dates, and only the reading aid merges.
 NexAttention nexAttention(
   List<Note> notes, {
   List<NexCommitment> commitments = const [],
@@ -270,6 +275,7 @@ NexAttention nexAttention(
   Duration horizon = const Duration(days: 7),
   bool includeIdeas = true,
   Duration ideaWindow = const Duration(days: 7),
+  List<({String a, String b})> semanticPairs = const [],
 }) {
   final local = now ?? DateTime.now();
   final at = local.toUtc();
@@ -421,7 +427,7 @@ NexAttention nexAttention(
     return a.id.compareTo(b.id);
   });
 
-  final clusters = _clusters(items);
+  final clusters = _clusters(items, semanticPairs);
 
   return NexAttention(
     at: local,
@@ -518,14 +524,16 @@ int _scoreFor({
   return score;
 }
 
-/// Groups items that share a meaningful word, without merging any of them.
+/// Groups items that share a meaningful word, a tag, or a stored embedding's
+/// judgement that they are about one thing — without merging any of them.
 ///
-/// A union-find over title tokens and tags: two notes about "the trip" end in
-/// one cluster even when they arrive through different words. Bucketed by
-/// token, so a large library costs one pass per token rather than a comparison
-/// per pair.
+/// A union-find over title tokens, tags and semantic pairs: two notes about
+/// "the trip" end in one cluster even when they arrive through different
+/// words. Bucketed by token, so a large library costs one pass per token
+/// rather than a comparison per pair.
 ({List<NexAttentionItem> items, List<NexAttentionCluster> groups}) _clusters(
   List<NexAttentionItem> items,
+  List<({String a, String b})> semanticPairs,
 ) {
   final parent = <String, String>{for (final item in items) item.id: item.id};
   String find(String id) {
@@ -582,6 +590,15 @@ int _scoreFor({
     for (var i = 1; i < ids.length; i++) {
       union(ids.first, ids[i]);
     }
+  }
+  // Two notes the library's own vectors call one subject group even when no
+  // word or tag says so — «چکاپ دندان» beside «وقت دندانپزشکی», "the dentist"
+  // beside "tooth appointment". The pair is only honoured when both records
+  // are in this reading; a vector for a note the brief cannot see groups
+  // nothing.
+  for (final pair in semanticPairs) {
+    final a = 'note:${pair.a}', b = 'note:${pair.b}';
+    if (parent.containsKey(a) && parent.containsKey(b)) union(a, b);
   }
 
   final members = <String, List<NexAttentionItem>>{};
@@ -917,8 +934,10 @@ class NexAttentionViolation {
 /// - **nothing has slipped**, on a day that has something overdue;
 /// - **the day is clear**, on a day with something waiting;
 /// - **the wrong count** — "2 overdue" when the app counted one;
-/// - **the wrong clock** — a future item's time paired with a past-tense
-///   claim, which is the shape of "the 11:20 call was missed" at 10:30.
+/// - **the wrong tense** — a future item's clock paired with a past-tense
+///   claim, which is the shape of "the 11:20 call was missed" at 10:30, and
+///   the same claim with no clock at all: "the bank call was missed", caught
+///   by the distinctive words of the item's own title.
 ///
 /// Narrow on purpose, and it errs towards silence: it does not judge style,
 /// usefulness or coverage, it ignores a time or a name it does not recognise
@@ -937,6 +956,19 @@ List<NexAttentionViolation> nexAttentionViolations(
   final byClock = <String, List<NexAttentionItem>>{};
   final slipped = <String>{};
   final slippedNames = <List<String>>[];
+  // How many titles carry each word, so a word every third note shares
+  // cannot convict a line that merely happens to contain it.
+  final documentFrequency = <String, int>{};
+  for (final item in attention.items) {
+    for (final token in nexAttentionTokens(item.title)) {
+      documentFrequency[token] = (documentFrequency[token] ?? 0) + 1;
+    }
+  }
+  final tooCommon = (attention.items.length / 3).ceil().clamp(3, 1 << 30);
+  // The still-ahead items, by the distinctive words a line could name them
+  // by: a past tense about one of these is the same false claim the clock
+  // check catches, with no clock in the sentence at all.
+  final aheadNames = <List<String>>[];
   for (final item in attention.items) {
     final due = item.dueAt;
     if (due == null) continue;
@@ -946,6 +978,13 @@ List<NexAttentionViolation> nexAttentionViolations(
       slipped.add(clock);
       final stems = nexAttentionTokens(item.title);
       if (stems.isNotEmpty) slippedNames.add(stems);
+    } else if (item.kind == NexAttentionKind.today ||
+        item.kind == NexAttentionKind.soon) {
+      final stems = [
+        for (final token in nexAttentionTokens(item.title))
+          if ((documentFrequency[token] ?? 0) < tooCommon) token,
+      ];
+      if (stems.isNotEmpty) aheadNames.add(stems);
     }
   }
 
@@ -997,9 +1036,28 @@ List<NexAttentionViolation> nexAttentionViolations(
     }
 
     final cited = _clocksIn(folded);
-    if (cited.isEmpty || cited.any(slipped.contains)) continue;
-    if (namesSlipped(folded)) continue;
     if (!_pastCue(folded)) continue;
+    if (namesSlipped(folded)) continue;
+    if (cited.isEmpty) {
+      // No clock in the sentence: a still-ahead item named in the past tense
+      // is the same false claim, one the clock check could never see. Two
+      // distinctive words convict, or one when the title has only one — the
+      // same rule the slipped-name exemption uses.
+      for (final stems in aheadNames) {
+        final hits = stems.where(folded.contains).length;
+        if (hits >= (stems.length == 1 ? 1 : 2)) {
+          violations.add(
+            NexAttentionViolation(
+              'calls a still-ahead item past by name',
+              line,
+            ),
+          );
+          break;
+        }
+      }
+      continue;
+    }
+    if (cited.any(slipped.contains)) continue;
     for (final clock in cited) {
       final items = byClock[clock];
       if (items == null || items.isEmpty) continue;

@@ -96,7 +96,13 @@ class _FakeNoteRepository implements NoteRepository {
   List<Note> listUpcomingReminders({int limit = 200}) => [];
 
   @override
-  List<Note> listBriefWaiting({int limit = 200}) => [];
+  List<Note> listBriefCandidates() => [];
+
+  @override
+  List<({String a, String b, double score})> similarNotePairs(
+    List<String> noteIds, {
+    double minScore = 0.7,
+  }) => [];
 
   @override
   List<Note> listNeedingEnrichment({int limit = 50}) => [];

@@ -198,6 +198,7 @@ extension NexDailyNudgeServices on NexServices {
               sourceMatches: summaryMatches,
               summary: _preferences.aiDaySummaryText,
               summaryAt: summaryAt,
+              summaryValidUntil: _preferences.aiDaySummaryValidUntil,
               secret: _preferences.appLockEnabled,
               solarCalendar: _preferences.solarCalendar,
             );
