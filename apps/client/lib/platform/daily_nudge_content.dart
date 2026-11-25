@@ -63,16 +63,64 @@ abstract final class NexDailyNudgeContent {
     Map<String, List<ChecklistItem>>? itemsById,
   }) {
     final facts = <_Fact>[];
+    // One reading of the library, shared with the daily brief — see
+    // `nex_core`'s `attention.dart`. The nudge then applies its own policy to
+    // it: a four-line medium, a two-day horizon, and a repeating reminder
+    // read at its next occurrence rather than at the anchor it was set for.
+    // That last part is the nudge's own rule; the *classification* is the
+    // engine's, so both surfaces call the same afternoon the same thing.
+    final attention = nexAttention(
+      source.notes,
+      commitments: source.commitments,
+      now: at,
+      horizon: const Duration(days: 2),
+    );
+    final notesById = {for (final note in source.notes) note.id: note};
+    final commitmentsById = {
+      for (final item in source.commitments) item.id: item,
+    };
+    void add(int rank, _Kind kind, DateTime when, String id, String text) =>
+        facts.add((rank: rank, kind: kind, when: when, id: id, text: text));
     // The note's own words are isolated (FSI … PDI): a Persian title inside
     // an English line, or the reverse, used to pull the quotation marks and
     // the ellipsis to the wrong end of the line.
     String quoted(String value) => persian
         ? '«\u2068${short(value, 48)}\u2069»'
         : '“\u2068${short(value, 48)}\u2069”';
-    final active = source.notes.where(
-      (note) => !note.isDeleted && !note.isSetAside(at),
-    );
-    for (final note in active) {
+    for (final item in attention.items) {
+      if (item.source == NexAttentionSource.commitment) {
+        final commitment = commitmentsById[item.commitmentId];
+        if (commitment == null) continue;
+        final gap = commitment.dueAt.difference(at);
+        // The nudge's own horizon: a month-old bill belongs in the Recurring
+        // page and the brief, not in a notification at eight in the morning.
+        if (gap < const Duration(days: -7) || gap > const Duration(days: 2)) {
+          continue;
+        }
+        final local = at.isUtc
+            ? commitment.dueAt.toUtc()
+            : commitment.dueAt.toLocal();
+        final sameDay =
+            local.year == at.year &&
+            local.month == at.month &&
+            local.day == at.day;
+        add(
+          gap.isNegative ? 1 : 3,
+          gap.isNegative
+              ? _Kind.overdue
+              : sameDay
+              ? _Kind.today
+              : _Kind.soon,
+          commitment.dueAt,
+          'commitment:${commitment.id}',
+          persian
+              ? '${gap.isNegative ? 'عقب‌افتاده' : 'پیش رو'}: ${quoted(commitment.title)}'
+              : '${gap.isNegative ? 'Overdue' : 'Coming up'}: ${quoted(commitment.title)}',
+        );
+        continue;
+      }
+      final note = notesById[item.noteId];
+      if (note == null) continue;
       final items = itemsById?[note.id] ?? note.checklistItems;
       if (note.type == NoteType.checklist &&
           (items.isEmpty || items.every((i) => i.done))) {
@@ -100,13 +148,13 @@ abstract final class NexDailyNudgeContent {
                 : note.originalFilename ?? '');
       final title = quoted(titled.trim().isEmpty ? typeLabel : titled);
       if (note.isUrgent) {
-        facts.add((
-          rank: 0,
-          kind: _Kind.urgent,
-          when: note.updatedAt,
-          id: note.id,
-          text: persian ? 'فوری: $title' : 'Urgent: $title',
-        ));
+        add(
+          0,
+          _Kind.urgent,
+          note.updatedAt,
+          note.id,
+          persian ? 'فوری: $title' : 'Urgent: $title',
+        );
       }
       // **Done** answers this day's occurrence, not the reminder. [dueAt]
       // stays on the note, so a repeating reminder comes back at its own time
@@ -118,16 +166,23 @@ abstract final class NexDailyNudgeContent {
           note.dueRepeat,
           at,
         );
+        final kind = nexAttentionKindFor(
+          due,
+          now: at,
+          horizon: const Duration(days: 2),
+        );
         final gap = due.difference(at);
-        if (gap.isNegative && gap >= const Duration(days: -7)) {
-          facts.add((
-            rank: 1,
-            kind: _Kind.overdue,
-            when: due,
-            id: note.id,
-            text: persian ? 'عقب‌افتاده: $title' : 'Overdue: $title',
-          ));
-        } else if (!gap.isNegative && gap <= const Duration(days: 2)) {
+        if (kind == NexAttentionKind.overdue &&
+            gap >= const Duration(days: -7)) {
+          add(
+            1,
+            _Kind.overdue,
+            due,
+            note.id,
+            persian ? 'عقب‌افتاده: $title' : 'Overdue: $title',
+          );
+        } else if (kind == NexAttentionKind.today ||
+            (kind == NexAttentionKind.soon && gap <= const Duration(days: 2))) {
           final local = at.isUtc ? due.toUtc() : due.toLocal();
           final day = DateTime(
             local.year,
@@ -141,57 +196,52 @@ abstract final class NexDailyNudgeContent {
             '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}',
             persian: persian,
           );
-          facts.add((
-            rank: 2,
-            kind: day == 0 ? _Kind.today : _Kind.soon,
-            when: due,
-            id: note.id,
-            text: persian
-                ? '$word ساعت $clock · $title'
-                : '$word at $clock · $title',
-          ));
+          add(
+            2,
+            day == 0 ? _Kind.today : _Kind.soon,
+            due,
+            note.id,
+            persian ? '$word ساعت $clock · $title' : '$word at $clock · $title',
+          );
         }
       }
       final left = items.where((i) => !i.done).length;
       if (left > 0 &&
           at.difference(note.updatedAt) <= const Duration(days: 30)) {
         final count = nexDigits('$left', persian: persian);
-        facts.add((
-          rank: 4,
-          kind: _Kind.unfinished,
-          when: note.updatedAt,
-          id: note.id,
-          text: persian
+        add(
+          4,
+          _Kind.unfinished,
+          note.updatedAt,
+          note.id,
+          persian
               ? '$count مورد ناتمام: $title'
               : '$count unfinished ${left == 1 ? 'item' : 'items'}: $title',
-        ));
+        );
       }
     }
-    for (final item in source.commitments) {
-      if (item.paused) continue;
-      final gap = item.dueAt.difference(at);
-      if (gap < const Duration(days: -7) || gap > const Duration(days: 2)) {
-        continue;
+    // Depth, not filler: one note worth reading rides along only on a day
+    // that already has something to say and still has room. It never creates
+    // a notification on its own — that was the rotating "take a look at your
+    // notes" line this feature retired — and it never displaces a fact.
+    if (facts.isNotEmpty && facts.length < shownFacts) {
+      for (final item in attention.ideas) {
+        if (item.score <= 0 || item.noteId == null) continue;
+        final note = notesById[item.noteId];
+        if (note == null || note.isUrgent) continue;
+        final text = item.title.trim();
+        if (text.runes.length < 16) continue;
+        add(
+          5,
+          _Kind.idea,
+          note.updatedAt,
+          note.id,
+          persian
+              ? 'ایده: «\u2068${short(text, 56)}\u2069»'
+              : 'Idea: “\u2068${short(text, 56)}\u2069”',
+        );
+        break;
       }
-      final local = at.isUtc ? item.dueAt.toUtc() : item.dueAt.toLocal();
-      final sameDay =
-          local.year == at.year &&
-          local.month == at.month &&
-          local.day == at.day;
-      final title = quoted(item.title);
-      facts.add((
-        rank: gap.isNegative ? 1 : 3,
-        kind: gap.isNegative
-            ? _Kind.overdue
-            : sameDay
-            ? _Kind.today
-            : _Kind.soon,
-        when: item.dueAt,
-        id: 'commitment:${item.id}',
-        text: persian
-            ? '${gap.isNegative ? 'عقب‌افتاده' : 'پیش رو'}: $title'
-            : '${gap.isNegative ? 'Overdue' : 'Coming up'}: $title',
-      ));
     }
     facts.sort((a, b) {
       final rank = a.rank.compareTo(b.rank);
@@ -468,6 +518,6 @@ Future<Map<String, Object?>> nexComputeDailyNudgePlan(
   NexNudgePlanInput input,
 ) => Isolate.run(() => nexBuildDailyNudgePlan(input));
 
-enum _Kind { urgent, overdue, today, soon, unfinished }
+enum _Kind { urgent, overdue, today, soon, unfinished, idea }
 
 typedef _Fact = ({int rank, _Kind kind, DateTime when, String id, String text});

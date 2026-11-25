@@ -214,6 +214,39 @@ void main() {
     ]);
   });
 
+  test('at 10:30 nothing due later today is called missed or done', () {
+    // The mandatory case of 2.9.0. Two reminders at 11:20 and 11:46 are two
+    // plans for the same morning: the report says so by the clock, uses the
+    // calendar symbol and not the overdue one, and states no count of things
+    // that have not happened yet.
+    final at = DateTime(2026, 3, 10, 10, 30);
+    final report = nexBriefReport(
+      nexBriefFacts([
+        note(
+          id: '1',
+          text: 'call the bank',
+          dueAt: DateTime(2026, 3, 10, 11, 20),
+        ),
+        note(
+          id: '2',
+          text: 'send the file',
+          dueAt: DateTime(2026, 3, 10, 11, 46),
+        ),
+      ], now: at),
+      en,
+      now: at,
+    );
+    final lines = report!.split('\n');
+    expect(lines, [
+      '📅 call the bank — today at 11:20',
+      '📅 send the file — today at 11:46',
+    ]);
+    expect(report, isNot(contains('⏰')));
+    expect(report.toLowerCase(), isNot(contains('overdue')));
+    expect(report.toLowerCase(), isNot(contains('missed')));
+    expect(report.toLowerCase(), isNot(contains('done')));
+  });
+
   test('the budget is spent from the top', () {
     final report = nexBriefReport(
       nexBriefFacts([

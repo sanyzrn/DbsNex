@@ -181,6 +181,70 @@ void main() {
       expect(bodies.first, contains('bread'));
     });
   }
+  // The nudge has its own policy — four lines, two days, the next occurrence
+  // of a repeating reminder — but it must never disagree with the brief about
+  // what a status means. This is the mandatory 2.9.0 morning in both.
+  for (final fa in [false, true]) {
+    final at = DateTime(2026, 11, 3, 10, 30);
+    List<String> local(List<Note> notes) => NexDailyNudgeContent.local(
+      NexNudgeSnapshot(notes: notes, commitments: const [], hasData: true),
+      at,
+      persian: fa,
+    );
+
+    test('$fa two reminders later today are upcoming at 10:30', () {
+      final bodies = local([
+        note('bank', body: 'call the bank', due: DateTime(2026, 11, 3, 11, 20)),
+        note('file', body: 'send the file', due: DateTime(2026, 11, 3, 11, 46)),
+      ]);
+      // One notification body, two lines in it.
+      expect(bodies, hasLength(1));
+      final lines = bodies.single.split('\n');
+      expect(lines, hasLength(2));
+      final text = bodies.single;
+      expect(text, isNot(contains(fa ? 'عقب‌افتاده' : 'Overdue')));
+      expect(text, isNot(contains(fa ? 'انجام شده' : 'Done')));
+      expect(text, contains(fa ? 'امروز ساعت' : 'Today at'));
+      expect(
+        lines.where((line) => line.contains(fa ? '۱۱:۲۰' : '11:20')),
+        hasLength(1),
+      );
+      expect(
+        lines.where((line) => line.contains(fa ? '۱۱:۴۶' : '11:46')),
+        hasLength(1),
+      );
+    });
+
+    test('$fa an idea never makes a nudge on its own', () {
+      // 2.8.1's silence rule still holds: a thought with no date is not news.
+      expect(
+        local([
+          note(
+            'idea',
+            body: 'the kitchen could be rearranged around the window',
+            updated: DateTime(2026, 11, 2, 9),
+          ),
+        ]),
+        isEmpty,
+      );
+      // On a day that already has something to say, and with room left, it
+      // rides along after the fact — never in place of one.
+      final bodies = local([
+        note(
+          'idea',
+          body: 'the kitchen could be rearranged around the window',
+          updated: DateTime(2026, 11, 2, 9),
+        ),
+        note('bank', body: 'call the bank', due: DateTime(2026, 11, 3, 11, 20)),
+      ]);
+      expect(bodies, hasLength(1));
+      final lines = bodies.single.split('\n');
+      expect(lines, hasLength(2));
+      expect(lines.first, contains(fa ? 'امروز ساعت' : 'Today at'));
+      expect(lines.last, contains(fa ? 'ایده' : 'Idea'));
+    });
+  }
+
   test('a Done answers its own day, not the reminder or its repeat', () {
     final answered = note(
       'water-plants',

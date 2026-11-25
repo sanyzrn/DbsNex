@@ -162,6 +162,9 @@ extension _TimelineAiHeader on TimelineScreenState {
     });
   }
 
+  static bool _sameBriefDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
   Future<void> _askAiSummary({required bool force}) async {
     await _briefCommitmentsReady;
     if (!mounted) return;
@@ -170,6 +173,13 @@ extension _TimelineAiHeader on TimelineScreenState {
     if (!_briefAvailable || (!force && !prefs.showDaySummary)) return;
     final usesModel = prefs.briefStyle.usesModel;
     final cached = CloudAIAdapter.cleanDecorativeReply(prefs.aiDaySummaryText);
+    // A model's brief is about the day it was written for. Yesterday's words
+    // describe a day that is over, and the arithmetic beside them has moved
+    // on, so they are not adopted — and, if they are the ones on screen, they
+    // are taken down rather than left to outlive their date.
+    final cachedAt = prefs.aiDaySummaryAt;
+    final cacheIsToday =
+        cachedAt != null && _sameBriefDay(cachedAt, DateTime.now());
     // The cache is a model-written brief, and only that: the report style
     // writes its own lines from the library on the next few lines of this
     // very pass, so adopting a stale cache first would paint a brief that
@@ -177,6 +187,7 @@ extension _TimelineAiHeader on TimelineScreenState {
     // would leave an old model's words standing in for arithmetic.
     if (mounted &&
         usesModel &&
+        cacheIsToday &&
         cached != null &&
         cached.isNotEmpty &&
         cached != _aiSummaryText) {
@@ -185,6 +196,12 @@ extension _TimelineAiHeader on TimelineScreenState {
         _aiSummaryHasHabits =
             prefs.aiDaySummaryIncludesHabits && prefs.briefHabitsAllowed;
       });
+    } else if (mounted &&
+        usesModel &&
+        !cacheIsToday &&
+        _aiSummaryText != null &&
+        _aiSummaryText == cached) {
+      _rebuild(() => _aiSummaryText = null);
     }
     final habits = await widget.services.habitsForBrief();
     if (!mounted) return;
@@ -217,7 +234,29 @@ extension _TimelineAiHeader on TimelineScreenState {
       notesSource,
       if (includesHabits) _habitBriefSource,
     ].where((s) => s.isNotEmpty).join('\n');
-    if (source.isEmpty) return;
+    if (source.isEmpty) {
+      // Nothing left to describe — the library was emptied, the permission
+      // turned off, the window cleared. A model's brief about a library that
+      // no longer exists is exactly the stale claim that must not survive: it
+      // is cleared here rather than left standing until the next refresh.
+      if (mounted && (_aiSummaryText ?? '').isNotEmpty) {
+        _rebuild(() {
+          _aiSummaryText = null;
+          _aiSummaryHasHabits = false;
+        });
+      }
+      return;
+    }
+    // One reading of the library, shared with the daily nudge, and the
+    // ledger the model is held to. The statuses are computed here rather
+    // than inferred from the lines, so "due later today" can never come back
+    // as "done" or "overdue".
+    final attention = nexAttention(
+      briefNotes,
+      commitments: _model.commitments,
+      now: DateTime.now(),
+    );
+    final statusLedger = nexAttentionLedger(attention);
     // Which notes the brief is written from, for the log of what left the
     // phone: it used to name none (1.99.96 reviews, SEC-01).
     final sourceNotes = nexRecapNoteIds(
@@ -315,6 +354,7 @@ extension _TimelineAiHeader on TimelineScreenState {
                 tone: tone,
                 instruction: instruction,
                 written: written ?? '',
+                statusLedger: statusLedger,
                 words: length.words,
                 timeout: force
                     ? const Duration(minutes: 5)
@@ -325,6 +365,20 @@ extension _TimelineAiHeader on TimelineScreenState {
             );
             // Local facts are useful fallback text, never an AI success stamp.
             if (answer == null || answer.trim().isEmpty) return null;
+            // A brief that calls nothing overdue on a day that has an overdue
+            // item, or the day clear while something is waiting, is worse than
+            // no model line at all: the local facts already said it correctly.
+            // Rejecting it here keeps it out of the cache, the widget and the
+            // notification, and the retry interval absorbs the request.
+            if (nexAttentionContradicts(answer, attention)) {
+              unawaited(
+                NexCrashLog.failed(
+                  'brief.contradiction',
+                  'generated brief contradicted computed facts',
+                ),
+              );
+              return null;
+            }
             return [
               if (written != null && written.isNotEmpty) written,
               answer,
@@ -337,6 +391,12 @@ extension _TimelineAiHeader on TimelineScreenState {
       _lastBriefRefreshFailed = result.failed;
       if (result.updated) unawaited(widget.widgets?.refresh());
       if (!mounted || settings != _briefSettingsSignature()) return;
+      // The library moved while the answer was in flight. Its words describe
+      // a state that no longer exists — a deleted note, a reminder that has
+      // since been met, a day that has turned — so they are not applied. The
+      // local lines are already on screen and the cache will be asked again
+      // under the new fingerprint.
+      if (fingerprint != _briefFingerprint()) return;
       _rebuild(() {
         _aiSummaryText = result.text ?? _aiSummaryText ?? written;
         _aiSummaryHasHabits =

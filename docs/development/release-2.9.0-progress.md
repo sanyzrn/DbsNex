@@ -140,3 +140,100 @@ and the next one waits for the owner's go-ahead.
 - The clamp uses 28-day months and 365-day years as the shortest gap. A custom
   monthly window longer than 14 days is therefore reduced; that is intended,
   but worth a sentence in the final report.
+
+## Step 2 — one engine behind the daily brief and the daily nudge
+
+### What changed
+
+- **`packages/core/lib/ai/attention.dart` (new).** One reading of the
+  library, `nexAttention(notes, commitments:, now:, horizon:)`, returns items
+  whose *status* (`NexAttentionKind`), *urgency* (`urgent`) and *early-open
+  flag* (`canCompleteEarly`, with `opensAt`) are three separate fields. The
+  status is one of overdue, due today, due soon, upcoming, unfinished, idea.
+  `nexAttentionKindFor` is the same classifier exposed for a caller that has a
+  computed date (the nudge reads a repeating reminder at its next occurrence),
+  so the rule cannot fork.
+- **Facts are computed, never inferred.** Overdue means `dueAt < now` and
+  unanswered; "due later today" is a kind, not a hedge. `nexAttentionLedger`
+  writes the computed statuses into a block the model is told it must respect,
+  and `nexAttentionContradicts` rejects a generated brief that claims nothing
+  is overdue (or that nothing is left) on a library where the engine says
+  otherwise. Late answers are checked against the facts they were asked from.
+- **`nexBriefFacts` is now a projection of the engine** (`packages/core`).
+  Same groups, same order, same fields, same note count — but the
+  classification lives in one place. `brief_facts_test` passes unchanged, and
+  the report style is still entirely local arithmetic.
+- **The nudge (`daily_nudge_content.dart`) reads the same engine** and keeps
+  its own policy on top of it: four lines, a two-day horizon, the next
+  occurrence of a repeating reminder. Its pinned behaviour is unchanged (the
+  "at most four facts", the ancient-note silence, the empty-library silence,
+  the exact headline counts). One addition, per the brief: a note that is an
+  idea rather than a task may ride along *after* real facts when capacity
+  remains — it can never create a notification by itself, which would undo
+  2.8.1's silence rule.
+- **`digest`/`_sideBrief` (`packages/ai`) take a `statusLedger`** and carry a
+  status rule in every brief prompt: never call an item due later today done,
+  missed, reminded, forgotten or overdue; the ledger wins over the model's
+  reading of a line.
+- **The timeline header (`timeline_ai_header.dart`)** builds the ledger from the
+  same notes it already hands the prompt, passes it to `digest`, rejects a
+  contradicting answer before it is cached, drops an answer whose fingerprint
+  no longer matches the library, clears the card when there is nothing left to
+  describe, and no longer adopts a model brief written on a previous day.
+
+### The mandatory scenario
+
+At 10:30 on 2026-03-10, a note due 11:20 and one due 11:46 are tested three
+ways: the engine (`attention_test.dart`) reports both as `due-today`, waiting,
+not overdue; the plain report (`brief_report_test.dart`) prints
+`📅 … today at 11:20` / `11:46` with no ⏰ and no "overdue", "missed" or
+"done"; the nudge (`daily_nudge_content_test.dart`) writes "Today at 11:20"
+for both, in English and Persian (Persian digits included).
+
+### Tests added
+
+- `packages/core/test/attention_test.dart` — the mandatory morning and its
+  after-noon inverse; early-open versus not-yet-open commitments; overdue
+  outranking a distant future item; urgent kept as a flag; clustering without
+  merging identities; idea recency and `includeIdeas: false`; deleted and
+  set-aside notes excluded from waiting; ledger contents; contradiction
+  rejection and non-rejection.
+- `packages/ai/test/cloud/brief_status_ledger_test.dart` — the status rule is
+  in every brief prompt, the ledger travels ahead of the answer, and no empty
+  placeholder heading is left when there is no ledger.
+- Client additions in `daily_nudge_content_test.dart` and
+  `brief_report_test.dart` as described above.
+
+### Checks run in this environment
+
+- `packages/core`: `dart analyze lib test` clean; full `dart test` 340 passed.
+- `packages/data`: `dart analyze lib` clean; full suite 458 passed, 14 skipped
+  (unchanged; `markMet` was not touched in this step).
+- `packages/ai`: `dart analyze lib` clean; full `flutter test` 261 passed.
+- `apps/client`: `flutter analyze` no errors or warnings introduced (the
+  Flutter 3.50 `material.dart` deprecation info is environment-wide).
+  `flutter test` green for `brief_report`, `brief_attention`,
+  `brief_habits_visibility`, `brief_off`, `brief_refresh`, `brief_window`,
+  `daily_nudge_content`, `daily_nudge_coordinator`, `daily_nudge_memories`,
+  `daily_nudge_reload`, `daily_nudge`, `habits_brief_notifications`,
+  `home_brief_balance`, `nudge_name`, `recap_banner`, `recap_launch`,
+  `timeline_model`, `timeline_rebuild`, `timeline_noop_refresh`,
+  `timeline_fold_rebuild`, `commitment_reminder`, `reminders_logic`,
+  `reminder_body`.
+- `dart format --set-exit-if-changed` on every touched Dart file.
+
+### Not run here
+
+- A real device, so no notification shade and no real clock rollover was
+  observed. The midnight boundary is enforced by comparing stored dates, not
+  by a timer; an app left open across midnight recomputes on the next brief
+  load, and the previous day's model text is not adopted in the meantime.
+
+### Remaining risks for the final audit
+
+- The header's contradiction check is phrase-based on two languages; it is a
+  guard rail, not a parser. A novel false wording in another language would
+  pass. The ledger in the prompt is the first line of defence.
+- Idea lines in the nudge are only reachable when a fact already exists, so
+  the pinned silence tests still hold; if the product later wants ideas to
+  open a nudge, that is a deliberate policy change and needs its own test.
