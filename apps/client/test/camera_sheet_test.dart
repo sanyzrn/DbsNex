@@ -17,9 +17,14 @@ const _front = CameraDescription(
 
 /// Opens the camera from a button and records how it ended.
 class _Opener extends StatefulWidget {
-  const _Opener({required this.cameras, required this.onDone});
+  const _Opener({
+    required this.cameras,
+    required this.onDone,
+    this.video = false,
+  });
 
   final Future<List<CameraDescription>> Function() cameras;
+  final bool video;
   final void Function(Object? outcome) onDone;
 
   @override
@@ -32,7 +37,13 @@ class _OpenerState extends State<_Opener> {
     child: TextButton(
       onPressed: () async {
         try {
-          widget.onDone(await showNexCamera(context, cameras: widget.cameras));
+          widget.onDone(
+            await showNexCamera(
+              context,
+              cameras: widget.cameras,
+              video: widget.video,
+            ),
+          );
         } on NexCameraUnavailable catch (error) {
           widget.onDone(error);
         }
@@ -44,15 +55,16 @@ class _OpenerState extends State<_Opener> {
 
 Future<List<Object?>> _open(
   WidgetTester tester,
-  Future<List<CameraDescription>> Function() cameras,
-) async {
+  Future<List<CameraDescription>> Function() cameras, {
+  bool video = false,
+}) async {
   final outcomes = <Object?>[];
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
-        body: _Opener(cameras: cameras, onDone: outcomes.add),
+        body: _Opener(cameras: cameras, onDone: outcomes.add, video: video),
       ),
     ),
   );
@@ -160,6 +172,27 @@ void main() {
     await tester.tap(find.byTooltip('Camera options'));
     await tester.pumpAndSettle();
     expect(find.text('Switch camera'), findsNothing);
+    await _drain(tester);
+  });
+
+  testWidgets('the video panel says what a hold does, the photo one does not', (
+    tester,
+  ) async {
+    await _open(tester, () async => [_back], video: true);
+    expect(find.text('Hold the shutter to record a video'), findsOneWidget);
+    // The hold is spoken with the shutter, not only drawn under it.
+    final semantics = tester.ensureSemantics();
+    expect(
+      tester.getSemantics(find.bySemanticsLabel(RegExp('Take photo'))).hint,
+      'Hold the shutter to record a video',
+    );
+    semantics.dispose();
+    await tester.tap(find.byTooltip('Close camera'));
+    await tester.pumpAndSettle();
+    await _drain(tester);
+
+    await _open(tester, () async => [_back]);
+    expect(find.text('Hold the shutter to record a video'), findsNothing);
     await _drain(tester);
   });
 

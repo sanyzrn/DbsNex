@@ -115,14 +115,21 @@ extension _TimelineCapture on TimelineScreenState {
   /// "these belong together", not one each.
   Future<List<CapturedMedia>> _pickMedia(ImageSource source) async {
     if (source == ImageSource.camera) {
-      final shot = await nexTakePhoto(context);
+      // The camera takes either: a tap is a photo, a hold is a video. What
+      // comes back says which, and the kind travels with it — guessing from
+      // the file's name is what once put a recording on the timeline as a
+      // picture with no player.
+      final shot = await nexTakeShot(context, video: true);
+      if (shot == null) return const [];
       return [
-        if (shot != null)
-          CapturedMedia(
-            path: shot.path,
-            name: p.basename(shot.path),
-            mimeType: shot.mimeType,
-          ),
+        CapturedMedia(
+          path: shot.file.path,
+          name: p.basename(shot.file.path),
+          mimeType: shot.file.mimeType,
+          kind: shot.isVideo
+              ? CapturedMediaKind.video
+              : CapturedMediaKind.image,
+        ),
       ];
     }
     final chosen = await nexPickMedia(
@@ -153,21 +160,23 @@ extension _TimelineCapture on TimelineScreenState {
       final more = all.skip(1).toList();
       if (recovered == null && picked == null) return;
       final video = picked?.isVideo ?? false;
-      if (source == ImageSource.gallery) {
-        for (final item in all) {
-          final bytes = await File(item.path).length();
-          final limit =
-              widget.osCapture?.maxAttachmentBytes ??
-              OsCaptureBridge.defaultMaxAttachmentBytes;
-          if (bytes > limit) {
-            if (mounted) {
-              nexShowAttachmentTooLarge(
-                context,
-                RejectedShare(filename: item.name, bytes: bytes, limit: limit),
-              );
-            }
-            return;
+      // A file about to be kept whole is measured before it is copied: a big
+      // video from the gallery or from the camera is refused for the cost of
+      // a stat, not after a 500 MiB write.
+      for (final item in all) {
+        if (source == ImageSource.camera && !item.isVideo) continue;
+        final bytes = await File(item.path).length();
+        final limit =
+            widget.osCapture?.maxAttachmentBytes ??
+            OsCaptureBridge.defaultMaxAttachmentBytes;
+        if (bytes > limit) {
+          if (mounted) {
+            nexShowAttachmentTooLarge(
+              context,
+              RejectedShare(filename: item.name, bytes: bytes, limit: limit),
+            );
           }
+          return;
         }
       }
       final editing =
@@ -248,7 +257,7 @@ extension _TimelineCapture on TimelineScreenState {
                 mediaUri: dest,
                 mediaHash: hash,
                 originalFilename: picked.name,
-                mimeType: picked.mimeType,
+                mimeType: picked.mimeType ?? 'video/mp4',
               )
             : await widget.services.capturePhoto(
                 mediaUri: dest,

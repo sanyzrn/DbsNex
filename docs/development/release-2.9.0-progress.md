@@ -21,7 +21,7 @@ user-facing copy lives in `CHANGELOG.md` / `CHANGELOG.fa.md`.
 | 4 | Keyboard / focus / input audit | **done** |
 | 5 | Quick Capture: seamless code mode | **done** |
 | 6 | Smart Paste / Submit button | **done** |
-| 7 | In-app camera: photo and video | not started |
+| 7 | In-app camera: photo and video | **done** |
 | 8 | Android notification audit | not started |
 
 Each brief is finished, tested, logged here, committed and pushed on its own,
@@ -614,3 +614,94 @@ address stay a note). Code takes the text as it is. Nothing here sends.
   TalkBack reading the button's changing label. The privacy design deliberately
   reads the words only in a link box; that one read per link-capture is the
   price of not offering Paste for a line of prose.
+
+## 7. The camera — a hold records, a tap photographs
+
+### The brief
+
+One panel shared by initial capture and note attachments: tap the shutter for
+a photo; hold it to record video with sound; let go and the result goes to the
+path that opened the camera. Recording state, elapsed time and feedback have
+to be clear, a stray photo must never follow a recording, and places that only
+take pictures (a profile picture, a vault document) must stay that way.
+
+### The root of it
+
+The panel was built around `takePicture` alone: the controller asked for no
+audio (`enableAudio: false`), the shutter had a single `onTap`, and the one
+door everyone used — `nexTakePhoto` — returned an `XFile` with no way to say
+"this is a video". The timeline wrapped whatever came back in a
+`CapturedMedia` whose kind defaulted to *image*, so a recording could only ever
+have reached the library as a broken photo.
+
+### What changed
+
+- **One door, with a kind.** `NexCameraShot` carries a file and whether it is a
+  recording. `nexTakeShot(context, video: true)` opens the panel with the video
+  gesture; `nexTakePhoto` stays as the still-only door for the places that
+  should not record, so the profile picture, a vault photo and a Recurring
+  receipt keep the panel (and the system camera fallback) they had.
+- **The gesture.** The shutter is a raw `Listener`, not a long-press
+  recogniser: 280 ms of rest starts a recording, lifting before that is a
+  photo, and lifting after it stops the recording. A tap can never become a
+  hold and a hold can never leave a photo behind, because the same pointer
+  decides one or the other once.
+- **Releasing before the sensor answers.** `startVideoRecording` is async; a
+  lift while it is in flight sets `_stopRequested`, and the recording is
+  stopped the instant it begins. The file is then too short to keep and is
+  deleted, so a quick double-tap leaves neither a stuck shutter nor a clip.
+- **What is kept.** The panel keeps anything from 900 ms; shorter holds are
+  deleted and answered with "Hold a little longer to record". Three minutes is
+  the ceiling: the ticker stops a held-open shutter itself, and 1080p for
+  video keeps that comfortably inside the 500 MiB attachment limit. Photos are
+  still taken at the sensor's largest size.
+- **Sound, without taxing stills.** A still-only panel never asks for the
+  microphone. A video panel asks during initialisation; if the microphone is
+  refused it reopens the camera without audio and says "Recording without
+  sound" in the badge — the camera keeps working, the person is told why the
+  video will be silent.
+- **Never the wrong result.** While recording, the shutter turns into a red
+  stop square (still a button, so stopping is not only a gesture), the ⋮ menu
+  becomes a stop button, and the clock pill runs at the top. Closing the panel
+  stops and discards the recording; sending the app to the background stops
+  and keeps it, so a phone call cannot swallow a recording in progress.
+  Photos taken during `_taking` or a recording are ignored, and launching a
+  recording while a photo is being saved is ignored too.
+- **Reaching the library properly.** The timeline marks the shot's kind, so a
+  recording goes through the existing `captureFile` path (video note, player,
+  thumbnail) rather than the photo path; camera videos are size-checked like
+  gallery ones. In a note's attachments a recording is attached as a video
+  file, so the strip shows its frame and opens its player; a photo remains a
+  photo attachment. Photo editing and its drafts are still only ever applied
+  to stills.
+- **Words.** The attach sheet's "Take a photo" is now **Camera** in both
+  languages, the hint and the recording clock are localized, and the screen
+  reader hears the hold hint on the shutter and the elapsed time as a live
+  region. Reduce-motion turns the blinking dot still.
+- **The system camera.** On a phone the fallback asks for a video when the
+  panel could not open; on a desktop, where the camera app is a photo camera,
+  it stays a photo.
+
+### Tests
+
+- `test/camera_recording_test.dart` (3): the clock pads and keeps counting
+  past an hour, the shortest kept video is below the three-minute ceiling, and
+  the hold threshold is shorter than the shortest kept video.
+- `test/camera_sheet_test.dart` (9, one new): the video panel shows the hold
+  hint and speaks it with the shutter; the still-only panel shows neither.
+- `photo_capture_policy_test` (8, unchanged) covers camera and gallery through
+  the timeline; `attachments_test`, `media_selection_test`,
+  `video_preview_test`, `profile_photo_test` and the capture/keyboard group
+  were run alongside — **108 tests green** — and `flutter analyze` reports no
+  errors or warnings.
+
+### Not run here
+
+- Anything that needs a sensor: `startVideoRecording`, audio in the file,
+  switching lens mid-recording, the real microphone permission dialog, the
+  camera being taken by another app, and the panel's behaviour at the three
+  minute ceiling. These need a device; the widget tests have no camera plugin,
+  so the panel is exercised in its waiting and failed states only.
+- Playback of a recorded file on Android: the same `NexVideoPlayer` the
+  gallery path already uses, but a file produced by this gesture has not been
+  played back on this machine.

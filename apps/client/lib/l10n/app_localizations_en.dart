@@ -1322,7 +1322,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get attachTakePhoto => 'Take a photo';
+  String get attachTakePhoto => 'Camera';
 
   @override
   String get attachRecordVoice => 'Record a voice clip';
@@ -5097,6 +5097,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cameraStarting => 'Turning the camera on…';
+
+  @override
+  String get cameraHoldForVideo => 'Hold the shutter to record a video';
+
+  @override
+  String get cameraRecordVideo => 'Record a video';
+
+  @override
+  String get cameraStopRecording => 'Stop recording';
+
+  @override
+  String cameraRecordingElapsed(Object elapsed) {
+    return 'Recording, $elapsed';
+  }
+
+  @override
+  String get cameraSilentVideo =>
+      'Recording without sound — the microphone is off';
+
+  @override
+  String get cameraVideoTooShort => 'Hold a little longer to record';
 
   @override
   String get disclosuresTitle => 'What left this device';

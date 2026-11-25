@@ -6,6 +6,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.9.0
 
+- **Video from the camera.** Hold the shutter in Nex's camera to record a video with sound, and let go to keep it; a tap still takes a photo. The clock at the top runs while it records, the stop button ends it, and a hold too short to be a video is thrown away instead of leaving a second-long clip — and no stray photo. The attach sheet's “Take a photo” is now **Camera**.
+
 - **Paste where the send button is.** The capture box keeps its whole width for writing, and the primary button turns into Paste when the box is empty and the clipboard holds something worth pasting — an address, in a link box. Pressing it only inserts: nothing is sent for you, and the arrow is back the moment there is something to send.
 
 - **One capture box for every kind.** Moving between a note, a list, a link and code no longer closes and reopens the keyboard or shifts the box while you write. Code keeps its bracket pairs and line indentation — the same editor handles them — so changing the kind costs nothing.
