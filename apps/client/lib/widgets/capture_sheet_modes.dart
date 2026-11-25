@@ -28,30 +28,10 @@ extension _CaptureModes on _CaptureSheetState {
     if ((wasCode || kind == CaptureKind.code) && controller.text.isNotEmpty) {
       changed(controller.text);
     }
-  }
-
-  /// The link field's own way out. Paste when the box is empty, as
-  /// everywhere; once it holds words — a paste that missed is the usual way
-  /// that happens — the same slot turns into Clear, because a one-line link
-  /// field gives select-all no room to be found in and a dead end no way
-  /// out. Note and checklist keep the slot in place with only a fade: their
-  /// field is multiline, and the editor's own selection tools are already
-  /// there.
-  Widget _pasteSlot(BuildContext context, CaptureKind shown) {
-    final clearing = shown == CaptureKind.link && controller.text.isNotEmpty;
-    return _CapturePasteSlot(
-      // Paste shows only when there is something to paste — asked without
-      // reading it ([Clipboard.hasStrings], see [_checkClipboard]): on open
-      // and on resume. Clear keeps its place whatever the clipboard holds;
-      // it is a way out of words already in the box.
-      visible: clearing || (controller.text.isEmpty && _clipboardHasText),
-      clear: clearing,
-      label: clearing
-          ? AppLocalizations.of(context).clear
-          : MaterialLocalizations.of(context).pasteButtonLabel,
-      onPressed: clearing ? _clearField : _paste,
-      color: nexNoteTypeTint(_wire(shown), Theme.of(context).colorScheme),
-    );
+    // A link box takes only an address, so entering it asks what the
+    // clipboard holds — once, not on every frame. Leaving it needs no ask:
+    // the other kinds take any words.
+    if (kind == CaptureKind.link) unawaited(_checkClipboard());
   }
 
   /// The box turns into a recorder and starts listening.
@@ -186,17 +166,6 @@ extension _CaptureModes on _CaptureSheetState {
     }
   }
 
-  /// The link box's Clear: one tap takes the words away. The empty box is
-  /// then an empty capture again — `changed('')` runs the ordinary machinery,
-  /// which retires the draft note the words had already become, so nothing
-  /// is left on the timeline that is not on the screen.
-  Future<void> _clearField() async {
-    if (_closing || _voiceOn) return;
-    controller.clear();
-    changed('');
-    if (!_fieldFocus.hasFocus) _fieldFocus.requestFocus();
-  }
-
   /// Paste into the shared editor, replacing its selection or inserting at
   /// its caret. Keep line breaks and spacing in notes and checklists.
   ///
@@ -204,6 +173,16 @@ extension _CaptureModes on _CaptureSheetState {
   /// the clipboard, and a sheet that did it on opening would be telling
   /// them on every capture.
   Future<void> _paste() async {
+    if (_closing || pasting || _voiceOn) return;
+    pasting = true;
+    try {
+      await _pasteOnce();
+    } finally {
+      pasting = false;
+    }
+  }
+
+  Future<void> _pasteOnce() async {
     if (_closing) return;
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (!mounted || _closing || _voiceOn) return;

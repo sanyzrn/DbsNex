@@ -123,20 +123,64 @@ class _CaptureSheetState extends State<CaptureSheet>
   /// [changed]): a broken journal is a condition, not an event.
   bool _journalFailureTold = false;
 
-  /// Whether the clipboard holds words to paste — asked without reading
-  /// them: [Clipboard.hasStrings] touches only the clip's description, so
-  /// Android does not announce "Nex pasted from your clipboard" for it. The
-  /// Paste button used to show whatever the clipboard held, and a button
-  /// that visibly does nothing when pressed reads as broken, not as empty.
+  /// Whether the clipboard holds words at all — asked with
+  /// [Clipboard.hasStrings], which touches only the clip's description, so
+  /// Android does not announce "Nex pasted from your clipboard" for it.
   bool _clipboardHasText = false;
 
-  /// Asked when the sheet opens and when the app comes back to the front —
-  /// the two moments the clipboard can have changed unseen.
+  /// Whether the one read of a clipboard that matters for a link box found
+  /// an address in it. Never set for the other kinds: their Paste accepts
+  /// whatever words are there.
+  bool _clipboardIsLink = false;
+
+  /// Counts clipboard checks. A check that a kind switch or a resumed app has
+  /// made stale must not move the button when its answer lands late.
+  int _clipboardCheck = 0;
+
+  /// Set while the clipboard is being read and its words inserted, so a
+  /// second tap on Paste cannot land them twice.
+  bool pasting = false;
+
+  /// Asked when the sheet opens, when the app comes back to the front, when
+  /// the box empties and when a link box is entered — the moments the
+  /// clipboard can have changed unseen or the kind's own rule started to
+  /// matter. Never on a timer, and the words themselves are read only for a
+  /// link box, where "pasteable" means "an address".
   Future<void> _checkClipboard() async {
-    final has = await Clipboard.hasStrings();
-    if (!mounted || has == _clipboardHasText) return;
-    setState(() => _clipboardHasText = has);
+    final check = ++_clipboardCheck;
+    var has = false;
+    try {
+      has = await Clipboard.hasStrings();
+    } catch (_) {
+      // A clipboard that cannot be asked is a clipboard with nothing to
+      // offer; the button stays Send.
+    }
+    if (!mounted || check != _clipboardCheck) return;
+    var isLink = false;
+    if (has && _shown == CaptureKind.link) {
+      try {
+        final data = await Clipboard.getData(Clipboard.kTextPlain);
+        final text = (data?.text ?? '').trim();
+        isLink = text.isNotEmpty && normaliseUrl(text) != null;
+      } catch (_) {}
+      if (!mounted || check != _clipboardCheck) return;
+    }
+    if (has == _clipboardHasText && isLink == _clipboardIsLink) return;
+    setState(() {
+      _clipboardHasText = has;
+      _clipboardIsLink = isLink;
+    });
   }
+
+  /// Whether the primary button is Paste: an empty box, and a clipboard this
+  /// kind can take. The link box is the one kind that asks what is in it —
+  /// a line of prose is not something a link box can paste.
+  bool get _canPaste =>
+      !_closing &&
+      !_voiceOn &&
+      controller.text.trim().isEmpty &&
+      _clipboardHasText &&
+      (_shown != CaptureKind.link || _clipboardIsLink);
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -264,6 +308,10 @@ class _CaptureSheetState extends State<CaptureSheet>
         beforeAny != value.isNotEmpty) {
       setState(() {});
     }
+    // The box emptied: Paste is on the table again, if the clipboard still
+    // holds something. Asked here rather than on every keystroke, and only on
+    // the flip — the one moment the primary button can change its mind.
+    if (value.trim().isEmpty && beforeTyped) unawaited(_checkClipboard());
     if (noteId == null && value.isNotEmpty) {
       // While the first isolate write is pending, do not start another note:
       // the callback takes the latest text after the first id arrives.
@@ -674,8 +722,9 @@ class _CaptureSheetState extends State<CaptureSheet>
                               key: const ValueKey('capture-input-row'),
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // The whole width: the primary button is
+                                // the one place Paste lives.
                                 Expanded(child: _field(context, l10n)),
-                                _pasteSlot(context, shown),
                               ],
                             ),
                           ],
@@ -753,6 +802,8 @@ class _CaptureSheetState extends State<CaptureSheet>
                         kind: shown,
                         closing: _closing,
                         keepingAsNote: _keepingAsNote,
+                        paste: _canPaste,
+                        onPaste: _canPaste ? () => unawaited(_paste()) : null,
                         onSend: switch (shown) {
                           CaptureKind.voice =>
                             _voice == _Voice.on

@@ -20,7 +20,7 @@ user-facing copy lives in `CHANGELOG.md` / `CHANGELOG.fa.md`.
 | 3 | Intelligent greeting: local first, AI second | **done** |
 | 4 | Keyboard / focus / input audit | **done** |
 | 5 | Quick Capture: seamless code mode | **done** |
-| 6 | Smart Paste / Submit button | not started |
+| 6 | Smart Paste / Submit button | **done** |
 | 7 | In-app camera: photo and video | not started |
 | 8 | Android notification audit | not started |
 
@@ -535,3 +535,82 @@ hint line under the box.
   7. With a Gboard/Persian keyboard, repeat 2–3: the composition must not
      swallow the pair or duplicate the character.
 
+
+## 6. The capture box — Paste in the primary button
+
+### The brief
+
+Take the Paste icon out of the field, give the words the whole width, and let
+the main button be Paste when the box is empty and the clipboard holds
+something the kind can take — otherwise Send, exactly as before. Pressing
+Paste inserts and never sends.
+
+### What changed
+
+- **The in-field slot is gone.** `_CapturePasteSlot` (Paste, and Clear in a
+  link box) is deleted; the field is the whole row. Clear had existed because
+  a one-line link field left select-all nowhere to live; with the slot gone
+  the field has its width back, and Paste is one tap away whenever the box is
+  empty.
+- **One primary button, two jobs.** `_SendButton` takes `paste` and
+  `onPaste`. When the box is empty, the clipboard has text, and — for a link
+  box — that text is an address, it shows the paste glyph, is labelled Paste
+  for screen readers, and inserts. In every other state it is Send (or the
+  note glyph in a link box holding words that are not an address), including
+  the moment after a paste or the first keystroke. The button's box is fixed
+  at 60×60, so nothing in the row moves; paste enters with a fade and a small
+  scale rather than the arrow's turn.
+- **Asking the clipboard without reading it.** `Clipboard.hasStrings` decides
+  whether there is anything to paste — it reads only the clip's description,
+  so Android shows no paste notice. The words themselves are read **only for
+  a link box**, where "pasteable" means "an address", and only at the moments
+  it matters: opening the sheet, coming back to the app, entering a link box,
+  and emptying the box. No timer, no read per frame, no logging.
+- **Late and repeated answers.** A check carries a generation number; an
+  answer that a kind switch or a resumed app has made stale cannot move the
+  button. A second tap while the clipboard is being read cannot insert twice.
+- **Two existing bugs found on the way.** `changed()` now re-checks the
+  clipboard on the typing→empty flip, which is what makes a cleared box offer
+  Paste again. And with reduced motion, a zero-length `AnimatedSize` in the
+  composer (and in its footnote) re-dirtied itself inside its own layout —
+  Flutter's assertion, in debug — so both now sit behind `_ComposerSize`,
+  which skips the animation entirely at zero duration.
+
+### Insertion, per kind
+
+Unchanged from before: a note or checklist takes the words verbatim, a link
+box trims them, and an address pasted into an **empty note** still turns the
+box into a link (only the Paste button guesses that; words pasted beside an
+address stay a note). Code takes the text as it is. Nothing here sends.
+
+### Tests
+
+- `apps/client/test/capture_paste_button_test.dart` (8):
+  - an empty box offers Paste; pressing it inserts, leaves the sheet open,
+    keeps the words as the note typing would have made, and turns the button
+    back into Send;
+  - typing hides Paste; clearing asks again and brings it back;
+  - an empty clipboard leaves Send;
+  - a link box offers Paste only for an address, and notices the clipboard
+    changing while the sheet is open;
+  - a checklist takes any words, without reading them;
+  - two quick taps insert once;
+  - a late clipboard answer cannot undo a newer one;
+  - with reduced motion the button keeps its exact size through the swap.
+- Adapted, not weakened: `capture_paste_link_test` (button glyph instead of
+  the old Clear slot; the pasted-into-a-note case now checks the saved note's
+  type), `capture_native_paste_focus_test` (the new button keeps the native
+  editor's child focus and sends no focus calls), `checklist_link_capture_test`
+  (the field's width on a 320 px phone; the Clear test became the link box's
+  Paste-only-for-an-address test).
+- Run here: those four files plus the capture and keyboard group —
+  `capture_sheet_draft`, `code_snippet_capture`, `capture_kind_switch`,
+  `text_keyboard_lifecycle` — **87 tests green**; `flutter analyze` clean.
+
+### Not run here
+
+- A real device's clipboard: the system's own paste notice on Android 12+,
+  the behaviour of `hasStrings` with a clipboard owned by another profile, and
+  TalkBack reading the button's changing label. The privacy design deliberately
+  reads the words only in a link box; that one read per link-capture is the
+  price of not offering Paste for a line of prose.

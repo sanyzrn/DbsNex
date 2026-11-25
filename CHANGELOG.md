@@ -6,6 +6,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.9.0
 
+- **Paste where the send button is.** The capture box keeps its whole width for writing, and the primary button turns into Paste when the box is empty and the clipboard holds something worth pasting — an address, in a link box. Pressing it only inserts: nothing is sent for you, and the arrow is back the moment there is something to send.
+
 - **One capture box for every kind.** Moving between a note, a list, a link and code no longer closes and reopens the keyboard or shifts the box while you write. Code keeps its bracket pairs and line indentation — the same editor handles them — so changing the kind costs nothing.
 
 - **The keyboard no longer covers what you are typing — in the Android editor too.** Tapping a field — in Prompt Studio, a long form, a dialog or a sheet — now brings the whole field above the keyboard, not just the caret, so the line being written stays in view. The rule is installed once for the whole app, it does nothing while the keyboard is closed, and it respects "remove animations".

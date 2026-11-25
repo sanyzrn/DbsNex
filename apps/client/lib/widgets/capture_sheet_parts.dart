@@ -1,77 +1,5 @@
 part of 'capture_sheet.dart';
 
-/// Fade the action while its column stays where it is. The editor remains
-/// the same keyed child with the same controller/focus node throughout the
-/// transition.
-///
-/// In a link box the slot never leaves: empty it is Paste, and once words are
-/// in it becomes Clear ([clear]) — the one-tap way out of a paste that was
-/// not an address, in a field too single-line for select-all to be found in.
-/// Note and checklist keep the slot too: the column is permanent and only
-/// the icon fades, because reclaiming its width on the first keystroke moved
-/// the field's edge under the words mid-type — one of three layout changes
-/// that used to land together on the first key.
-class _CapturePasteSlot extends StatelessWidget {
-  const _CapturePasteSlot({
-    required this.visible,
-    required this.label,
-    required this.color,
-    required this.onPressed,
-    this.clear = false,
-  });
-  final bool visible;
-  final String label;
-  final Color color;
-  final VoidCallback? onPressed;
-  final bool clear;
-
-  @override
-  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-    tween: Tween(end: visible ? 1 : 0),
-    duration: NexMotion.of(context, NexMotion.enter),
-    curve: NexMotion.moveCurve,
-    child: IgnorePointer(
-      ignoring: !visible,
-      child: ExcludeSemantics(
-        excluding: !visible,
-        child: IconButton(
-          key: const ValueKey('capture-paste'),
-          tooltip: label,
-          onPressed: onPressed,
-          constraints: const BoxConstraints.tightFor(
-            width: nexMinTapTarget,
-            height: nexMinTapTarget,
-          ),
-          color: color,
-          icon: Icon(
-            clear ? Icons.close : Icons.content_paste_outlined,
-            key: ValueKey(clear ? 'capture-clear' : 'capture-paste-icon'),
-            size: 18,
-          ),
-        ),
-      ),
-    ),
-    builder: (context, value, child) => SizedBox(
-      key: const ValueKey('capture-paste-slot'),
-      // The width never moves: the icon fades in and out inside a column
-      // that is always exactly one touch target wide, so no keystroke ever
-      // changes the field's own width.
-      width: nexMinTapTarget,
-      height: nexMinTapTarget,
-      child: ClipRect(
-        child: OverflowBox(
-          alignment: AlignmentDirectional.topEnd,
-          minWidth: nexMinTapTarget,
-          maxWidth: nexMinTapTarget,
-          minHeight: nexMinTapTarget,
-          maxHeight: nexMinTapTarget,
-          child: Opacity(opacity: value, child: child),
-        ),
-      ),
-    ),
-  );
-}
-
 /// The note type each kind is written as, for its colour and its glyph.
 String _wire(CaptureKind kind) => switch (kind) {
   CaptureKind.note || CaptureKind.code => 'text',
@@ -246,6 +174,31 @@ class _KindChip extends StatelessWidget {
   }
 }
 
+/// The composer's height transition — and nothing at all with reduced
+/// motion, where a zero-length `AnimatedSize` re-dirties itself inside its
+/// own layout (Flutter's own assertion) as the box changes height.
+class _ComposerSize extends StatelessWidget {
+  const _ComposerSize({
+    required this.duration,
+    required this.child,
+    this.curve = NexMotion.moveCurve,
+  });
+
+  final Duration duration;
+  final Curve curve;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => duration == Duration.zero
+      ? child
+      : AnimatedSize(
+          duration: duration,
+          curve: curve,
+          alignment: Alignment.topCenter,
+          child: child,
+        );
+}
+
 /// The box the words are written in, in the colour of what they will be.
 ///
 /// It changes colour as the kind does, and when the microphone is chosen
@@ -275,10 +228,8 @@ class _ComposerBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(NexRadius.lg),
         border: Border.all(color: tint.withValues(alpha: 0.3)),
       ),
-      child: AnimatedSize(
+      child: _ComposerSize(
         duration: morph,
-        curve: NexMotion.moveCurve,
-        alignment: Alignment.topCenter,
         child: AnimatedSwitcher(
           duration: morph,
           switchInCurve: NexMotion.curve,
@@ -553,10 +504,9 @@ class _ComposerFootnoteState extends State<_ComposerFootnote> {
       _ => null,
     };
     final standard = NexMotion.of(context, NexMotion.standard);
-    return AnimatedSize(
+    return _ComposerSize(
       duration: standard,
       curve: NexMotion.curve,
-      alignment: Alignment.topCenter,
       child: AnimatedSwitcher(
         duration: standard,
         child: line == null
@@ -672,12 +622,20 @@ class _SideAction extends StatelessWidget {
 /// note, it schedules. In a link box whose words are not an address, it
 /// becomes the note glyph: the send that keeps them as the note they already
 /// are, the same route back and swipe always took.
+///
+/// In an empty box with something on the clipboard it is **Paste** instead
+/// (2.9.0, step 6): the one place Paste lives now that the field has its
+/// whole width back. Pressing it inserts and never saves, and the next frame
+/// — with words in the box — is Send again. Same size, same place, so the
+/// row does not move under a thumb.
 class _SendButton extends StatelessWidget {
   const _SendButton({
     required this.kind,
     required this.closing,
     required this.onSend,
     required this.onSchedule,
+    required this.onPaste,
+    this.paste = false,
     this.keepingAsNote = false,
   });
 
@@ -685,6 +643,11 @@ class _SendButton extends StatelessWidget {
   final bool closing;
   final VoidCallback? onSend;
   final VoidCallback? onSchedule;
+
+  /// Null unless the box is empty and the clipboard holds something this
+  /// kind can take.
+  final VoidCallback? onPaste;
+  final bool paste;
 
   /// The words are not a link, so Send keeps them as a note — see
   /// [_CaptureSheetState._keepingAsNote].
@@ -698,18 +661,22 @@ class _SendButton extends StatelessWidget {
     // readers and tests but no longer claims the hold, which belongs to
     // scheduling.
     return Semantics(
-      onLongPressHint: onSchedule == null ? null : l10n.scheduleTitle,
+      onLongPressHint: onSchedule == null || paste ? null : l10n.scheduleTitle,
       child: GestureDetector(
         key: const ValueKey('capture-send'),
-        onLongPress: onSchedule,
+        onLongPress: paste ? null : onSchedule,
         child: TooltipTheme(
           data: const TooltipThemeData(triggerMode: TooltipTriggerMode.manual),
           child: IconButton.filled(
             // The primary action stays anchored at the end of the row; the
             // quieter actions keep a full 48px touch target beside it.
             constraints: const BoxConstraints.tightFor(width: 60, height: 60),
-            onPressed: onSend,
-            tooltip: voice ? l10n.stopRecording : l10n.capture,
+            onPressed: paste ? onPaste : onSend,
+            tooltip: voice
+                ? l10n.stopRecording
+                : paste
+                ? MaterialLocalizations.of(context).pasteButtonLabel
+                : l10n.capture,
             icon: closing
                 ? const Icon(
                     Icons.check_rounded,
@@ -719,21 +686,43 @@ class _SendButton extends StatelessWidget {
                 : AnimatedSwitcher(
                     duration: NexMotion.of(context, NexMotion.pop),
                     switchInCurve: NexMotion.popCurve,
-                    transitionBuilder: (child, animation) => RotationTransition(
-                      turns: Tween<double>(
-                        begin: -0.25,
-                        end: 0,
-                      ).animate(animation),
-                      child: ScaleTransition(scale: animation, child: child),
-                    ),
+                    // Paste arrives with a turn of its own — a fade and a
+                    // small scale, the same shape the side action uses — so
+                    // the arrow does not appear to spin into a paste glyph.
+                    transitionBuilder: (child, animation) =>
+                        child.key == const ValueKey('paste')
+                        ? FadeTransition(
+                            opacity: animation,
+                            child: ScaleTransition(
+                              scale: Tween<double>(
+                                begin: 0.86,
+                                end: 1,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          )
+                        : RotationTransition(
+                            turns: Tween<double>(
+                              begin: -0.25,
+                              end: 0,
+                            ).animate(animation),
+                            child: ScaleTransition(
+                              scale: animation,
+                              child: child,
+                            ),
+                          ),
                     child: Icon(
-                      voice
+                      paste
+                          ? Icons.content_paste_rounded
+                          : voice
                           ? Icons.stop_rounded
                           : keepingAsNote
                           ? Icons.notes_outlined
                           : Icons.arrow_upward,
                       key: ValueKey(
-                        voice
+                        paste
+                            ? 'paste'
+                            : voice
                             ? 'stop'
                             : keepingAsNote
                             ? 'note'
