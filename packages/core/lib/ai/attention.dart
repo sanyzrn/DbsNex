@@ -807,9 +807,7 @@ const _stopWords = {
 /// Compiled once. These run over every line of every generated brief, and
 /// compiling them per call was work for each line rather than for the app.
 final _wordPattern = RegExp(r'[\p{L}\p{N}]+', unicode: true);
-final _clockPattern = RegExp(
-  r'(?<!\d)([01]?\d|2[0-3])[:.]([0-5]\d)(?!\d)',
-);
+final _clockPattern = RegExp(r'(?<!\d)([01]?\d|2[0-3])[:.]([0-5]\d)(?!\d)');
 final _countPattern = RegExp(
   r'(\d{1,3})\s*(?:items?\s+|مورد\s+)?(overdue|due today|عقب ?افتاده|برای امروز)',
 );
