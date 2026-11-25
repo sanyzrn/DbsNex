@@ -49,10 +49,10 @@ extension _TimelineAiBrief on TimelineScreenState {
     }
     final habits = await widget.services.habitsForBrief();
     if (!mounted) return;
-    // The notes beyond the window, before anything is built from them: the
+    // The library's own candidate set, before anything is built from it: the
     // source, the report and the fingerprint below all read this pass's
     // copy, not whatever the last pass happened to leave in the field.
-    _briefWaitingNotes = await widget.services.briefWaitingNotes();
+    _briefCandidates = await widget.services.briefCandidates();
     if (!mounted) return;
     final briefNotes = _briefLibrary();
     // A manual pull may have joined while the habits and the waiting notes

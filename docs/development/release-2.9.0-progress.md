@@ -937,3 +937,68 @@ Six `flutter analyze --fatal-infos` findings, not weakened but removed:
      the brief card must redraw by itself, and an expired model summary must
      disappear in favour of the local lines.
   6. Check the home-screen widget before and after a cached summary expires.
+
+---
+
+## 10. The targeted final corrections
+
+The independent audit's remaining findings, worked as four coherent sets.
+Same rules as the eight briefs: each set tested, committed and pushed on its
+own; nothing merged to `main`.
+
+### Set 1 — the brief reads the library, not the window
+
+**What was wrong.** `_briefLibrary` merged the timeline window with
+`listBriefWaiting`, so the brief's reach still depended on a recency slice:
+the window's depth moves with scrolling, the waiting query cut at two hundred
+rows (an urgent note survived the cut only because it sorted first), and an
+undated unfinished checklist below the window was invisible to the brief
+entirely. The source and the headline each carried one fixed size — twenty
+lines of a hundred and sixty characters — for every library.
+
+**What changed.**
+
+- **`SqliteNoteRepository.listBriefCandidates`** (replacing
+  `listBriefWaiting`, port and worker plumbing renamed with it) reads the
+  candidate set from the library itself: everything that can be waiting — a
+  reminder, an urgent mark, a checklist — with **no count cap**, plus the
+  newest two hundred ordinary notes so a quiet library's prose is still in
+  reach. Deleted, set-aside and not-yet-arrived notes are out by the
+  timeline's own terms. The UNION is wrapped in a subquery because SQLite
+  refuses an expression ORDER BY on a compound select.
+- **`_briefLibrary()`** is now the candidate set with the window used only as
+  a freshness overlay (the stream's copy of a candidate wins). An empty read
+  falls back to the window, so a failed read is never a blank card.
+- **`nexRecapSource` derives its budget** when no explicit limit is passed:
+  a character budget of 2400 + 150 per waiting item, clamped [2400, 12000];
+  the line count from it (clamped [20, 64]); the per-note share against the
+  lines actually expected (clamped [60, 240]). A quiet morning keeps the old
+  footprint; a busy one is given more lines, and one long note still cannot
+  take what the others were meant to share. An explicit `limit` keeps the
+  old fixed contract — which is what the tests that pin a line count pass.
+  The fingerprint variant derives the same set, so the disclosure log and
+  the cache identity cannot drift apart.
+- **`nexHeadlineSource`** (core, `greeting.dart`) replaces the headline's
+  fixed twenty × 160: one 1600-character budget, the per-note share divided
+  by what is actually there (few notes read deeply, many broadly), the walk
+  stopped when the budget is spent, and the selected indices returned so the
+  disclosure log names exactly the notes the prompt carried.
+
+**Tests.** `brief_candidates_test` (7, replacing `brief_waiting_test`):
+coverage however old, the bounded ordinary pool, ordering, the three
+exclusions, and no cap past two hundred reminders. Core: five derived-budget
+tests (quiet footprint, more than twenty lines when busy, the character
+ceiling, the moving per-note share, fingerprint parity) and four headline
+tests. `home_brief_balance_test` gained the same `setAutoUpdateCheck(false)`
+harness rule `brief_window_test` already uses: it removes the HTTP override
+for its loopback server, and the update check's 15-second timeout otherwise
+outlives the tree on a machine where the real API is slow. Verified the
+failure exists on the clean tree before touching the test.
+
+**Checks run here.** `packages/core`: analyze `--fatal-infos` clean; the six
+touched/related files 84 green. `packages/data`: analyze clean;
+`brief_candidates`, `urgent_and_note_caption`, `nudge_memories` green.
+`apps/client`: `flutter analyze --fatal-infos` clean; the brief / nudge /
+headline / timeline group (23 files) **222 green**. Dependencies resolved
+through the pub mirror (pub.dev is unreachable here); the committed lockfiles
+were restored afterwards, as in the earlier steps.

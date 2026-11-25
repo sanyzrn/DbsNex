@@ -78,7 +78,7 @@ enum _DbCommand {
   setDueAt,
   markReminderAcked,
   upcomingReminders,
-  briefWaitingNotes,
+  briefCandidates,
   exportArchive,
   importArchive,
   // Library maintenance (trash, tag manager, storage breakdown).

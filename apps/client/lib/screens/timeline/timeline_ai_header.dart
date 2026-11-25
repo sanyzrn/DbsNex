@@ -424,38 +424,44 @@ extension _TimelineAiHeader on TimelineScreenState {
     );
   }
 
-  /// The most recent notes' own text, newest first.
+  /// The most recent notes' own text, newest first, under one character
+  /// budget — see [nexHeadlineSource].
   ///
   /// The headline's source, and only the headline's. That line is a mood —
   /// it wants to know roughly what someone has been writing about and
   /// nothing else, and telling it what is due would turn a greeting into a
-  /// second recap.
+  /// second recap. The count and the per-note cut are derived from what is
+  /// actually there: a few notes are read deeply, a busy morning broadly,
+  /// and the walk stops when the budget is spent rather than at a fixed
+  /// twentieth note.
   String _aiHeadlineSource() =>
-      [for (final note in _aiHeadlineNotes()) _headlineText(note)].join('\n');
+      nexHeadlineSource(_headlineRawTexts())
+          .map((entry) => entry.line)
+          .join('\n');
 
-  /// The notes the headline reads: the newest twenty with words in them.
-  Iterable<Note> _aiHeadlineNotes() => (_model.all ?? _model.notes)
-      .take(20)
-      .where((note) => _headlineText(note).isNotEmpty);
+  /// The notes the headline reads: exactly the ones its source carries, for
+  /// the disclosure log.
+  Iterable<Note> _aiHeadlineNotes() {
+    final notes = (_model.all ?? _model.notes).toList();
+    return [
+      for (final entry in nexHeadlineSource(_headlineRawTexts()))
+        notes[entry.index],
+    ];
+  }
 
-  static String _headlineText(Note note) =>
-      // Capped like a recap line: the greeting is a mood, and a long note
-      // takes the budget the nineteen others were meant to share — every
-      // character of it a token on a provider the user is paying for, and
-      // on a phone running a local model, context the request cannot fit.
-      nexOneLine(
-        (note.content ?? note.transcriptText ?? note.ocrText ?? '').trim(),
-        160,
-      );
+  List<String> _headlineRawTexts() => [
+    for (final note in (_model.all ?? _model.notes))
+      (note.content ?? note.transcriptText ?? note.ocrText ?? '').trim(),
+  ];
 
   /// The recap's source: the library's state, not a slice of its prose.
   ///
   /// Everything the recap can say about what is due or unfinished comes from
-  /// here — see [nexRecapSource], which also explains why the twenty newest
-  /// notes were the wrong twenty. The whole set goes in rather than a
-  /// pre-cut slice, because the choosing is the part that matters and it
-  /// needs everything to choose from — see [_briefLibrary], which is more
-  /// than the timeline's window.
+  /// here — see [nexRecapSource], which sizes its own budget from what is
+  /// waiting. The whole candidate set goes in rather than a pre-cut slice,
+  /// because the choosing is the part that matters and it needs everything
+  /// to choose from — see [_briefLibrary], which reads the library itself
+  /// rather than the timeline's window.
   /// The standing obligations, as the brief last saw them.
   ///
   /// Held in a field rather than read inside [_aiRecapSource], because that

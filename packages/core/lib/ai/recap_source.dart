@@ -46,14 +46,27 @@ import '../models/note.dart';
 /// A note's tags ride in the middle column as `#name`: they say what a note
 /// is about in the words its writer chose, which is what lets the recap say
 /// "three things left for the trip" rather than list them one by one.
+///
+/// The budget is derived, not fixed (2.9.0). Twenty lines of a hundred and
+/// sixty characters was one size for every library: a quiet morning paid for
+/// room it never used, and a busy one handed the model a slice it had no way
+/// to know was a slice. With [limit] and [maxTextLength] left null the source
+/// sizes itself from what is actually waiting — more lines and a larger
+/// character budget as the waiting set grows, and a per-note share that
+/// shrinks as the lines multiply, so one long note still cannot take what the
+/// others were meant to share. Both bounds are clamped: the smallest brief is
+/// the size the fixed one always was, and the largest stays inside what a
+/// small local model's context can hold beside the prompt and the ledger.
+/// Passing [limit] explicitly keeps the old fixed contract, which is what
+/// the tests that pin a line count ask for.
 String nexRecapSource(
   List<Note> notes, {
   List<NexCommitment> commitments = const [],
   DateTime? now,
-  int limit = 20,
+  int? limit,
   bool forFingerprint = false,
   Duration horizon = const Duration(days: 7),
-  int maxTextLength = 160,
+  int? maxTextLength,
   Duration recentWindow = const Duration(hours: 48),
 }) => _recapLines(
   notes,
@@ -72,7 +85,7 @@ List<String> nexRecapNoteIds(
   List<Note> notes, {
   List<NexCommitment> commitments = const [],
   DateTime? now,
-  int limit = 20,
+  int? limit,
   Duration horizon = const Duration(days: 7),
   Duration recentWindow = const Duration(hours: 48),
 }) => [
@@ -100,7 +113,7 @@ List<(String, String?)> _recapLines(
   /// [NexCommitment.isWaiting].
   List<NexCommitment> commitments = const [],
   DateTime? now,
-  int limit = 20,
+  int? limit,
 
   /// Absolute facts for cache identity; relative age alone is not new data.
   bool forFingerprint = false,
@@ -110,9 +123,10 @@ List<(String, String?)> _recapLines(
   /// due soon.
   Duration horizon = const Duration(days: 7),
 
-  /// Per note. A long note would otherwise take the budget the other
-  /// nineteen were meant to share.
-  int maxTextLength = 160,
+  /// Per note. Null derives the share from the character budget below; a
+  /// long note would otherwise take the budget the others were meant to
+  /// share.
+  int? maxTextLength,
 
   /// How recent a note has to be to have a line kept for it.
   Duration recentWindow = const Duration(hours: 48),
@@ -185,10 +199,47 @@ List<(String, String?)> _recapLines(
     ));
   }
 
+  // The lines kept back for what was just written: never more than there
+  // are recent notes to fill them, and never more than a quarter, so a
+  // morning with a dozen things overdue still leads with them.
+  //
+  // `rest` is newest first, so the recent ones are a prefix of it: the
+  // count stops at the first note outside the window without walking the
+  // library behind it. A note with nothing readable in it was never one of
+  // the lines this count is for, so it does not count either.
+  var recent = 0;
+  for (final note in rest) {
+    if (at.difference(note.updatedAt.toUtc()) >= recentWindow) break;
+    if (_hasReadableText(note)) recent++;
+  }
+
+  // The derived budget. The character budget grows with the waiting set —
+  // every one of those is a fact the brief exists to state — and the line
+  // count and the per-note share are read from it, so the three move
+  // together. The clamps are the contract: never smaller than the fixed
+  // budget this replaced, never larger than a small local model can hold
+  // beside the prompt, the ledger and the answer.
+  final waitingCount =
+      urgent.length + due.length + open.length + waitingNow.length;
+  final int lineLimit;
+  final int textLimit;
+  if (limit != null) {
+    lineLimit = limit;
+    textLimit = maxTextLength ?? 160;
+  } else {
+    final charBudget = (2400 + 150 * waitingCount).clamp(2400, 12000);
+    lineLimit = (charBudget ~/ 120).clamp(20, 64);
+    // The share is against the lines actually expected, not the ceiling:
+    // one note on a quiet morning is worth more of the budget than one of
+    // sixty on a busy one.
+    final expected = (waitingCount + recent).clamp(1, lineLimit);
+    textLimit = maxTextLength ?? (charBudget ~/ expected - 45).clamp(60, 240);
+  }
+
   String? line(Note note) {
     final text = nexOneLine(
       note.type == NoteType.text ? note.aiSourceText : note.displayText,
-      maxTextLength,
+      textLimit,
     );
     if (text.isEmpty) return null;
     // The day a reminder falls on is part of the fingerprint, so a brief that
@@ -209,30 +260,17 @@ List<(String, String?)> _recapLines(
   for (final note in [...due, ...open]) {
     if (line(note) case final text?) pressing.add((text, note.id));
   }
-  // The lines kept back for what was just written: never more than there
-  // are recent notes to fill them, and never more than a quarter, so a
-  // morning with a dozen things overdue still leads with them.
-  //
-  // `rest` is newest first, so the recent ones are a prefix of it: the
-  // count stops at the first note outside the window without walking the
-  // library behind it. A note with nothing readable in it was never one of
-  // the lines this count is for, so it does not count either.
-  var recent = 0;
-  for (final note in rest) {
-    if (at.difference(note.updatedAt.toUtc()) >= recentWindow) break;
-    if (_hasReadableText(note)) recent++;
-  }
-  final kept = recent.clamp(0, limit ~/ 4);
+  final kept = recent.clamp(0, lineLimit ~/ 4);
   // Only the lines that can be used are built. The old shape rendered a
   // line for every note in the set — flattening and trimming a thousand
   // notes to keep twenty — on a path that runs on every delivery; this
   // stops asking as soon as the budget is full and leaves the library
   // behind it unread. The output is the same list either way: pressing
   // first, then the ordinary notes in their existing order, nothing beyond
-  // [limit].
-  final selected = [...pressing.take((limit - kept).clamp(0, limit))];
+  // [lineLimit].
+  final selected = [...pressing.take((lineLimit - kept).clamp(0, lineLimit))];
   for (final note in rest) {
-    if (selected.length >= limit) break;
+    if (selected.length >= lineLimit) break;
     if (line(note) case final text?) selected.add((text, note.id));
   }
   if (forFingerprint) selected.sort((a, b) => a.$1.compareTo(b.$1));

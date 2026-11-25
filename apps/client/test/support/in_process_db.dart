@@ -635,8 +635,7 @@ class InProcessDb implements NexDb {
       _repo.listUpcomingReminders(limit: limit);
 
   @override
-  Future<List<Note>> briefWaitingNotes({int limit = 200}) async =>
-      _repo.listBriefWaiting(limit: limit);
+  Future<List<Note>> briefCandidates() async => _repo.listBriefCandidates();
 
   @override
   Future<void> backup(

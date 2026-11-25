@@ -382,9 +382,7 @@ class _Worker {
       _DbCommand.upcomingReminders => repo.listUpcomingReminders(
         limit: arg('limit')! as int,
       ),
-      _DbCommand.briefWaitingNotes => repo.listBriefWaiting(
-        limit: arg('limit')! as int,
-      ),
+      _DbCommand.briefCandidates => repo.listBriefCandidates(),
       // The snapshot runs in its own isolate on its own connection (see
       // `snapshotDatabaseFromPath`): `VACUUM INTO` is a synchronous call that
       // grows with the library, and on this isolate it was a pause every

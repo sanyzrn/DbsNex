@@ -180,4 +180,40 @@ void main() {
       );
     });
   });
+
+  group('the headline source', () {
+    test('a few notes are read deeply, under the budget', () {
+      final long = 'a' * 500;
+      final selected = nexHeadlineSource([long, '   ', 'a short thought']);
+      // The empty entry is skipped and the indices name the notes the
+      // prompt actually carried.
+      expect(selected.map((e) => e.index), [0, 2]);
+      expect(selected.first.line.length, greaterThan(200));
+      expect(selected.first.line, endsWith('…'));
+      expect(selected.last.line, 'a short thought');
+    });
+
+    test('many notes are read broadly, and the walk stops at the budget', () {
+      final texts = [for (var i = 0; i < 100; i++) 'thought number $i'];
+      final selected = nexHeadlineSource(texts);
+      final used = selected.fold<int>(0, (sum, e) => sum + e.line.length + 1);
+      expect(used, lessThanOrEqualTo(1600));
+      expect(selected.length, lessThan(100));
+      expect(selected.length, greaterThan(8));
+      // Newest first, contiguous from the front.
+      expect(selected.map((e) => e.index), [
+        for (var i = 0; i < selected.length; i++) i,
+      ]);
+    });
+
+    test('one long note cannot spend the whole budget twice over', () {
+      final selected = nexHeadlineSource(['b' * 5000]);
+      expect(selected.single.line.length, lessThanOrEqualTo(241));
+    });
+
+    test('nothing readable is nothing to greet from', () {
+      expect(nexHeadlineSource(['', '   ', '\n']), isEmpty);
+      expect(nexHeadlineSource(const []), isEmpty);
+    });
+  });
 }

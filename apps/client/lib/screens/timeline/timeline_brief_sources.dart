@@ -26,27 +26,25 @@ extension _TimelineBriefSources on TimelineScreenState {
     );
   }
 
-  /// The notes the brief is written from: the timeline window — everything
-  /// recent — plus the waiting notes beyond it, merged by id with the
-  /// window's own copy of a note winning (it is the one the stream last
-  /// delivered, so it is the one the cards are showing).
+  /// The notes the brief is written from: the library's own candidate set,
+  /// read from the database on every pass — everything that can be waiting
+  /// (a reminder, an urgent mark, a checklist) plus the newest ordinary
+  /// prose. The timeline window is no longer the source of the set: it is a
+  /// recency slice whose depth depends on how far somebody has scrolled,
+  /// and a brief whose reach changes with a scroll is not reading the
+  /// library. The window is used only as a freshness overlay — where it
+  /// carries a candidate, its copy is the one the stream last delivered and
+  /// the cards are showing, so it wins over the read's copy of the same row.
   ///
-  /// The window is a recency slice, and the brief's job is only partly about
-  /// recency. A reminder set last month for tomorrow morning is the single
-  /// most worth mentioning thing in a library, and below a few hundred newer
-  /// notes the window stopped carrying it; the waiting notes put it back in
-  /// reach of the choosing in `nexRecapSource`, which is where the choosing
-  /// was always meant to happen.
+  /// An empty candidate set means the read failed (or a library with nothing
+  /// eligible in it); the window then stands in, which is what the brief
+  /// always fell back to, so a failed read is never a blank card.
   List<Note> _briefLibrary() {
+    final candidates = _briefCandidates;
     final window = _model.all ?? _model.notes;
-    final waiting = _briefWaitingNotes;
-    if (waiting.isEmpty) return window;
-    final seen = {for (final note in window) note.id};
-    return [
-      ...window,
-      for (final note in waiting)
-        if (!seen.contains(note.id)) note,
-    ];
+    if (candidates.isEmpty) return window;
+    final delivered = {for (final note in window) note.id: note};
+    return [for (final note in candidates) delivered[note.id] ?? note];
   }
 
   /// Everything the fingerprint is hashed from, as one string. Split out of

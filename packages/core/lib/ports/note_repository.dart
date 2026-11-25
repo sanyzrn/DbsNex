@@ -92,20 +92,20 @@ abstract interface class NoteRepository {
   /// the record and the alarm is a copy of it.
   List<Note> listUpcomingReminders({int limit});
 
-  /// Every live note the daily brief must not miss for being old: the ones
-  /// carrying a reminder — overdue or not — and the urgent ones without one.
+  /// The daily brief's candidate set: every live note the choosing may pick
+  /// from, read from the library itself rather than from the timeline's
+  /// recency slice (2.9.0).
   ///
-  /// The brief's own selection starts from the timeline window, which is a
-  /// recency slice. Past a few hundred notes, a reminder set last month for
-  /// tomorrow morning sits below the cut — the single most worth mentioning
-  /// thing in the library, invisible to the brief. This is the complement:
-  /// notes chosen by what is on them rather than by when they were last
-  /// touched, under the same set-aside rule as the timeline, so a note put
-  /// to one side stays off the brief it was put aside from.
+  /// Everything that can be waiting — a reminder, an urgent mark, a
+  /// checklist — with no count cap, plus the newest two hundred ordinary
+  /// notes so a quiet library's recent prose is still in reach. A cap on the
+  /// waiting ones was the window's own bug moved one layer down: the
+  /// two-hundred-and-first reminder is still something somebody asked to be
+  /// told about.
   ///
-  /// Soonest due first among the dated, newest first among the urgent rest,
-  /// so a caller truncating by [limit] keeps the front of each.
-  List<Note> listBriefWaiting({int limit});
+  /// Urgent first, then dated soonest first, then newest, under the same
+  /// set-aside and arrival rules as the timeline.
+  List<Note> listBriefCandidates();
 
   /// Notes the intelligence layer has never been able to read.
   ///

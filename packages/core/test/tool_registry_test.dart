@@ -96,7 +96,7 @@ class _FakeNoteRepository implements NoteRepository {
   List<Note> listUpcomingReminders({int limit = 200}) => [];
 
   @override
-  List<Note> listBriefWaiting({int limit = 200}) => [];
+  List<Note> listBriefCandidates() => [];
 
   @override
   List<Note> listNeedingEnrichment({int limit = 50}) => [];

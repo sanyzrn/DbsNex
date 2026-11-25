@@ -14,6 +14,8 @@
 /// new one arrives.
 library;
 
+import 'recap_source.dart';
+
 /// Morning, afternoon, evening, night — the four the app already greets in.
 ///
 /// The boundaries are the ones the local phrasings were written against and
@@ -214,3 +216,46 @@ NexGreetingMoment nexGreetingMomentAt(
   part: nexGreetingPartOf(at),
   language: language,
 );
+
+/// What the generated greeting reads: the newest prose under one character
+/// budget, chosen rather than counted.
+///
+/// The headline is a mood — roughly what somebody has been writing about —
+/// and it used to be handed the twenty newest notes cut at a hundred and
+/// sixty characters each. That is one size for every library: three long
+/// notes this morning were twenty slots with seventeen empty, and a busy
+/// day's twentieth note was a sentence the greeting never needed. Here the
+/// budget is fixed and small (it is one line of output, not a report), the
+/// per-note share is the budget divided by what is actually there — a few
+/// notes are read deeply, many are read broadly — and the walk stops when
+/// the budget is spent.
+///
+/// [texts] is newest first, one note's raw words per entry; empty entries
+/// are skipped. The result names the index each line came from so the
+/// disclosure log can name exactly the notes the prompt carried.
+List<({int index, String line})> nexHeadlineSource(
+  List<String> texts, {
+  int budget = 1600,
+}) {
+  // Enough candidates to fill the budget at the smallest share, and no
+  // more: flattening the whole library to greet from it would pay for a
+  // walk the greeting cannot use.
+  final maxCandidates = budget ~/ 60;
+  final flat = <({int index, String text})>[];
+  for (var i = 0; i < texts.length && flat.length < maxCandidates; i++) {
+    final text = texts[i].trim();
+    if (text.isEmpty) continue;
+    flat.add((index: i, text: text));
+  }
+  if (flat.isEmpty) return const [];
+  final share = (budget ~/ flat.length).clamp(60, 240);
+  final lines = <({int index, String line})>[];
+  var used = 0;
+  for (final entry in flat) {
+    final line = nexOneLine(entry.text, share);
+    if (lines.isNotEmpty && used + line.length + 1 > budget) break;
+    lines.add((index: entry.index, line: line));
+    used += line.length + 1;
+  }
+  return lines;
+}

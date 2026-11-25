@@ -565,4 +565,94 @@ void main() {
     expect(ids, ['due', 'old']);
     expect(linesOf(notes, limit: 2), hasLength(ids.length));
   });
+
+  group('the derived budget', () {
+    // With no explicit limit the source sizes itself from what is waiting:
+    // a quiet library keeps the old footprint, a busy one is given more
+    // lines and more characters, and the per-note share moves the other
+    // way so one long note cannot take what the others were meant to share.
+    test('a quiet library keeps the fixed footprint', () {
+      final lines = nexRecapSource([
+        note(id: 'one', content: 'a single thought'),
+      ], now: now).split('\n');
+      expect(lines, ['today | text | a single thought']);
+    });
+
+    test('a busy waiting set is given more lines than twenty', () {
+      final notes = [
+        for (var i = 0; i < 40; i++)
+          note(
+            id: 'due$i',
+            content: 'errand $i',
+            due: Duration(hours: i + 1),
+          ),
+      ];
+      final lines = nexRecapSource(
+        notes,
+        now: now,
+      ).split('\n').where((l) => l.isNotEmpty).toList();
+      expect(lines.length, greaterThan(20));
+      expect(lines.length, lessThanOrEqualTo(64));
+      expect(lines.first, 'DUE today 10:00 | text | errand 0');
+      // The disclosure log names exactly the same set.
+      expect(nexRecapNoteIds(notes, now: now), hasLength(lines.length));
+    });
+
+    test('the whole source stays inside the character ceiling', () {
+      final notes = [
+        for (var i = 0; i < 200; i++)
+          note(
+            id: 'due$i',
+            content: 'a long errand $i ${'x' * 300}',
+            due: Duration(hours: i + 1),
+          ),
+      ];
+      final source = nexRecapSource(notes, now: now);
+      expect(source.length, lessThanOrEqualTo(12000));
+    });
+
+    test('few notes are read deeply, many broadly', () {
+      final long = 'a' * 500;
+      final alone = nexRecapSource([
+        note(id: 'one', content: long),
+      ], now: now).split('\n').single;
+      final crowded = nexRecapSource([
+        note(id: 'one', content: long),
+        for (var i = 0; i < 40; i++)
+          note(
+            id: 'due$i',
+            content: 'errand $i',
+            due: Duration(hours: i + 1),
+          ),
+      ], now: now).split('\n');
+      // Alone, the note gets the deep share (240); crowded, the per-note
+      // share shrinks — but never below the floor that keeps a line useful.
+      expect(alone.length, greaterThan(200));
+      final one = crowded.firstWhere((l) => l.contains('aaaa'));
+      expect(one.length, lessThan(alone.length));
+      expect(one, endsWith('…'));
+    });
+
+    test('the fingerprint variant selects the same set', () {
+      final notes = [
+        for (var i = 0; i < 40; i++)
+          note(
+            id: 'due$i',
+            content: 'errand $i ${'y' * 200}',
+            due: Duration(hours: i + 1),
+          ),
+        note(id: 'recent', content: 'a thought', age: const Duration(hours: 1)),
+      ];
+      final readable = nexRecapNoteIds(notes, now: now);
+      final fingerprint = nexRecapSource(
+        notes,
+        now: now,
+        forFingerprint: true,
+      ).split('\n').where((l) => l.isNotEmpty).toList();
+      expect(fingerprint, hasLength(readable.length));
+      for (final id in readable) {
+        expect(fingerprint.any((line) => line.startsWith('$id|')), isTrue);
+      }
+    });
+  });
 }

@@ -2486,25 +2486,55 @@ LIMIT ?
     return _withTags(rows);
   }
 
+  /// The brief's candidate set: every live note the choosing may pick from,
+  /// read from the library itself rather than from whatever slice of it the
+  /// timeline happens to have loaded (2.9.0).
+  ///
+  /// Two pools, merged by id:
+  ///
+  /// - **Everything that can be waiting** — a reminder on it, an urgent mark,
+  ///   or a checklist — with no count cap. A cap here is exactly the bug the
+  ///   window had: the two-hundred-and-first reminder is still something
+  ///   somebody asked to be told about, and "urgent first" only protected the
+  ///   urgent ones from the cut.
+  /// - **The newest two hundred ordinary notes**, so a quiet library's recent
+  ///   prose still reaches the choosing without reading the whole shelf. The
+  ///   source's own line budget is far below this, so the pool is a bound on
+  ///   the read, never on the selection.
+  ///
+  /// Ordered urgent first, then dated soonest first, then newest — the same
+  /// order the choosing groups by, so a caller truncating keeps the front of
+  /// each group. Deleted, set-aside and not-yet-arrived notes are out, by the
+  /// same terms the timeline uses.
   @override
-  List<Note> listBriefWaiting({int limit = 200}) {
+  List<Note> listBriefCandidates() {
     final nowIso = DateTime.now().toUtc().toIso8601String();
+    final recentIso = DateTime.now()
+        .toUtc()
+        .subtract(const Duration(days: 7))
+        .toIso8601String();
     final rows = db.select(
       '''
-SELECT * FROM notes
-WHERE deleted_at IS NULL
-  AND $_notSetAside
-  AND $_notWaiting
-  AND (due_at IS NOT NULL OR is_urgent = 1)
-  -- Urgent first, because a caller truncating by the limit must never be
-  -- able to drop them: with dated notes ahead, a library of more than the
-  -- limit in dated reminders left every urgent note outside the cap.
-  -- Within each side: dated soonest first, then the undated newest first.
-  -- A caller truncating by the limit keeps the front of each group.
+SELECT * FROM (
+  SELECT * FROM notes
+  WHERE deleted_at IS NULL
+    AND $_notSetAside
+    AND $_notWaiting
+    AND (due_at IS NOT NULL OR is_urgent = 1 OR type = 'checklist'
+         OR updated_at >= ?)
+  UNION
+  SELECT * FROM (
+    SELECT * FROM notes
+    WHERE deleted_at IS NULL
+      AND $_notSetAside
+      AND $_notWaiting
+    ORDER BY updated_at DESC
+    LIMIT 200
+  )
+)
 ORDER BY is_urgent DESC, (due_at IS NULL), due_at ASC, updated_at DESC
-LIMIT ?
 ''',
-      [nowIso, nowIso, limit],
+      [nowIso, nowIso, recentIso, nowIso, nowIso],
     );
     return _withTags(rows);
   }

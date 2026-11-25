@@ -339,9 +339,9 @@ class TimelineScreenState extends State<TimelineScreen>
   StreamSubscription<String>? _habitBriefChanges;
   bool _aiSummaryLoading = false;
 
-  /// Reminders and urgent notes beyond the timeline's loaded page.
-  /// Refreshed each brief pass before fingerprinting.
-  List<Note> _briefWaitingNotes = const [];
+  /// The brief's candidate set, read from the library itself on each pass
+  /// before fingerprinting — never the timeline's loaded page.
+  List<Note> _briefCandidates = const [];
 
   /// The running brief flight, shared with a manual pull.
   Future<void>? _aiSummaryInFlight;

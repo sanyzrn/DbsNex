@@ -178,22 +178,21 @@ class NexServices {
         });
   }
 
-  /// The notes the brief reads beyond the timeline window: every live note
-  /// carrying a reminder — overdue or not — and every urgent one, whatever
-  /// their place in the recency slice the timeline keeps — see
-  /// `NoteRepository.listBriefWaiting`.
+  /// The notes the brief chooses from: the library's own candidate set —
+  /// everything that can be waiting, plus the newest ordinary prose —
+  /// whatever the timeline window happens to carry. See
+  /// `NoteRepository.listBriefCandidates`.
   ///
   /// Refreshed on each brief pass rather than cached: unlike the habits,
   /// whose day-shaped state changes only through a write that already
   /// invalidates the cache, a note gains or loses a reminder through the
   /// ordinary note paths this call rides along with.
   ///
-  /// A failed read is an empty list, not a failed brief: the window still
-  /// carries everything recent, which is what it always carried before
-  /// this query existed.
-  Future<List<Note>> briefWaitingNotes({int limit = 200}) async {
+  /// A failed read is an empty list, not a failed brief: the timeline window
+  /// still carries everything recent, which is what the brief falls back to.
+  Future<List<Note>> briefCandidates() async {
     try {
-      return await worker.briefWaitingNotes(limit: limit);
+      return await worker.briefCandidates();
     } catch (_) {
       return const [];
     }
