@@ -203,7 +203,9 @@ rather than a frame behind. The 150 ms is still needed for one case no focus
 event can predict: a tap that opens a sheet or dialog whose field requests
 focus later than the settle window. There the keyboard is hidden and reopened
 by that field — the same thing that would happen if the handoff guessed it was
-coming.
+coming. A regression test arms a hide with nothing focused, gives a Flutter
+field focus 100 ms later and waits past the 150 ms: the fire-time check sees
+that editor and no `unfocus` is sent.
 
 The controller, selection, native editing, `NexKeyboardDismisser` and
 `NexFocusReveal` are untouched; the change is only when `unfocus` is sent.
@@ -214,8 +216,8 @@ The controller, selection, native editing, `NexKeyboardDismisser` and
   test/nex_markdown_test.dart test/nex_text_direction_test.dart` — 57 passing
   (Flutter 3.47.9).
 - `apps/client`: `flutter test test/nex_text_field_test.dart
-  test/keyboard_dismisser_test.dart` — 43 passing, including the two-field
-  handoff and the Flutter-field ordering regressions.
+  test/keyboard_dismisser_test.dart` — 44 passing, including the two-field
+  handoff, Flutter-field ordering and delayed-focus regressions.
 - `apps/client`: `flutter test test/nex_banner_test.dart` — 15 passing with
   the single-timer countdown.
 - `apps/client`: `flutter test test/capture_kind_switch_test.dart` — 2

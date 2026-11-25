@@ -713,6 +713,56 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+    'a field focused during the settle window still cancels the hide',
+    (tester) async {
+      // The hide is armed first, with nothing holding the keyboard; 100 ms
+      // later a Flutter field takes focus. Only the check when the timer fires
+      // can see that, so the editor must stay open.
+      final controller = TextEditingController();
+      final nativeFocus = FocusNode();
+      final flutterFocus = FocusNode();
+      final flutterController = TextEditingController();
+      addTearDown(controller.dispose);
+      addTearDown(nativeFocus.dispose);
+      addTearDown(flutterFocus.dispose);
+      addTearDown(flutterController.dispose);
+      await pump(
+        tester,
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            NexTextField(controller: controller, focusNode: nativeFocus),
+            TextField(controller: flutterController, focusNode: flutterFocus),
+          ],
+        ),
+      );
+      expect(viewIds, hasLength(1));
+
+      nativeFocus.requestFocus();
+      await tester.pump();
+      await fromNativeTo(tester, viewIds.single, 'focus', {'focused': true});
+      toNative.clear();
+
+      nativeFocus.unfocus();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(toNative.map((c) => c.method), isNot(contains('unfocus')));
+
+      flutterFocus.requestFocus();
+      await tester.pump();
+      await tester.pump(NexImeHandoff.delay);
+      await tester.pump();
+
+      expect(
+        toNative.map((c) => c.method),
+        isNot(contains('unfocus')),
+        reason: 'the field that arrived inside the settle window owns the IME',
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('a label inside the empty field keeps the hint off the editor', (
     tester,
   ) async {
