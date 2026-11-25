@@ -339,7 +339,9 @@ void main() {
     // following week.
     expect(
       tester
-          .widget<IconButton>(find.byKey(const ValueKey('recurring-complete-c-bins')))
+          .widget<IconButton>(
+            find.byKey(const ValueKey('recurring-complete-c-bins')),
+          )
           .onPressed,
       isNull,
     );

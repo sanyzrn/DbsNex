@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:nex_core/nex_core.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -133,9 +134,9 @@ INSERT OR REPLACE INTO commitments (
   }
 
   NexCommitment _fromRow(Row row) => NexCommitment(
-    details:
-        jsonDecode(row['details_json'] as String? ?? '{}')
-            as Map<String, dynamic>,
+    details: jsonDecode(
+      row['details_json'] as String? ?? '{}',
+    ) as Map<String, dynamic>,
     id: row['id'] as String,
     title: row['title'] as String,
     cadence: NexCadence.fromWire(row['cadence'] as String?),
