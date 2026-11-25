@@ -382,12 +382,36 @@ that set a 320 px keyboard on a 600 px screen:
   step; their suites were green in steps 2 and 3 and nothing in this change
   reaches them.
 
+### The Android editor's frame (review follow-up)
+
+The first version resolved the target as the nearest `TextField`, and fell
+back to the focus node. On the native path there is no `TextField` in the
+tree: the editor is a platform view inside an `InputDecorator` that draws the
+border, the label and the counter, and the focus the platform gives the view
+is *inside* that decorator. So the fallback was the text box, eight pixels of
+frame were left under the keyboard, and the brief was only half met.
+
+The target is now the field's frame itself — the nearest `InputDecorator` —
+looked for both ways from the focus:
+
+* **up**, for the Flutter editor, whose focus node sits inside the decorator
+  next to the text;
+* **down**, for the native editor, whose `Focus` wraps the decorator (and for
+  a Dart-side `requestFocus` on a native field);
+* the platform view's own node, which takes focus on a device, sits inside
+  the decorator, so it is found by walking up.
+
+`nexKeyboardRevealTarget` is exposed to tests for exactly this. The regression
+test drives the native path with a mocked platform view, gives focus to the
+platform view's `Focus` as Android does, opens a 300 px keyboard, and checks
+the decorator's box, not the text's. With the old resolution it fails with
+`frame 252..308, text 276..300`; it passes now.
+
 ### Not run here
 
-- A real keyboard on a device, the platform's own inset animation, and the
-  Android native-editor path (widget tests run on the host editor). The rule is
-  geometry only, and the fallback target for the native editor is the focus
-  node's own render object.
+- A real keyboard on a device and the platform's own inset animation. The
+  native editor path is covered by widget tests over a mocked platform view
+  (create, resize, focus); the rule itself is geometry only.
 
 ### Remaining risks for the final audit
 

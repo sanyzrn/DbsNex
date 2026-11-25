@@ -6,7 +6,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.9.0
 
-- **The keyboard no longer covers what you are typing.** Tapping a field — in Prompt Studio, a long form, a dialog or a sheet — now brings the whole field above the keyboard, not just the caret, so the line being written stays in view. The rule is installed once for the whole app, it does nothing while the keyboard is closed, and it respects "remove animations".
+- **The keyboard no longer covers what you are typing — in the Android editor too.** Tapping a field — in Prompt Studio, a long form, a dialog or a sheet — now brings the whole field above the keyboard, not just the caret, so the line being written stays in view. The rule is installed once for the whole app, it does nothing while the keyboard is closed, and it respects "remove animations".
 
 - **The greeting keeps up with the hour.** The line above your notes now belongs to the day and the part of the day it was written for, so last night's phrase no longer greets you in the morning. The app's own greeting appears at once while a fresh one is written, and it is replaced without a jump when you come back to the app, cross noon, evening or midnight, or change the interface language. A phrase about the wrong time of day is never shown.
 

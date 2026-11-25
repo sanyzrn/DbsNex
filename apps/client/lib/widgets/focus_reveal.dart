@@ -86,20 +86,7 @@ class _NexFocusRevealState extends State<NexFocusReveal>
     if (view == null || view.viewInsets.bottom <= 0) return;
     final focused = FocusManager.instance.primaryFocus?.context;
     if (focused == null || !focused.mounted) return;
-    // The focus node lives *inside* the editor: its render object is the text
-    // itself, and scrolling that to the end leaves the field's own box — its
-    // label, its counter, its border — below the keyboard. The field is the
-    // unit to bring up, so the nearest TextField above the focus is the
-    // target, and the focus is only the fallback (the native editor on
-    // Android is not a TextField in the tree).
-    BuildContext target = focused;
-    focused.visitAncestorElements((element) {
-      if (element.widget is TextField || element.widget is TextFormField) {
-        target = element;
-        return false;
-      }
-      return true;
-    });
+    final target = nexKeyboardRevealTarget(focused);
     if (!target.mounted) return;
     // Only something inside a scroll view has anywhere to scroll to.
     if (Scrollable.maybeOf(target) == null) return;
@@ -116,4 +103,58 @@ class _NexFocusRevealState extends State<NexFocusReveal>
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+/// The box to bring above the keyboard for [focused]: the field's own frame.
+///
+/// The focus node belongs to the *editor*, not to the field. Scrolling what it
+/// points at leaves the field's frame — label, counter, border — below the
+/// keyboard, which is the report this rule answers. The frame is an
+/// `InputDecorator`, and which way it lies from the focus depends on the path:
+///
+/// * the Flutter editor's focus node sits **inside** the decorator (right
+///   beside the text), so it is found by walking up;
+/// * the Android editor's focus node is the `Focus` that **wraps** the
+///   decorator — the native `EditText` lives inside the frame the decorator
+///   draws — so walking up from it finds nothing and the decorator is one of
+///   its own descendants;
+/// * the platform view's own node, which takes focus on a real device, sits
+///   inside the decorator again.
+///
+/// Both directions are tried, so every path lands on the same box. Only when
+/// there is no decorator at all (a custom editor) does it fall back to the
+/// focus itself.
+@visibleForTesting
+BuildContext nexKeyboardRevealTarget(BuildContext focused) {
+  final element = focused as Element;
+  return _firstDescendant<InputDecorator>(element) ??
+      _nearestAncestor<InputDecorator>(element) ??
+      focused;
+}
+
+Element? _nearestAncestor<T extends Widget>(Element element) {
+  Element? found;
+  element.visitAncestorElements((ancestor) {
+    if (ancestor.widget is T) {
+      found = ancestor;
+      return false;
+    }
+    return true;
+  });
+  return found;
+}
+
+Element? _firstDescendant<T extends Widget>(Element root) {
+  Element? found;
+  void visit(Element element) {
+    if (found != null) return;
+    if (element.widget is T) {
+      found = element;
+      return;
+    }
+    element.visitChildren(visit);
+  }
+
+  root.visitChildren(visit);
+  return found;
 }
