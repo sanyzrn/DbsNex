@@ -15,7 +15,6 @@ abstract final class NexHabitNotificationActions {
     NexChannelText? text,
   }) {
     final words = text ?? NexReminders._text;
-    final fa = words == NexChannelText.fa;
     return NotificationDetails(
       android: AndroidNotificationDetails(
         NexReminders._channelId,
@@ -30,13 +29,13 @@ abstract final class NexHabitNotificationActions {
         actions: [
           AndroidNotificationAction(
             counted ? progress : done,
-            counted ? (fa ? 'ثبت پیشرفت' : 'Log progress') : words.done,
+            counted ? words.logProgress : words.done,
             showsUserInterface: counted,
             cancelNotification: counted,
           ),
           AndroidNotificationAction(
             snooze,
-            fa ? 'بعداً یادآوری کن' : 'Remind later',
+            words.remindLater,
             showsUserInterface: false,
             cancelNotification: false,
           ),

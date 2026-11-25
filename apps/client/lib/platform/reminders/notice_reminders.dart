@@ -8,6 +8,7 @@ extension NexNoticeReminders on NexReminders {
     required String body,
   }) async {
     if (!NexReminders.supported) return 'not supported on this platform';
+    final words = nexNotificationWords(title, body);
     await initialise();
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -23,15 +24,15 @@ extension NexNoticeReminders on NexReminders {
     try {
       await _plugin.show(
         id: NexReminders._testId,
-        title: nexNotificationText(title),
-        body: nexNotificationText(body),
+        title: nexNotificationText(words.title),
+        body: nexNotificationText(words.body),
         notificationDetails: details,
       );
       final when = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
       await _plugin.zonedSchedule(
         id: NexReminders._testId + 1,
-        title: nexNotificationText(title),
-        body: nexNotificationText(body),
+        title: nexNotificationText(words.title),
+        body: nexNotificationText(words.body),
         scheduledDate: when,
         notificationDetails: details,
         androidScheduleMode: _scheduleMode,
@@ -59,12 +60,15 @@ extension NexNoticeReminders on NexReminders {
     String? body,
   }) async {
     if (!NexReminders.supported) return;
+    // The percentage is the body until the download has something better to
+    // say; either way it is said once, not as the title again.
+    final words = nexNotificationWords(title, body ?? '$percent%');
     await initialise();
     try {
       await _plugin.show(
         id: NexReminders._updateId,
-        title: nexNotificationText(title),
-        body: nexNotificationText(body ?? '$percent%'),
+        title: nexNotificationText(words.title),
+        body: nexNotificationText(words.body),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             NexReminders._updateChannelId,
@@ -98,12 +102,13 @@ extension NexNoticeReminders on NexReminders {
     required String body,
   }) async {
     if (!NexReminders.supported) return;
+    final words = nexNotificationWords(title, body);
     await initialise();
     try {
       await _plugin.show(
         id: NexReminders._updateId,
-        title: nexNotificationText(title),
-        body: nexNotificationText(body),
+        title: nexNotificationText(words.title),
+        body: nexNotificationText(words.body),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             NexReminders._updateReadyChannelId,

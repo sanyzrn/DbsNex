@@ -22,7 +22,7 @@ user-facing copy lives in `CHANGELOG.md` / `CHANGELOG.fa.md`.
 | 5 | Quick Capture: seamless code mode | **done** |
 | 6 | Smart Paste / Submit button | **done** |
 | 7 | In-app camera: photo and video | **done** |
-| 8 | Android notification audit | not started |
+| 8 | Android notification audit | **done** |
 
 Each brief is finished, tested, logged here, committed and pushed on its own,
 and the next one waits for the owner's go-ahead.
@@ -705,3 +705,88 @@ have reached the library as a broken photo.
 - Playback of a recorded file on Android: the same `NexVideoPlayer` the
   gallery path already uses, but a file produced by this gesture has not been
   played back on this machine.
+
+## 8. Every Android notification, audited
+
+### What was looked at
+
+All five paths that can put something in the shade: note reminders, the
+recurring/commitment alarm, scheduled-note arrivals, module alarms (Habits,
+Medicine, Parking, …), «Cycle», the daily nudge (posted by
+`NexDailyNudgeReceiver` with no Flutter running), the update download
+(`DownloadService`, and the Dart fallback through the plugin), the
+quick-capture shortcut, and the two settings diagnostics. Both halves were
+read: the Dart builders in `lib/platform/reminders*` and the native posters.
+
+### What was wrong
+
+- **A body with no way to read it.** Module and «Cycle» reminders queued real
+  text as the body but built the style with `nexNotificationStyle(null)`. In
+  the expanded shade that is one truncated line with no more to open — the
+  reminders with the most to say were the ones that said least.
+- **The same sentence twice.** Nothing stood between a title and a body that
+  happened to match. Modules can pass both, and a one-line daily plan can too,
+  and Android draws them one under the other.
+- **Blank edges.** A body ending in a newline — the natural result of a note's
+  last line — was drawn as an empty line between the words and the buttons.
+  The native daily receiver trimmed its own copy only from the end, and not
+  the start.
+- **Two languages for the same two buttons.** A habit reminder's actions were
+  written inline as `fa ? 'ثبت پیشرفت' : 'Log progress'` while every other
+  reminder read `NexChannelText`, the same table that names the channels. One
+  language change would have had to find both.
+
+### What changed
+
+- **One place for the words.** `nexNotificationWords(title, body)` trims both,
+  folds doubled blank lines to one, drops blank edges, and returns no body at
+  all when the body is empty or only repeats the title. Every scheduler — note,
+  commitment, cycle, arrival, module, daily nudge, download, test — now goes
+  through it, and the style is always built from the same cleaned body it
+  sends. `nexAndroidNotificationText` and `nexNotificationStyle` clean up
+  again on their own, so a caller that reaches them directly cannot bypass it.
+- **Expanded text everywhere it exists.** Module and cycle reminders now get
+  the big-text style their bodies earned. Title-only notifications (a
+  recurring item, a download's final card) keep the default style: an empty
+  body is not invented for them.
+- **Native daily nudge in step.** Its HTML is trimmed at both ends, and when
+  the plan's greeting and its chosen line are the same sentence the body is
+  not set — the same rule as Dart's, applied where the nudge is posted without
+  the app running.
+- **The habit buttons moved beside `Done` and `In an hour`** in
+  `NexChannelText`, in both languages, so all four action labels come from one
+  table.
+- **Reviewed and deliberately left alone:** grouping (each reminder belongs to
+  its own note or item, and grouping them would hide the one that matters
+  behind a summary), the ids and channels (renaming a live channel would reset
+  the sound and importance the user chose), the lock-screen policy (app lock →
+  `secret`; everything else keeps the framework's own private default), the
+  two download ids (`4` native, `3` plugin fallback — they never run for the
+  same transfer, and changing either would invalidate a pending cancel), and
+  the quick-capture shortcut's `IMPORTANCE_MIN` channel (an ongoing control,
+  not an alert).
+
+### Tests
+
+- `test/notification_shape_test.dart` (11, new): the words helper's dedupe,
+  trimming, blank-line folding and empty cases; escaped once, not twice; no
+  trailing `<br>`; the style carrying the same clean words; a module reminder
+  really handed a `BigTextStyleInformation` with its body (the regression);
+  a title-equals-body reminder posted with no body; and all four habit action
+  labels in English and Persian.
+- The notification group was re-run whole — `nex_250_polish`,
+  `reminder_body`, `module_reminder_alarm`, `habits_notification_platform`,
+  `habits_brief_notifications`, `recurring_notification`,
+  `daily_nudge_content`, `daily_nudge_coordinator`, `nudge_name`,
+  `download_notice` — **94 tests green**, and the suite's `flutter analyze`
+  reports no errors or warnings.
+- The native receiver compiles against `android-36` with `javac` (the one
+  change there: trimming both ends and the duplicate check).
+
+### Not run here
+
+- A real shade: collapsed and expanded rendering of a long Persian/English
+  mix, a lock screen with the app lock on, TalkBack reading the actions, and
+  Android's grouping/bundling on a phone with several reminders at once. Those
+  need a device; what is checked here is the exact text, style and action
+  objects handed to the plugin, plus the native poster's compilation.
