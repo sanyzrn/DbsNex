@@ -345,73 +345,35 @@ private class NexEditTextView(
     }
 
     /**
-     * The code editor's two gestures, applied to a single typed character.
+     * The code editor's gestures, applied to a single typed character.
      *
-     * Exactly what `NexCodeInputFormatter` does on the Flutter editor:
+     * The rule itself is [nexCodeGesture], a pure function tested on the JVM;
+     * this only writes its answer into the field. Anything that is not
+     * exactly one character inserted at a collapsed caret — a paste, an
+     * autocorrect, a change from Dart — comes back as `null` and is left
+     * alone.
      *
-     * * Enter keeps the indentation of the line it came from;
-     * * a closing bracket or quote typed over its own twin steps past it
-     *   instead of writing a second one;
-     * * an opening bracket or an unescaped quote writes its partner and
-     *   leaves the caret between them.
-     *
-     * Anything else — a paste, a selection, an IME composition, a change
-     * from Dart — is left exactly as it is.
+     * While a keyboard has a composition open (most soft keyboards report the
+     * word being typed as a composing span), the editor can still be told
+     * about the edit: the spans are removed after it, which commits the word
+     * to the field. Keeping them would leave the keyboard writing into text
+     * it no longer matches.
      */
     private fun codeGestures() {
-        val old = beforeText
-        val start = beforeStart
-        if (beforeEnd != start || start < 0) return
-        val text = edit.text
-        if (text.length != old.length + 1 || start >= text.length) return
-        if (edit.selectionStart != start + 1 || edit.selectionEnd != start + 1) return
-        if (BaseInputConnection.getComposingSpanStart(edit.text) != -1) return
-        // One character inserted, at the caret, with nothing else changed.
-        if (text.substring(0, start) != old.substring(0, start)) return
-        if (text.substring(start + 1) != old.substring(start)) return
-
-        val input = text[start]
-        val before = if (start == 0) '\u0000' else old[start - 1]
-        val after = if (start < old.length) old[start] else '\u0000'
-        var replacement = input.toString()
-        var caret = start + 1
-        when {
-            input == '\n' -> {
-                val lineStart = if (start == 0) 0 else old.lastIndexOf('\n', start - 1) + 1
-                var indentEnd = lineStart
-                while (indentEnd < start && (old[indentEnd] == ' ' || old[indentEnd] == '\t')) {
-                    indentEnd++
-                }
-                val indent = old.substring(lineStart, indentEnd)
-                replacement = "\n$indent"
-                caret = start + replacement.length
-            }
-            input in ")]}\"'" && after == input && before != '\\' -> {
-                // Typing the closer that is already there steps over it.
-                replacement = ""
-                caret = start + 1
-            }
-            input in "([{\"'" -> {
-                val partner = when (input) {
-                    '(' -> ')'
-                    '[' -> ']'
-                    '{' -> '}'
-                    else -> input
-                }
-                val quote = input == partner
-                val afterWord = before.isLetterOrDigit() || before == '_' || before == '\\'
-                val nextIsFree = after == '\u0000' || after.isWhitespace() || after in ")]}>.,;:"
-                if (!(quote && afterWord) && nextIsFree) {
-                    replacement = "$input$partner"
-                    caret = start + 1
-                }
-            }
-        }
-        if (replacement == input.toString() && caret == start + 1) return
+        val gesture = nexCodeGesture(
+            before = beforeText,
+            beforeStart = beforeStart,
+            beforeEnd = beforeEnd,
+            after = edit.text.toString(),
+            afterStart = edit.selectionStart,
+            afterEnd = edit.selectionEnd,
+        ) ?: return
+        val composing = BaseInputConnection.getComposingSpanStart(edit.text) != -1
         applying = true
         try {
-            edit.text.replace(start, start + 1, replacement)
-            edit.setSelection(caret.coerceIn(0, edit.text.length))
+            edit.text.replace(gesture.start, gesture.start + 1, gesture.replacement)
+            if (composing) BaseInputConnection.removeComposingSpans(edit.text)
+            edit.setSelection(gesture.caret.coerceIn(0, edit.text.length))
         } finally {
             applying = false
         }

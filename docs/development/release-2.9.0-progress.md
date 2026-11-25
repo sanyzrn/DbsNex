@@ -458,12 +458,19 @@ hint line under the box.
 - **The code gestures moved to where the text is.** `NexTextField.code`
   travels to the native editor as a config flag, and `NexEditText` now applies
   the same two rules as `NexCodeInputFormatter`, in its own `TextWatcher` and
-  *before* the change is reported: Enter keeps the current line's indent, a
-  closing bracket or quote typed over its twin steps past it, and an opening
-  one writes its partner with the caret between. A paste, a selection, an IME
-  composition and a value from Dart are left exactly as they are. Because it
-  happens inside the change, Dart and the draft see one text, never a
-  correction arriving after it.
+  *before* the change is reported: Enter keeps the current line's indent (and
+  its Windows line ending), a closing bracket or quote typed over its twin
+  steps past it, and an opening one writes its partner with the caret between.
+  A paste, a selection and a value from Dart are left exactly as they are.
+  Because it happens inside the change, Dart and the draft see one text, never
+  a correction arriving after it.
+- **Real keyboards.** A soft keyboard keeps the word being typed in an IME
+  *composing span*; refusing to act whenever one is open would have made the
+  gestures silently never fire on a device. They now act on any single typed
+  character and remove the composition afterwards, committing the word to the
+  field — keeping spans that no longer match the text would leave the keyboard
+  writing into a stale document. Multi-character input (autocorrect, paste,
+  a composed word) still fails the one-character test and is left alone.
 - `inputFormatters` stays for the Flutter editor, which is still what iOS and
   desktop use; nothing there changes.
 - The code tool row stays **above** the input row, so the words being typed
@@ -472,6 +479,13 @@ hint line under the box.
 
 ### Tests added
 
+- `apps/client/android/app/src/test/java/com/sanyzrn/nex/NexCodeGesturesTest.kt`
+  (8 JVM tests): the gesture rule itself, now a pure function
+  (`NexCodeGestures.kt`, no Android classes) so it can be checked without a
+  device — indentation (spaces, tabs, CRLF), pairing for every bracket and
+  quote, the quote-after-word and escaped-quote refusals, stepping over a
+  closer, and the cases that must do nothing (paste, selection, ordinary
+  letter, a change from Dart).
 - `apps/client/test/capture_kind_switch_test.dart` (2):
   - every kind keeps one platform view (no re-create), the typed text, the
     box's height, and a box above the keyboard, with no `unfocus` sent while
@@ -493,9 +507,31 @@ hint line under the box.
   `flutter.jar` — no errors. An APK/Gradle build was not possible here (no
   Android SDK or Gradle in this environment).
 
-### Not run here
+### How to validate the Android half
 
-- A real keyboard on an Android device: the gestures' runtime behaviour
-  (pairing, stepping over a closer, indentation) and the IME staying up across
-  a kind change. They are the mirror of the Dart formatter, which is covered by
-  unit tests, but the Android path itself needs a device test.
+- **On a build machine:** `cd apps/client/android && ./gradlew testDebugUnitTest`
+  runs `NexCodeGesturesTest` next to the existing `NexCycleTodayTest`. The
+  same file can be compiled and run without Gradle:
+  `kotlinc NexCodeGestures.kt NexCodeGesturesTest.kt -classpath junit.jar:hamcrest.jar`
+  then `java -cp … org.junit.runner.JUnitCore com.sanyzrn.nex.NexCodeGesturesTest`.
+  In this environment that ran 8 tests green, and `NexEditText.kt` +
+  `NexMagnifierBridge.kt` + `NexCodeGestures.kt` compiled with `kotlinc 2.1.0`
+  against `android-36/android.jar` and Flutter's `flutter.jar` with no errors.
+- **On a device** (still needed: the IME, the platform view and the keyboard's
+  own behaviour are not in a JVM test):
+  1. In the capture box, choose Code; the keyboard must stay up (no blink) and
+     the text must not move.
+  2. Type `if (x)` in a line indented by two spaces, press Enter: the new line
+     is indented two spaces.
+  3. Type `(`, `[`, `{`, `"` and `'`: the partner appears and the caret stays
+     between the two.
+  4. Type a closing `)` when one is already next: the caret steps past it and
+     no second `)` is written.
+  5. Paste multi-line code: it lands unchanged (no pairing, no indentation
+     rewriting).
+  6. Switch Note → Code → Note → Checklist → Link with the keyboard up: the
+     keyboard never closes, the words stay, and the panel does not jump by the
+     keyboard's height.
+  7. With a Gboard/Persian keyboard, repeat 2–3: the composition must not
+     swallow the pair or duplicate the character.
+
