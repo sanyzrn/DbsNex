@@ -1048,3 +1048,58 @@ the missing vector, the bound.
 `semantic_pairs`, `embedding_space`, `vector_index` 24 green. `apps/client`:
 `flutter analyze --fatal-infos` clean; the set-1 group plus
 `db_worker_spawn_test` **230 green**.
+
+### Set 3 — one expiry, respected everywhere the words travel
+
+**What was wrong.** The card had learned `aiDaySummaryValidUntil`, but the
+surfaces that republish the words had not all learned it with it. The daily
+nudge handed `canUseSummary` the raw cached text and checked only the hour
+and the day: a recap written at seven that said nothing was overdue could be
+delivered at half past, twenty minutes after an item's time had made it
+false. The widget file carried the recap with no expiry at all, so a phone
+left alone kept yesterday's sentence on the home screen until the next
+write. And three places on the timeline still showed the raw cache when
+habits were switched off mid-brief.
+
+**What changed.**
+
+- **The nudge plan carries the expiry.** `summaryValidUntil` travels through
+  `NexNudgePlanInput` into `canUseSummary` (a delivery at or past it is not a
+  usable recap, whatever the hour says) and into `expires` (the earlier of
+  the one-hour window and the expiry). Absent means "not known" — a cache
+  written before 2.9.0 keeps the behaviour it had. The native receiver needs
+  no change: it already honours `expires`.
+- **The widget snapshot carries it too.** `recapValidUntil` is an optional
+  field (version stays 2 — an added optional field is read field by field,
+  and the file on disk during an upgrade is whatever the old app wrote).
+  `NexWidgetSnapshot.liveRecap(nowMs)` on the Kotlin side drops the words at
+  the expiry *and* when the day has turned since the snapshot was written;
+  the provider and the list factory both ask it, so the frame and its rows
+  can never disagree.
+- **The bridge rewrites at the expiry.** One timer for the earlier of the
+  expiry and midnight, re-armed after every write and cancelled in dispose:
+  the words leave the file, not just the render, even if the app never opens
+  again. A fresh summary re-arms it through the existing `refresh()` call.
+- **The three raw-cache displays** (the card's habits-off fallback in the
+  chrome, the header's preference handler, the brief pass's own) now read
+  `currentAiBrief` — today's and still true — with the local report standing
+  in otherwise.
+
+**Tests.** `daily_nudge_content_test`: the expired-within-the-hour recap is
+refused and the local facts carry the day; before the expiry the same recap
+is usable; `expires` is bounded by the expiry when it comes first.
+`nex_widget_snapshot_test`: the field round-trips, is absent when unknown,
+and a locked snapshot carries neither words nor expiry.
+`widget_recap_expiry_test` (new): with no capture, no preference change and
+no app return, the expiry alone rewrites the file without the recap.
+
+**Checks run here.** `apps/client`: `flutter analyze --fatal-infos` clean;
+the nudge / widget / expiry group (11 files) **112 green**. The three Kotlin
+files compile with `kotlinc 2.1.0` against `android-36/android.jar` (with
+compile-check stubs for the generated R and the appearance/actions helpers;
+the real build is CI's). `tools/daily_nudge_native_test.py`: 38 assertions
+passed.
+
+**Needs a device.** The launcher actually redrawing the Recap widget after
+the expiry while the app is closed, and the bridge's timer surviving a real
+background/foreground cycle.

@@ -217,6 +217,40 @@ void main() {
       expect(snapshot.toJson()['recap'], '');
     });
 
+    test('the recap expiry travels with the words when there is one', () {
+      final until = now.add(const Duration(minutes: 20));
+      final snapshot = NexWidgetSnapshot.build(
+        appLock: false,
+        now: now,
+        notes: const [],
+        recap: 'the brief',
+        recapValidUntil: until,
+      );
+      expect(
+        snapshot.toJson()['recapValidUntil'],
+        until.millisecondsSinceEpoch,
+      );
+      // Unknown expiry is an absent field, which the reader takes as 0 —
+      // a cache written before 2.9.0 keeps the behaviour it had.
+      final unknown = NexWidgetSnapshot.build(
+        appLock: false,
+        now: now,
+        notes: const [],
+        recap: 'the brief',
+      );
+      expect(unknown.toJson().containsKey('recapValidUntil'), isFalse);
+      // A locked snapshot carries neither the words nor their expiry.
+      final locked = NexWidgetSnapshot.build(
+        appLock: true,
+        now: now,
+        notes: const [],
+        recap: 'the brief',
+        recapValidUntil: until,
+      );
+      expect(locked.recap, '');
+      expect(locked.toJson().containsKey('recapValidUntil'), isFalse);
+    });
+
     test('an empty library still produces a usable snapshot', () {
       final snapshot = NexWidgetSnapshot.build(
         appLock: false,

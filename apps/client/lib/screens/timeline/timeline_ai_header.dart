@@ -40,7 +40,7 @@ extension _TimelineAiHeader on TimelineScreenState {
         _aiSummaryHasHabits = false;
         _rebuild(
           () => _aiSummaryText =
-              widget.preferences.aiDaySummaryText ?? _notesOnlyBrief(),
+              widget.preferences.currentAiBrief ?? _notesOnlyBrief(),
         );
       }
       // Settings save while typing. Apply the final choice on return instead

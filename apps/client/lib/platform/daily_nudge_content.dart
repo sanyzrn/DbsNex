@@ -385,6 +385,7 @@ abstract final class NexDailyNudgeContent {
     required DateTime? writtenAt,
     required DateTime deliveryAt,
     required String? text,
+    DateTime? validUntil,
   }) =>
       aiEnabled &&
       summaryEnabled &&
@@ -394,7 +395,13 @@ abstract final class NexDailyNudgeContent {
       text.trim().isNotEmpty &&
       !deliveryAt.isBefore(writtenAt) &&
       deliveryAt.difference(writtenAt) <= const Duration(hours: 1) &&
-      dayKey(deliveryAt) == dayKey(writtenAt);
+      dayKey(deliveryAt) == dayKey(writtenAt) &&
+      // The instant the app computed the summary's facts to stop being true.
+      // A recap written at seven that says nothing is overdue is false at
+      // twenty past an item's time, and the nudge must not deliver it at
+      // half past even though the hour and the day still match. Absent means
+      // "not known" — a cache written before 2.9.0 keeps the behaviour it had.
+      (validUntil == null || deliveryAt.isBefore(validUntil));
 
   static Map<String, Object?> plan({
     required NexNudgeSnapshot source,
@@ -409,6 +416,7 @@ abstract final class NexDailyNudgeContent {
     required DateTime? summaryAt,
     required bool secret,
     bool solarCalendar = false,
+    DateTime? summaryValidUntil,
   }) {
     final days = <String, Object?>{};
     final parsed = {
@@ -431,6 +439,7 @@ abstract final class NexDailyNudgeContent {
         writtenAt: summaryAt,
         deliveryAt: at,
         text: summary,
+        validUntil: summaryValidUntil,
       );
       final alternatives = local(
         source,
@@ -449,9 +458,15 @@ abstract final class NexDailyNudgeContent {
       final localExpires =
           DateTime(at.year, at.month, at.day + 1).millisecondsSinceEpoch - 1;
       // A recap is a sentence about now rather than about a date, so it keeps
-      // its one-hour freshness — and never outlives the day it describes.
+      // its one-hour freshness — and never outlives the day it describes, nor
+      // the instant its own facts were computed to stop being true.
       final aiExpires = ai
-          ? summaryAt!.add(const Duration(hours: 1)).millisecondsSinceEpoch
+          ? () {
+              final hour = summaryAt!.add(const Duration(hours: 1));
+              final until = summaryValidUntil;
+              return (until != null && until.isBefore(hour) ? until : hour)
+                  .millisecondsSinceEpoch;
+            }()
           : localExpires;
       days[dayKey(at)] = {
         'title': ?headline(source, at, persian: persian, itemsById: parsed),
@@ -495,6 +510,7 @@ typedef NexNudgePlanInput = ({
   DateTime? summaryAt,
   bool secret,
   bool solarCalendar,
+  DateTime? summaryValidUntil,
 });
 
 /// Isolate entry point: planning a month's text never runs on the UI thread.
@@ -512,6 +528,7 @@ Map<String, Object?> nexBuildDailyNudgePlan(NexNudgePlanInput input) =>
       summaryAt: input.summaryAt,
       secret: input.secret,
       solarCalendar: input.solarCalendar,
+      summaryValidUntil: input.summaryValidUntil,
     );
 
 Future<Map<String, Object?>> nexComputeDailyNudgePlan(

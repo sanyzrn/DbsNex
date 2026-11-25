@@ -70,7 +70,7 @@ extension _TimelineAiBrief on TimelineScreenState {
         : '';
     if (!prefs.briefHabitsAllowed && prefs.aiDaySummaryIncludesHabits) {
       _rebuild(
-        () => _aiSummaryText = prefs.aiDaySummaryText ?? _notesOnlyBrief(),
+        () => _aiSummaryText = prefs.currentAiBrief ?? _notesOnlyBrief(),
       );
     }
     final notesSource = _aiRecapSource(notes: briefNotes);

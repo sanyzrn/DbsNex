@@ -35,7 +35,8 @@ class RecapWidgetService : RemoteViewsService() {
             lines = if (snapshot == null || snapshot.appLock) {
                 emptyList()
             } else {
-                snapshot.recap.orEmpty().lines().map { it.trimEnd() }.filter { it.isNotBlank() }
+                snapshot.liveRecap(System.currentTimeMillis())
+                    .lines().map { it.trimEnd() }.filter { it.isNotBlank() }
             }
         }
 

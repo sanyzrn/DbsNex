@@ -35,6 +35,12 @@ data class NexWidgetSnapshot(
     val notes: List<NexWidgetNote>,
     /** The assistant's brief, as lines. Empty when there is none. */
     val recap: String,
+    /**
+     * The instant the recap stops being true, as the app computed it when
+     * the words were written. 0 means "not known" — a recap written before
+     * 2.9.0 keeps the behaviour it had.
+     */
+    val recapValidUntil: Long = 0L,
 ) {
     data class NexWidgetNote(
         val id: String,
@@ -42,6 +48,30 @@ data class NexWidgetSnapshot(
         val preview: String,
         val updatedAt: Long,
     )
+
+    /**
+     * The recap while it is still true, empty otherwise.
+     *
+     * A widget provider is a broadcast receiver with about ten seconds to
+     * live and no Flutter engine behind it: it cannot recompute the library's
+     * state, and the app may not run again before the launcher redraws. So
+     * the reader drops the words itself at the instant they stop being true
+     * — the expiry the app computed, and the day turning — rather than
+     * leaving yesterday's sentence on the home screen until the next write.
+     * The same question the card and the nudge ask of the cache.
+     */
+    fun liveRecap(nowMs: Long): String {
+        if (recap.isEmpty()) return ""
+        if (recapValidUntil > 0L && nowMs >= recapValidUntil) return ""
+        val written = java.util.Calendar.getInstance().apply { timeInMillis = generatedAt }
+        val now = java.util.Calendar.getInstance().apply { timeInMillis = nowMs }
+        if (written.get(java.util.Calendar.YEAR) != now.get(java.util.Calendar.YEAR) ||
+            written.get(java.util.Calendar.DAY_OF_YEAR) != now.get(java.util.Calendar.DAY_OF_YEAR)
+        ) {
+            return ""
+        }
+        return recap
+    }
 
     companion object {
         /**
@@ -116,7 +146,13 @@ data class NexWidgetSnapshot(
                 // Never carried while the lock is closed, the same rule the
                 // notes follow: a brief is made of what the notes say.
                 val recap = if (appLock) "" else root.optString("recap", "")
-                NexWidgetSnapshot(appLock, generatedAt, notes, recap)
+                NexWidgetSnapshot(
+                    appLock,
+                    generatedAt,
+                    notes,
+                    recap,
+                    root.optLong("recapValidUntil", 0L),
+                )
             } catch (_: Exception) {
                 null
             }
