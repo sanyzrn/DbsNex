@@ -15,6 +15,7 @@ import 'warranty_strings.dart';
 import 'warranty_widgets.dart';
 
 part 'warranty_detail_body.dart';
+part 'warranty_detail_rows.dart';
 part 'warranty_detail_status.dart';
 
 /// One purchase, in full: what it is, who covers it and how to reach them,
