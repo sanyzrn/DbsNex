@@ -218,3 +218,6 @@ flutter:
     - family: MarkaziText
       fonts:
         - asset: assets/fonts/MarkaziTextVariable.ttf
+
+
+
