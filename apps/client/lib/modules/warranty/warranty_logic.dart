@@ -165,16 +165,33 @@ class WarrantyLogic {
     return value < 0 ? '-$buffer' : '$buffer';
   }
 
-  /// Search by product, brand, merchant or warranty company, case-blind;
-  /// an empty query matches all. The company is included because "which
-  /// card is this" is how a person looks for a purchase at a service desk.
+  /// How a query and a field are compared: the shared fold turns Arabic
+  /// yeh and kaf, the Persian digits and the half-space into what a Persian
+  /// reader means by the same word, so a keyboard that types «ك» still
+  /// finds «ک». It is only for matching — what the person wrote is what
+  /// the screen shows.
+  static String fold(String text) => nexSearchFold(text).trim().toLowerCase();
+
+  /// Search by product, brand, model, serial, invoice reference, merchant
+  /// or warranty company, case-blind and script-folded; an empty query
+  /// matches all. The company, the serial and the invoice are included
+  /// because that is how a purchase is looked for at a service desk: a
+  /// card in the hand, a serial on the box, a number on the bill.
   static bool matchesQuery(Map<String, Object?> body, String query) {
-    final q = query.trim().toLowerCase();
+    final q = fold(query);
     if (q.isEmpty) {
       return true;
     }
-    for (final key in const ['product', 'brand', 'merchant', 'company']) {
-      if (WarrantyModels.readString(body, key).toLowerCase().contains(q)) {
+    for (final key in const [
+      'product',
+      'brand',
+      'model',
+      'serial',
+      'receiptRef',
+      'merchant',
+      'company',
+    ]) {
+      if (fold(WarrantyModels.readString(body, key)).contains(q)) {
         return true;
       }
     }

@@ -19,18 +19,32 @@ class WarrantyShared {
     for (final record in warranties)
       if (!WarrantyModels.readArchived(record.body))
         if (WarrantyModels.readDate(record.body, 'coverageEnd') case final end?)
-          if (!DateTime(end.year, end.month, end.day).isBefore(from) &&
-              !DateTime(end.year, end.month, end.day).isAfter(to))
-            ModuleDue(
-              id: 'coverage-end:${record.id}',
-              recordKind: WarrantyModels.warranty,
-              recordId: record.id,
-              at: DateTime(end.year, end.month, end.day),
-              title: WarrantyModels.readString(record.body, 'product').trim(),
-              kind: 'coverage-end',
-              passes: true,
-            ),
+          // The line the calendar shows needs a name to carry. A record
+          // without a product (an old or external write) falls back to its
+          // brand, and one with neither is left off the shared calendar
+          // rather than arriving as a blank line; it stays in the module's
+          // own list under "date unavailable".
+          if (_dueTitle(record).isNotEmpty)
+            if (!DateTime(end.year, end.month, end.day).isBefore(from) &&
+                !DateTime(end.year, end.month, end.day).isAfter(to))
+              ModuleDue(
+                id: 'coverage-end:${record.id}',
+                recordKind: WarrantyModels.warranty,
+                recordId: record.id,
+                at: DateTime(end.year, end.month, end.day),
+                title: _dueTitle(record),
+                kind: 'coverage-end',
+                passes: true,
+              ),
   ]..sort((a, b) => a.at.compareTo(b.at));
+
+  /// What a coverage ending is called on the shared calendar: the product,
+  /// or the brand when a record was saved without one.
+  static String _dueTitle(ModuleRecord record) {
+    final product = WarrantyModels.readString(record.body, 'product').trim();
+    if (product.isNotEmpty) return product;
+    return WarrantyModels.readString(record.body, 'brand').trim();
+  }
 
   /// One line about [record], in the person's own words; null to keep it out.
   static ModuleSummary? summarize(ModuleRecord record) {

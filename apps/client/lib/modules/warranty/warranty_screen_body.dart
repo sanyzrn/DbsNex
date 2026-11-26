@@ -4,14 +4,20 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
   Widget _view(BuildContext context) {
     final strings = warrantyStrings;
     final query = _query.text.trim();
+    // A search looks through everything the person ever wrote down,
+    // archived purchases included: when the shop asks about a purchase
+    // from three years ago, "Nothing matches" is the wrong answer and
+    // the archived list is one toggle away from where nobody looks.
+    // Without a query, the list stays the working one — the archived
+    // purchases stay behind their own toggle.
     final active = _warranties
         .where((r) => !WarrantyModels.readArchived(r.body))
         .toList();
-    final visible = (query.isEmpty
+    final visible = query.isEmpty
         ? active
-        : active
+        : _warranties
               .where((r) => WarrantyLogic.matchesQuery(r.body, query))
-              .toList());
+              .toList();
 
     return Scaffold(
       appBar: NexAppBar(
@@ -112,11 +118,17 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
     String query,
   ) {
     final split = WarrantyLogic.splitByStatus(
-      visible,
+      visible.where((r) => !WarrantyModels.readArchived(r.body)).toList(),
       DateTime.now(),
       sorted: _sortSoonest,
     );
     final archived = _archived();
+    // Only what the search itself found — never the whole archive.
+    final archivedMatches = query.isEmpty
+        ? const <ModuleRecord>[]
+        : archived
+              .where((r) => WarrantyLogic.matchesQuery(r.body, query))
+              .toList();
 
     return ListView(
       padding: const EdgeInsetsDirectional.fromSTEB(
@@ -188,6 +200,21 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
             records: split.unknown,
             onOpen: _openDetail,
           ),
+        if (archivedMatches.isNotEmpty) ...[
+          NexShelfHeading(
+            icon: Icons.inventory_2_outlined,
+            title: strings(context, 'archived'),
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          for (final record in archivedMatches)
+            WarrantyArchivedRow(
+              key: ValueKey('warranty-archived-${record.id}'),
+              record: record,
+              onUnarchive: () => unawaited(_unarchive(record)),
+              onOpen: () => unawaited(_openDetail(record)),
+            ),
+          const SizedBox(height: NexSpacing.md),
+        ],
         if (query.isEmpty && archived.isNotEmpty) ...[
           Center(
             child: TextButton.icon(
@@ -214,7 +241,11 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
                 onOpen: () => unawaited(_openDetail(record)),
               ),
         ],
-        if (query.isNotEmpty && visible.isEmpty)
+        if (query.isNotEmpty &&
+            visible
+                .where((r) => !WarrantyModels.readArchived(r.body))
+                .isEmpty &&
+            archivedMatches.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: NexSpacing.md),
             child: Text(
