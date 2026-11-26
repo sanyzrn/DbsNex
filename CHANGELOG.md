@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.9.3
+
+- **More reliable keyboard switching.** Improved focus handling when moving between input fields, especially in Prompt Studio and Gold, to prevent unexpected keyboard closure and reopening.
+
 ## v2.9.2
 
 - **Home stays smooth while a note is deleted.** A delete leaves the list at once, under its Undo, instead of rereading and rebuilding the whole timeline first. The day's brief is no longer rebuilt on every single write or on settings that have nothing to do with it, so switching between list and grid, and deleting a note, no longer spend their frames on the library's summary.
