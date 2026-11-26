@@ -15,6 +15,39 @@ String quitHabitLabel(BuildContext context, QuitAttempt attempt) =>
     ? attempt.name
     : smokeFreeStrings(context, 'habit_${quitPresetOf(attempt.habit).key}');
 
+/// The key for a planned start: today, tomorrow, or a plural count. Swapping
+/// the arguments to [SmokeMath.elapsedDays] gives the calendar days ahead and
+/// clamps a past start to zero, which is what a planned row needs.
+String quitStartKey(DateTime startedAt, DateTime now) {
+  final days = SmokeMath.elapsedDays(now, startedAt);
+  return days == 0
+      ? 'startsToday'
+      : days == 1
+      ? 'startsTomorrow'
+      : 'startsIn';
+}
+
+String quitStartLabel(BuildContext context, DateTime startedAt, DateTime now) {
+  final days = SmokeMath.elapsedDays(now, startedAt);
+  return smokeFreeStrings(context, quitStartKey(startedAt, now), {'n': days});
+}
+
+/// How a finished attempt's length is said: same day, one day, or N days.
+/// The dashboard history and the module's habit list both use this, so an
+/// ended attempt never reads as if its count were still running.
+String quitAttemptSpanLabel(BuildContext context, QuitAttempt attempt) {
+  final span = SmokeMath.attemptSpanDays(attempt);
+  return smokeFreeStrings(
+    context,
+    span == 0
+        ? 'attemptSameDay'
+        : span == 1
+        ? 'attemptOneDay'
+        : 'attemptLine',
+    {'days': span},
+  );
+}
+
 /// What is being done without, for "N days without …".
 String quitWithout(BuildContext context, QuitAttempt attempt) =>
     attempt.habit == 'custom'

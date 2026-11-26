@@ -114,7 +114,12 @@ class _PlanEditorState extends State<_PlanEditor> {
     });
     if (!mounted) return;
     if (saved) {
-      await _draft.clear();
+      try {
+        await _draft.clear();
+      } catch (_) {
+        // The saved record is authoritative; a stale draft is not a reason
+        // to strand the sheet or pretend the save failed.
+      }
       if (mounted) Navigator.of(context).pop();
     } else {
       setState(() => _saving = false);

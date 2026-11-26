@@ -1,15 +1,18 @@
 # Quit Habits / ترک عادت
 
-Module ID and store namespace remain `smoke_free`. This extends the existing
-multi-habit module; it does not create a second habit tracker. Work starts from
-`origin/main` at `f27852e8e4c57d9c637e480ff3a5c2dad9219d37` on
-`agent/module-quit-habits`. Keep the module in **Soon** pending owner device review.
+Module ID and store namespace remain `smoke_free`. This is the multi-habit
+Quit Habits module, enabled since 2.8.1; it does not create a second habit
+tracker. The 2.9.1 audit below preserves every existing record and the module's
+quiet, non-clinical voice. Owner device review remains the final check.
 
 ## 1. Features and screens
 
-- **Home:** cigarettes, vape, alcohol, caffeine, sugar, social media, gambling and
-  named custom habits, each with independent attempts. Running, planned and ended
-  habits are separated. Planned starts never claim an earned day-one milestone.
+- **Home:** cigarettes, hookah, vape, alcohol, caffeine, sugar, social media,
+  gambling and named custom habits, each with independent attempts. Running,
+  planned and ended habits are separated. Planned starts never claim an earned
+  day-one milestone; an ended habit reads as how long it lasted. The hero's
+  **Help now** opens the same SOS sheet for the longest run without opening it
+  first.
 - **Habit dashboard:** Nex hero, elapsed time, a personal next-step card, optional
   money/time estimates and saving goal, the person's reason, recent reports,
   milestone marks, a five-week calendar and accessible attempt history.
@@ -21,14 +24,19 @@ multi-habit module; it does not create a second habit tracker. Work starts from
 - **Help now:** optional slow breathing, a 2/5/10-minute pause, or practical
   distractions. The pause survives tab changes and resumes from its deadline.
   Ask for the person's before/optional after rating; never infer success from
-  finishing a timer. Recording opens an editable craving form.
+  finishing a timer. Recording opens an editable craving form stamped with the
+  time the urge began, not the later save, so a pause across midnight stays on
+  the right day.
 - **Craving form:** intensity, optional after-intensity, triggers, coping and note.
   Existing logs can be edited/deleted with Undo. New drafts are separated by habit.
 - **Review:** 30 local calendar days of explicit reports, after-ratings and reports
-  of easing, plus the most recorded trigger. No logs is unknown, not abstinence.
-  Calendar cells distinguish a report, lapse, unlogged day and outside an attempt;
-  weekday headings align with the actual cells. Date tooltips use the shared
-  Persian/Jalali or English formatter.
+  of easing, the most recorded trigger, and a clear time-of-day cluster when one
+  exists. No logs is unknown, not abstinence; a report without a trigger is not
+  called a missing report. Calendar cells distinguish a report, lapse, unlogged
+  day, outside an attempt and a day not yet reached. Five full weeks start on the
+  locale's week day — Saturday in Persian, Monday in English — so the columns no
+  longer rotate with today. Date tooltips use the shared Persian/Jalali or English
+  formatter.
 - A lapse, restart without a lapse, and restarting after an ended attempt remain
   distinct. Earlier attempts and craving history are retained.
 
@@ -70,7 +78,9 @@ starting again after an ended custom habit; its stable identity is retained. The
 Money remains integer minor units, using the existing offline currency table.
 IRR deliberately means **whole rials**, not tomans or ISO fractional rials, to
 preserve Nex's existing contract. No exchange conversion or market prices are
-implied. User-entered baselines remain estimates, never measured savings.
+implied. User-entered baselines remain estimates, never measured savings. The
+home/quick-view tile formats the attempt's own currency and minor units with the
+same formatter as the dashboard; it never reinterprets an amount as rials.
 New amounts must be ≤`2^53−1`; integer/BigInt parsing accepts Persian, Arabic and
 Latin digits and rejects invalid precision/grouping. Large intermediate estimates
 use BigInt. The bundled currency table's earlier source is
@@ -141,8 +151,17 @@ ratings even if the person types nothing. A timer alone never creates a report.
   day; elapsed duration is displayed separately. Ended attempts freeze estimates.
 - The 30-day review counts self-reports only. “Eased” means the user selected a
   lower after-intensity; it does not establish causation or treatment efficacy.
+  The added time-of-day line is descriptive: it names the bucket with the most
+  reports only when it leads every other bucket, and says nothing on a tie.
+- Five full weeks are anchored to the locale's week start. Days after today are
+  `future`, not unlogged, so the final row cannot look like unexplained silence.
+- An SOS log stores the instant its sheet opened (restored from its checkpoint),
+  not the instant the editable form was saved. A new direct log also keeps its
+  opening time; an edit keeps the record's original time.
 - Reads are guarded against stale completion. Existing deterministic same-instant
   ordering, safe numeric parsing, failed-write retries and delete Undo remain.
+  Clearing a draft after a durable save is best-effort: a stale checkpoint never
+  makes a saved record look unsaved.
 
 ## 4. Research and verification dates
 
@@ -184,6 +203,15 @@ forms stay on this device. Money and time kept are baseline estimates.
 
 ## 6. Changelog / تغییرات
 
+- **FA (2.9.1):** قلیان به عادت‌های آماده اضافه شد. تقویم پنج‌هفته‌ای برای فارسی
+  از شنبه شروع می‌شود و روزهای نیامده را جدا نشان می‌دهد. گزارش کمک فوری زمان
+  شروع هوس را نگه می‌دارد. کمک فوری از خانه، الگوی ساعت روز در مرور ۳۰ روز،
+  خواندن تلاش‌های تمام‌شده به شکل مدتشان و ارز درست در نمای سریع هم اضافه شد.
+- **EN (2.9.1):** Hookah joins the presets. The five-week view starts on the
+  locale's week day and separates days not yet reached. SOS logs keep the time
+  the urge began. Help now from the module home, a time-of-day pattern in the
+  30-day review, ended attempts read as their real length, and the quick view
+  keeps each attempt's own currency.
 - **FA:** تکمیل ترک عادت با نمای تازه، قدم کوچک شخصی، کمک فوری با مکث قابل‌انتخاب
   و ارزیابی قبل/بعد، مرور ۳۰ روز و تقویم صادقانه. حفظ گزارش‌ها پس از تغییر نام،
   جداسازی پیش‌نویس عادت‌ها و اصلاح شروع‌های آینده، پاک‌کردن مقادیر اختیاری و
@@ -193,9 +221,6 @@ forms stay on this device. Money and time kept are baseline estimates.
   calendar. Preserve custom-habit history across renames, isolate drafts, repair
   planned-start edits and optional-field clearing, and update day-based facts.
   Existing Smoke-free records remain compatible.
-
-These paragraphs belong here until the maintainer approves integration; no global
-version, changelog or guide is modified.
 
 ## 7. Platform limits and rollout
 
@@ -214,9 +239,9 @@ version, changelog or guide is modified.
   available here. Widget renders do not establish device frame rate.
 - Owner authorized the shared corner-radius ratchet adjustment on 2026-11-15.
   Its numeric-radius baseline is now 7 instead of 8; assertions are unchanged.
-- Changes are confined to this module plus that authorized one-line test baseline. Registration and
-  `nexAvailableModuleIds` are unchanged. **Soon stays Soon**; owner reviews device
-  behavior before any enablement, merge or release.
+- The module has been in `nexAvailableModuleIds` since 2.8.1; this audit changes
+  no rollout, installation choice or module API. Owner device review still
+  matters for IME, timer and background behavior.
 
 ## 8. Tests and review evidence
 
@@ -233,28 +258,28 @@ CI=true BOT=true FLUTTER_SUPPRESS_ANALYTICS=true flutter test --no-pub test/modu
 ```
 
 The Linux test host required SQLite: a local library built from the already
-vendored source was supplied through `LD_LIBRARY_PATH=/tmp/nex-gold-libs`.
-This is a host setup detail, not a repository dependency or shipped binary.
+vendored source was supplied through `LD_LIBRARY_PATH` (this run:
+`/tmp/libsqlite`). This is a host setup detail, not a repository dependency or
+shipped binary.
 
-- Full client analyzer: **clean**, `--fatal-infos`.
-- Module Kit + this module: **190 passed**.
-- Full client run: **3796 passed, 4 existing skips, 1 failed** in 6m59s.
-  This historical failure was the numeric-radius ratchet (8 → 7). The owner
-  subsequently authorized its shared test baseline update. Failed CI #1082 also
-  confirmed this was its only failure (3093 passed, 4 skipped).
-  Follow-up after the baseline fix: **198 passed**, running the UI consistency
-  tests together with Module Kit and this module. The full suite was not repeated
-  for this one-line count correction; new CI will rerun affected checks.
+- Analyzer on `lib/modules/smoke_free` and its tests: **clean**.
+- Module suite after the 2.9.1 audit: **154 passed** in 1m11s with
+  `--concurrency=1` (the runner's default parallel run was interrupted by a host
+  restart, not a test failure).
 - 24 language/theme/size review scenes passed; six representative PNGs inspected.
-- Changed Dart files formatted; diff whitespace/scope checks clean. No release or
-  device-performance claim.
+- Changed Dart files formatted; scope reviewed. No release or device-performance
+  claim. Earlier full-client and Module Kit runs remain historical context; the
+  full client suite was not repeated for this module-only change.
 
-Coverage includes legacy/malformed records, exact money, DST-safe calendar math,
-30-day boundaries/future reports, renamed custom identities, unknown-field
-preservation and optional clearing, planned dates, scoped drafts, failed reads
-and writes, checkpoint recovery, SOS tab/expiry behavior, explicit editable
-ratings and deletion Undo. The 24-scene render matrix crosses FA/EN × light/dark ×
-390×844 normal text / 320×640 at 2× text with reduced motion × home/detail/help.
+Coverage includes legacy/malformed records, exact currency and minor units in the
+quick view, locale week starts and future calendar cells, time-of-day ties,
+SOS urge-time persistence across a delayed save, finished-attempt wording,
+hookah records, help from the module home, DST-safe calendar math, 30-day
+boundaries/future reports, renamed custom identities, unknown-field preservation
+and optional clearing, planned dates, scoped drafts, failed reads and writes,
+checkpoint recovery, SOS tab/expiry behavior, explicit editable ratings and
+deletion Undo. The 24-scene render matrix crosses FA/EN × light/dark × 390×844
+normal text / 320×640 at 2× text with reduced motion × home/detail/help.
 Existing setup/craving compact-editor checks also remain enabled.
 
 Selected review images under `review/` are actual Flutter widget renders with

@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/smoke_free/quit_habits.dart';
 import 'package:nex_client/modules/smoke_free/quit_home_screen.dart';
+import 'package:nex_client/modules/smoke_free/quit_glance.dart';
 import 'package:nex_client/modules/smoke_free/quit_model.dart';
+import 'package:nex_client/modules/smoke_free/quit_widgets.dart';
 import 'package:nex_client/modules/smoke_free/smoke_free_screen.dart';
 import 'package:nex_client/modules/smoke_free/smoke_math.dart';
 
@@ -127,6 +129,46 @@ void main() {
       expect(r.next, 14);
       expect(quitMilestonesAt(400, quitMilestones).next, isNull);
     });
+
+    test('hookah is a first-class habit with its own words', () {
+      expect(quitPresets.map((p) => p.key), contains('hookah'));
+      final hookah = quitPresetOf('hookah');
+      expect(hookah.packs, isFalse);
+      expect(hookah.perDay, 1);
+    });
+
+    test(
+      'a quick view keeps the attempt currency, not a rial conversion',
+      () async {
+        final harness = await NexTestHarness.create(name: 'nex_quit_glance_');
+        addTearDown(harness.dispose);
+        final store = NexModuleStore(harness.services, 'smoke_free');
+        await store.put('quit', 'a', {
+          'startedAt': DateTime(2026, 11, 5, 12).toIso8601String(),
+          'cigarettesPerDay': 1,
+          'pricePerPackMinor': 650,
+          'currency': 'USD',
+          'currencyDecimals': 2,
+          'perPack': 1,
+        });
+        final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+        final glance = await quitGlance(
+          store,
+          l10n,
+          DateTime(2026, 11, 15, 12),
+        );
+        expect(glance, isNotNull);
+        expect(glance!.facts.last.value, contains('65.00'));
+        expect(glance.facts.last.value, contains('USD'));
+      },
+    );
+  });
+
+  test('a planned start later today is today, not "0 days"', () {
+    final now = DateTime(2026, 11, 15, 9);
+    expect(quitStartKey(DateTime(2026, 11, 15, 20), now), 'startsToday');
+    expect(quitStartKey(DateTime(2026, 11, 16, 9), now), 'startsTomorrow');
+    expect(quitStartKey(DateTime(2026, 11, 18, 9), now), 'startsIn');
   });
 
   group('the pages', () {
@@ -311,13 +353,76 @@ void main() {
       expect(find.textContaining('days without'), findsNothing);
     });
 
+    testWidgets('an ended habit reads as a length, not a running count', (
+      tester,
+    ) async {
+      final store = NexModuleStore(h.services, 'smoke_free');
+      final now = DateTime.now();
+      await store.put('quit', 'a', {
+        'startedAt': DateTime(
+          now.year,
+          now.month,
+          now.day - 4,
+          12,
+        ).toIso8601String(),
+        'endedAt': DateTime(
+          now.year,
+          now.month,
+          now.day - 1,
+          12,
+        ).toIso8601String(),
+        'endedWhy': 'lapse',
+        'cigarettesPerDay': 1,
+        'perPack': 1,
+        'habit': 'sugar',
+      });
+      await tester.pumpWidget(app(QuitHomeScreen(store: store)));
+      await settle(tester);
+      expect(find.text('Lasted 3 days'), findsOneWidget);
+      expect(find.textContaining('days without sugar'), findsNothing);
+    });
+
+    testWidgets('a planned start tomorrow does not say "1 days"', (
+      tester,
+    ) async {
+      final store = NexModuleStore(h.services, 'smoke_free');
+      final tomorrow = DateTime.now().add(const Duration(days: 1));
+      await store.put('quit', 'a', {
+        'startedAt': tomorrow.toIso8601String(),
+        'cigarettesPerDay': 1,
+        'perPack': 1,
+        'habit': 'sugar',
+      });
+      await tester.pumpWidget(app(QuitHomeScreen(store: store)));
+      await settle(tester);
+      expect(find.text('Starts tomorrow'), findsOneWidget);
+      expect(find.text('Starts in 1 days'), findsNothing);
+    });
+
+    testWidgets('the home hero opens help without opening a habit', (
+      tester,
+    ) async {
+      final store = NexModuleStore(h.services, 'smoke_free');
+      await store.put('quit', 'a', {
+        'startedAt': iso(5),
+        'cigarettesPerDay': 1,
+        'perPack': 1,
+      });
+      await tester.pumpWidget(app(QuitHomeScreen(store: store)));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('quit-hero-help')));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('sos-modes')), findsOneWidget);
+      expect(find.text('Ride it out'), findsOneWidget);
+    });
+
     testWidgets('adding a habit starts with what it is', (tester) async {
       final store = NexModuleStore(h.services, 'smoke_free');
       await tester.pumpWidget(app(QuitHomeScreen(store: store)));
       await settle(tester);
       await tester.tap(find.byKey(const ValueKey('quit-add')));
       await tester.pumpAndSettle();
-      for (final key in ['cigarette', 'alcohol', 'custom']) {
+      for (final key in ['cigarette', 'hookah', 'alcohol', 'custom']) {
         expect(find.byKey(ValueKey('quit-preset-$key')), findsOneWidget);
       }
       await tester.tap(find.byKey(const ValueKey('quit-preset-alcohol')));

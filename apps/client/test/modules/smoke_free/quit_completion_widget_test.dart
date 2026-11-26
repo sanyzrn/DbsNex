@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/smoke_free/craving_sheet.dart';
 import 'package:nex_client/modules/smoke_free/quit_home_screen.dart';
+import 'package:nex_client/modules/smoke_free/quit_insights.dart';
 import 'package:nex_client/modules/smoke_free/quit_model.dart';
 import 'package:nex_client/modules/smoke_free/smoke_free_screen.dart';
 import 'package:nex_client/modules/smoke_free/sos_sheet.dart';
@@ -79,6 +80,35 @@ void main() {
     await t.tap(find.text('Help'));
     await settle(t);
   }
+
+  testWidgets('a report without a trigger is not called a missing report', (
+    t,
+  ) async {
+    await t.pumpWidget(
+      app(
+        Scaffold(
+          body: QuitInsightPanel(
+            cravings: [
+              Craving(
+                id: 'c',
+                at: DateTime.now(),
+                intensity: 2,
+                triggers: const [],
+                coping: null,
+                note: '',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(
+      find.text('No trigger was recorded in this window.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('No reports in this window'), findsNothing);
+  });
 
   testWidgets('a running pause survives switching help modes', (t) async {
     final s = store();
@@ -327,6 +357,36 @@ void main() {
       expect(find.text('Overwhelming · Stress'), findsOneWidget);
     },
   );
+
+  testWidgets('an SOS log keeps the time the urge began', (t) async {
+    final s = store();
+    await seed(s);
+    final a = QuitAttempt.fromBody('a', (await s.get('quit', 'a'))!);
+    await s.put('draft', 'sos:caffeine', {
+      'v': 1,
+      'base': jsonEncode({
+        'attempt': a.id,
+        'startedAt': a.startedAt.toIso8601String(),
+      }),
+      'fields': {
+        'at': '2020-01-02T03:04:00.000',
+        'mode': 'breathe',
+        'before': 2,
+      },
+    });
+    await openHelp(t, s);
+    await revealQuit(t, find.byKey(const ValueKey('sos-log')));
+    await t.tap(find.byKey(const ValueKey('sos-log')));
+    await settle(t);
+    expect(find.byKey(const ValueKey('craving-save')), findsOneWidget);
+    await revealQuit(t, find.byKey(const ValueKey('craving-save')));
+    await t.tap(find.byKey(const ValueKey('craving-save')));
+    await settle(t);
+
+    final logs = await s.list('craving');
+    expect(logs, hasLength(1));
+    expect('${logs.single.body['at']}', startsWith('2020-01-02T03:04'));
+  });
 
   testWidgets(
     'SOS carries explicit before and after ratings to an editable log',

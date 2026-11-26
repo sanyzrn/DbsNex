@@ -1,6 +1,7 @@
 import 'package:nex_client/modules/module_api.dart';
 
 import 'module.dart';
+import 'money_format.dart';
 import 'quit_habits.dart';
 import 'quit_model.dart';
 import 'smoke_math.dart';
@@ -26,9 +27,10 @@ Future<ModuleGlance?> quitGlance(
       ? a.name
       : t('habit_${quitPresetOf(a.habit).key}');
   final first = running.first;
-  final days = SmokeMath.progress(first, now).days;
+  final progress = SmokeMath.progress(first, now);
+  final persian = l10n.localeName.startsWith('fa');
   return ModuleGlance(
-    headline: t('glanceDays', {'n': days}),
+    headline: t('glanceDays', {'n': progress.days}),
     detail: label(first),
     facts: [
       for (final a in running)
@@ -37,12 +39,18 @@ Future<ModuleGlance?> quitGlance(
           t('glanceDays', {'n': SmokeMath.progress(a, now).days}),
           strong: identical(a, first),
         ),
-      if (SmokeMath.progress(first, now).rialsSaved > 0)
+      // The amount is in this attempt's own currency, in its own minor
+      // units — never a rial amount reinterpreted as another currency. It is
+      // the same formatter the dashboard uses, so the quick view and the
+      // page cannot disagree.
+      if (first.pricePerPackMinor > 0 && progress.moneySavedMinor > BigInt.zero)
         ModuleGlanceFact(
           t('glanceSaved'),
-          nexTomanText(
-            BigInt.from(SmokeMath.progress(first, now).rialsSaved),
-            l10n,
+          formatExactMoney(
+            progress.moneySavedMinor,
+            first.currency,
+            first.digits,
+            persian,
           ),
         ),
     ],
