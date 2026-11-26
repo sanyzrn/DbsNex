@@ -14,14 +14,19 @@ void main() {
   late List<MethodCall> toNative;
   late Map<String, Object?>? created;
   late int viewId;
+  late List<int> viewIds;
   late bool hybrid;
   late int createCount;
 
   setUp(() {
     NexTextField.native = true;
     NexTextField.flutterMagnifier = true;
+    // The handoff is one for the app; a test starts from a keyboard nobody
+    // owns, whatever the test before it left in the registry.
+    nexImeHandoff.reset();
     toNative = [];
     created = null;
+    viewIds = [];
     createCount = 0;
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
@@ -33,6 +38,7 @@ void main() {
         final args = (call.arguments as Map).cast<String, Object?>();
         hybrid = args['hybrid'] == true;
         viewId = args['id']! as int;
+        viewIds.add(viewId);
         final params = args['params'] as Uint8List;
         created = (const StandardMessageCodec().decodeMessage(
           ByteData.sublistView(params),
@@ -63,13 +69,14 @@ void main() {
         .setMockMethodCallHandler(SystemChannels.platform_views, null);
   });
 
-  Future<void> fromNative(
+  Future<void> fromNativeTo(
     WidgetTester tester,
+    int view,
     String method, [
     Object? arguments,
   ]) async {
     await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
-      'nex/edit_text/$viewId',
+      'nex/edit_text/$view',
       const StandardMethodCodec().encodeMethodCall(
         MethodCall(method, arguments),
       ),
@@ -77,6 +84,12 @@ void main() {
     );
     await tester.pump();
   }
+
+  Future<void> fromNative(
+    WidgetTester tester,
+    String method, [
+    Object? arguments,
+  ]) => fromNativeTo(tester, viewId, method, arguments);
 
   Future<void> pump(
     WidgetTester tester,
@@ -610,8 +623,202 @@ void main() {
     toNative.clear();
     focus.unfocus();
     await tester.pump();
+    // The hide waits for the next field to claim the keyboard; with nothing
+    // claiming it, it still happens one handoff later.
+    await tester.pump(NexImeHandoff.delay);
+    await tester.pump();
     expect(toNative.map((c) => c.method), contains('unfocus'));
   });
+
+  testWidgets('a keyboard handed to the next field is not hidden between '
+      'them', (tester) async {
+    final first = FocusNode();
+    final second = FocusNode();
+    final one = TextEditingController();
+    final two = TextEditingController();
+    addTearDown(first.dispose);
+    addTearDown(second.dispose);
+    addTearDown(one.dispose);
+    addTearDown(two.dispose);
+    await pump(
+      tester,
+      Column(
+        children: [
+          NexTextField(controller: one, focusNode: first),
+          NexTextField(controller: two, focusNode: second),
+        ],
+      ),
+    );
+    expect(viewIds, hasLength(2));
+
+    first.requestFocus();
+    await tester.pump();
+    await fromNativeTo(tester, viewIds[0], 'focus', {'focused': true});
+    toNative.clear();
+
+    // A tap on the second field: the first loses focus in the same frame the
+    // second takes it. The keyboard must stay up between them.
+    second.requestFocus();
+    await tester.pump();
+    await fromNativeTo(tester, viewIds[1], 'focus', {'focused': true});
+    await tester.pump(NexImeHandoff.delay);
+    await tester.pump();
+
+    expect(
+      toNative.map((c) => c.method),
+      isNot(contains('unfocus')),
+      reason: 'the keyboard is handed over, not closed and reopened',
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'a native loss delivered after the next field took the IME hides nothing',
+    (tester) async {
+      // Android does not promise the order: the new editor can take focus and
+      // tell Dart before the old one reports its loss. Flutter's focus tree
+      // does not move with a native tap, so the tree alone cannot see the new
+      // owner — the editors' own reports are what stop the two hiding the
+      // keyboard each other never left.
+      final first = FocusNode();
+      final second = FocusNode();
+      final one = TextEditingController();
+      final two = TextEditingController();
+      addTearDown(first.dispose);
+      addTearDown(second.dispose);
+      addTearDown(one.dispose);
+      addTearDown(two.dispose);
+      await pump(
+        tester,
+        Column(
+          children: [
+            NexTextField(controller: one, focusNode: first),
+            NexTextField(controller: two, focusNode: second),
+          ],
+        ),
+      );
+      expect(viewIds, hasLength(2));
+
+      first.requestFocus();
+      await tester.pump();
+      await fromNativeTo(tester, viewIds[0], 'focus', {'focused': true});
+      toNative.clear();
+
+      // The second editor takes the keyboard first…
+      await fromNativeTo(tester, viewIds[1], 'focus', {'focused': true});
+      // …and only then does the first report that it lost it. Flutter still
+      // says the first field has primary focus: the tap did not move it.
+      await fromNativeTo(tester, viewIds[0], 'focus', {'focused': false});
+      await tester.pump(NexImeHandoff.delay);
+      await tester.pump();
+
+      expect(
+        toNative.map((call) => call.method),
+        isNot(contains('unfocus')),
+        reason: 'the field that left must not close a keyboard in use',
+      );
+      expect(
+        toNative.map((call) => call.method),
+        isNot(contains('focus')),
+        reason: 'the field that left must not take the keyboard back',
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('a Flutter field takes the keyboard without a hide in between', (
+    tester,
+  ) async {
+    // The ordering this guards: the native field's focus-loss notification can
+    // arrive after the Flutter field has already taken focus. The hide must be
+    // decided by who holds focus now, not by the order the events landed in.
+    final controller = TextEditingController();
+    final nativeFocus = FocusNode();
+    final flutterFocus = FocusNode();
+    final flutterController = TextEditingController();
+    addTearDown(controller.dispose);
+    addTearDown(nativeFocus.dispose);
+    addTearDown(flutterFocus.dispose);
+    addTearDown(flutterController.dispose);
+    await pump(
+      tester,
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          NexTextField(controller: controller, focusNode: nativeFocus),
+          TextField(controller: flutterController, focusNode: flutterFocus),
+        ],
+      ),
+    );
+    expect(viewIds, hasLength(1));
+
+    nativeFocus.requestFocus();
+    await tester.pump();
+    await fromNativeTo(tester, viewIds.single, 'focus', {'focused': true});
+    toNative.clear();
+
+    flutterFocus.requestFocus();
+    await tester.pump();
+    await tester.pump(NexImeHandoff.delay);
+    await tester.pump();
+
+    expect(
+      toNative.map((c) => c.method),
+      isNot(contains('unfocus')),
+      reason: 'a field has the keyboard; the editor must not close it',
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'a field focused during the settle window still cancels the hide',
+    (tester) async {
+      // The hide is armed first, with nothing holding the keyboard; 100 ms
+      // later a Flutter field takes focus. Only the check when the timer fires
+      // can see that, so the editor must stay open.
+      final controller = TextEditingController();
+      final nativeFocus = FocusNode();
+      final flutterFocus = FocusNode();
+      final flutterController = TextEditingController();
+      addTearDown(controller.dispose);
+      addTearDown(nativeFocus.dispose);
+      addTearDown(flutterFocus.dispose);
+      addTearDown(flutterController.dispose);
+      await pump(
+        tester,
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            NexTextField(controller: controller, focusNode: nativeFocus),
+            TextField(controller: flutterController, focusNode: flutterFocus),
+          ],
+        ),
+      );
+      expect(viewIds, hasLength(1));
+
+      nativeFocus.requestFocus();
+      await tester.pump();
+      await fromNativeTo(tester, viewIds.single, 'focus', {'focused': true});
+      toNative.clear();
+
+      nativeFocus.unfocus();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(toNative.map((c) => c.method), isNot(contains('unfocus')));
+
+      flutterFocus.requestFocus();
+      await tester.pump();
+      await tester.pump(NexImeHandoff.delay);
+      await tester.pump();
+
+      expect(
+        toNative.map((c) => c.method),
+        isNot(contains('unfocus')),
+        reason: 'the field that arrived inside the settle window owns the IME',
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('a label inside the empty field keeps the hint off the editor', (
     tester,
@@ -690,6 +897,8 @@ void main() {
       await tester.tapAt(Offset(bounds.center.dx, bounds.bottom + 54));
       await tester.pump();
       expect(focus.hasFocus, isFalse);
+      await tester.pump(NexImeHandoff.delay);
+      await tester.pump();
       expect(toNative.map((c) => c.method), contains('unfocus'));
       await tester.pumpWidget(const SizedBox());
     },

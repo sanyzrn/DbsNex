@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import 'keyboard_dismisser.dart';
 import 'text_format_menu.dart';
 import 'native_text_magnifier.dart';
 
@@ -317,6 +318,7 @@ class _NativeFieldState extends State<_NativeField> {
   /// controller, so the listener does not echo it.
   bool _fromNative = false;
   bool _focused = false;
+  NexImeHide? _pendingHide;
   double? _height;
   Map<String, Object?>? _lastConfig;
   AppLocalizations? _formatLocale;
@@ -355,6 +357,10 @@ class _NativeFieldState extends State<_NativeField> {
   void dispose() {
     _controller.removeListener(_onController);
     _focus.removeListener(_onFocus);
+    _pendingHide?.cancel();
+    // A field taken out of the tree is not holding a keyboard anyone can use,
+    // and leaving it in the registry would keep the next hide from running.
+    nexImeHandoff.editorDetached(this);
     _ownFocus?.dispose();
     _channel?.setMethodCallHandler(null);
     _magnifier.dispose();
@@ -392,10 +398,38 @@ class _NativeFieldState extends State<_NativeField> {
   /// view's node, and that clears the editor's.
   void _onFocus() {
     if (_focus.hasPrimaryFocus) {
+      // Another field may be about to lose focus on the same frame; taking
+      // focus cancels the keyboard hide it deferred.
+      _pendingHide = null;
+      nexImeHandoff.gain();
       unawaited(_channel?.invokeMethod<void>('focus'));
     } else if (!_focus.hasFocus && _focused) {
-      unawaited(_channel?.invokeMethod<void>('unfocus'));
+      // Not immediately: a tap on the next field on this screen loses this
+      // focus and gains that one in the same frame, and hiding the IME here
+      // would close it just before the next field reopens it. The handoff
+      // gives that field the chance to take the keyboard over first. This
+      // field is the one letting go, so its own editor's focus report does
+      // not count as somebody else holding the keyboard.
+      _pendingHide = nexImeHandoff.lose(_unfocusEditor, except: this);
     }
+  }
+
+  void _unfocusEditor() {
+    // This field is the one ending the session, so its own report is not
+    // another field holding the keyboard; anyone else's is.
+    if (!mounted || nexImeHandoff.otherEditorsHold(this)) return;
+    if (nexFlutterTextInputHasFocus()) return;
+    // Ending the session releases this field's claim as well. In the app the
+    // editor's own focus report follows and would do it; in a test, or when
+    // the editor had already let go, no report is coming.
+    nexImeHandoff.editorDetached(this);
+    // Ask the editor first: when it still holds focus its own `unfocus`
+    // clears the focus and releases the IME with it. The window hide is for
+    // the other order — the editor reported the loss that started this wait,
+    // so there is nothing left in it to release, and Android would otherwise
+    // leave the keyboard standing over a field nobody is in.
+    unawaited(_channel?.invokeMethod<void>('unfocus'));
+    unawaited(nexHideKeyboard());
   }
 
   void _focusFromPadding(TapUpDetails tap) {
@@ -468,7 +502,17 @@ class _NativeFieldState extends State<_NativeField> {
         if (height != _height && mounted) setState(() => _height = height);
       case 'focus':
         final focused = args['focused'] == true;
-        if (!focused) _magnifier.hide();
+        if (focused) {
+          // The editor has the keyboard: keep a previous field's deferred
+          // hide from landing on it, and let the handoff know a native editor
+          // — not only Flutter's tree — owns the IME right now.
+          nexImeHandoff.editorGainedFocus(this);
+        } else {
+          _magnifier.hide();
+          // The next field may take it in this same tap; the handoff waits
+          // for that before ending the session.
+          nexImeHandoff.editorLostFocus(this, _unfocusEditor);
+        }
         if (focused == _focused) return;
         _focused = focused;
         // Not a `requestFocus` here: the platform view's own node already
@@ -476,7 +520,12 @@ class _NativeFieldState extends State<_NativeField> {
         // it back from that node — which clears the editor's focus again.
         // The one case to act on is the editor losing focus while Dart
         // still wants it here (the clear above raced a `focus`).
-        if (!focused && _focus.hasPrimaryFocus) {
+        //
+        // Never while another editor holds the keyboard: the native tap that
+        // moved focus to the next field does not move Flutter's primary
+        // focus with it, so this check alone would pull the keyboard back to
+        // the field the person just left.
+        if (!focused && _focus.hasPrimaryFocus && !nexImeHandoff.hasEditors) {
           unawaited(_channel?.invokeMethod<void>('focus'));
         }
         if (mounted) setState(() {});

@@ -19,7 +19,29 @@ void main() {
     saved = false;
   });
 
-  tearDown(() => field.dispose());
+  tearDown(() {
+    field.dispose();
+    nexImeHandoff.reset();
+  });
+
+  test(
+    'a native editor holding the keyboard counts, without a Flutter node',
+    () {
+      // Android's editor is invisible to Flutter's focus tree. The answer to
+      // "does an editor hold the keyboard" has to include the fields that say
+      // so themselves, or a loss in one field closes a keyboard another owns.
+      nexImeHandoff.reset();
+      final editor = Object();
+      expect(nexTextInputHasFocus(), isFalse);
+
+      nexImeHandoff.editorGainedFocus(editor);
+      expect(nexTextInputHasFocus(), isTrue);
+      expect(nexFlutterTextInputHasFocus(), isFalse);
+
+      nexImeHandoff.editorDetached(editor);
+      expect(nexTextInputHasFocus(), isFalse);
+    },
+  );
 
   Future<void> show(WidgetTester tester, {required double keyboard}) async {
     tester.view.viewInsets = FakeViewPadding(bottom: keyboard);

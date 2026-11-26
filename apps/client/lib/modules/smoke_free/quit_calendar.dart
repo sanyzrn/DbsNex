@@ -18,12 +18,27 @@ class QuitWeeks extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context), scheme = theme.colorScheme;
-    final cells = quitCalendarDays(attempt, past, cravings, DateTime.now());
+    // The Persian reader starts the week on Saturday; the English one on
+    // Monday. The same five weeks are shown, but the columns no longer rotate
+    // with whatever weekday today happens to be.
+    final weekStartsOn = NexModuleStrings.persian(context)
+        ? DateTime.saturday
+        : DateTime.monday;
+    final cells = quitCalendarDays(
+      attempt,
+      past,
+      cravings,
+      DateTime.now(),
+      weekStartsOn: weekStartsOn,
+    );
     Color color(QuitDayStatus status) => switch (status) {
       QuitDayStatus.lapse => scheme.error,
       QuitDayStatus.craving => scheme.tertiary,
       QuitDayStatus.unlogged => scheme.outlineVariant,
       QuitDayStatus.outside => scheme.surfaceContainerHighest,
+      QuitDayStatus.future => scheme.surfaceContainerHighest.withValues(
+        alpha: 0.45,
+      ),
     };
     String label(QuitDayStatus status) =>
         smokeFreeStrings(context, switch (status) {
@@ -31,6 +46,7 @@ class QuitWeeks extends StatelessWidget {
           QuitDayStatus.craving => 'legendCraving',
           QuitDayStatus.unlogged => 'legendUnknown',
           QuitDayStatus.outside => 'legendOutside',
+          QuitDayStatus.future => 'legendLater',
         });
     return NexPanel(
       title: smokeFreeStrings(context, 'calendarHeading'),
@@ -51,7 +67,7 @@ class QuitWeeks extends StatelessWidget {
                       child: Text(
                         smokeFreeStrings(
                           context,
-                          'weekday${(cells.first.day.weekday - 1 + i) % 7 + 1}',
+                          'weekday${((weekStartsOn - 1 + i) % 7) + 1}',
                         ),
                         textAlign: TextAlign.center,
                         style: theme.textTheme.labelSmall,
@@ -64,6 +80,9 @@ class QuitWeeks extends StatelessWidget {
                       child: Semantics(
                         label:
                             '${nexModuleDateLabel(context, cell.day)} · ${label(cell.status)}',
+                        // The label already says the status; do not also
+                        // announce the decorative lapse/craving icon.
+                        excludeSemantics: true,
                         child: SizedBox(
                           width: side,
                           height: side,

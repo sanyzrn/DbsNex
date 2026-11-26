@@ -235,7 +235,18 @@ class SmokeDashboard extends StatelessWidget {
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: NexSpacing.xs),
-                LinearProgressIndicator(value: goalPct / 100),
+                LinearProgressIndicator(
+                  value: goalPct / 100,
+                  semanticsLabel: strings(context, 'goalProgress', {
+                    'pct': goalPct,
+                    'goal': formatMoney(
+                      attempt.goalMinor,
+                      attempt.currency,
+                      attempt.digits,
+                      persian,
+                    ),
+                  }),
+                ),
               ],
               const SizedBox(height: NexSpacing.md),
               Text(
@@ -337,27 +348,11 @@ class AttemptHistory extends StatelessWidget {
               vertical: NexSpacing.xs,
             ),
             child: Text(
-              _attemptText(context, attempt),
+              quitAttemptSpanLabel(context, attempt),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
       ],
     ),
   );
-
-  /// The honest span line for a past attempt: same-day attempts are said
-  /// out loud, one-day attempts read in the singular, the rest keep their
-  /// own count.
-  static String _attemptText(BuildContext context, QuitAttempt attempt) {
-    final span = SmokeMath.attemptSpanDays(attempt);
-    return smokeFreeStrings(
-      context,
-      span == 0
-          ? 'attemptSameDay'
-          : span == 1
-          ? 'attemptOneDay'
-          : 'attemptLine',
-      {'days': span},
-    );
-  }
 }

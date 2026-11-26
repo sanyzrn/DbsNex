@@ -46,8 +46,13 @@ class QuitInsightPanel extends StatelessWidget {
           ),
           const SizedBox(height: NexSpacing.sm),
           Text(
-            counts.isEmpty
+            data.recent.isEmpty
                 ? smokeFreeStrings(context, 'insightsEmpty')
+                : counts.isEmpty
+                // Reports can exist without a trigger chosen. Saying “no
+                // reports” then would be false; the pattern is simply
+                // unknown.
+                ? smokeFreeStrings(context, 'insightNoTrigger')
                 : smokeFreeStrings(context, 'insightTrigger', {
                     'trigger': smokeFreeStrings(
                       context,
@@ -57,6 +62,19 @@ class QuitInsightPanel extends StatelessWidget {
                   }),
             style: theme.textTheme.bodyMedium,
           ),
+          if (data.peakPeriod != null) ...[
+            const SizedBox(height: NexSpacing.xs),
+            Text(
+              smokeFreeStrings(context, 'insightTime', {
+                'period': smokeFreeStrings(
+                  context,
+                  'period_${data.peakPeriod}',
+                ),
+                'n': data.peakPeriodCount,
+              }),
+              style: theme.textTheme.bodyMedium,
+            ),
+          ],
           const SizedBox(height: NexSpacing.xs),
           Text(
             smokeFreeStrings(context, 'insightNote'),

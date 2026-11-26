@@ -682,20 +682,47 @@ int _scoreFor({
   );
 }
 
+/// Titles already read, and the words that group them.
+///
+/// The brief rebuilds its reading of the library after every settled write,
+/// and one delete or capture changes one title while the other hundreds are
+/// the same strings. Tokenizing all of them again was most of a pass's cost
+/// — ≈73 ms for 400 titles in the JIT benchmark — spent on the same words as
+/// before, on the frames just after an Undo notice appeared. Bounded and
+/// insertion-ordered; keyed by the exact text, so a note that changed is a
+/// different key and can never read as its old self.
+final _tokenCache = <String, List<String>>{};
+
+/// Enough for several libraries' worth of titles; a library larger than this
+/// still caches its most recently read ones, which are the ones a burst of
+/// writes keeps touching.
+const _tokenCacheLimit = 2048;
+
+/// How many titles the cache is holding — a test handle for the bound.
+int get nexAttentionTokenCacheSize => _tokenCache.length;
+
 /// The words of [text] that can group two items: folded, stemmed, three
 /// letters or more, minus the words that appear in everything.
+///
+/// Memoized: a pass over an unchanged library re-reads the same titles, and
+/// the answer is a pure function of the text. The list is unmodifiable so a
+/// caller cannot turn a cached answer into state the next pass inherits.
 List<String> nexAttentionTokens(String text) {
+  final known = _tokenCache[text];
+  if (known != null) return known;
   final tokens = <String>{};
-  for (final match in RegExp(
-    r'[\p{L}\p{N}]+',
-    unicode: true,
-  ).allMatches(text)) {
+  for (final match in _wordPattern.allMatches(text)) {
     final token = nexAttentionStem(match.group(0)!);
     if (token.length < 3) continue;
     if (_stopWords.contains(token)) continue;
     tokens.add(token);
   }
-  return [...tokens];
+  final result = List<String>.unmodifiable(tokens);
+  if (_tokenCache.length >= _tokenCacheLimit) {
+    _tokenCache.remove(_tokenCache.keys.first);
+  }
+  _tokenCache[text] = result;
+  return result;
 }
 
 /// [text] with the differences two keyboards make erased: the two letter
@@ -806,6 +833,14 @@ const _stopWords = {
   'می', 'شود', 'کرد', 'است', 'بود', 'شد', 'کردن', 'تهیه', 'خرید', 'باید',
   'شده', 'دیگه', 'چیز', 'موقع', 'وقت',
 };
+
+/// Compiled once. These run over every line of every generated brief, and
+/// compiling them per call was work for each line rather than for the app.
+final _wordPattern = RegExp(r'[\p{L}\p{N}]+', unicode: true);
+final _clockPattern = RegExp(r'(?<!\d)([01]?\d|2[0-3])[:.]([0-5]\d)(?!\d)');
+final _countPattern = RegExp(
+  r'(\d{1,3})\s*(?:items?\s+|مورد\s+)?(overdue|due today|عقب ?افتاده|برای امروز)',
+);
 
 /// Whole calendar days from [from] to [to], negative when [to] is earlier.
 int _dayGap(DateTime from, DateTime to) => DateTime.utc(
@@ -1086,8 +1121,17 @@ bool nexAttentionContradicts(String text, NexAttention attention) =>
 /// needle is folded too — written the way a person types it, matched the way
 /// the line was normalised — rather than requiring every list below to be
 /// kept in its folded form by hand.
+///
+/// The folded forms are cached: the needles are all constants, and folding a
+/// few dozen phrases again for every line of a brief was most of what this
+/// check cost.
 bool _anyIn(String text, List<String> needles) =>
-    needles.any((needle) => text.contains(nexAttentionFold(needle)));
+    needles.any((needle) => text.contains(_foldedNeedle(needle)));
+
+String _foldedNeedle(String needle) =>
+    _foldedNeedles.putIfAbsent(needle, () => nexAttentionFold(needle));
+
+final _foldedNeedles = <String, String>{};
 
 /// Phrases that make a blanket claim narrower: "all done, except the rent".
 const _exceptions = [
@@ -1186,9 +1230,7 @@ bool _pastCue(String folded) =>
 
 /// Every `HH:MM` the line names, in the 24-hour form the ledger uses.
 Iterable<String> _clocksIn(String folded) sync* {
-  for (final match in RegExp(
-    r'(?<!\d)([01]?\d|2[0-3])[:.]([0-5]\d)(?!\d)',
-  ).allMatches(folded)) {
+  for (final match in _clockPattern.allMatches(folded)) {
     final hour = int.tryParse(match.group(1)!);
     if (hour == null) continue;
     yield '${hour.toString().padLeft(2, '0')}:${match.group(2)}';
@@ -1208,9 +1250,7 @@ enum _CountUnit {
 /// items inside one list rather than lists, and guessing would refuse honest
 /// sentences.
 Iterable<({int count, _CountUnit unit})> _countClaims(String folded) sync* {
-  for (final match in RegExp(
-    r'(\d{1,3})\s*(?:items?\s+|مورد\s+)?(overdue|due today|عقب ?افتاده|برای امروز)',
-  ).allMatches(folded)) {
+  for (final match in _countPattern.allMatches(folded)) {
     final count = int.tryParse(match.group(1)!);
     if (count == null) continue;
     final word = match.group(2)!;

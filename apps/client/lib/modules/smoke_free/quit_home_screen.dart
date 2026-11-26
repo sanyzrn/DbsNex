@@ -11,6 +11,7 @@ import 'quit_widgets.dart';
 import 'setup_sheet.dart';
 import 'smoke_free_screen.dart';
 import 'smoke_math.dart';
+import 'sos_sheet.dart';
 import 'quit_day_clock.dart';
 import 'store_state.dart';
 
@@ -131,7 +132,7 @@ class _QuitHomeScreenState extends State<QuitHomeScreen>
                 ),
                 children: [
                   if (running.isNotEmpty) ...[
-                    _QuitHero(running: running),
+                    _QuitHero(running: running, store: widget.store),
                     const SizedBox(height: NexSpacing.md),
                     NexShelfHeading(
                       icon: Icons.self_improvement_outlined,
@@ -196,10 +197,11 @@ class _HabitTile extends StatelessWidget {
     final preset = quitPresetOf(attempt.habit);
     final started = !attempt.startedAt.isAfter(DateTime.now());
     final subtitle = [
-      if (!started)
-        strings(context, 'startsIn', {
-          'n': SmokeMath.elapsedDays(DateTime.now(), attempt.startedAt),
-        })
+      if (!attempt.isActive)
+        // An ended attempt is a length, not a count still running.
+        quitAttemptSpanLabel(context, attempt)
+      else if (!started)
+        quitStartLabel(context, attempt.startedAt, DateTime.now())
       else
         strings(
           context,
@@ -255,9 +257,10 @@ const _milestones = quitMilestones;
 /// The page's one statement: the longest run among what is being quit right
 /// now, in the module's own colour.
 class _QuitHero extends StatelessWidget {
-  const _QuitHero({required this.running});
+  const _QuitHero({required this.running, required this.store});
 
   final List<QuitAttempt> running;
+  final NexModuleStore store;
 
   @override
   Widget build(BuildContext context) {
@@ -307,6 +310,14 @@ class _QuitHero extends StatelessWidget {
             ),
           }),
       ],
+      // The hardest moment should not require opening the habit first. This
+      // opens the same help sheet as the dashboard, for the longest run.
+      child: FilledButton.tonalIcon(
+        key: const ValueKey('quit-hero-help'),
+        onPressed: () => unawaited(showSosSheet(context, store, best)),
+        icon: const Icon(Icons.support_outlined),
+        label: Text(strings(context, 'sosButton')),
+      ),
     );
   }
 }

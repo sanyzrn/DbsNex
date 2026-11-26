@@ -129,6 +129,17 @@ void main() {
     );
     await h.services.worker.saveCommitment(rent());
     await timeline(tester).model.loadCommitments(now: day);
+    // The brief reads a burst of changes once it settles (2.9.1), so the
+    // commitment is not on the card on the notification's own frame.
+    await tester.pump();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('timeline-recap')),
+        matching: find.textContaining('Rent'),
+      ),
+      findsNothing,
+    );
+    await tester.pump(const Duration(milliseconds: 250));
     await tester.pumpAndSettle();
 
     // The card was not rebuilt for the brief's own data...

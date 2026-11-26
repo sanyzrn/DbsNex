@@ -44,6 +44,15 @@ const quitPresets = <QuitPreset>[
     perDay: 20,
     minutesPerUnit: 5,
   ),
+  // Hookah is its own habit in Iran: a session, not a cigarette, and often
+  // shared. The default is one session a day; the minutes are only the
+  // starting point the person can correct.
+  QuitPreset(
+    'hookah',
+    Icons.local_fire_department_outlined,
+    perDay: 1,
+    minutesPerUnit: 45,
+  ),
   QuitPreset('vape', Icons.cloud_off_outlined, perDay: 10, minutesPerUnit: 3),
   QuitPreset('alcohol', Icons.no_drinks_outlined, perDay: 2, safety: true),
   QuitPreset('caffeine', Icons.coffee_outlined, perDay: 3),

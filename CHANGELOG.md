@@ -4,6 +4,28 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.9.2
+
+- **Home stays smooth while a note is deleted.** A delete leaves the list at once, under its Undo, instead of rereading and rebuilding the whole timeline first. The day's brief is no longer rebuilt on every single write or on settings that have nothing to do with it, so switching between list and grid, and deleting a note, no longer spend their frames on the library's summary.
+
+- **The keyboard stays up between fields, everywhere.** Fields now report directly when Android's own editor holds the keyboard, so moving from one field to the next cannot hide it for a moment; and a field you have left no longer takes the keyboard back from the one you just touched.
+
+## v2.9.1
+
+- **Fields hand the keyboard to each other.** Tapping from one field to the next — in a form, a dialog, a sheet or the note editor — no longer closes and reopens the keyboard. The field losing focus waits a moment and lets go as soon as the next one is focused, so the page does not jump and the words keep their place.
+
+- **Switching between list and grid is lighter.** The old view that fades out is now kept at a fraction of the screen's resolution instead of a full-resolution copy taken on the frame of the tap, which is where mid-range phones and 120Hz screens felt the switch.
+
+- **Notices stop doing work while they wait.** A notice's countdown is one timer instead of a check ten times a second, and the brief no longer rereads the library on every keystroke of a note: a burst of changes is read once, after it settles.
+
+- **Markdown reads each block in its own direction.** A heading, paragraph, list item, blockquote or table cell now takes its direction from its own words instead of the first letter of the whole document. A Persian paragraph that opens with an English name stays right to left, an English paragraph in the same note stays left to right, a nested list keeps its structure, and code stays left to right.
+
+- **Summaries check faster.** The day's facts are matched against a generated summary without rebuilding the same language rules and patterns for every line.
+
+- **Quit Habits: hookah, and a week that starts where yours does.** Hookah is now a habit you can pick. The five-week view follows Saturday-first weeks in Persian and marks days still to come instead of treating them as silence. An SOS log now keeps the time the urge began, even when you save it later.
+
+- **Quit Habits: help at a glance, and a pattern in the hour.** The module's home offers Help now for the longest run. The 30-day review names the part of the day reports cluster in, finished attempts read as how long they lasted, and the quick view keeps each attempt's own currency.
+
 ## v2.9.0
 
 - **Notifications that say each thing once.** A reminder no longer repeats its own title under it, no blank line is left above or below the words, and a module or cycle reminder with more to say opens to all of it instead of one cut line. The buttons under a habit's reminder now use the same words and language as every other reminder.

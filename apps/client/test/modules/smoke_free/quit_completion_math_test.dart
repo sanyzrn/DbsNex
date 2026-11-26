@@ -121,6 +121,66 @@ void main() {
     },
   );
 
+  test('the five-week grid follows the week and names days not yet', () {
+    final current = attempt({});
+    final monday = quitCalendarDays(current, const [], const [], now);
+    expect(monday.first.day.weekday, DateTime.monday);
+    expect(monday.first.day, DateTime(2026, 10, 12));
+    expect(monday.last.day, DateTime(2026, 11, 15));
+
+    final saturday = quitCalendarDays(
+      current,
+      const [],
+      const [],
+      now,
+      weekStartsOn: DateTime.saturday,
+    );
+    expect(saturday.first.day.weekday, DateTime.saturday);
+    expect(saturday.first.day, DateTime(2026, 10, 17));
+    expect(saturday.last.day, DateTime(2026, 11, 20));
+    expect(
+      saturday.where((c) => c.day == DateTime(2026, 11, 15)).single.status,
+      QuitDayStatus.unlogged,
+    );
+    // Tomorrow is not an unlogged day: it has not happened.
+    expect(
+      saturday.where((c) => c.day == DateTime(2026, 11, 16)).single.status,
+      QuitDayStatus.future,
+    );
+    expect(
+      saturday.where((c) => c.day == DateTime(2026, 11, 20)).single.status,
+      QuitDayStatus.future,
+    );
+  });
+
+  test('the review names a clear time of day, and a tie says nothing', () {
+    Craving at(DateTime moment) => Craving(
+      id: moment.toIso8601String(),
+      at: moment,
+      intensity: 2,
+      triggers: const ['stress'],
+      coping: null,
+      note: '',
+    );
+    final morning = QuitInsights([
+      at(DateTime(2026, 11, 10, 8)),
+      at(DateTime(2026, 11, 11, 9)),
+      at(DateTime(2026, 11, 12, 20)),
+    ], now);
+    expect(morning.peakPeriod, 'morning');
+    expect(morning.peakPeriodCount, 2);
+    expect(cravingPeriodKey(DateTime(2026, 11, 10, 23)), 'night');
+
+    final tied = QuitInsights([
+      at(DateTime(2026, 11, 10, 8)),
+      at(DateTime(2026, 11, 11, 9)),
+      at(DateTime(2026, 11, 12, 20)),
+      at(DateTime(2026, 11, 13, 21)),
+    ], now);
+    expect(tied.peakPeriod, isNull);
+    expect(tied.peakPeriodCount, 0);
+  });
+
   test('deadline rounds remaining fractions up and expires after delayed callbacks', () {
     expect(sosSecondsLeft(now.add(const Duration(milliseconds: 1)), now), 1);
     expect(sosSecondsLeft(now.add(const Duration(minutes: 10)), now), 600);
