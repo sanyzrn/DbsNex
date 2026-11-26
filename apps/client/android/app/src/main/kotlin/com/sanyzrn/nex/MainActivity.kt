@@ -191,19 +191,13 @@ open class MainActivity : FlutterFragmentActivity() {
                     result.error("DAILY_NUDGE", error.message, null)
                 }
             }
-        engine.platformViewsController.registry.registerViewFactory(
-            NexEditTextFactory.VIEW_TYPE,
-            NexEditTextFactory(engine.dartExecutor.binaryMessenger),
-        )
-        NexEditTextFactory.warmUp(this)
         NexEmbedder.register(engine.dartExecutor.binaryMessenger, applicationContext)
         channel = MethodChannel(engine.dartExecutor.binaryMessenger, "nex/os_capture")
         channel?.setMethodCallHandler { call, result -> when (call.method) {
             "hideKeyboard" -> {
-                // Link entry transfers the IME between a native EditText and
-                // Flutter. The editor's hasFocus() no longer tells us whether
-                // this window has an IME to dismiss. Use the activity token,
-                // before the editor route (and its platform view) is removed.
+                // The editor's own hasFocus() does not tell us whether this
+                // window has an IME to dismiss. Use the activity token, before
+                // the editor's route is removed.
                 val token = window.decorView.applicationWindowToken
                 currentFocus?.clearFocus()
                 (getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager)
