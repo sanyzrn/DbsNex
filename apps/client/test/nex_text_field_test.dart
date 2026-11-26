@@ -726,6 +726,187 @@ void main() {
     },
   );
 
+  testWidgets("the next editor's claim does not wait for its own report", (
+    tester,
+  ) async {
+    // The device failure this pins. Android dispatches the old editor's
+    // loss and the new editor's gain as separate reports, and neither is
+    // promised inside the settle window. The old field once scheduled its
+    // hide on the loss alone, so a successor whose report was late had the
+    // keyboard it already owned closed from under it — the
+    // close-and-reopen the handoff exists to stop. The claim that counts
+    // now is the focus sweep itself: the engine reports an embedded editor
+    // to the platform view's own node, so the new field cancels the old
+    // field's hide in the same sweep that arms it.
+    final first = FocusNode();
+    final second = FocusNode();
+    final one = TextEditingController();
+    final two = TextEditingController();
+    addTearDown(first.dispose);
+    addTearDown(second.dispose);
+    addTearDown(one.dispose);
+    addTearDown(two.dispose);
+    var hidden = 0;
+    const window = MethodChannel('nex/os_capture');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(window, (
+      call,
+    ) async {
+      if (call.method == 'hideKeyboard') hidden++;
+      return null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        window,
+        null,
+      ),
+    );
+    await pump(
+      tester,
+      Column(
+        children: [
+          NexTextField(
+            key: const ValueKey('first'),
+            controller: one,
+            focusNode: first,
+          ),
+          NexTextField(
+            key: const ValueKey('second'),
+            controller: two,
+            focusNode: second,
+          ),
+        ],
+      ),
+    );
+    expect(viewIds, hasLength(2));
+    FocusNode linkOf(Key field) => Focus.of(
+      tester.element(
+        find.descendant(
+          of: find.byKey(field),
+          matching: find.byType(AndroidViewSurface),
+        ),
+      ),
+    );
+
+    // The person types in the first editor: its platform view's node holds
+    // the tree's primary focus, and the editor says it has the keyboard.
+    linkOf(const ValueKey('first')).requestFocus();
+    await tester.pump();
+    await fromNativeTo(tester, viewIds[0], 'focus', {'focused': true});
+    toNative.clear();
+
+    // The tap on the second editor: the engine reports it to the second
+    // platform view's node. Neither editor's report has arrived yet.
+    linkOf(const ValueKey('second')).requestFocus();
+    await tester.pump();
+
+    // The settle window passes with the second editor's own report still
+    // in flight. The claim was the sweep, not the report: no hide.
+    await tester.pump(NexImeHandoff.delay);
+    await tester.pump();
+    expect(
+      toNative.map((call) => call.method),
+      isNot(contains('unfocus')),
+      reason: 'the editor that took the keyboard owns it, report or not',
+    );
+    expect(hidden, 0, reason: 'no window hide behind the handoff either');
+
+    // The reports land late — the gain, then the old field's stale loss —
+    // and neither reopens the question.
+    await fromNativeTo(tester, viewIds[1], 'focus', {'focused': true});
+    await fromNativeTo(tester, viewIds[0], 'focus', {'focused': false});
+    await tester.pump(NexImeHandoff.delay);
+    await tester.pump();
+    expect(toNative.map((call) => call.method), isNot(contains('unfocus')));
+    expect(hidden, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a native loss alone dismisses nothing', (tester) async {
+    // The loss is Android's bookkeeping for every handoff, and a second,
+    // stale one follows after the platform view link clears the old view.
+    // It once armed a hide of its own; now nothing is dismissed on its
+    // say-so — not even when nothing else is focused, past the whole settle
+    // window.
+    final controller = TextEditingController();
+    final focus = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focus.dispose);
+    var hidden = 0;
+    const window = MethodChannel('nex/os_capture');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(window, (
+      call,
+    ) async {
+      if (call.method == 'hideKeyboard') hidden++;
+      return null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        window,
+        null,
+      ),
+    );
+    await pump(tester, NexTextField(controller: controller, focusNode: focus));
+
+    // The editor's own node holds the tree's focus and the editor reports
+    // that the keyboard is its.
+    Focus.of(tester.element(find.byType(AndroidViewSurface))).requestFocus();
+    await tester.pump();
+    await fromNative(tester, 'focus', {'focused': true});
+    toNative.clear();
+
+    // Only the loss arrives — no successor, no dismissal from the Dart side.
+    await fromNative(tester, 'focus', {'focused': false});
+    await tester.pump(NexImeHandoff.delay);
+    await tester.pump();
+
+    expect(toNative.map((call) => call.method), isNot(contains('unfocus')));
+    expect(hidden, 0, reason: 'a report of a loss is not an ask to close');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a native loss does not cancel a hide the Dart side armed', (
+    tester,
+  ) async {
+    // A tap on nothing unfocuses the field from the Dart side, and the
+    // engine's clear then delivers the editor's loss as an event. The event
+    // must not eat the ask: the hide the person's tap armed still fires.
+    final controller = TextEditingController();
+    final focus = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focus.dispose);
+    var hidden = 0;
+    const window = MethodChannel('nex/os_capture');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(window, (
+      call,
+    ) async {
+      if (call.method == 'hideKeyboard') hidden++;
+      return null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        window,
+        null,
+      ),
+    );
+    await pump(tester, NexTextField(controller: controller, focusNode: focus));
+
+    focus.requestFocus();
+    await tester.pump();
+    await fromNative(tester, 'focus', {'focused': true});
+    toNative.clear();
+
+    // The dismisser's unfocus, then the editor's report of what followed it.
+    focus.unfocus();
+    await tester.pump();
+    await fromNative(tester, 'focus', {'focused': false});
+    await tester.pump(NexImeHandoff.delay);
+    await tester.pump();
+
+    expect(toNative.map((call) => call.method), contains('unfocus'));
+    expect(hidden, 1, reason: 'the person asked; the event is not news');
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('a Flutter field takes the keyboard without a hide in between', (
     tester,
   ) async {
