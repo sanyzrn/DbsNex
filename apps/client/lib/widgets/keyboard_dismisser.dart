@@ -34,10 +34,11 @@ import 'package:flutter/services.dart';
 /// Android hides the keyboard the moment an editor is told to unfocus. When
 /// the next tap lands on another field on the same screen, that hide races the
 /// new field's focus: the keyboard closes, the layout jumps, and it opens
-/// again. So a lost focus waits [delay] before hiding, and any field gaining
-/// focus in that window cancels it — the keyboard never left. When nothing
-/// takes over, it is still hidden [delay] later, which is below the threshold
-/// at which the closing is perceptible.
+/// again. So a focus the Dart side gives up waits [delay] before hiding, and
+/// any field gaining focus in that window cancels it — the keyboard never
+/// left. When nothing takes over, it is still hidden [delay] later, which is
+/// below the threshold at which the closing is perceptible. A loss only the
+/// editor *reports* never hides anything — see [NexImeHandoff.editorLostFocus].
 class NexImeHandoff {
   NexImeHandoff();
 
@@ -66,31 +67,70 @@ class NexImeHandoff {
     gain();
   }
 
-  /// A native editor lost it. The handoff window still applies, and the hide
-  /// is skipped when another editor — native or Flutter — holds the keyboard
-  /// by the time it fires.
-  void editorLostFocus(Object editor, VoidCallback hide) {
+  /// A native editor lost it. This is bookkeeping, and only bookkeeping.
+  ///
+  /// Android reports the loss around *every* handoff: the old editor's
+  /// listener is dispatched next to the new one's gain, and a second, stale
+  /// loss follows once the platform view link clears the old view after
+  /// Flutter's focus moved on. Answering that with a hide armed a race
+  /// against a report still in flight — a successor whose own report was
+  /// late, on a device with a slow editor or a third-party IME, had the
+  /// keyboard it already owned closed from under it. A stale loss was worse
+  /// still: it cancelled a pending hide and started a fresh one, over a
+  /// keyboard the next field was using.
+  ///
+  /// Nothing is dismissed on this event's own say-so. The window itself
+  /// decides what a cleared editor means — it keeps the keyboard for the next
+  /// editor in the same window and hides it when nothing follows — and every
+  /// dismissal that means it has its own path: [lose], when a field's focus is
+  /// given up on the Dart side; [cancel], when a route leaves; and the
+  /// editor's own dispose. Nor does a loss cancel a hide the Dart side armed:
+  /// the person asked for the keyboard to go, and the event that follows
+  /// their ask is not news.
+  void editorLostFocus(Object editor) {
     _editors.remove(editor);
-    _pending?.cancel();
-    _pending = null;
-    // Another field already took it: this loss is the handoff, not an end.
-    if (hasEditors) return;
-    _pending = NexImeHide(
-      hide,
-      skip: () => hasEditors || nexFlutterTextInputHasFocus(),
-      onDone: () => _pending = null,
-    );
   }
 
   /// The editor left the widget tree. Nothing is hidden on its account, and
   /// it must not keep a later hide from running either.
   void editorDetached(Object editor) => _editors.remove(editor);
 
-  /// Forgets every editor and any pending hide. A test starts from a keyboard
-  /// nobody owns; in the app each field detaches itself on dispose.
+  /// The focus nodes of the native fields on screen, one per field.
+  ///
+  /// A field's node answers for its editor in Flutter's tree, whichever way
+  /// the editor was reached: the engine reports an embedded editor's focus
+  /// to the platform view's own node *inside* the field's, and focusing the
+  /// field's node from Dart is how the editor is handed the keyboard — so
+  /// the field that holds the tree's focus is the field whose editor has, or
+  /// is being given, the IME. The editors' own reports still race the
+  /// channel; the tree does not.
+  final Set<FocusNode> _editorNodes = {};
+
+  /// A native field was mounted; its [node] answers for its editor in the
+  /// focus tree.
+  void editorNodeAttached(FocusNode node) => _editorNodes.add(node);
+
+  /// The field left the tree, taking its node's answer with it.
+  void editorNodeDetached(FocusNode node) => _editorNodes.remove(node);
+
+  /// Whether a native field's node holds or encloses the primary focus.
+  bool _editorHoldsTreeFocus() {
+    for (
+      FocusNode? node = FocusManager.instance.primaryFocus;
+      node != null;
+      node = node.parent
+    ) {
+      if (_editorNodes.contains(node)) return true;
+    }
+    return false;
+  }
+
+  /// Forgets every editor and any pending hide. A test starts from a
+  /// keyboard nobody owns; in the app each field detaches itself on dispose.
   @visibleForTesting
   void reset() {
     _editors.clear();
+    _editorNodes.clear();
     cancel();
   }
 
@@ -106,8 +146,12 @@ class NexImeHandoff {
   /// The decision is made from the focus tree, not only from the order events
   /// arrive in: a loss notification delivered *after* the next field has
   /// already taken focus would otherwise schedule a hide with nothing left to
-  /// cancel it. Checking again when the timer fires covers a field that takes
-  /// focus while the handoff is settling.
+  /// cancel it. The tree sees a native successor without its report too — the
+  /// engine reports an embedded editor to the platform view's node inside
+  /// the field's own — so a handoff to another native editor is answered by
+  /// the focus move itself, and no report has to win a race against the
+  /// settle window. Checking again when the timer fires covers a field that
+  /// takes focus while the handoff is settling.
   /// [except] is the field that is letting go: its own editor may still be
   /// reporting focus for a moment, and that must not read as "somebody else
   /// has the keyboard", or a Dart-initiated unfocus would never end the
@@ -118,12 +162,12 @@ class NexImeHandoff {
     // can both arrive for one dismissal, in either order, and the later one
     // must not cancel the earlier wait. `gain` and `cancel` clear it.
     if (_pending != null) return null;
-    if (_otherEditorsHold(except) || nexFlutterTextInputHasFocus()) {
+    if (_otherEditorsHold(except) || nexTextEditorHasFocus()) {
       return null;
     }
     return _pending = NexImeHide(
       hide,
-      skip: () => _otherEditorsHold(except) || nexFlutterTextInputHasFocus(),
+      skip: () => _otherEditorsHold(except) || nexTextEditorHasFocus(),
       onDone: () => _pending = null,
     );
   }
@@ -166,12 +210,29 @@ class NexImeHide {
 /// a Flutter field.
 ///
 /// The native half is answered by [NexImeHandoff] from the editors' own focus
-/// reports rather than from Flutter's tree, which cannot see Android's
-/// `EditText` reliably; the Flutter half walks the focused element's ancestry.
-/// Both are current at the moment they are read rather than a frame behind.
+/// reports and their nodes in the tree, rather than from the tree alone,
+/// which cannot see Android's `EditText`; the Flutter half walks the focused
+/// element's ancestry. Both are current at the moment they are read rather
+/// than a frame behind.
 @visibleForTesting
 bool nexTextInputHasFocus() =>
-    nexImeHandoff.hasEditors || nexFlutterTextInputHasFocus();
+    nexImeHandoff.hasEditors || nexTextEditorHasFocus();
+
+/// Whether a text editor holds the primary focus — Flutter's own or a native
+/// field's.
+///
+/// The Flutter half walks the focused element's ancestry for [EditableText].
+/// The native half asks the handoff whether a native field's node holds the
+/// tree's focus: a native editor is invisible to the element walk — Android's
+/// `EditText` is behind a platform view — yet the tree still sees the field,
+/// because the engine reports the editor's focus to the platform view's own
+/// node inside the field's, and Dart focuses the field's node to hand its
+/// editor the keyboard. Answering from the tree is what lets a handoff to
+/// another native editor pass unhidden: the successor is visible the moment
+/// the focus moves, not when its report wins a race against the settle
+/// window.
+bool nexTextEditorHasFocus() =>
+    nexFlutterTextInputHasFocus() || nexImeHandoff._editorHoldsTreeFocus();
 
 /// Whether a Flutter text field holds the primary focus.
 ///
