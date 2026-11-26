@@ -210,6 +210,15 @@ class TimelineScreenState extends State<TimelineScreen>
   @visibleForTesting
   int get debugRowBuilds => _rowsCache.builds;
 
+  /// How many passes the daily brief has started — a test handle only.
+  ///
+  /// A pass reads the habits, the whole candidate library and the attention
+  /// engine, so this is the number a layout switch or a delete must not move
+  /// before the work is due.
+  @visibleForTesting
+  int get debugBriefPasses => _briefPasses;
+  int _briefPasses = 0;
+
   /// How many row rebuilds the row cache skipped — a test handle only.
   @visibleForTesting
   int get debugRowReuse => _rowWidgets.hits;
@@ -396,6 +405,14 @@ class TimelineScreenState extends State<TimelineScreen>
   /// tap alone: a scroll used to fold it too, which moved every card under
   /// a finger that was only trying to read them (2.8.0).
   late bool _aiSummaryCollapsed = widget.preferences.daySummaryFolded;
+
+  /// Whether the recap card was on screen at the last preference write.
+  ///
+  /// Turning the card back on is the one preference change outside the
+  /// brief's own settings that has to rebuild it: the pass is otherwise
+  /// reached through a write to the notes, and a card switched on over an
+  /// untouched library would wait for one.
+  late bool _daySummaryShown = widget.preferences.showDaySummary;
 
   /// Which note each line the app wrote in the brief is about, so a tap on
   /// the line opens it — see `_rememberBriefLines`.

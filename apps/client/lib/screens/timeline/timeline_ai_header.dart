@@ -50,6 +50,20 @@ extension _TimelineAiHeader on TimelineScreenState {
       final changed =
           _briefSettingsKey != null && _briefSettingsKey != settings;
       _briefSettingsKey = settings;
+      // Only a change to the brief's own settings, or the card being turned
+      // back on, is a reason to rebuild it.
+      //
+      // This listener fires for *every* preference write: a theme choice, a
+      // card size, the list/grid switch. Running the pass for all of them
+      // meant a layout toggle spent the habits read, the candidate library
+      // and the attention engine on the frame after the switch — the layout
+      // switch was blamed on the crossfade. An ordinary data change reaches
+      // the brief through `_briefReload`, which is also where a burst of
+      // writes is coalesced.
+      final shown = widget.preferences.showDaySummary;
+      final turnedOn = shown && !_daySummaryShown;
+      _daySummaryShown = shown;
+      if (!changed && !turnedOn) return;
       // A settings change is explicit, unlike an hourly data refresh.
       unawaited(_loadAiSummary(force: changed));
       unawaited(_loadAiHeadline());
@@ -504,10 +518,16 @@ extension _TimelineAiHeader on TimelineScreenState {
   /// makes it once, and whichever gets there first wins.
   void _requestAiHeader(List<Note> delivered) {
     if (delivered.isEmpty && _model.commitments.isEmpty) return;
-    // The recap is allowed to re-ask. Its own gate decides whether the notes
-    // have moved on and whether an hour has passed, so calling it on every
-    // delivery costs a hash and buys a recap that keeps up with the day.
-    unawaited(_loadAiSummary());
+    // The recap is deliberately not asked for here.
+    //
+    // Every delivery already arms the screen's trailing pass — see
+    // `_onModelChange` and `_briefReload`. Calling `_loadAiSummary` here
+    // started a full pass reading the library on the delivery's own frame and
+    // *cancelled* that timer before it could fire, so 2.9.1's "one pass after
+    // a burst of writes" never happened: a delete paid for the habits read,
+    // the candidate library, the attention engine and the report lines while
+    // its Undo notice was still arriving, which is the jank the notice got
+    // the blame for. The pass still keeps up with the day through the timer.
     // The headline is not. It is a mood for the day with a day key of its
     // own, and re-rolling it on every capture would make the top of the
     // screen restless.

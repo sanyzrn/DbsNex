@@ -115,6 +115,15 @@ void main() {
       tokensAfter(title);
     }
   }, rounds: 20);
+  // The brief rereads the same titles after every settled write. With the
+  // token cache this second pass is a lookup; without it, it repeated the
+  // whole tokenizer for an unchanged library — which is what the home screen
+  // paid on the frame after a delete while its Undo notice was arriving.
+  final tokenRepeat = micros(() {
+    for (final title in titles) {
+      nexAttentionTokens(title);
+    }
+  }, rounds: 20);
   final anyBefore = micros(() {
     for (final line in lines) {
       anyInBefore(nexAttentionFold(line));
@@ -133,6 +142,11 @@ void main() {
   print(
     'attention tokens: ${tokenBefore}us -> ${tokenAfter}us '
     '(${change(tokenBefore, tokenAfter)})',
+  );
+  // ignore: avoid_print
+  print(
+    'attention tokens, later pass (memoized): ${tokenRepeat}us '
+    'for the same ${titles.length} titles',
   );
   // ignore: avoid_print
   print(

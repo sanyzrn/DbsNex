@@ -682,9 +682,34 @@ int _scoreFor({
   );
 }
 
+/// Titles already read, and the words that group them.
+///
+/// The brief rebuilds its reading of the library after every settled write,
+/// and one delete or capture changes one title while the other hundreds are
+/// the same strings. Tokenizing all of them again was most of a pass's cost
+/// — ≈73 ms for 400 titles in the JIT benchmark — spent on the same words as
+/// before, on the frames just after an Undo notice appeared. Bounded and
+/// insertion-ordered; keyed by the exact text, so a note that changed is a
+/// different key and can never read as its old self.
+final _tokenCache = <String, List<String>>{};
+
+/// Enough for several libraries' worth of titles; a library larger than this
+/// still caches its most recently read ones, which are the ones a burst of
+/// writes keeps touching.
+const _tokenCacheLimit = 2048;
+
+/// How many titles the cache is holding — a test handle for the bound.
+int get nexAttentionTokenCacheSize => _tokenCache.length;
+
 /// The words of [text] that can group two items: folded, stemmed, three
 /// letters or more, minus the words that appear in everything.
+///
+/// Memoized: a pass over an unchanged library re-reads the same titles, and
+/// the answer is a pure function of the text. The list is unmodifiable so a
+/// caller cannot turn a cached answer into state the next pass inherits.
 List<String> nexAttentionTokens(String text) {
+  final known = _tokenCache[text];
+  if (known != null) return known;
   final tokens = <String>{};
   for (final match in _wordPattern.allMatches(text)) {
     final token = nexAttentionStem(match.group(0)!);
@@ -692,7 +717,12 @@ List<String> nexAttentionTokens(String text) {
     if (_stopWords.contains(token)) continue;
     tokens.add(token);
   }
-  return [...tokens];
+  final result = List<String>.unmodifiable(tokens);
+  if (_tokenCache.length >= _tokenCacheLimit) {
+    _tokenCache.remove(_tokenCache.keys.first);
+  }
+  _tokenCache[text] = result;
+  return result;
 }
 
 /// [text] with the differences two keyboards make erased: the two letter

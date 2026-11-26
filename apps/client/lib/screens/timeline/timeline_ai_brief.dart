@@ -10,6 +10,7 @@ extension _TimelineAiBrief on TimelineScreenState {
     force = force || _aiSummaryManualRequested;
     final prefs = widget.preferences;
     if (!_briefAvailable || (!force && !prefs.showDaySummary)) return;
+    _briefPasses++;
     final usesModel = prefs.briefStyle.usesModel;
     final cached = CloudAIAdapter.cleanDecorativeReply(prefs.aiDaySummaryText);
     // A model's brief is about the day it was written for. Yesterday's words

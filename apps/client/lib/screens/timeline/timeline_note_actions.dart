@@ -143,11 +143,15 @@ extension _TimelineNoteActions on TimelineScreenState {
     );
     if (confirmed != true || !mounted) return;
     if (widget.preferences.haptics) unawaited(HapticFeedback.mediumImpact());
+    // One write per note and one local patch, rather than one full timeline
+    // read per note: deleting a day's run used to read and rebuild the same
+    // window once for each note in it.
     for (final note in notes) {
-      await widget.services.deleteNote(note.id);
+      await widget.services.deleteNote(note.id, refresh: false);
     }
-    await widget.services.refreshTimeline();
     if (!mounted) return;
+    _model.removeNotes([for (final note in notes) note.id]);
+    unawaited(_model.loadFilterTags());
     nexShowBanner(
       context,
       message: l10n.groupDeleted(notes.length),
@@ -155,6 +159,7 @@ extension _TimelineNoteActions on TimelineScreenState {
       // produced used to add a second.
       haptics: false,
     );
+    unawaited(widget.services.refreshTimeline());
   }
 
   /// Runs whichever action an edge was bound to.

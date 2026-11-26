@@ -105,6 +105,18 @@ class NexGridRowSizing {
   final NexCardStrings _strings;
   final _heights = Expando<({double width, double height})>();
 
+  /// Heights measured for a note id, across the note lists a delivery
+  /// replaces.
+  ///
+  /// The Expando above lives on the [Note] instance, and every timeline read
+  /// decodes new instances — so the first frame of the grid after a switch, a
+  /// delete or any other delivery re-laid out every visible title and preview
+  /// for an answer it had already worked out. Keyed by the revision and the
+  /// width it was measured at; a changed note misses and is measured again.
+  final _byId =
+      <String, ({int rev, DateTime updatedAt, double width, double height})>{};
+  static const _byIdLimit = 800;
+
   bool _matches(NexGridRowSizing other) =>
       identical(_metrics, other._metrics) &&
       _theme == other._theme &&
@@ -115,8 +127,23 @@ class NexGridRowSizing {
     if (note.type == NoteType.link) return _heightFor(note, width, labelHeight);
     final known = _heights[note];
     if (known != null && known.width == width) return known.height;
+    final measured = _byId[note.id];
+    if (measured != null &&
+        measured.rev == note.rev &&
+        measured.updatedAt == note.updatedAt &&
+        measured.width == width) {
+      _heights[note] = (width: width, height: measured.height);
+      return measured.height;
+    }
     final height = _heightFor(note, width, labelHeight);
     _heights[note] = (width: width, height: height);
+    if (_byId.length >= _byIdLimit) _byId.clear();
+    _byId[note.id] = (
+      rev: note.rev,
+      updatedAt: note.updatedAt,
+      width: width,
+      height: height,
+    );
     return height;
   }
 
