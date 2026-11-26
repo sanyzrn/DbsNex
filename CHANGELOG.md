@@ -4,6 +4,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.9.2
+
+- **Home stays smooth while a note is deleted.** A delete leaves the list at once, under its Undo, instead of rereading and rebuilding the whole timeline first. The day's brief is no longer rebuilt on every single write or on settings that have nothing to do with it, so switching between list and grid, and deleting a note, no longer spend their frames on the library's summary.
+
+- **The keyboard stays up between fields, everywhere.** Fields now report directly when Android's own editor holds the keyboard, so moving from one field to the next cannot hide it for a moment; and a field you have left no longer takes the keyboard back from the one you just touched.
+
 ## v2.9.1
 
 - **Fields hand the keyboard to each other.** Tapping from one field to the next — in a form, a dialog, a sheet or the note editor — no longer closes and reopens the keyboard. The field losing focus waits a moment and lets go as soon as the next one is focused, so the page does not jump and the words keep their place.
