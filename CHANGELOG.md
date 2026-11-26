@@ -10,6 +10,14 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - **The keyboard stays up between fields, everywhere.** Fields now report directly when Android's own editor holds the keyboard, so moving from one field to the next cannot hide it for a moment; and a field you have left no longer takes the keyboard back from the one you just touched.
 
+- **Better Persian search and warranty archive access.** Find a purchase by product, brand, model, serial number, invoice reference, shop or warranty company, even when Arabic letter variants, half-spaces or Persian digits are used. Matching archived purchases appear separately and can be restored to the active list.
+
+- **More complete warranty details.** Brand, model and category are visible on the purchase page, with one-tap copying of the serial number, warranty card number and invoice reference.
+
+- **Clearer warranty reminders.** Reminders set from the purchase page include the product name and coverage end date; the date picker opens on that date.
+
+- **Warranty usability fixes.** Claim validation clears when text is entered, unnamed calendar entries use the brand when available, and invalid zero-month coverage durations are no longer displayed.
+
 ## v2.9.1
 
 - **Fields hand the keyboard to each other.** Tapping from one field to the next — in a form, a dialog, a sheet or the note editor — no longer closes and reopens the keyboard. The field losing focus waits a moment and lets go as soon as the next one is focused, so the page does not jump and the words keep their place.
