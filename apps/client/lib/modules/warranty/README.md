@@ -18,8 +18,12 @@ warranty, call a shop, or promise what will be accepted.
 - **Warranties (home).** One hero with how many purchases are covered; then —
   in this order — *Ending in the next 30 days* (soonest first, with a count),
   *Covered*, *Expired*, *Date unavailable*, and archived purchases behind one
-  toggle. Search by product, brand, shop or company; an optional sort by
-  soonest end. Each row shows the product, the brand (or the company when
+  toggle. Search by product, brand, model, serial, invoice reference, shop or
+  company, folded the way Persian is typed (Arabic yeh and kaf, harakat, the
+  half-space, Persian digits); a query that matches an archived purchase shows
+  it under the Archived heading with its way back, rather than answering
+  "Nothing matches." for a purchase that exists. An optional sort by soonest
+  end. Each row shows the product, the brand (or the company when
   there is no brand), the end date on the person's calendar and how many days
   are left or since it ended. Empty state carries its own add button; the FAB
   is the one primary action once there is something to list.
@@ -33,9 +37,13 @@ warranty, call a shop, or promise what will be accepted.
   as a draft; leaving asks first.
 - **A purchase (page).** A status card (days left or since it ended, and the
   end date), then *Purchase and shop* and *Warranty and support* with one icon
-  per field, the support number one tap from the clipboard, the reminder
-  control, and the claim/service log. The menu has edit, archive, copy/share
-  the service file and delete; delete and archive offer Undo.
+  per field — the brand, the model and the category among them, because a desk
+  asks for those before anything else. The support number, the serial, the
+  card number and the invoice are one tap from the clipboard: they are dictated
+  over a phone. The reminder control carries the purchase's name and its day,
+  and its picker opens on the end date. The claim/service log follows; the menu
+  has edit, archive, copy/share the service file and delete; delete and
+  archive offer Undo.
 - **Claim or service note (sheet).** The person's own words, dated on save;
   the note can be deleted with Undo. Nothing is presumed about the outcome.
 
@@ -111,6 +119,26 @@ when it is removed.
     duration or the state of the cover.** It does now, in the order a desk
     reads it, and ends with a line saying where it came from and what Nex does
     not confirm.
+12. **Search was blind to Persian keyboards, to the serial and to the
+    archive.** The query and the fields are now folded the way the app's other
+    searches fold them (Arabic yeh and kaf, harakat, the half-space, Persian
+    digits); the model, the serial and the invoice reference are searched
+    beside the product, brand, shop and company; and a query that matches an
+    archived purchase shows it under the Archived heading with its way back,
+    instead of "Nothing matches." for a purchase that exists.
+13. **The purchase page did not show the brand, the model or the category** —
+    they could be typed and saved and were never displayed. It does now, and
+    the serial, the card number and the invoice join the support line as
+    one-tap copies: they are dictated over a phone.
+14. **A reminder set from the purchase page said nothing and opened on
+    today.** It now carries the purchase's name and its end day — the kit's
+    rule that the words name the thing and when — and the picker opens on the
+    end date.
+15. **Small honesty fixes.** The claim sheet takes back its red complaint once
+    the person writes; a purchase with no product is called by its brand on
+    the shared calendar and left off it entirely when it has neither; a zero
+    duration no version of this module ever wrote is not shown as a coverage
+    of nothing.
 
 **Kept from earlier decisions** (still true, still tested)
 
@@ -241,7 +269,8 @@ warranty company, its support number and the card number when you have them,
 and say whose name the phone is registered in. The home screen keeps what ends
 in the next 30 days at the top; each purchase opens to everything you need at
 a service desk, a claim log, and a service file you can copy or share. A
-reminder before the end is offered while you save.
+reminder before the end is offered while you save. Searching by a serial, a
+model or an invoice number finds the purchase — the archive included.
 
 **FA.** خرید، تاریخش و گارانتی‌ای که گرفته‌اید را اضافه کنید. نوع پوشش را
 انتخاب کنید — گارانتی شرکت، ضمانت فروشنده یا خدمات پس از فروش — بعد یکی از
@@ -250,7 +279,8 @@ reminder before the end is offered while you save.
 گوشی به نام چه کسی ثبت شده است. صفحهٔ اصلی آنچه در ۳۰ روز آینده تمام می‌شود را
 بالا نگه می‌دارد؛ هر خرید همهٔ چیزهایی را که در مرکز خدمات لازم است، سابقهٔ
 مراجعه و تعمیر و یک پروندهٔ خدمات برای کپی یا اشتراک دارد. هنگام ذخیره، یادآوری پیش از
-پایان هم پیشنهاد می‌شود.
+پایان هم پیشنهاد می‌شود. جست‌وجو با سریال، مدل یا شمارهٔ فاکتور همان خرید را پیدا
+می‌کند — آرشیو هم همین‌طور.
 
 ## Changelog
 
@@ -258,10 +288,25 @@ reminder before the end is offered while you save.
 card number beside the shop, put what ends in the next 30 days at the top, and
 offer a reminder while you save — with a service file a repair centre can use.
 
+**EN (unreleased).** Searching now matches the model, the serial and the
+invoice reference beside the product, brand, shop and company, understands
+Persian typed with Arabic letters, half-spaces or Persian digits, and finds
+purchases that were archived; the purchase page shows the brand, model and
+category that were typed and copies the serial, the card number and the
+invoice in one tap; a reminder set from a purchase page names the purchase and
+its day.
+
 **FA.** گارانتی‌ها حالا شرکت گارانتی، شمارهٔ پشتیبانی و شمارهٔ کارت را جدا از
 فروشگاه نگه می‌دارند، آنچه در ۳۰ روز آینده تمام می‌شود را بالای فهرست می‌آورد و
 هنگام ذخیره یادآوری پیشنهاد می‌کند — با پروندهٔ خدماتی که مرکز تعمیر می‌تواند
 از آن استفاده کند.
+
+**FA (منتشرنشده).** جست‌وجو علاوه بر کالا، برند، فروشگاه و شرکت، مدل، سریال و
+شمارهٔ فاکتور را هم می‌یابد؛ حرفی که با ی و ک عربی، نیم‌فاصله یا ارقام فارسی
+تایپ شده همان کلمهٔ درست را پیدا می‌کند و خرید آرشیوشده را هم می‌یابد و با یک
+لمس به فهرست برمی‌گرداند. صفحهٔ خرید برند، مدل و دسته را نشان می‌دهد و سریال،
+شمارهٔ کارت و شمارهٔ فاکتور با یک لمس کپی می‌شود؛ یادآوری‌ای که از صفحهٔ خرید
+تنظیم می‌شود نام خرید و روز پایانش را با خود دارد.
 
 ## Platform requests
 
@@ -294,19 +339,20 @@ No hidden network, file or private-core access. Nothing is sent anywhere.
 
 Flutter 3.47.9 / Dart 3.13.7 (the pinned `.fvmrc`), from `apps/client`.
 `dart format` on every changed file; `flutter analyze --fatal-infos` on the
-module and its tests: no issues, 0 infos. Module tests and the kit gate pass;
-the whole client suite was run once. No file in the module is over 400 lines;
-en/fa string parity is checked by the gate.
+module and its tests: no issues, 0 infos. Module tests, the kit gate and the
+shared-rules and glance gates pass; the whole client suite was run for the
+module's original release. No file in the module is over 400 lines; en/fa
+string parity is checked by the gate.
 
 ~~~text
 $ flutter analyze --fatal-infos
-No issues found! (ran in 5.6s)
+No issues found!
 
 $ flutter test test/module_kit_test.dart test/modules/warranty
-00:17 +156: All tests passed!
+00:59 +193: All tests passed!
 
-$ flutter test
-06:41 +3580 ~4: All tests passed!
+$ flutter test test/module_shared_rules_test.dart test/module_glance_test.dart
+00:02 +62: All tests passed!
 ~~~
 
 Captured screens (`--dart-define=NEX_CAPTURE=<dir>` on
