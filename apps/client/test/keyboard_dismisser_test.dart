@@ -43,6 +43,40 @@ void main() {
     },
   );
 
+  test('a native loss is bookkeeping: neither a hide nor a cancellation', () {
+    // Android reports the old editor's loss around every handoff, and a
+    // stale one follows after the platform view link clears the old view.
+    // Once that event armed a deferred hide and cancelled whatever was
+    // pending; the registry is all it owns now. A hide is armed only by the
+    // Dart side giving focus up, and only a gain — a report or a claim —
+    // takes one back.
+    nexImeHandoff.reset();
+    final a = Object();
+    final b = Object();
+    var hidden = 0;
+    void hide() => hidden++;
+
+    nexImeHandoff.editorGainedFocus(a);
+    // The Dart side gives the first field's focus up: a hide is armed.
+    expect(nexImeHandoff.lose(hide, except: a), isNotNull);
+
+    // The editor's loss report arrives. It takes no hide back — a live hide
+    // only answers to a gain — and it rearms nothing: the registry is all
+    // that moved. That the armed hide survives is the widget test's claim.
+    nexImeHandoff.editorLostFocus(a);
+    expect(nexImeHandoff.hasEditors, isFalse);
+
+    // A gain — the next editor's claim — is still what calls it off.
+    nexImeHandoff.editorGainedFocus(b);
+    expect(nexImeHandoff.hasEditors, isTrue);
+    // A stale loss from the field that already left disturbs nothing.
+    nexImeHandoff.editorLostFocus(a);
+    expect(nexImeHandoff.hasEditors, isTrue);
+    expect(nexImeHandoff.otherEditorsHold(b), isFalse);
+
+    nexImeHandoff.editorDetached(b);
+  });
+
   Future<void> show(WidgetTester tester, {required double keyboard}) async {
     tester.view.viewInsets = FakeViewPadding(bottom: keyboard);
     addTearDown(tester.view.reset);

@@ -329,6 +329,11 @@ class _NativeFieldState extends State<_NativeField> {
     super.initState();
     _controller.addListener(_onController);
     _focus.addListener(_onFocus);
+    // The field's node answers for its editor in the focus tree — the
+    // handoff's "does a native editor hold the keyboard" — whichever way
+    // the editor is reached: from Dart, or by the engine reporting the
+    // platform view's own node inside it.
+    nexImeHandoff.editorNodeAttached(_focus);
   }
 
   @override
@@ -348,8 +353,11 @@ class _NativeFieldState extends State<_NativeField> {
       _onController();
     }
     if (old.field.focusNode != widget.field.focusNode) {
-      (old.field.focusNode ?? _ownFocus)?.removeListener(_onFocus);
+      final oldNode = old.field.focusNode ?? _ownFocus;
+      oldNode?.removeListener(_onFocus);
+      if (oldNode != null) nexImeHandoff.editorNodeDetached(oldNode);
       _focus.addListener(_onFocus);
+      nexImeHandoff.editorNodeAttached(_focus);
     }
   }
 
@@ -361,6 +369,7 @@ class _NativeFieldState extends State<_NativeField> {
     // A field taken out of the tree is not holding a keyboard anyone can use,
     // and leaving it in the registry would keep the next hide from running.
     nexImeHandoff.editorDetached(this);
+    nexImeHandoff.editorNodeDetached(_focus);
     _ownFocus?.dispose();
     _channel?.setMethodCallHandler(null);
     _magnifier.dispose();
@@ -403,6 +412,21 @@ class _NativeFieldState extends State<_NativeField> {
       _pendingHide = null;
       nexImeHandoff.gain();
       unawaited(_channel?.invokeMethod<void>('focus'));
+    } else if (_focus.hasFocus) {
+      // The platform view's own node, inside this one, holds primary focus:
+      // the engine reporting that Android's editor claimed the keyboard —
+      // how a person's tap on the editor itself arrives. The claim is a
+      // gain: it cancels a hide that was armed before this sweep — a
+      // dismissal settling while the person went back into a field. The
+      // sweep notifies the new path before the old, so a handoff armed by
+      // the field being left is not answered here; `lose` does not arm one
+      // while any editor — this one included — holds the tree's focus.
+      //
+      // No command is sent: the editor already took focus on its own; a
+      // `focus` here would take focus from the platform view's node and
+      // clear the editor's again.
+      _pendingHide = null;
+      nexImeHandoff.gain();
     } else if (!_focus.hasFocus && _focused) {
       // Not immediately: a tap on the next field on this screen loses this
       // focus and gains that one in the same frame, and hiding the IME here
@@ -509,9 +533,16 @@ class _NativeFieldState extends State<_NativeField> {
           nexImeHandoff.editorGainedFocus(this);
         } else {
           _magnifier.hide();
-          // The next field may take it in this same tap; the handoff waits
-          // for that before ending the session.
-          nexImeHandoff.editorLostFocus(this, _unfocusEditor);
+          // Android sends this around every handoff — the old editor's
+          // loss is dispatched next to the new one's gain, and a second,
+          // stale loss follows once the platform view link clears the old
+          // view after Flutter's focus moved on. The report only updates
+          // the handoff's registry: hiding on it raced the next field's own
+          // report and, when that report was late, closed the keyboard the
+          // next field was already using. The session ends where it is
+          // meant to — a dismissal from the Dart side, a route leaving, this
+          // field's dispose — never on this event alone.
+          nexImeHandoff.editorLostFocus(this);
         }
         if (focused == _focused) return;
         _focused = focused;
