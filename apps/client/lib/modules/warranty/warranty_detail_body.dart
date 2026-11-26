@@ -147,6 +147,32 @@ extension _WarrantyDetailBody on _WarrantyDetailPageState {
           title: strings(context, 'identityTitle'),
         ),
         const SizedBox(height: NexSpacing.sm),
+        // What the product is, first: a desk asks for the brand and the
+        // model before anything else, and they were typed in the editor.
+        if (value('brand').isNotEmpty)
+          _row(
+            context,
+            Icons.local_offer_outlined,
+            strings(context, 'brand'),
+            Text(value('brand'), style: theme.textTheme.bodyLarge),
+          ),
+        if (value('model').isNotEmpty)
+          _row(
+            context,
+            Icons.devices_outlined,
+            strings(context, 'model'),
+            WarrantyFields.ltr(
+              value('model'),
+              style: theme.textTheme.bodyLarge,
+            ),
+          ),
+        if (value('category').isNotEmpty)
+          _row(
+            context,
+            Icons.category_outlined,
+            strings(context, 'category'),
+            Text(value('category'), style: theme.textTheme.bodyLarge),
+          ),
         if (purchased != null)
           _row(
             context,
@@ -172,6 +198,11 @@ extension _WarrantyDetailBody on _WarrantyDetailPageState {
             WarrantyFields.ltr(
               value('receiptRef'),
               style: theme.textTheme.bodyLarge,
+            ),
+            trailing: _copyValue(
+              context,
+              'warranty-copy-receipt',
+              value('receiptRef'),
             ),
           ),
         if (amount != null)
@@ -207,7 +238,9 @@ extension _WarrantyDetailBody on _WarrantyDetailPageState {
               style: theme.textTheme.bodyLarge,
             ),
           ),
-        if (months != null)
+        // A zero can only come from a record this version never wrote;
+        // a coverage of "0 months" is not a fact worth showing.
+        if (months != null && months > 0)
           _row(
             context,
             Icons.timelapse_outlined,
@@ -258,6 +291,11 @@ extension _WarrantyDetailBody on _WarrantyDetailPageState {
               value('cardNumber'),
               style: theme.textTheme.bodyLarge,
             ),
+            trailing: _copyValue(
+              context,
+              'warranty-copy-card',
+              value('cardNumber'),
+            ),
           ),
         if (value('serial').isNotEmpty)
           _row(
@@ -267,6 +305,11 @@ extension _WarrantyDetailBody on _WarrantyDetailPageState {
             WarrantyFields.ltr(
               value('serial'),
               style: theme.textTheme.bodyLarge,
+            ),
+            trailing: _copyValue(
+              context,
+              'warranty-copy-serial',
+              value('serial'),
             ),
           ),
         if (registry.isNotEmpty)
@@ -308,12 +351,24 @@ extension _WarrantyDetailBody on _WarrantyDetailPageState {
           ),
           // Opt-in: an OS alert for the end of the cover or a claim
           // deadline. Wired to this record, so the platform cancels it when
-          // the purchase is deleted or archived.
+          // the purchase is deleted or archived. The alert names the
+          // purchase and its day — "you have a reminder" says nothing a
+          // person can act on — and the picker opens on the end date,
+          // because that is the day worth choosing around.
           NexModuleReminderControl(
             key: const ValueKey('warranty-reminders'),
             store: widget.store,
             sourceKind: WarrantyModels.warranty,
             sourceId: widget.record.id,
+            initial: end,
+            body: end == null
+                ? null
+                : warrantyStrings(context, 'reminderBody', {
+                    'name': value('product').trim().isEmpty
+                        ? strings(context, 'detailsTitle')
+                        : value('product').trim(),
+                    'date': WarrantyFields.dayLabel(context, end),
+                  }),
           ),
         ],
         const SizedBox(height: NexSpacing.lg),
@@ -323,41 +378,6 @@ extension _WarrantyDetailBody on _WarrantyDetailPageState {
           onDeleteClaim: _deleteClaim,
         ),
       ],
-    );
-  }
-
-  Widget _row(
-    BuildContext context,
-    IconData icon,
-    String label,
-    Widget value, {
-    Widget? trailing,
-  }) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: NexSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: NexSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                value,
-              ],
-            ),
-          ),
-          ?trailing,
-        ],
-      ),
     );
   }
 }

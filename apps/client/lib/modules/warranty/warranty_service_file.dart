@@ -67,7 +67,7 @@ String warrantyServiceFile(
     );
   }
   final months = WarrantyModels.readCount(body, 'durationMonths');
-  if (months != null) {
+  if (months != null && months > 0) {
     field(
       strings(context, 'durationLabel'),
       months == 1

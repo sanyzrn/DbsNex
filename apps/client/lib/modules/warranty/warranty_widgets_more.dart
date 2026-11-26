@@ -23,6 +23,9 @@ class _WarrantyClaimSheetState extends State<WarrantyClaimSheet> {
   @override
   void initState() {
     super.initState();
+    // The red line under the field says what is missing — it does not stay
+    // there while the person is already writing the answer to it.
+    _note.addListener(_onNoteChanged);
     _session = EditorCheckpoint(
       widget.store,
       'claim',
@@ -39,8 +42,15 @@ class _WarrantyClaimSheetState extends State<WarrantyClaimSheet> {
     unawaited(_session.load());
   }
 
+  void _onNoteChanged() {
+    if (_showError && _note.text.trim().isNotEmpty && mounted) {
+      setState(() => _showError = false);
+    }
+  }
+
   @override
   void dispose() {
+    _note.removeListener(_onNoteChanged);
     _session.dispose();
     _note.dispose();
     super.dispose();
