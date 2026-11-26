@@ -93,8 +93,22 @@ extension TimelineCommands on TimelineScreenState {
 
   Future<void> deleteWithUndo(Note note) async {
     final l10n = AppLocalizations.of(context);
-    await widget.services.deleteNote(note.id);
-    if (mounted) _showDeleteUndo(l10n, [note]);
+    // The row is committed; the screen mirrors it instead of waiting for the
+    // whole window to be read back. The Undo notice is then the first thing
+    // that happens, not the last thing after a full library read and rebuild
+    // — the frame it used to share with them is what read as jank.
+    await widget.services.deleteNote(note.id, refresh: false);
+    if (!mounted) return;
+    _model.removeNotes([note.id]);
+    // The tag row counts this note; the brief and the home widgets read the
+    // library. Both catch up off this frame.
+    unawaited(_model.loadFilterTags());
+    _showDeleteUndo(l10n, [note]);
+    // One reconcile read, once the notice is up. The snapshot matches the
+    // window this screen already holds, so `_take` suppresses its
+    // notification: the services' cache, paging and widgets catch up without
+    // rebuilding a card under the notice.
+    unawaited(widget.services.refreshTimeline());
   }
 
   void _showDeleteUndo(AppLocalizations l10n, List<Note> notes) {

@@ -46,6 +46,54 @@ class NexImeHandoff {
 
   NexImeHide? _pending;
 
+  /// Native editors that say they hold the keyboard, by their platform view.
+  ///
+  /// Flutter's focus tree cannot see Android's `EditText`: a platform view's
+  /// node can lag the frame its editor took focus, and with two fields on one
+  /// screen the old field's loss can be delivered after the new one already
+  /// owns the IME. Deciding a hide from the tree alone then hides a keyboard
+  /// another field is using — the close-and-reopen this class exists to stop,
+  /// one settle window later. Each native field reports what its own editor
+  /// says, so "does anybody hold the keyboard" never depends on event order.
+  final Set<Object> _editors = {};
+
+  /// Whether a native editor holds the keyboard right now.
+  bool get hasEditors => _editors.isNotEmpty;
+
+  /// A native editor gained the keyboard: a pending hide is called off.
+  void editorGainedFocus(Object editor) {
+    _editors.add(editor);
+    gain();
+  }
+
+  /// A native editor lost it. The handoff window still applies, and the hide
+  /// is skipped when another editor — native or Flutter — holds the keyboard
+  /// by the time it fires.
+  void editorLostFocus(Object editor, VoidCallback hide) {
+    _editors.remove(editor);
+    _pending?.cancel();
+    _pending = null;
+    // Another field already took it: this loss is the handoff, not an end.
+    if (hasEditors) return;
+    _pending = NexImeHide(
+      hide,
+      skip: () => hasEditors || nexFlutterTextInputHasFocus(),
+      onDone: () => _pending = null,
+    );
+  }
+
+  /// The editor left the widget tree. Nothing is hidden on its account, and
+  /// it must not keep a later hide from running either.
+  void editorDetached(Object editor) => _editors.remove(editor);
+
+  /// Forgets every editor and any pending hide. A test starts from a keyboard
+  /// nobody owns; in the app each field detaches itself on dispose.
+  @visibleForTesting
+  void reset() {
+    _editors.clear();
+    cancel();
+  }
+
   /// A field gained focus: the keyboard is staying up after all.
   void gain() => cancel();
 
@@ -60,11 +108,33 @@ class NexImeHandoff {
   /// already taken focus would otherwise schedule a hide with nothing left to
   /// cancel it. Checking again when the timer fires covers a field that takes
   /// focus while the handoff is settling.
-  NexImeHide? lose(VoidCallback hide) {
-    cancel();
-    if (nexTextInputHasFocus()) return null;
-    return _pending = NexImeHide(hide, skip: nexTextInputHasFocus);
+  /// [except] is the field that is letting go: its own editor may still be
+  /// reporting focus for a moment, and that must not read as "somebody else
+  /// has the keyboard", or a Dart-initiated unfocus would never end the
+  /// session it just asked to end.
+  NexImeHide? lose(VoidCallback hide, {Object? except}) {
+    // A hide already waiting for the settle window is not rescheduled by a
+    // second loss of focus: the native editor's report and the focus tree's
+    // can both arrive for one dismissal, in either order, and the later one
+    // must not cancel the earlier wait. `gain` and `cancel` clear it.
+    if (_pending != null) return null;
+    if (_otherEditorsHold(except) || nexFlutterTextInputHasFocus()) {
+      return null;
+    }
+    return _pending = NexImeHide(
+      hide,
+      skip: () => _otherEditorsHold(except) || nexFlutterTextInputHasFocus(),
+      onDone: () => _pending = null,
+    );
   }
+
+  /// Whether a native editor other than [editor] holds the keyboard now.
+  bool otherEditorsHold(Object editor) => _otherEditorsHold(editor);
+
+  /// Whether an editor other than [except] holds the keyboard.
+  bool _otherEditorsHold(Object? except) => except == null
+      ? _editors.isNotEmpty
+      : _editors.any((editor) => !identical(editor, except));
 
   /// The keyboard is meant to go now — a route is leaving, a sheet closing.
   void cancel() {
@@ -75,9 +145,10 @@ class NexImeHandoff {
 
 /// One deferred hide, cancellable by the field that asked for it.
 class NexImeHide {
-  NexImeHide(VoidCallback hide, {bool Function()? skip}) {
+  NexImeHide(VoidCallback hide, {bool Function()? skip, VoidCallback? onDone}) {
     _timer = Timer(NexImeHandoff.delay, () {
       _timer = null;
+      onDone?.call();
       if (skip?.call() ?? false) return;
       hide();
     });
@@ -91,28 +162,30 @@ class NexImeHide {
   }
 }
 
-/// Whether a text editor holds the primary focus — one of this app's native
-/// fields or a Flutter field.
+/// Whether an editor holds the keyboard — one of this app's native fields or
+/// a Flutter field.
 ///
-/// The focus node of either kind sits inside its editor: beneath a
-/// [TextFieldTapRegion] for a [NexTextField]'s platform view, beneath
-/// [EditableText] for a Flutter field. Walking the focused element's ancestry
-/// answers the question without knowing which kind of field is asking, and it
-/// is current at the moment it is read rather than a frame behind.
+/// The native half is answered by [NexImeHandoff] from the editors' own focus
+/// reports rather than from Flutter's tree, which cannot see Android's
+/// `EditText` reliably; the Flutter half walks the focused element's ancestry.
+/// Both are current at the moment they are read rather than a frame behind.
 @visibleForTesting
-bool nexTextInputHasFocus() {
+bool nexTextInputHasFocus() =>
+    nexImeHandoff.hasEditors || nexFlutterTextInputHasFocus();
+
+/// Whether a Flutter text field holds the primary focus.
+///
+/// The focus node of a Flutter field sits beneath [EditableText], so walking
+/// the focused element's ancestry answers it without knowing which field is
+/// asking. A native field never appears here: its editor is Android's, and its
+/// own focus is what [NexImeHandoff.hasEditors] is for.
+bool nexFlutterTextInputHasFocus() {
   final context = FocusManager.instance.primaryFocus?.context;
   if (context is! Element || !context.mounted) return false;
-  bool isEditor(Element element) {
-    final widget = element.widget;
-    return widget is EditableText ||
-        (widget is TextFieldTapRegion && widget.groupId == EditableText);
-  }
-
-  if (isEditor(context)) return true;
+  if (context.widget is EditableText) return true;
   var found = false;
   context.visitAncestorElements((ancestor) {
-    found = isEditor(ancestor);
+    found = ancestor.widget is EditableText;
     return !found;
   });
   return found;
@@ -135,6 +208,12 @@ void nexDismissKeyboard(BuildContext context) {
   // The activity window remains valid after the editor view has gone.
   unawaited(_hideKeyboard());
 }
+
+/// Hides the window's keyboard without touching Flutter's focus.
+///
+/// For a field whose own editor has already let go: its `unfocus` would find
+/// nothing to release, so the hide has to be asked for at the window.
+Future<void> nexHideKeyboard() => _hideKeyboard();
 
 Future<void> _hideKeyboard() async {
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {

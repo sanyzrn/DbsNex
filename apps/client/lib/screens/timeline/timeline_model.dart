@@ -417,6 +417,31 @@ class TimelineModel extends ChangeNotifier {
     return !_disposed;
   }
 
+  /// Takes soft-deleted notes out of the window without re-reading the
+  /// library.
+  ///
+  /// A delete used to go through [NexServices.refreshTimeline]: a full read
+  /// of the timeline window, a decode of every note, the grouping pass and a
+  /// rebuild of the whole screen, all on the tap that was about to show an
+  /// Undo notice — while a module's identical notice did nothing but its own
+  /// one write. The row is already committed, so the screen can mirror it:
+  /// drop the notes here and notify once. One reconcile read still follows,
+  /// but its snapshot matches this one and so cannot rebuild anything.
+  void removeNotes(Iterable<String> ids) {
+    final gone = ids.toSet();
+    if (gone.isEmpty) return;
+    final all = _all;
+    if (all == null) return;
+    final kept = [
+      for (final note in all)
+        if (!gone.contains(note.id)) note,
+    ];
+    if (kept.length == all.length) return;
+    _all = List.unmodifiable(kept);
+    _notes = visible(_all!);
+    _notifyOf(TimelineChange.notes);
+  }
+
   /// Folds away or opens up date groups, and remembers it.
   void setCollapsedGroups(Set<String> keys) {
     _collapsedGroups = keys;
