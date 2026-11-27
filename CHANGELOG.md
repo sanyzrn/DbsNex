@@ -4,6 +4,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Video and PDF previews no longer go missing.** A preview that was still being read when its card appeared now lands on that card by itself, instead of leaving it blank until the date group was closed and reopened.
+
 ## v2.9.4
 
 - **Unified editor for smoother keyboard switching.** Rebuilt text input around one Flutter-based editor across the app to avoid keyboard closure and reopening when moving between fields, including Prompt Studio, Family Fund and Habits.
