@@ -80,8 +80,8 @@ class _Composer extends StatelessWidget {
             // A Persian sentence with an English word in it used to scramble
             // as it was typed and read back correctly the moment it was sent:
             // the field had one direction for everything in it, the bubble
-            // one per line. [NexTextField] is the platform's own editor, which
-            // does what the bubble does.
+            // one per line. [NexTextField] follows the paragraph being
+            // written, which is what the bubble does.
             //
             // Enter makes a new line, not a send: a prompt is prose, and the
             // field already grows to five lines for exactly that. The button

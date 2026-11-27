@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/widgets/focus_reveal.dart';
@@ -310,43 +309,13 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('the Android editor lifts its whole frame, not just its text', (
+  testWidgets('the app\'s own multi-line editor lifts its whole frame', (
     tester,
   ) async {
-    // The native editor is an EditText in a platform view: the field's frame —
-    // border, label, counter — is drawn by an InputDecorator *around* the
-    // view, and the focus the platform gives the view is inside it. Lifting
-    // that focus alone leaves the frame's lower edge under the keyboard,
+    // The field's frame — border, label, counter — is drawn by an
+    // InputDecorator around the editor, and the editor's own caret-scroll
+    // only promises the caret. The frame is what has to clear the keyboard,
     // which is the half-covered field the report describes.
-    NexTextField.native = true;
-    addTearDown(() => NexTextField.native = false);
-    final messenger =
-        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(SystemChannels.platform_views, (
-      call,
-    ) async {
-      if (call.method == 'create') {
-        final args = (call.arguments as Map).cast<String, Object?>();
-        final id = args['id']! as int;
-        messenger.setMockMethodCallHandler(
-          MethodChannel('nex/edit_text/$id'),
-          (call) async => null,
-        );
-        return id;
-      }
-      if (call.method == 'resize') {
-        final args = call.arguments as Map;
-        return {'width': args['width'], 'height': args['height']};
-      }
-      return null;
-    });
-    addTearDown(
-      () => messenger.setMockMethodCallHandler(
-        SystemChannels.platform_views,
-        null,
-      ),
-    );
-
     tester.view.physicalSize = const Size(400, 600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -371,34 +340,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Take focus the way the platform view does on a device.
-    final surface = find.byType(AndroidViewSurface);
-    final platformFocus =
-        find
-                .ancestor(of: surface, matching: find.byType(Focus))
-                .evaluate()
-                .first
-                .widget
-            as Focus;
-    platformFocus.focusNode!.requestFocus();
+    final field = find.byType(NexTextField);
+    await tester.tap(field);
     await tester.pump();
     openKeyboard(tester, logical: 300);
     await tester.pumpAndSettle();
 
     final frame = tester.getRect(find.byType(InputDecorator));
-    final text = tester.getRect(surface);
-    expect(
-      frame.height,
-      greaterThan(text.height),
-      reason: 'the frame is taller than the editor inside it',
-    );
     expect(
       frame.bottom,
       lessThanOrEqualTo(keyboardTop(tester, logical: 300) + 0.5),
       reason:
-          'the whole frame has to clear the keyboard, not only the text — '
-          'frame ${frame.top}..${frame.bottom}, text '
-          '${text.top}..${text.bottom}',
+          'the whole frame has to clear the keyboard, not only the caret — '
+          'frame ${frame.top}..${frame.bottom}',
     );
     await tester.pumpWidget(const SizedBox());
   });

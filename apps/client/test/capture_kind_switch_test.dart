@@ -1,87 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nex_client/modules/module_api.dart';
+import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
+import 'package:nex_client/widgets/nex_dialog.dart';
+import 'package:nex_client/widgets/nex_text_field.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
 
 /// 2.9.0, step 5: the capture box's four kinds are one editor.
 ///
-/// On Android, Code used to be the one kind that swapped Android's editor for
-/// Flutter's. Entering it destroyed the platform view — taking the keyboard
-/// with it, collapsing the sheet's bottom inset and moving the panel — and
-/// leaving it built a second view and asked for the keyboard again. These
-/// tests hold the box to one editor for every kind, and to the code settings
-/// that editor needs.
+/// Code used to be the one kind that swapped editors — Android's for
+/// Flutter's — and the swap took the keyboard with it, collapsing the
+/// sheet's bottom inset and moving the panel. These tests hold the box to
+/// one editor for every kind: the same editor element, its words, its
+/// place, and its code settings — which, the editor being the framework's
+/// own on every platform now, are the field's own.
 void main() {
   late NexTestHarness harness;
-  late int creates;
-  late Map<String, Object?>? config;
-  late int viewId;
-  final toNative = <MethodCall>[];
 
   setUp(() async {
     harness = await NexTestHarness.create(name: 'nex_capture_kinds_');
-    NexTextField.native = true;
-    creates = 0;
-    config = null;
-    viewId = 0;
-    toNative.clear();
-    final messenger =
-        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(SystemChannels.platform_views, (
-      call,
-    ) async {
-      if (call.method == 'create') {
-        creates++;
-        final args = (call.arguments as Map).cast<String, Object?>();
-        viewId = args['id']! as int;
-        config = (const StandardMessageCodec().decodeMessage(
-          ByteData.sublistView(args['params']! as Uint8List),
-        ) as Map).cast<String, Object?>();
-        messenger.setMockMethodCallHandler(
-          MethodChannel('nex/edit_text/$viewId'),
-          (call) async {
-            toNative.add(call);
-            if (call.method == 'update') {
-              config = (call.arguments as Map).cast<String, Object?>();
-            }
-            return null;
-          },
-        );
-        return viewId;
-      }
-      if (call.method == 'resize') {
-        final args = call.arguments as Map;
-        return {'width': args['width'], 'height': args['height']};
-      }
-      return null;
-    });
   });
 
   tearDown(() async {
-    NexTextField.native = false;
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(SystemChannels.platform_views, null);
     await harness.dispose();
   });
-
-  /// Words typed in the Android editor arrive from it, not from Flutter.
-  Future<void> typed(WidgetTester tester, String text) async {
-    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
-      'nex/edit_text/$viewId',
-      const StandardMethodCodec().encodeMethodCall(
-        MethodCall('changed', {
-          'text': text,
-          'start': text.length,
-          'end': text.length,
-        }),
-      ),
-      (_) {},
-    );
-    await tester.pump();
-  }
 
   Future<void> open(WidgetTester tester) async {
     tester.view.physicalSize = const Size(400, 800);
@@ -128,11 +72,17 @@ void main() {
     await open(tester);
     final l10n = AppLocalizations.of(tester.element(find.byType(CaptureSheet)));
     final row = find.byKey(const ValueKey('capture-input-row'));
-    expect(creates, 1);
-
-    await typed(tester, 'hello');
-    final resting = tester.getRect(row);
     final field = find.byType(NexTextField);
+
+    await tester.enterText(
+      find.descendant(of: field, matching: find.byType(EditableText)),
+      'hello',
+    );
+    await tester.pumpAndSettle();
+    final resting = tester.getRect(row);
+    final editor = tester.state<EditableTextState>(
+      find.descendant(of: field, matching: find.byType(EditableText)),
+    );
     expect(tester.widget<NexTextField>(field).controller.text, 'hello');
 
     for (final label in [
@@ -146,8 +96,10 @@ void main() {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
       expect(
-        creates,
-        1,
+        tester.state<EditableTextState>(
+          find.descendant(of: field, matching: find.byType(EditableText)),
+        ),
+        same(editor),
         reason:
             'switching to "$label" must not swap the editor out — that is '
             'what dropped the keyboard and moved the sheet',
@@ -186,37 +138,41 @@ void main() {
         reason: 'the box is above the keyboard the whole time',
       );
       expect(
-        toNative.where((call) => call.method == 'unfocus'),
-        isEmpty,
+        editor.widget.focusNode.hasFocus,
+        isTrue,
         reason:
-            'nothing told the editor to give up the keyboard while the kind '
-            'changed',
+            'nothing gave the editor up while the kind changed — that is '
+            'what dropped the keyboard',
       );
-      expect(FocusManager.instance.primaryFocus, isNotNull);
     }
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('a Code box tells the Android editor the words are code', (
+  testWidgets('a Code box is a code field, and stops being one', (
     tester,
   ) async {
     await open(tester);
     final l10n = AppLocalizations.of(tester.element(find.byType(CaptureSheet)));
-    expect(config!['code'], isFalse);
+    TextField widget() => tester.widget<TextField>(find.byType(TextField));
+    NexTextField field() =>
+        tester.widget<NexTextField>(find.byType(NexTextField));
+    bool code() => widget().inputFormatters != null;
+
+    expect(code(), isFalse);
 
     await tester.tap(find.text(l10n.code));
     await tester.pumpAndSettle();
     expect(
-      config!['code'],
+      code(),
       isTrue,
-      reason: 'the native editor pairs and indents only when told it is code',
+      reason: 'the editor pairs and indents only when told it is code',
     );
-    expect(config!['monospace'], isTrue);
-    expect(config!['textDirection'], TextDirection.ltr.name);
+    expect(field().monospace, isTrue);
+    expect(field().textDirection, TextDirection.ltr);
 
     await tester.tap(find.text(l10n.captureKindNote));
     await tester.pumpAndSettle();
-    expect(config!['code'], isFalse);
-    expect(creates, 1);
+    expect(code(), isFalse);
+    expect(field().textDirection, isNull);
   });
 }

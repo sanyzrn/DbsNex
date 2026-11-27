@@ -238,7 +238,6 @@ class _NexSnippetEditorSheetState extends State<NexSnippetEditorSheet>
                         child: NexTextField(
                           controller: _code,
                           inputFormatters: const [NexCodeInputFormatter()],
-                          useNativeEditor: false,
                           focusNode: _focus,
                           autofocus: true,
                           expands: true,

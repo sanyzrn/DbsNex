@@ -12,7 +12,6 @@ import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/widgets/code_editing_controller.dart';
 import 'package:nex_client/widgets/nex_dialog.dart';
-import 'package:nex_client/widgets/nex_text_field.dart';
 import 'package:nex_client/widgets/snippet_editor_sheet.dart';
 import 'package:nex_client/widgets/code_input.dart';
 import 'package:nex_core/nex_core.dart';
@@ -500,55 +499,51 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-    'editing HTML on the Android editor path shows syntax and preserves composing text',
-    (tester) async {
-      final native = NexTextField.native;
-      NexTextField.native = true;
-      addTearDown(() => NexTextField.native = native);
-      const source = '<p class="note">سلام</p>';
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: NexSnippetEditorSheet(
-              initial: const NexCodeSnippet(
-                code: source,
-                language: NexCodeLanguage.html,
-              ),
-              preferences: preferences,
+  testWidgets('editing HTML shows syntax and preserves composing text', (
+    tester,
+  ) async {
+    const source = '<p class="note">سلام</p>';
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NexSnippetEditorSheet(
+            initial: const NexCodeSnippet(
+              code: source,
+              language: NexCodeLanguage.html,
             ),
+            preferences: preferences,
           ),
         ),
-      );
-      await tester.pumpAndSettle();
-      final editable = find.byType(EditableText);
-      final controller = tester.widget<EditableText>(editable).controller;
-      controller.value = const TextEditingValue(
-        text: source,
-        selection: TextSelection.collapsed(offset: 21),
-        composing: TextRange(start: 16, end: 20),
-      );
-      await tester.pump();
-      final span = controller.buildTextSpan(
-        context: tester.element(editable),
-        style: const TextStyle(),
-        withComposing: true,
-      );
-      final children = span.children!.whereType<TextSpan>().toList();
-      expect(span.toPlainText(), source);
-      expect(children.first.style?.color, isNotNull);
-      expect(children.first.style?.color, isNot(children[2].style?.color));
-      expect(
-        children.any(
-          (piece) => piece.style?.decoration == TextDecoration.underline,
-        ),
-        isTrue,
-      );
-      expect(controller.selection.baseOffset, 21);
-    },
-  );
+      ),
+    );
+    await tester.pumpAndSettle();
+    final editable = find.byType(EditableText);
+    final controller = tester.widget<EditableText>(editable).controller;
+    controller.value = const TextEditingValue(
+      text: source,
+      selection: TextSelection.collapsed(offset: 21),
+      composing: TextRange(start: 16, end: 20),
+    );
+    await tester.pump();
+    final span = controller.buildTextSpan(
+      context: tester.element(editable),
+      style: const TextStyle(),
+      withComposing: true,
+    );
+    final children = span.children!.whereType<TextSpan>().toList();
+    expect(span.toPlainText(), source);
+    expect(children.first.style?.color, isNotNull);
+    expect(children.first.style?.color, isNot(children[2].style?.color));
+    expect(
+      children.any(
+        (piece) => piece.style?.decoration == TextDecoration.underline,
+      ),
+      isTrue,
+    );
+    expect(controller.selection.baseOffset, 21);
+  });
 
   testWidgets('large HTML is coloured off the UI isolate', (tester) async {
     final source = '<p class="note">سلام</p>\n' * 200;
