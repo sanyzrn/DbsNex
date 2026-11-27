@@ -9,6 +9,60 @@ void main() {
     _autoDirection,
   );
 
+  group('the direction of the paragraph the caret is in', () {
+    test('is the paragraph\'s own, whichever paragraph that is', () {
+      // The ADR-037 case, at editing time: a note with an English line under
+      // a Persian one. The field cannot lay both paragraphs out in their own
+      // directions at once, so it lays out around the one being written in —
+      // and only that one.
+      const text = 'سلام\nhello\nدوباره';
+      expect(nexCaretDirectionOf(text, 0), TextDirection.rtl);
+      expect(nexCaretDirectionOf(text, 4), TextDirection.rtl);
+      expect(nexCaretDirectionOf(text, 5), TextDirection.ltr);
+      expect(nexCaretDirectionOf(text, 10), TextDirection.ltr);
+      expect(nexCaretDirectionOf(text, 11), TextDirection.rtl);
+      expect(nexCaretDirectionOf(text, 17), TextDirection.rtl);
+    });
+
+    test('a caret on a newline ends the paragraph before it', () {
+      // A caret sitting on a newline is the end of that paragraph — the
+      // person pressed Enter there, or dragged to its end — not the start of
+      // the one after it.
+      const text = 'سلام\n123\nhello';
+      expect(nexCaretDirectionOf(text, 4), TextDirection.rtl);
+      // And one just past that newline is the start of the next paragraph.
+      expect(
+        nexCaretDirectionOf(text, 5),
+        TextDirection.rtl,
+        reason: 'a neutral paragraph follows the one above it',
+      );
+      expect(
+        nexCaretDirectionOf(text, 9),
+        TextDirection.ltr,
+        reason: 'the paragraph after the neutral one',
+      );
+    });
+
+    test('a paragraph with no direction of its own follows its neighbours', () {
+      // An empty paragraph, or one of digits, keeps the side the writing was
+      // on — which is what keeps a new paragraph from flipping the field the
+      // moment Enter is pressed.
+      expect(nexCaretDirectionOf('سلام\n', 5), TextDirection.rtl);
+      expect(nexCaretDirectionOf('سلام\n123\n', 10), TextDirection.rtl);
+      expect(nexCaretDirectionOf('hello\n123\n', 11), TextDirection.ltr);
+      // And with nothing before it, the paragraph after it answers.
+      expect(nexCaretDirectionOf('123\nسلام', 2), TextDirection.rtl);
+      // Only when no paragraph carries any direction is the answer none.
+      expect(nexCaretDirectionOf('123\n456\n!', 14), isNull);
+      expect(nexCaretDirectionOf('', 0), isNull);
+    });
+
+    test('an out-of-range caret resolves as the nearest position', () {
+      expect(nexCaretDirectionOf('hello\nسلام', -1), TextDirection.ltr);
+      expect(nexCaretDirectionOf('hello\nسلام', 99), TextDirection.rtl);
+    });
+  });
+
   group('direction is decided by the first strong character', () {
     test('and never changes as more of the other script arrives', () {
       // The reported bug: a note begun in English swung right — English line
@@ -425,5 +479,110 @@ void _autoDirection() {
       reason: 'the field lost focus when its direction stopped being null',
     );
     expect(controller.selection.isValid, isTrue);
+  });
+
+  testWidgets('the field follows the caret into the other language', (
+    tester,
+  ) async {
+    // ADR-037, at editing time: a two-paragraph note. The field lays out
+    // around the paragraph being written in, so writing in either language
+    // puts that language's paragraph on its own side with its punctuation at
+    // its own end.
+    final controller = TextEditingController(text: 'سلام\nhello');
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(host(controller, onBuild: () {}));
+    TextField field() => tester.widget<TextField>(find.byType(TextField));
+
+    // The caret starts in the Persian paragraph.
+    controller.selection = const TextSelection.collapsed(offset: 2);
+    await tester.pump();
+    expect(field().textDirection, TextDirection.rtl);
+
+    // Into the English one, and back.
+    controller.selection = const TextSelection.collapsed(offset: 7);
+    await tester.pump();
+    expect(field().textDirection, TextDirection.ltr);
+    controller.selection = const TextSelection.collapsed(offset: 4);
+    await tester.pump();
+    expect(field().textDirection, TextDirection.rtl);
+  });
+
+  testWidgets('turning the field keeps the editor and its selection', (
+    tester,
+  ) async {
+    // The direction changes with the caret, which changes the layout, and
+    // only the layout: the editor below must keep its element, its focus
+    // and its selection through the turn.
+    final controller = TextEditingController(text: 'سلام\nhello');
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(host(controller, onBuild: () {}));
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+    final before = tester.state<EditableTextState>(find.byType(EditableText));
+
+    controller.selection = const TextSelection.collapsed(offset: 7);
+    await tester.pump();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).textDirection,
+      TextDirection.ltr,
+    );
+    expect(
+      identical(
+        before,
+        tester.state<EditableTextState>(find.byType(EditableText)),
+      ),
+      isTrue,
+      reason: 'the field was rebuilt from scratch when it turned',
+    );
+    expect(before.widget.focusNode.hasFocus, isTrue);
+    expect(controller.selection.isValid, isTrue);
+  });
+
+  testWidgets('a caret that does not change paragraphs does not rebuild', (
+    tester,
+  ) async {
+    // The listener watches the whole value — the selection moves constantly —
+    // but a move that stays inside one paragraph keeps the direction, so
+    // nothing below is rebuilt.
+    final controller = TextEditingController(text: 'سلام\nhello');
+    addTearDown(controller.dispose);
+    var builds = 0;
+    await tester.pumpWidget(host(controller, onBuild: () => builds++));
+    controller.selection = const TextSelection.collapsed(offset: 1);
+    await tester.pump();
+    final before = builds;
+
+    controller.selection = const TextSelection.collapsed(offset: 4);
+    await tester.pump();
+    controller.selection = const TextSelection.collapsed(offset: 3);
+    await tester.pump();
+
+    expect(builds, before);
+  });
+
+  testWidgets('a fixed direction is kept, whatever is typed', (tester) async {
+    // Code is the one field that is always left to right, even with Persian
+    // comments in it.
+    final controller = TextEditingController(text: 'کد');
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Material(
+            child: NexAutoDirection(
+              controller: controller,
+              direction: TextDirection.ltr,
+              builder: (context, direction) =>
+                  TextField(controller: controller, textDirection: direction),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).textDirection,
+      TextDirection.ltr,
+    );
   });
 }

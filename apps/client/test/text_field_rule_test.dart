@@ -4,11 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// ADR-037, enforced: how a field that takes a person's own words is built.
 ///
-/// 1. More than one line of it is a `NexTextField` — the platform's own
-///    editor on Android, where every paragraph keeps its own direction. A
-///    bare `TextField` gives the whole text one direction, which is what
-///    put a Persian sentence's `!` on the wrong end and turned the
-///    selection handles around while editing.
+/// 1. More than one line of it is a `NexTextField` — the framework's editor,
+///    laid out around the paragraph the caret is in, with horizontal arrows
+///    that move by what is on screen. A bare `TextField` gives the whole
+///    text one direction, which is what put a Persian sentence's `!` on the
+///    wrong end and turned the selection handles around while editing.
 /// 2. A single line states its direction: it is built inside
 ///    `NexAutoDirection`, which follows the script being typed, or it says
 ///    `textDirection:` itself (a link, a key, an amount: left to right).
@@ -101,9 +101,8 @@ List<_Field> _fields() {
           // NexAutoDirection — or a field handed to one whole, as the
           // vault editor builds it.
           inAutoDirection:
-              RegExp(
-                r'NexAutoDirection\([^;]*builder:\s*\([^)]*\)\s*=>\s*$',
-              ).hasMatch(before.trimRight()) ||
+              RegExp(r'NexAutoDirection\([^;]*builder:\s*\([^)]*\)\s*=>\s*$')
+                  .hasMatch(before.trimRight()) ||
               RegExp(r'final field = $').hasMatch(before) &&
                   source.substring(close).contains('NexAutoDirection('),
         ),

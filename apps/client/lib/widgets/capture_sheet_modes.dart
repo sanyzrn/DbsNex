@@ -230,8 +230,9 @@ extension _CaptureModes on _CaptureSheetState {
     } else {
       changed(text);
     }
-    // The native editor owns a child focus node. Re-requesting the parent
-    // steals that focus and briefly drops the IME before restoring it.
+    // A paste can arrive after the button took the focus from the field.
+    // Hand it back only when it is really gone; asking a focused field
+    // changes nothing and never closes the keyboard.
     if (!_fieldFocus.hasFocus) _fieldFocus.requestFocus();
   }
 
@@ -293,9 +294,9 @@ extension _CaptureModes on _CaptureSheetState {
           _submit();
           return KeyEventResult.handled;
         },
-        // Android's own editor: each paragraph in its own direction, aligned
-        // to its own side, with the system's handles — see [NexTextField]
-        // for why a note is never a bare `TextField`.
+        // Never a bare `TextField`: this is where a person writes more than
+        // one line of their own words — see [NexTextField] for the rule and
+        // for how the direction follows the paragraph being typed into.
         child: NexTextField(
           controller: controller,
           focusNode: _fieldFocus,
@@ -314,11 +315,9 @@ extension _CaptureModes on _CaptureSheetState {
           monospace: code,
           // Every kind keeps the same editor, which is the whole point: an
           // editor swapped out when Code is chosen takes the keyboard with
-          // it (its platform view goes, the IME closes, the sheet's inset
-          // collapses and the next field asks for the keyboard again). The
-          // native editor carries the code gestures itself now, so nothing
-          // here changes when the kind does.
-          code: code,
+          // it. The code gestures — bracket pairing, indent carry — ride on
+          // the same field as everything else, through [inputFormatters], so
+          // nothing here changes when the kind does.
           inputFormatters: code ? const [NexCodeInputFormatter()] : null,
           // The same keyboard for every kind. A URL keyboard has no
           // suggestion strip, so switching to Link and back made the keyboard
@@ -339,8 +338,8 @@ extension _CaptureModes on _CaptureSheetState {
             },
             border: InputBorder.none,
             // The composer owns the only surface and outline. The theme
-            // supplies focused/enabled borders even when `border` is none,
-            // including on Android's native editor (applyDefaults).
+            // supplies focused/enabled borders even when `border` is none;
+            // the shared editor's decoration applies the defaults.
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
             disabledBorder: InputBorder.none,
