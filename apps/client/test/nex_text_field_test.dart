@@ -1,1291 +1,523 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/widgets/keyboard_dismisser.dart';
 import 'package:nex_client/widgets/nex_text_field.dart';
 
-/// The Dart half of the native editor (ADR-037), driven the way Android
-/// drives it: the platform-view channel answered by a fake, and the view's
-/// own channel spoken to from "native" in both directions.
+/// The one editor (ADR-037), the framework's own. No platform view is
+/// created on any platform, so no field-to-field transition ever passes
+/// through the engine's input-client switch — the thing that closed and
+/// reopened the keyboard between fields through 2.9.1–2.9.3. These tests
+/// hold that line: typing, the direction of the paragraph being written,
+/// and the keyboard's continuity between fields, all through the
+/// framework's own `TextField`.
 void main() {
-  late List<MethodCall> toNative;
-  late Map<String, Object?>? created;
-  late int viewId;
-  late List<int> viewIds;
-  late bool hybrid;
-  late int createCount;
-
-  setUp(() {
-    NexTextField.native = true;
-    NexTextField.flutterMagnifier = true;
-    // The handoff is one for the app; a test starts from a keyboard nobody
-    // owns, whatever the test before it left in the registry.
-    nexImeHandoff.reset();
-    toNative = [];
-    created = null;
-    viewIds = [];
-    createCount = 0;
-    final messenger =
-        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(SystemChannels.platform_views, (
-      call,
-    ) async {
-      if (call.method == 'create') {
-        createCount++;
-        final args = (call.arguments as Map).cast<String, Object?>();
-        hybrid = args['hybrid'] == true;
-        viewId = args['id']! as int;
-        viewIds.add(viewId);
-        final params = args['params'] as Uint8List;
-        created = (const StandardMessageCodec().decodeMessage(
-          ByteData.sublistView(params),
-        ) as Map).cast<String, Object?>();
-        messenger.setMockMethodCallHandler(
-          MethodChannel('nex/edit_text/$viewId'),
-          (call) async {
-            toNative.add(call);
-            return null;
-          },
-        );
-        // Exercise real texture composition, including resizes. Returning
-        // null silently selects hybrid fallback and misses editor regressions.
-        return args['hybrid'] == true ? null : viewId;
-      }
-      if (call.method == 'resize') {
-        final args = call.arguments as Map;
-        return {'width': args['width'], 'height': args['height']};
-      }
-      return null;
-    });
-  });
-
-  tearDown(() {
-    NexTextField.native = false;
-    NexTextField.flutterMagnifier = true;
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(SystemChannels.platform_views, null);
-  });
-
-  Future<void> fromNativeTo(
-    WidgetTester tester,
-    int view,
-    String method, [
-    Object? arguments,
-  ]) async {
-    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
-      'nex/edit_text/$view',
-      const StandardMethodCodec().encodeMethodCall(
-        MethodCall(method, arguments),
-      ),
-      (_) {},
-    );
-    await tester.pump();
-  }
-
-  Future<void> fromNative(
-    WidgetTester tester,
-    String method, [
-    Object? arguments,
-  ]) => fromNativeTo(tester, viewId, method, arguments);
-
-  Future<void> pump(
-    WidgetTester tester,
-    Widget field, {
-    Locale locale = const Locale('fa'),
-  }) async {
+  Future<void> pump(WidgetTester tester, Widget field) async {
     await tester.pumpWidget(
       MaterialApp(
-        locale: locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(body: Center(child: field)),
       ),
     );
     await tester.pump();
   }
 
-  testWidgets('the editor is created with the text and the field settings', (
+  testWidgets('no platform view is created, on any platform', (tester) async {
+    // The whole point of 2.9.4: nothing embeds the platform's editor any
+    // more. Were one to come back, every keyboard fix since would be
+    // rebuilt on the switch that broke them.
+    var creates = 0;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform_views, (
+      call,
+    ) async {
+      if (call.method == 'create') creates++;
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(
+        SystemChannels.platform_views,
+        null,
+      ),
+    );
+    try {
+      for (final platform in TargetPlatform.values) {
+        debugDefaultTargetPlatformOverride = platform;
+        final controller = TextEditingController(text: 'سلام');
+        addTearDown(controller.dispose);
+        await pump(tester, NexTextField(controller: controller, maxLines: 5));
+        await tester.enterText(
+          find.byType(EditableText),
+          'typing in ${platform.name}',
+        );
+        expect(creates, 0, reason: 'the editor embedded a view on $platform');
+        expect(find.byType(TextField), findsOneWidget);
+      }
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('focusing the second field never asks the keyboard to close', (
     tester,
   ) async {
-    final controller = TextEditingController(text: 'سلام Nex!');
+    // The strongest form a host test can express of the transition that
+    // used to close the keyboard: Prompt Studio's title into its body,
+    // under the dismisser, with the keyboard up. One editor owns the
+    // input connection for the whole app, so a move between fields is not
+    // a handoff, and `TextInput.hide` is never sent.
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.reset);
+    final title = FocusNode();
+    final body = FocusNode();
+    addTearDown(title.dispose);
+    addTearDown(body.dispose);
+    final titleController = TextEditingController();
+    final bodyController = TextEditingController();
+    addTearDown(titleController.dispose);
+    addTearDown(bodyController.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NexKeyboardDismisser(
+          child: Scaffold(
+            body: Column(
+              children: [
+                NexTextField(
+                  key: const ValueKey('title'),
+                  controller: titleController,
+                  focusNode: title,
+                ),
+                NexTextField(
+                  key: const ValueKey('body'),
+                  controller: bodyController,
+                  focusNode: body,
+                  maxLines: 5,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('title')));
+    await tester.pump();
+    expect(title.hasFocus, isTrue);
+    tester.testTextInput.log.clear();
+    await tester.tap(find.byKey(const ValueKey('body')));
+    await tester.pump();
+    expect(body.hasFocus, isTrue);
+    expect(
+      tester.testTextInput.log.map((call) => call.method),
+      isNot(contains('TextInput.hide')),
+      reason: 'one editor never hands the keyboard off',
+    );
+  });
+
+  testWidgets('focusing a plain field never asks the keyboard to close', (
+    tester,
+  ) async {
+    // The Habits transition: the note's editor into the name field. The
+    // handoff raced its own teardown on exactly this mixed pair, from the
+    // platform-view client to the framework's. Both are the framework's
+    // now, so the pair is just another move.
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.reset);
+    final note = FocusNode();
+    final name = FocusNode();
+    addTearDown(note.dispose);
+    addTearDown(name.dispose);
+    final noteController = TextEditingController();
+    final nameController = TextEditingController();
+    addTearDown(noteController.dispose);
+    addTearDown(nameController.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NexKeyboardDismisser(
+          child: Scaffold(
+            body: Column(
+              children: [
+                NexTextField(
+                  key: const ValueKey('note'),
+                  controller: noteController,
+                  focusNode: note,
+                  maxLines: 5,
+                ),
+                TextField(
+                  key: const ValueKey('name'),
+                  controller: nameController,
+                  focusNode: name,
+                  textDirection: TextDirection.ltr,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('note')));
+    await tester.pump();
+    expect(note.hasFocus, isTrue);
+    tester.testTextInput.log.clear();
+    await tester.tap(find.byKey(const ValueKey('name')));
+    await tester.pump();
+    expect(name.hasFocus, isTrue);
+    expect(
+      tester.testTextInput.log.map((call) => call.method),
+      isNot(contains('TextInput.hide')),
+    );
+  });
+
+  testWidgets('the field follows the paragraph the caret is in', (
+    tester,
+  ) async {
+    // ADR-037's rule, moved to where it is felt: the paragraph being
+    // written owns the field's direction, so a two-language note is laid
+    // out around whichever paragraph the caret is in — and only that one.
+    final controller = TextEditingController(text: 'سلام\nhello\nدوباره');
+    addTearDown(controller.dispose);
+    await pump(
+      tester,
+      NexTextField(controller: controller, maxLines: 5, autofocus: true),
+    );
+    TextField field() => tester.widget<TextField>(find.byType(TextField));
+    controller.selection = const TextSelection.collapsed(offset: 2);
+    await tester.pump();
+    expect(field().textDirection, TextDirection.rtl);
+    controller.selection = const TextSelection.collapsed(offset: 7);
+    await tester.pump();
+    expect(field().textDirection, TextDirection.ltr);
+    controller.selection = const TextSelection.collapsed(offset: 4);
+    await tester.pump();
+    expect(field().textDirection, TextDirection.rtl);
+  });
+
+  testWidgets('the field turns in place: same editor, same focus', (
+    tester,
+  ) async {
+    // The direction moves with the caret, which changes the layout, and
+    // only the layout: a field rebuilt from scratch when it turned would
+    // lose the very focus and selection the turn is happening to.
+    final controller = TextEditingController(text: 'سلام\nhello');
+    addTearDown(controller.dispose);
+    await pump(
+      tester,
+      NexTextField(controller: controller, maxLines: 5, autofocus: true),
+    );
+    final editor = find.byType(EditableText);
+    final before = tester.state<EditableTextState>(editor);
+    expect(before.widget.focusNode.hasFocus, isTrue);
+    controller.selection = const TextSelection.collapsed(offset: 7);
+    await tester.pump();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).textDirection,
+      TextDirection.ltr,
+    );
+    expect(tester.state<EditableTextState>(editor), same(before));
+    expect(before.widget.focusNode.hasFocus, isTrue);
+    expect(controller.selection.isValid, isTrue);
+  });
+
+  testWidgets("a selection being dragged keeps the anchor's side", (
+    tester,
+  ) async {
+    // The anchor is the end a selection is *from* — the one that stays
+    // put while the other is dragged. A field that followed the dragged
+    // end would relayout under the finger as it crossed into a paragraph
+    // written in the other language.
+    final controller = TextEditingController(text: 'سلام\nhello');
+    addTearDown(controller.dispose);
+    await pump(tester, NexTextField(controller: controller, maxLines: 5));
+    controller.selection = const TextSelection(baseOffset: 2, extentOffset: 7);
+    await tester.pump();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).textDirection,
+      TextDirection.rtl,
+      reason: 'the anchor is in the Persian paragraph',
+    );
+  });
+
+  testWidgets('a fixed direction is kept, whatever is typed', (tester) async {
+    // Code is the one field that is always left to right, even in a
+    // Persian interface and even when its comments are Persian.
+    final controller = TextEditingController(text: 'کد');
+    addTearDown(controller.dispose);
     await pump(
       tester,
       NexTextField(
         controller: controller,
-        minLines: 3,
-        formatting: true,
-        textInputAction: TextInputAction.send,
-        decoration: const InputDecoration(hintText: 'بنویسید'),
+        textDirection: TextDirection.ltr,
+        maxLines: 5,
       ),
     );
-
-    expect(created, isNotNull);
+    controller.selection = const TextSelection.collapsed(offset: 1);
+    await tester.pump();
     expect(
-      hybrid,
-      isFalse,
-      reason: 'opening an editor must not force hybrid scene composition',
-    );
-    expect(created, isNot(contains('backgroundColor')));
-    final surface = tester.widget<AndroidViewSurface>(
-      find.byType(AndroidViewSurface),
-    );
-    expect(surface.controller.requiresViewComposition, isFalse);
-    expect(created!['text'], 'سلام Nex!');
-    expect(created!['hint'], 'بنویسید');
-    expect(created!['minLines'], 3);
-    expect(created!['maxLines'], 0, reason: 'null maxLines grows unbounded');
-    expect(created!['imeAction'], 'send');
-    expect(created!['rtl'], isTrue);
-    final formats = (created!['formats']! as List)
-        .cast<Map<Object?, Object?>>();
-    expect(
-      formats.map((f) => f['id']),
-      containsAll(['bold', 'italic', 'quote', 'link', 'clear']),
+      tester.widget<TextField>(find.byType(TextField)).textDirection,
+      TextDirection.ltr,
     );
   });
 
-  for (final brightness in Brightness.values) {
-    for (final filled in [false, true]) {
-      testWidgets('${brightness.name}, filled=$filled: the decoration owns '
-          'the fill and the texture survives focus, resize and keyboard', (
-        tester,
-      ) async {
-        final controller = TextEditingController(text: 'سلام\nHello!');
-        addTearDown(controller.dispose);
-        addTearDown(tester.view.reset);
-        const fieldFill = Color(0x1A0088FF);
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: ThemeData(
-              brightness: brightness,
-              inputDecorationTheme: const InputDecorationTheme(
-                filled: true,
-                fillColor: Color(0xFFE0E0E0),
-              ),
-            ),
-            home: Scaffold(
-              body: NexTextField(
-                controller: controller,
-                minLines: 3,
-                decoration: InputDecoration(
-                  filled: filled,
-                  fillColor: fieldFill,
-                  suffixIcon: const Icon(Icons.content_paste),
-                ),
-              ),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        final id = viewId;
-        expect(created, isNot(contains('backgroundColor')));
-        final decoration = tester
-            .widget<InputDecorator>(find.byType(InputDecorator))
-            .decoration;
-        expect(decoration.filled, filled);
-        expect(decoration.fillColor, fieldFill);
-
-        await fromNative(tester, 'focus', {'focused': true});
-        await fromNative(tester, 'height', {'height': 180.0});
-        tester.view.viewInsets = const FakeViewPadding(bottom: 300);
-        await tester.pumpAndSettle();
-        final surface = tester.widget<AndroidViewSurface>(
-          find.byType(AndroidViewSurface),
-        );
-        expect(surface.controller.requiresViewComposition, isFalse);
-        expect(viewId, id);
-        expect(createCount, 1);
-        expect(
-          toNative.where((c) => c.method == 'update').map((c) => c.arguments),
-          everyElement(isNot(contains('backgroundColor'))),
-        );
-        expect(controller.text, 'سلام\nHello!');
-        expect(tester.takeException(), isNull);
-        await tester.pumpWidget(const SizedBox());
-      });
-    }
-  }
-
-  testWidgets('typing in the editor reaches the controller, and is not echoed '
-      'back', (tester) async {
+  testWidgets('a monospace field draws a fixed-width face', (tester) async {
     final controller = TextEditingController();
-    final changes = <String>[];
+    addTearDown(controller.dispose);
     await pump(
       tester,
-      NexTextField(controller: controller, onChanged: changes.add),
+      NexTextField(
+        controller: controller,
+        monospace: true,
+        style: const TextStyle(fontSize: 20),
+        maxLines: 5,
+      ),
     );
-
-    await fromNative(tester, 'changed', {
-      'text': 'Hello دنیا!',
-      'start': 11,
-      'end': 11,
-    });
-
-    expect(controller.text, 'Hello دنیا!');
-    expect(controller.selection, const TextSelection.collapsed(offset: 11));
-    expect(changes, ['Hello دنیا!']);
-    expect(toNative.where((c) => c.method == 'setValue'), isEmpty);
-
-    await fromNative(tester, 'selection', {'start': 0, 'end': 5});
-    expect(
-      controller.selection,
-      const TextSelection(baseOffset: 0, extentOffset: 5),
-    );
-    expect(toNative.where((c) => c.method == 'setValue'), isEmpty);
+    final style = tester.widget<TextField>(find.byType(TextField)).style!;
+    expect(style.fontSize, 20, reason: 'the given style is the base');
+    expect(style.fontFamily, 'monospace');
+    expect(style.fontFamilyFallback, contains('Courier New'));
   });
 
-  testWidgets('a change made in Dart is sent to the editor', (tester) async {
-    final controller = TextEditingController(text: 'draft');
-    await pump(tester, NexTextField(controller: controller));
-
-    controller.text = 'rewritten by the assistant';
-    await tester.pump();
-
-    final sent = toNative.singleWhere((c) => c.method == 'setValue');
-    expect((sent.arguments as Map)['text'], 'rewritten by the assistant');
-  });
-
-  testWidgets('typing and parent rebuilds keep the editor and config stable', (
+  testWidgets('code is not prose: suggestions and smart punctuation stay off', (
     tester,
   ) async {
-    final controller = TextEditingController(text: 'سلام Nex!');
+    final controller = TextEditingController();
     addTearDown(controller.dispose);
-    late StateSetter rebuild;
+    await pump(tester, NexTextField(controller: controller, monospace: true));
+    final code = tester.widget<TextField>(find.byType(TextField));
+    expect(code.enableSuggestions, isFalse);
+    expect(code.smartDashesType, SmartDashesType.disabled);
+    expect(code.smartQuotesType, SmartQuotesType.disabled);
+    await pump(tester, NexTextField(controller: controller, maxLines: 3));
+    final prose = tester.widget<TextField>(find.byType(TextField));
+    expect(prose.enableSuggestions, isTrue);
+    expect(prose.smartDashesType, SmartDashesType.enabled);
+    expect(prose.smartQuotesType, SmartQuotesType.enabled);
+  });
+
+  testWidgets('typing reaches the controller the same frame', (tester) async {
+    // There is no second copy of the text anywhere: what is typed is in
+    // the controller the frame it is typed — the whole app reads one
+    // truth.
+    var changed = '';
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
     await pump(
       tester,
-      StatefulBuilder(
-        builder: (context, setState) {
-          rebuild = setState;
-          return NexTextField(controller: controller, formatting: true);
+      NexTextField(
+        controller: controller,
+        onChanged: (value) {
+          changed = value;
         },
       ),
     );
-    final id = viewId;
-    toNative.clear();
-    for (final text in ['سلام Nex! one', 'سلام Nex! one two', 'سلام Nex!']) {
-      await fromNative(tester, 'changed', {
-        'text': text,
-        'start': text.length,
-        'end': text.length,
-      });
-      rebuild(() {});
-      await tester.pump();
-    }
-    expect(controller.text, 'سلام Nex!');
-    expect(viewId, id);
-    expect(createCount, 1);
-    expect(toNative.where((c) => c.method == 'setValue'), isEmpty);
-    expect(toNative.where((c) => c.method == 'update'), isEmpty);
-    await tester.pumpWidget(const SizedBox());
+    await tester.enterText(find.byType(EditableText), 'typed by nobody');
+    expect(controller.text, 'typed by nobody');
+    expect(changed, 'typed by nobody');
   });
 
-  testWidgets('the field takes the height the editor measured', (tester) async {
+  testWidgets('a change made in Dart is in the field', (tester) async {
+    // The same truth, the other way round: an AI rewrite, a format, a
+    // cleared composer writes into the controller, and the editor shows
+    // it the same frame — nothing is copied across.
+    final controller = TextEditingController(text: 'before');
+    addTearDown(controller.dispose);
+    await pump(tester, NexTextField(controller: controller, maxLines: 3));
+    controller.text = 'changed from Dart';
+    await tester.pump();
+    expect(find.text('changed from Dart'), findsOneWidget);
+  });
+
+  testWidgets('typing and parent rebuilds keep the editor element', (
+    tester,
+  ) async {
+    // The sheets these fields sit in rebuild on every keystroke and every
+    // frame of the keyboard's animation. The editor below must keep its
+    // element and its config through them all, or a handle being dragged
+    // mid-rebuild is a handle torn away.
+    var builds = 0;
     final controller = TextEditingController();
-    await pump(tester, NexTextField(controller: controller));
-
-    await fromNative(tester, 'height', {'height': 137.0});
-
-    final view = find.byType(PlatformViewLink);
-    expect(tester.getSize(view).height, 137);
-  });
-
-  for (final (label, border, expands, locale)
-      in <(String, InputBorder, bool, Locale)>[
-        ('outlined RTL', const OutlineInputBorder(), false, const Locale('fa')),
-        (
-          'underlined LTR',
-          const UnderlineInputBorder(),
-          false,
-          const Locale('en'),
-        ),
-        ('borderless expanding', InputBorder.none, true, const Locale('en')),
-      ]) {
-    testWidgets('native $label fields focus from all four edges', (
-      tester,
-    ) async {
-      final controller = TextEditingController();
-      final focus = FocusNode();
-      addTearDown(controller.dispose);
-      addTearDown(focus.dispose);
-      await pump(
-        tester,
-        SizedBox(
-          width: 320,
-          height: expands ? 150 : null,
-          child: NexTextField(
-            controller: controller,
-            focusNode: focus,
-            minLines: 1,
-            maxLines: 4,
-            expands: expands,
-            decoration: InputDecoration(
-              border: border,
-              labelText: 'id',
-              counterText: 'Maximum 4000',
-              contentPadding: const EdgeInsets.all(16),
-            ),
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              builds++;
+              return NexTextField(
+                controller: controller,
+                maxLength: 10,
+                onChanged: (_) => setState(() {}),
+              );
+            },
           ),
         ),
-        locale: locale,
-      );
-      final nativeView = find.byType(PlatformViewLink);
-      final container = InputDecorator.containerOf(tester.element(nativeView))!;
-      final box = container.localToGlobal(Offset.zero) & container.size;
-      final native = tester.getRect(nativeView);
-      for (final point in [
-        Offset(box.left + 5, box.center.dy),
-        Offset(box.center.dx, box.top + 5),
-        Offset(box.right - 5, box.center.dy),
-        Offset(box.center.dx, box.bottom - 5),
-      ]) {
-        expect(box.contains(point), isTrue);
-        expect(native.contains(point), isFalse);
-        focus.unfocus();
-        await tester.pump();
-        toNative.clear();
-        await tester.tapAt(point);
-        await tester.pump();
-        expect(focus.hasFocus, isTrue);
-        expect(toNative.map((c) => c.method), contains('focus'));
-      }
-      focus.unfocus();
-      await tester.pump();
-      await tester.tap(find.text('Maximum 4000'));
-      await tester.pump();
-      expect(focus.hasFocus, isFalse);
-    });
-  }
-
-  testWidgets('padding does not steal a suffix tap or a scroll', (
-    tester,
-  ) async {
-    final controller = TextEditingController();
-    final focus = FocusNode();
-    final scroll = ScrollController();
-    addTearDown(controller.dispose);
-    addTearDown(focus.dispose);
-    addTearDown(scroll.dispose);
-    var presses = 0;
-    await pump(
-      tester,
-      ListView(
-        controller: scroll,
-        padding: const EdgeInsets.all(16),
-        children: [
-          const SizedBox(height: 100),
-          NexTextField(
-            controller: controller,
-            focusNode: focus,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              contentPadding: const EdgeInsets.all(16),
-              suffixIcon: IconButton(
-                onPressed: () => presses++,
-                icon: const Icon(Icons.clear),
-              ),
-            ),
-          ),
-          const SizedBox(height: 1500),
-        ],
       ),
     );
-    await tester.tap(find.byIcon(Icons.clear));
     await tester.pump();
-    expect(presses, 1);
-    expect(focus.hasFocus, isFalse);
-
-    final container = InputDecorator.containerOf(
-      tester.element(find.byType(PlatformViewLink)),
-    )!;
-    final pad = container.localToGlobal(const Offset(5, 5));
-    await tester.dragFrom(pad, const Offset(0, -100));
-    await tester.pumpAndSettle();
-    expect(scroll.offset, greaterThan(0));
-    expect(focus.hasFocus, isFalse);
-  });
-
-  testWidgets('retapping padding keeps native focus and selection', (
-    tester,
-  ) async {
-    const selection = TextSelection(baseOffset: 1, extentOffset: 4);
-    final controller = TextEditingController.fromValue(
-      const TextEditingValue(text: 'سلام Nex', selection: selection),
-    );
-    final focus = FocusNode();
-    addTearDown(controller.dispose);
-    addTearDown(focus.dispose);
-    await pump(
-      tester,
-      NexTextField(
-        controller: controller,
-        focusNode: focus,
-        decoration: const InputDecoration(
-          border: OutlineInputBorder(),
-          contentPadding: EdgeInsets.all(16),
-        ),
-      ),
-    );
-    final surface = tester.element(find.byType(AndroidViewSurface));
-    final nativeFocus = Focus.of(surface)..requestFocus();
+    final before = tester.state<EditableTextState>(find.byType(EditableText));
+    await tester.enterText(find.byType(EditableText), 'typing');
     await tester.pump();
-    await fromNative(tester, 'focus', {'focused': true});
-    expect(nativeFocus.hasPrimaryFocus, isTrue);
-    final container = InputDecorator.containerOf(surface)!;
-    toNative.clear();
-    await tester.tapAt(container.localToGlobal(const Offset(5, 5)));
-    await tester.pump();
-    expect(nativeFocus.hasPrimaryFocus, isTrue);
-    expect(toNative.map((call) => call.method), ['focus']);
-    expect(controller.selection, selection);
-  });
-
-  for (final (label, enabled, readOnly) in [
-    ('disabled', false, false),
-    ('read-only', true, true),
-  ]) {
-    testWidgets('$label native field padding stays inactive', (tester) async {
-      final controller = TextEditingController();
-      final focus = FocusNode();
-      addTearDown(controller.dispose);
-      addTearDown(focus.dispose);
-      var editable = true;
-      late VoidCallback disableEditing;
-      await pump(
-        tester,
-        StatefulBuilder(
-          builder: (context, setState) {
-            disableEditing = () => setState(() => editable = false);
-            return NexTextField(
-              controller: controller,
-              focusNode: focus,
-              enabled: editable || enabled,
-              readOnly: !editable && readOnly,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.all(16),
-              ),
-            );
-          },
-        ),
-      );
-      disableEditing();
-      await tester.pump();
-      expect(createCount, 1);
-      final container = InputDecorator.containerOf(
-        tester.element(find.byType(PlatformViewLink)),
-      )!;
-      await tester.tapAt(container.localToGlobal(const Offset(5, 5)));
-      await tester.pump();
-      expect(focus.hasFocus, isFalse);
-      expect(toNative.map((c) => c.method), isNot(contains('focus')));
-    });
-  }
-
-  testWidgets('a format chosen on the native menu formats the selection', (
-    tester,
-  ) async {
-    final controller = TextEditingController(text: 'one two');
-    final changes = <String>[];
-    await pump(
-      tester,
-      NexTextField(
-        controller: controller,
-        formatting: true,
-        onChanged: changes.add,
-      ),
-    );
-
-    await fromNative(tester, 'format', {'id': 'bold', 'start': 4, 'end': 7});
-
-    expect(controller.text, 'one **two**');
-    expect(changes.single, 'one **two**');
+    expect(builds, greaterThan(1));
     expect(
-      (toNative.lastWhere((c) => c.method == 'setValue').arguments
-          as Map)['text'],
-      'one **two**',
+      tester.state<EditableTextState>(find.byType(EditableText)),
+      same(before),
     );
+    expect(tester.widget<TextField>(find.byType(TextField)).maxLength, 10);
   });
-
-  for (final cancel in [false, true]) {
-    testWidgets(
-      'native Link ${cancel ? 'cancel' : 'save'} hands focus back after the URL input leaves',
-      (tester) async {
-        final controller = TextEditingController(text: 'one two');
-        final focus = FocusNode();
-        addTearDown(controller.dispose);
-        addTearDown(focus.dispose);
-        await pump(
-          tester,
-          NexTextField(
-            controller: controller,
-            focusNode: focus,
-            formatting: true,
-          ),
-        );
-        focus.requestFocus();
-        await tester.pump();
-        await fromNative(tester, 'focus', {'focused': true});
-        final formatted = tester.binding.defaultBinaryMessenger
-            .handlePlatformMessage(
-              'nex/edit_text/$viewId',
-              const StandardMethodCodec().encodeMethodCall(
-                const MethodCall('format', {
-                  'id': 'link',
-                  'start': 4,
-                  'end': 7,
-                }),
-              ),
-              (_) {},
-            );
-        await tester.pumpAndSettle();
-        expect(find.bySubtype<AlertDialog>(), findsOneWidget);
-        // The URL input owns the keyboard now; this is the hand-off that the
-        // old focus-conditional cleanup missed when the editor later closed.
-        await fromNative(tester, 'focus', {'focused': false});
-        toNative.clear();
-        await tester.enterText(find.byType(TextField), 'https://example.com');
-        final l10n = AppLocalizations.of(
-          tester.element(find.bySubtype<AlertDialog>()),
-        );
-        await tester.tap(find.text(cancel ? l10n.cancel : l10n.save));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-        // Ignore focus restored at pop: the native IME needs a hand-off
-        // after the outgoing URL field is actually removed.
-        toNative.clear();
-        await tester.pumpAndSettle();
-        await formatted;
-        expect(find.bySubtype<AlertDialog>(), findsNothing);
-        expect(toNative.map((call) => call.method), contains('focus'));
-        expect(
-          controller.text,
-          cancel ? 'one two' : 'one [two](https://example.com)',
-        );
-        expect(tester.takeException(), isNull);
-      },
-    );
-  }
 
   testWidgets('Enter sends where the field sends', (tester) async {
-    final controller = TextEditingController(text: 'ask this');
-    final submitted = <String>[];
+    var submitted = '';
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
     await pump(
       tester,
       NexTextField(
         controller: controller,
         textInputAction: TextInputAction.send,
-        onSubmitted: submitted.add,
+        onSubmitted: (value) => submitted = value,
       ),
     );
-
-    await fromNative(tester, 'submit');
-
-    expect(submitted, ['ask this']);
+    await tester.enterText(find.byType(EditableText), 'the text');
+    await tester.testTextInput.receiveAction(TextInputAction.send);
+    expect(submitted, 'the text');
   });
 
-  testWidgets('a private field copies through its own clipboard, and a cut '
-      'takes the words out', (tester) async {
-    final controller = TextEditingController(text: 'pin 4821 here');
-    final copied = <String>[];
+  testWidgets('the field honors maxLength', (tester) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    await pump(
+      tester,
+      NexTextField(controller: controller, maxLength: 5, maxLines: 3),
+    );
+    await tester.enterText(find.byType(EditableText), 'abcdefgh');
+    expect(controller.text, 'abcde');
+  });
+
+  testWidgets('inputFormatters run in the field', (tester) async {
+    // The capture box's code gestures ride on input formatters now; the
+    // field must run them like any TextField would.
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
     await pump(
       tester,
       NexTextField(
         controller: controller,
-        onCopy: (text) async => copied.add(text),
+        inputFormatters: [FilteringTextInputFormatter.deny(RegExp('x'))],
       ),
     );
-    expect(created!['privateCopy'], isTrue);
-
-    await fromNative(tester, 'copy', {'start': 4, 'end': 8, 'cut': false});
-    expect(copied, ['4821']);
-    expect(controller.text, 'pin 4821 here');
-
-    await fromNative(tester, 'copy', {'start': 4, 'end': 9, 'cut': true});
-    expect(copied, ['4821', '4821 ']);
-    expect(controller.text, 'pin here');
+    await tester.enterText(find.byType(EditableText), 'axbxc');
+    expect(controller.text, 'abc');
   });
 
-  testWidgets('focus asked for in Dart focuses the editor, and the editor '
-      'losing it is told', (tester) async {
-    final controller = TextEditingController();
-    final focus = FocusNode();
-    addTearDown(focus.dispose);
-    await pump(tester, NexTextField(controller: controller, focusNode: focus));
-
-    focus.requestFocus();
-    await tester.pump();
-    expect(toNative.map((c) => c.method), contains('focus'));
-
-    await fromNative(tester, 'focus', {'focused': true});
-    toNative.clear();
-    focus.unfocus();
-    await tester.pump();
-    // The hide waits for the next field to claim the keyboard; with nothing
-    // claiming it, it still happens one handoff later.
-    await tester.pump(NexImeHandoff.delay);
-    await tester.pump();
-    expect(toNative.map((c) => c.method), contains('unfocus'));
-  });
-
-  testWidgets('a keyboard handed to the next field is not hidden between '
-      'them', (tester) async {
-    final first = FocusNode();
-    final second = FocusNode();
-    final one = TextEditingController();
-    final two = TextEditingController();
-    addTearDown(first.dispose);
-    addTearDown(second.dispose);
-    addTearDown(one.dispose);
-    addTearDown(two.dispose);
-    await pump(
-      tester,
-      Column(
-        children: [
-          NexTextField(controller: one, focusNode: first),
-          NexTextField(controller: two, focusNode: second),
-        ],
-      ),
-    );
-    expect(viewIds, hasLength(2));
-
-    first.requestFocus();
-    await tester.pump();
-    await fromNativeTo(tester, viewIds[0], 'focus', {'focused': true});
-    toNative.clear();
-
-    // A tap on the second field: the first loses focus in the same frame the
-    // second takes it. The keyboard must stay up between them.
-    second.requestFocus();
-    await tester.pump();
-    await fromNativeTo(tester, viewIds[1], 'focus', {'focused': true});
-    await tester.pump(NexImeHandoff.delay);
-    await tester.pump();
-
-    expect(
-      toNative.map((c) => c.method),
-      isNot(contains('unfocus')),
-      reason: 'the keyboard is handed over, not closed and reopened',
-    );
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets(
-    'a native loss delivered after the next field took the IME hides nothing',
-    (tester) async {
-      // Android does not promise the order: the new editor can take focus and
-      // tell Dart before the old one reports its loss. Flutter's focus tree
-      // does not move with a native tap, so the tree alone cannot see the new
-      // owner — the editors' own reports are what stop the two hiding the
-      // keyboard each other never left.
-      final first = FocusNode();
-      final second = FocusNode();
-      final one = TextEditingController();
-      final two = TextEditingController();
-      addTearDown(first.dispose);
-      addTearDown(second.dispose);
-      addTearDown(one.dispose);
-      addTearDown(two.dispose);
-      await pump(
-        tester,
-        Column(
-          children: [
-            NexTextField(controller: one, focusNode: first),
-            NexTextField(controller: two, focusNode: second),
-          ],
-        ),
-      );
-      expect(viewIds, hasLength(2));
-
-      first.requestFocus();
-      await tester.pump();
-      await fromNativeTo(tester, viewIds[0], 'focus', {'focused': true});
-      toNative.clear();
-
-      // The second editor takes the keyboard first…
-      await fromNativeTo(tester, viewIds[1], 'focus', {'focused': true});
-      // …and only then does the first report that it lost it. Flutter still
-      // says the first field has primary focus: the tap did not move it.
-      await fromNativeTo(tester, viewIds[0], 'focus', {'focused': false});
-      await tester.pump(NexImeHandoff.delay);
-      await tester.pump();
-
-      expect(
-        toNative.map((call) => call.method),
-        isNot(contains('unfocus')),
-        reason: 'the field that left must not close a keyboard in use',
-      );
-      expect(
-        toNative.map((call) => call.method),
-        isNot(contains('focus')),
-        reason: 'the field that left must not take the keyboard back',
-      );
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
-
-  testWidgets("the next editor's claim does not wait for its own report", (
-    tester,
-  ) async {
-    // The device failure this pins. Android dispatches the old editor's
-    // loss and the new editor's gain as separate reports, and neither is
-    // promised inside the settle window. The old field once scheduled its
-    // hide on the loss alone, so a successor whose report was late had the
-    // keyboard it already owned closed from under it — the
-    // close-and-reopen the handoff exists to stop. The claim that counts
-    // now is the focus sweep itself: the engine reports an embedded editor
-    // to the platform view's own node, so the new field cancels the old
-    // field's hide in the same sweep that arms it.
-    final first = FocusNode();
-    final second = FocusNode();
-    final one = TextEditingController();
-    final two = TextEditingController();
-    addTearDown(first.dispose);
-    addTearDown(second.dispose);
-    addTearDown(one.dispose);
-    addTearDown(two.dispose);
-    var hidden = 0;
-    const window = MethodChannel('nex/os_capture');
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(window, (
-      call,
-    ) async {
-      if (call.method == 'hideKeyboard') hidden++;
-      return null;
-    });
-    addTearDown(
-      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        window,
-        null,
-      ),
-    );
-    await pump(
-      tester,
-      Column(
-        children: [
-          NexTextField(
-            key: const ValueKey('first'),
-            controller: one,
-            focusNode: first,
-          ),
-          NexTextField(
-            key: const ValueKey('second'),
-            controller: two,
-            focusNode: second,
-          ),
-        ],
-      ),
-    );
-    expect(viewIds, hasLength(2));
-    FocusNode linkOf(Key field) => Focus.of(
-      tester.element(
-        find.descendant(
-          of: find.byKey(field),
-          matching: find.byType(AndroidViewSurface),
-        ),
-      ),
-    );
-
-    // The person types in the first editor: its platform view's node holds
-    // the tree's primary focus, and the editor says it has the keyboard.
-    linkOf(const ValueKey('first')).requestFocus();
-    await tester.pump();
-    await fromNativeTo(tester, viewIds[0], 'focus', {'focused': true});
-    toNative.clear();
-
-    // The tap on the second editor: the engine reports it to the second
-    // platform view's node. Neither editor's report has arrived yet.
-    linkOf(const ValueKey('second')).requestFocus();
-    await tester.pump();
-
-    // The settle window passes with the second editor's own report still
-    // in flight. The claim was the sweep, not the report: no hide.
-    await tester.pump(NexImeHandoff.delay);
-    await tester.pump();
-    expect(
-      toNative.map((call) => call.method),
-      isNot(contains('unfocus')),
-      reason: 'the editor that took the keyboard owns it, report or not',
-    );
-    expect(hidden, 0, reason: 'no window hide behind the handoff either');
-
-    // The reports land late — the gain, then the old field's stale loss —
-    // and neither reopens the question.
-    await fromNativeTo(tester, viewIds[1], 'focus', {'focused': true});
-    await fromNativeTo(tester, viewIds[0], 'focus', {'focused': false});
-    await tester.pump(NexImeHandoff.delay);
-    await tester.pump();
-    expect(toNative.map((call) => call.method), isNot(contains('unfocus')));
-    expect(hidden, 0);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('a native loss alone dismisses nothing', (tester) async {
-    // The loss is Android's bookkeeping for every handoff, and a second,
-    // stale one follows after the platform view link clears the old view.
-    // It once armed a hide of its own; now nothing is dismissed on its
-    // say-so — not even when nothing else is focused, past the whole settle
-    // window.
-    final controller = TextEditingController();
-    final focus = FocusNode();
-    addTearDown(controller.dispose);
-    addTearDown(focus.dispose);
-    var hidden = 0;
-    const window = MethodChannel('nex/os_capture');
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(window, (
-      call,
-    ) async {
-      if (call.method == 'hideKeyboard') hidden++;
-      return null;
-    });
-    addTearDown(
-      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        window,
-        null,
-      ),
-    );
-    await pump(tester, NexTextField(controller: controller, focusNode: focus));
-
-    // The editor's own node holds the tree's focus and the editor reports
-    // that the keyboard is its.
-    Focus.of(tester.element(find.byType(AndroidViewSurface))).requestFocus();
-    await tester.pump();
-    await fromNative(tester, 'focus', {'focused': true});
-    toNative.clear();
-
-    // Only the loss arrives — no successor, no dismissal from the Dart side.
-    await fromNative(tester, 'focus', {'focused': false});
-    await tester.pump(NexImeHandoff.delay);
-    await tester.pump();
-
-    expect(toNative.map((call) => call.method), isNot(contains('unfocus')));
-    expect(hidden, 0, reason: 'a report of a loss is not an ask to close');
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('a native loss does not cancel a hide the Dart side armed', (
-    tester,
-  ) async {
-    // A tap on nothing unfocuses the field from the Dart side, and the
-    // engine's clear then delivers the editor's loss as an event. The event
-    // must not eat the ask: the hide the person's tap armed still fires.
-    final controller = TextEditingController();
-    final focus = FocusNode();
-    addTearDown(controller.dispose);
-    addTearDown(focus.dispose);
-    var hidden = 0;
-    const window = MethodChannel('nex/os_capture');
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(window, (
-      call,
-    ) async {
-      if (call.method == 'hideKeyboard') hidden++;
-      return null;
-    });
-    addTearDown(
-      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        window,
-        null,
-      ),
-    );
-    await pump(tester, NexTextField(controller: controller, focusNode: focus));
-
-    focus.requestFocus();
-    await tester.pump();
-    await fromNative(tester, 'focus', {'focused': true});
-    toNative.clear();
-
-    // The dismisser's unfocus, then the editor's report of what followed it.
-    focus.unfocus();
-    await tester.pump();
-    await fromNative(tester, 'focus', {'focused': false});
-    await tester.pump(NexImeHandoff.delay);
-    await tester.pump();
-
-    expect(toNative.map((call) => call.method), contains('unfocus'));
-    expect(hidden, 1, reason: 'the person asked; the event is not news');
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('a Flutter field takes the keyboard without a hide in between', (
-    tester,
-  ) async {
-    // The ordering this guards: the native field's focus-loss notification can
-    // arrive after the Flutter field has already taken focus. The hide must be
-    // decided by who holds focus now, not by the order the events landed in.
-    final controller = TextEditingController();
-    final nativeFocus = FocusNode();
-    final flutterFocus = FocusNode();
-    final flutterController = TextEditingController();
-    addTearDown(controller.dispose);
-    addTearDown(nativeFocus.dispose);
-    addTearDown(flutterFocus.dispose);
-    addTearDown(flutterController.dispose);
-    await pump(
-      tester,
-      Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          NexTextField(controller: controller, focusNode: nativeFocus),
-          TextField(controller: flutterController, focusNode: flutterFocus),
-        ],
-      ),
-    );
-    expect(viewIds, hasLength(1));
-
-    nativeFocus.requestFocus();
-    await tester.pump();
-    await fromNativeTo(tester, viewIds.single, 'focus', {'focused': true});
-    toNative.clear();
-
-    flutterFocus.requestFocus();
-    await tester.pump();
-    await tester.pump(NexImeHandoff.delay);
-    await tester.pump();
-
-    expect(
-      toNative.map((c) => c.method),
-      isNot(contains('unfocus')),
-      reason: 'a field has the keyboard; the editor must not close it',
-    );
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets(
-    'a field focused during the settle window still cancels the hide',
-    (tester) async {
-      // The hide is armed first, with nothing holding the keyboard; 100 ms
-      // later a Flutter field takes focus. Only the check when the timer fires
-      // can see that, so the editor must stay open.
-      final controller = TextEditingController();
-      final nativeFocus = FocusNode();
-      final flutterFocus = FocusNode();
-      final flutterController = TextEditingController();
+  test(
+    'a private copy sends the selection through its own clipboard',
+    () async {
+      // The vault's copy goes where onCopy sends it, and a copy moves
+      // nothing.
+      final controller = TextEditingController(text: 'hello world');
       addTearDown(controller.dispose);
-      addTearDown(nativeFocus.dispose);
-      addTearDown(flutterFocus.dispose);
-      addTearDown(flutterController.dispose);
-      await pump(
-        tester,
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            NexTextField(controller: controller, focusNode: nativeFocus),
-            TextField(controller: flutterController, focusNode: flutterFocus),
-          ],
-        ),
+      controller.selection = const TextSelection(
+        baseOffset: 0,
+        extentOffset: 5,
       );
-      expect(viewIds, hasLength(1));
-
-      nativeFocus.requestFocus();
-      await tester.pump();
-      await fromNativeTo(tester, viewIds.single, 'focus', {'focused': true});
-      toNative.clear();
-
-      nativeFocus.unfocus();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(toNative.map((c) => c.method), isNot(contains('unfocus')));
-
-      flutterFocus.requestFocus();
-      await tester.pump();
-      await tester.pump(NexImeHandoff.delay);
-      await tester.pump();
-
-      expect(
-        toNative.map((c) => c.method),
-        isNot(contains('unfocus')),
-        reason: 'the field that arrived inside the settle window owns the IME',
+      String? copied;
+      await nexPrivateCopy(
+        controller,
+        (text) async => copied = text,
+        cut: false,
       );
-      await tester.pumpWidget(const SizedBox());
+      expect(copied, 'hello');
+      expect(controller.text, 'hello world');
     },
   );
 
-  testWidgets('a label inside the empty field keeps the hint off the editor', (
-    tester,
-  ) async {
+  test(
+    'a private cut removes the text once the copy has gone through',
+    () async {
+      final controller = TextEditingController(text: 'hello world');
+      addTearDown(controller.dispose);
+      controller.selection = const TextSelection(
+        baseOffset: 0,
+        extentOffset: 5,
+      );
+      var changed = '';
+      await nexPrivateCopy(
+        controller,
+        (text) async {},
+        cut: true,
+        onChanged: (value) => changed = value,
+      );
+      expect(changed, ' world');
+      expect(controller.text, ' world');
+      expect(controller.selection, const TextSelection.collapsed(offset: 0));
+    },
+  );
+
+  test('a failed copy leaves the text as it was', () async {
+    // A clipboard that refuses must not eat the words.
+    final controller = TextEditingController(text: 'hello world');
+    addTearDown(controller.dispose);
+    controller.selection = const TextSelection(baseOffset: 0, extentOffset: 5);
+    await nexPrivateCopy(
+      controller,
+      (text) async => throw Exception('clipboard refused'),
+      cut: true,
+    );
+    expect(controller.text, 'hello world');
+  });
+
+  test(
+    'a change made while the copy was in flight keeps the newer text',
+    () async {
+      // A cut may only remove what was copied: if the person kept typing
+      // while the clipboard worked, the newer text is the truth.
+      final controller = TextEditingController(text: 'hello world');
+      addTearDown(controller.dispose);
+      controller.selection = const TextSelection(
+        baseOffset: 0,
+        extentOffset: 5,
+      );
+      final inFlight = Completer<void>();
+      final copy = nexPrivateCopy(
+        controller,
+        (text) async => inFlight.future,
+        cut: true,
+      );
+      controller.text = 'changed mid-flight';
+      inFlight.complete();
+      await copy;
+      expect(controller.text, 'changed mid-flight');
+    },
+  );
+
+  test('a collapsed selection copies nothing', () async {
+    final controller = TextEditingController(text: 'hello world');
+    addTearDown(controller.dispose);
+    controller.selection = const TextSelection.collapsed(offset: 3);
+    var called = false;
+    await nexPrivateCopy(controller, (text) async => called = true, cut: true);
+    expect(called, isFalse);
+    expect(controller.text, 'hello world');
+  });
+
+  testWidgets('the decoration is the one it was given', (tester) async {
+    // The border, the label, the counter stay Flutter's, drawn around
+    // the editor — the one thing a platform editor never gave.
     final controller = TextEditingController();
+    addTearDown(controller.dispose);
     await pump(
       tester,
       NexTextField(
         controller: controller,
-        decoration: const InputDecoration(labelText: 'Bio', hintText: 'More'),
+        decoration: const InputDecoration(hintText: 'Write a note'),
+        maxLines: 3,
       ),
     );
-    expect(created!['hint'], isNull);
-
-    await fromNative(tester, 'changed', {'text': 'x', 'start': 1, 'end': 1});
-    final update = toNative.lastWhere((c) => c.method == 'update');
-    expect((update.arguments as Map)['hint'], 'More');
-  });
-
-  testWidgets('off Android it is a Flutter field in the text\'s direction', (
-    tester,
-  ) async {
-    NexTextField.native = false;
-    final controller = TextEditingController(text: 'سلام');
-    await pump(tester, NexTextField(controller: controller, maxLines: 4));
-
-    expect(find.byType(PlatformViewLink), findsNothing);
-    final field = tester.widget<TextField>(find.byType(TextField));
-    expect(field.textDirection, TextDirection.rtl);
-    expect(field.maxLines, 4);
-  });
-
-  testWidgets(
-    'the native child keeps focus while selecting near the decorated edge',
-    (tester) async {
-      tester.view.viewInsets = const FakeViewPadding(bottom: 250);
-      addTearDown(tester.view.reset);
-      addTearDown(tester.view.resetViewInsets);
-      final controller = TextEditingController(text: 'سلام\nHello');
-      final focus = FocusNode();
-      addTearDown(controller.dispose);
-      addTearDown(focus.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          builder: (context, child) => NexKeyboardDismisser(child: child!),
-          home: Scaffold(
-            body: Center(
-              child: SizedBox(
-                width: 400,
-                child: NexTextField(
-                  controller: controller,
-                  focusNode: focus,
-                  minLines: 3,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      Focus.of(tester.element(find.byType(AndroidViewSurface))).requestFocus();
-      await tester.pump();
-      await fromNative(tester, 'focus', {'focused': true});
-      final bounds = tester.getRect(find.byType(InputDecorator));
-      toNative.clear();
-      for (final point in [
-        Offset(bounds.left - 6, bounds.center.dy),
-        Offset(bounds.right + 6, bounds.center.dy),
-        Offset(bounds.center.dx, bounds.bottom + 18),
-      ]) {
-        await tester.tapAt(point);
-        await tester.pump();
-        expect(focus.hasFocus, isTrue);
-      }
-      expect(toNative.map((c) => c.method), isNot(contains('unfocus')));
-      await tester.tapAt(Offset(bounds.center.dx, bounds.bottom + 54));
-      await tester.pump();
-      expect(focus.hasFocus, isFalse);
-      await tester.pump(NexImeHandoff.delay);
-      await tester.pump();
-      expect(toNative.map((c) => c.method), contains('unfocus'));
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
-
-  testWidgets('a tap inside the editor with the keyboard up keeps it focused, '
-      'in the app as it runs, under the keyboard dismisser', (tester) async {
-    // 1.91.0's keyboard rule dropped focus on every touch in the app, and a
-    // tap in the capture box or the note editor closed the keyboard. Any
-    // field built on NexTextField goes through this path.
-    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
-    addTearDown(tester.view.reset);
-    final controller = TextEditingController(text: 'یادداشت');
-    final focus = FocusNode();
-    addTearDown(focus.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        builder: (context, child) => NexKeyboardDismisser(child: child!),
-        home: Scaffold(
-          body: Center(
-            child: NexTextField(
-              controller: controller,
-              focusNode: focus,
-              minLines: 3,
-            ),
-          ),
-        ),
-      ),
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).decoration!.hintText,
+      'Write a note',
     );
-    await tester.pump();
-    focus.requestFocus();
-    await tester.pump();
-    await fromNative(tester, 'focus', {'focused': true});
-    toNative.clear();
-
-    final press = await tester.startGesture(
-      tester.getCenter(find.byType(PlatformViewLink)),
-    );
-    await tester.pump();
-    expect(focus.hasFocus, isTrue);
-    await press.up();
-    await tester.pumpAndSettle();
-
-    expect(focus.hasFocus, isTrue);
-    expect(toNative.map((c) => c.method), isNot(contains('unfocus')));
-  });
-
-  Map<String, Object?> loupe({bool show = true}) => {
-    'show': show,
-    'x': 100.0,
-    'caretX': 96.0,
-    'top': 4.0,
-    'bottom': 28.0,
-    'left': 12.0,
-    'right': 220.0,
-    'width': 240.0,
-    'height': 100.0,
-  };
-
-  testWidgets(
-    'native caret geometry drives the stock Flutter loupe without editing text',
-    (tester) async {
-      final controller = TextEditingController(
-        text: 'سلام Nex!\nEnglish line.',
-      );
-      addTearDown(controller.dispose);
-      await pump(
-        tester,
-        SizedBox(
-          width: 260,
-          child: NexTextField(controller: controller, minLines: 4),
-        ),
-      );
-      expect(created!['flutterMagnifier'], isTrue);
-      await fromNative(tester, 'focus', {'focused': true});
-      toNative.clear();
-      final original = controller.value;
-      final origin = tester.getTopLeft(find.byType(PlatformViewLink));
-      await fromNative(tester, 'magnifier', loupe());
-      expect(find.byType(TextMagnifier), findsOneWidget);
-      final first = tester.widget<TextMagnifier>(find.byType(TextMagnifier));
-      expect(
-        first.magnifierInfo.value.caretRect.topLeft,
-        origin + const Offset(96, 4),
-      );
-      expect(
-        first.magnifierInfo.value.globalGesturePosition,
-        origin + const Offset(100, 16),
-      );
-      final notifier = first.magnifierInfo;
-      await fromNative(tester, 'selection', {'start': 2, 'end': 7});
-      await fromNative(tester, 'magnifier', {
-        ...loupe(),
-        'x': 135.0,
-        'caretX': 130.0,
-      });
-      expect(
-        tester.widget<TextMagnifier>(find.byType(TextMagnifier)).magnifierInfo,
-        same(notifier),
-      );
-      expect(controller.text, original.text);
-      expect(
-        controller.selection,
-        const TextSelection(baseOffset: 2, extentOffset: 7),
-      );
-      expect(toNative.where((c) => c.method == 'setValue'), isEmpty);
-      expect(createCount, 1);
-      expect(hybrid, isFalse);
-      await fromNative(tester, 'magnifier', loupe(show: false));
-      await tester.pumpAndSettle();
-      expect(find.byType(TextMagnifier), findsNothing);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets(
-    'the native loupe closes on typing, focus loss and invalid geometry',
-    (tester) async {
-      final controller = TextEditingController(text: 'متن قابل انتخاب');
-      addTearDown(controller.dispose);
-      await pump(tester, NexTextField(controller: controller, minLines: 4));
-      Future<void> show() async {
-        await fromNative(tester, 'focus', {'focused': true});
-        await fromNative(tester, 'magnifier', loupe());
-        expect(find.byType(TextMagnifier), findsOneWidget);
-      }
-
-      await show();
-      await fromNative(tester, 'changed', {
-        'text': 'یک ویرایش',
-        'start': 3,
-        'end': 3,
-      });
-      expect(find.byType(TextMagnifier), findsNothing);
-      await show();
-      await fromNative(tester, 'focus', {'focused': false});
-      expect(find.byType(TextMagnifier), findsNothing);
-      await fromNative(tester, 'magnifier', loupe());
-      expect(find.byType(TextMagnifier), findsNothing);
-      for (final invalid in [
-        {...loupe(), 'x': double.nan},
-        {...loupe(), 'height': 0},
-        {...loupe(), 'bottom': -4},
-        {...loupe(), 'left': 1000},
-      ]) {
-        await show();
-        await fromNative(tester, 'magnifier', invalid);
-        expect(find.byType(TextMagnifier), findsNothing);
-      }
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets(
-    'the loupe leaves with its route, app pause, keyboard resize or field',
-    (tester) async {
-      addTearDown(tester.view.resetViewInsets);
-      final controller = TextEditingController(text: 'سلام\nHello');
-      addTearDown(controller.dispose);
-      await pump(tester, NexTextField(controller: controller, minLines: 4));
-      await fromNative(tester, 'focus', {'focused': true});
-      await fromNative(tester, 'magnifier', loupe());
-      final navigator = Navigator.of(tester.element(find.byType(NexTextField)));
-      unawaited(
-        navigator.push<void>(
-          MaterialPageRoute(
-            builder: (_) => const Scaffold(body: Text('Next route')),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(TextMagnifier), findsNothing);
-      navigator.pop();
-      await tester.pumpAndSettle();
-      await fromNative(tester, 'focus', {'focused': true});
-      await fromNative(tester, 'magnifier', loupe());
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-      await tester.pump();
-      expect(find.byType(TextMagnifier), findsNothing);
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await tester.pump();
-      await fromNative(tester, 'magnifier', loupe());
-      tester.view.viewInsets = const FakeViewPadding(bottom: 250);
-      await tester.pumpAndSettle();
-      expect(find.byType(TextMagnifier), findsNothing);
-      tester.view.resetViewInsets();
-      await tester.pump();
-      await fromNative(tester, 'magnifier', loupe());
-      await tester.pumpWidget(const SizedBox());
-      await tester.pumpAndSettle();
-      expect(find.byType(TextMagnifier), findsNothing);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets('the experimental native loupe can be disabled independently', (
-    tester,
-  ) async {
-    NexTextField.flutterMagnifier = false;
-    final controller = TextEditingController(text: 'متن');
-    addTearDown(controller.dispose);
-    await pump(tester, NexTextField(controller: controller, minLines: 4));
-    expect(created!['flutterMagnifier'], isFalse);
-    await fromNative(tester, 'focus', {'focused': true});
-    await fromNative(tester, 'magnifier', loupe());
-    expect(find.byType(TextMagnifier), findsNothing);
-    expect(hybrid, isFalse);
+    expect(find.text('Write a note'), findsOneWidget);
   });
 }
