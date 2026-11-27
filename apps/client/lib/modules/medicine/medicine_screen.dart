@@ -8,6 +8,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'medicine_detail.dart';
 import 'medicine_editor.dart';
 import 'medicine_expiry_page.dart';
+import 'medicine_fields.dart';
 import 'medicine_logic.dart';
 import 'medicine_models.dart';
 import 'medicine_reminders.dart';
@@ -15,6 +16,7 @@ import 'medicine_schedule.dart';
 import 'medicine_settings.dart';
 import 'medicine_strings.dart';
 import 'medicine_today_page.dart';
+import 'medicine_today_state.dart';
 
 part 'medicine_screen_body.dart';
 part 'medicine_rows.dart';
@@ -35,10 +37,16 @@ class _MedicineScreenState extends State<MedicineScreen>
     with WidgetsBindingObserver {
   List<ModuleRecord> _medicines = const [];
   List<ModuleRecord> _boxes = const [];
+  List<ModuleRecord> _doses = const [];
   bool _showArchived = false;
 
   /// Null means everyone; otherwise the person's name as written.
   String? _peopleFilter;
+
+  /// A second, mutually exclusive filter: only the medicines that are the
+  /// person's own (no `person` written). Offered when the list mixes "me"
+  /// with named people, which is the household this module is for.
+  bool _onlyMe = false;
 
   /// Whether this screen asked the system to keep it out of screenshots.
   bool _secure = false;
@@ -156,12 +164,16 @@ class _MedicineScreenState extends State<MedicineScreen>
 
       final medicines = await widget.store.list(MedicineModels.medicine);
       final boxes = await widget.store.list(MedicineModels.box);
+      // The doses answer the routine's moments, so the Today card and the
+      // rows can say what is still open — the count the README promised.
+      final doses = await widget.store.list(MedicineModels.dose);
       if (!mounted || seq != _loadSeq) {
         return;
       }
       setState(() {
         _medicines = medicines;
         _boxes = boxes;
+        _doses = doses;
         _loading = false;
         _loadFailed = false;
       });

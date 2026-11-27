@@ -135,6 +135,17 @@ extension _MedicineEditorActions on _MedicineEditorSheetState {
         parsed > MedicineModels.everyDaysLimit;
   }
 
+  /// Both day rules written at once: the weekday chips and an every-N-days
+  /// number. The routine reads the weekday set (README → Decisions), so the
+  /// editor says so rather than letting both look equally alive.
+  bool get _bothDayRules {
+    if (_weekdays.isEmpty) {
+      return false;
+    }
+    final parsed = MedicineParse.count(_every.text);
+    return parsed != null && parsed >= 2;
+  }
+
   bool get _badWarnDays {
     final text = _warn.text.trim();
     if (text.isEmpty) {

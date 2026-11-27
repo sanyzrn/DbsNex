@@ -17,7 +17,18 @@ extension _MedicineScreenBody on _MedicineScreenState {
         if (MedicineModels.readPerson(record.body).isNotEmpty)
           MedicineModels.readPerson(record.body),
     }.toList()..sort();
-    final shown = _peopleFilter == null
+    // The person's own medicines are a filter too, next to the names — a
+    // household list is the module's own use case, and "mine" is the first
+    // cut of it anyone asks for.
+    final mine = active.any(
+      (record) => MedicineModels.readPerson(record.body).isEmpty,
+    );
+    final showMeChip = mine && people.isNotEmpty;
+    final shown = _onlyMe
+        ? active
+              .where((record) => MedicineModels.readPerson(record.body).isEmpty)
+              .toList()
+        : _peopleFilter == null
         ? active
         : active
               .where(
@@ -25,7 +36,14 @@ extension _MedicineScreenBody on _MedicineScreenState {
                     MedicineModels.readPerson(record.body) == _peopleFilter,
               )
               .toList();
-    final todayCount = _todayCount(active, now);
+    // Where today stands, one pass per medicine: the moments the routine
+    // names, which of them a log answers, and the next one still ahead.
+    final progress = {
+      for (final record in active)
+        record.id: MedicineTodayProgress.of(record, _doses, now),
+    };
+    final openToday = progress.values.fold(0, (sum, p) => sum + p.open);
+    final anyToday = progress.values.any((p) => p.total > 0);
     final expiringCount = _expiringCount(now);
 
     return Scaffold(
@@ -119,16 +137,20 @@ extension _MedicineScreenBody on _MedicineScreenState {
                   caption: strings(context, 'heroCaption'),
                 ),
                 const SizedBox(height: NexSpacing.md),
-                if (todayCount > 0) ...[
+                if (anyToday) ...[
                   _summaryCard(
                     context,
                     cardKey: const ValueKey('medicine-today-card'),
-                    icon: Icons.checklist_outlined,
-                    message: strings(
-                      context,
-                      todayCount == 1 ? 'todayOne' : 'todayDoses',
-                      {'count': todayCount},
-                    ),
+                    icon: openToday > 0
+                        ? Icons.checklist_outlined
+                        : Icons.task_alt_outlined,
+                    message: openToday > 0
+                        ? strings(
+                            context,
+                            openToday == 1 ? 'todayOne' : 'todayDoses',
+                            {'count': openToday},
+                          )
+                        : strings(context, 'todayAllDone'),
                     action: strings(context, 'openToday'),
                     onTap: () => unawaited(_openToday()),
                   ),
@@ -150,7 +172,7 @@ extension _MedicineScreenBody on _MedicineScreenState {
                   ),
                   const SizedBox(height: NexSpacing.sm),
                 ],
-                if (people.isNotEmpty) ...[
+                if (showMeChip || people.isNotEmpty) ...[
                   Wrap(
                     spacing: NexSpacing.sm,
                     runSpacing: NexSpacing.xs,
@@ -158,16 +180,31 @@ extension _MedicineScreenBody on _MedicineScreenState {
                       ChoiceChip(
                         key: const ValueKey('medicine-person-all'),
                         label: Text(strings(context, 'allPeople')),
-                        selected: _peopleFilter == null,
-                        onSelected: (_) => _paint(() => _peopleFilter = null),
+                        selected: !_onlyMe && _peopleFilter == null,
+                        onSelected: (_) => _paint(() {
+                          _onlyMe = false;
+                          _peopleFilter = null;
+                        }),
                       ),
+                      if (showMeChip)
+                        ChoiceChip(
+                          key: const ValueKey('medicine-person-me'),
+                          label: Text(strings(context, 'me')),
+                          selected: _onlyMe,
+                          onSelected: (_) => _paint(() {
+                            _onlyMe = true;
+                            _peopleFilter = null;
+                          }),
+                        ),
                       for (final person in people)
                         ChoiceChip(
                           key: ValueKey('medicine-person-$person'),
                           label: Text(person),
-                          selected: _peopleFilter == person,
-                          onSelected: (_) =>
-                              _paint(() => _peopleFilter = person),
+                          selected: !_onlyMe && _peopleFilter == person,
+                          onSelected: (_) => _paint(() {
+                            _onlyMe = false;
+                            _peopleFilter = person;
+                          }),
                         ),
                     ],
                   ),
@@ -176,6 +213,7 @@ extension _MedicineScreenBody on _MedicineScreenState {
                 for (final record in shown)
                   _MedicineRow(
                     record: record,
+                    progress: progress[record.id],
                     onOpen: () => unawaited(_openDetail(record)),
                   ),
                 if (shown.isEmpty && active.isNotEmpty)
@@ -237,22 +275,6 @@ extension _MedicineScreenBody on _MedicineScreenState {
     );
   }
 
-  /// How many routine moments today holds, across the medicines on the
-  /// list. Counted from the person's own times and days; nothing medical.
-  int _todayCount(List<ModuleRecord> active, DateTime now) {
-    final start = DateTime(now.year, now.month, now.day);
-    final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-    var count = 0;
-    for (final record in active) {
-      final schedule = MedicineSchedule.of(record.body);
-      if (!schedule.hasTimes) {
-        continue;
-      }
-      count += schedule.occurrences(from: start, until: end).length;
-    }
-    return count;
-  }
-
   /// How many dated things are expired or inside the next three months —
   /// each box's own date, and the single date older records carry.
   int _expiringCount(DateTime now) {
@@ -283,7 +305,9 @@ extension _MedicineScreenBody on _MedicineScreenState {
   }
 
   /// One line of the cabinet with a fact and the way to it: what today
-  /// holds, or what is running out of date.
+  /// holds, or what is running out of date. The whole card opens its page;
+  /// the button under the words says so, and a tap anywhere on the card
+  /// does the same.
   Widget _summaryCard(
     BuildContext context, {
     required Key cardKey,
@@ -296,29 +320,33 @@ extension _MedicineScreenBody on _MedicineScreenState {
     final scheme = Theme.of(context).colorScheme;
     // The action sits under the words rather than beside them: at twice the
     // text on a small phone, a row of both overflowed.
-    return NexPanel(
+    return InkWell(
       key: cardKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: warn ? scheme.error : scheme.primary),
-              const SizedBox(width: NexSpacing.sm),
-              Expanded(
-                child: Text(
-                  message,
-                  style: Theme.of(context).textTheme.bodyMedium
-                      ?.copyWith(color: warn ? scheme.error : null),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(NexRadius.lg),
+      child: NexPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: warn ? scheme.error : scheme.primary),
+                const SizedBox(width: NexSpacing.sm),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(color: warn ? scheme.error : null),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          Align(
-            alignment: AlignmentDirectional.centerEnd,
-            child: TextButton(onPressed: onTap, child: Text(action)),
-          ),
-        ],
+              ],
+            ),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton(onPressed: onTap, child: Text(action)),
+            ),
+          ],
+        ),
       ),
     );
   }

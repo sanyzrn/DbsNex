@@ -37,8 +37,13 @@ extension _MedicineEditorDetails on _MedicineEditorSheetState {
           controller: _every,
           label: strings(context, 'everyDays'),
           hint: strings(context, 'everyDaysHint'),
+          // Both day rules at once: the weekday set is the one the routine
+          // reads, and the helper says so instead of letting the every-N
+          // days line look like it does something it does not.
           helper: _showErrors && _badEveryDays
               ? strings(context, 'badEveryDays')
+              : _bothDayRules
+              ? strings(context, 'bothDaysNote')
               : strings(context, 'everyDaysHint'),
         ),
         const SizedBox(height: NexSpacing.sm),

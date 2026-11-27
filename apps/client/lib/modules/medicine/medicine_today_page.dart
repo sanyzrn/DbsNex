@@ -11,6 +11,7 @@ import 'medicine_logic.dart';
 import 'medicine_models.dart';
 import 'medicine_repository.dart';
 import 'medicine_schedule.dart';
+import 'medicine_shared.dart';
 import 'medicine_strings.dart';
 
 part 'medicine_today_rows.dart';
@@ -56,26 +57,42 @@ class MedicineTodayPage extends StatefulWidget {
   State<MedicineTodayPage> createState() => _MedicineTodayPageState();
 }
 
-class _MedicineTodayPageState extends State<MedicineTodayPage> {
+class _MedicineTodayPageState extends State<MedicineTodayPage>
+    with WidgetsBindingObserver {
   List<ModuleRecord> _medicines = const [];
   List<ModuleRecord> _doses = const [];
   StreamSubscription<void>? _changes;
   int _loadSeq = 0;
   bool _loading = true;
   bool _loadFailed = false;
-  bool _busy = false;
+
+  /// The moments a write is in flight for, as `day|medicine|time`. Only
+  /// those rows’ buttons wait; the rest of the page stays usable, so
+  /// logging a morning’s doses is one tap after another.
+  final Set<String> _busySlots = {};
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _changes = widget.store.changes.listen((_) => unawaited(_load()));
     unawaited(_load());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     unawaited(_changes?.cancel());
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // A page left open overnight must not still say "today" about
+    // yesterday: coming back to the app rereads the day.
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_load());
+    }
   }
 
   Future<void> _load() async {
@@ -139,33 +156,22 @@ class _MedicineTodayPageState extends State<MedicineTodayPage> {
 
   ModuleRecord? _logFor(String medicineId, DateTime at, String time) {
     for (final dose in MedicineLogic.dosesFor(_doses, medicineId)) {
-      final when = MedicineModels.readDate(dose.body, 'at')?.toLocal();
-      if (when == null ||
-          when.year != at.year ||
-          when.month != at.month ||
-          when.day != at.day) {
-        continue;
-      }
-      final action = MedicineModels.readString(dose.body, 'action');
-      if (action != MedicineModels.taken && action != MedicineModels.skipped) {
-        continue;
-      }
-      final slot = MedicineModels.readString(dose.body, 'slot');
-      if (slot == time) {
-        return dose;
-      }
-      if (slot.isEmpty && when.hour == at.hour && when.minute == at.minute) {
+      if (MedicineShared.answers(dose, medicineId, at, time)) {
         return dose;
       }
     }
     return null;
   }
 
+  String _slotKey(_DoseSlot slot) =>
+      '${slot.day}|${slot.medicine.id}|${slot.time}';
+
   Future<void> _log(_DoseSlot slot, String action) async {
-    if (_busy || slot.log != null) {
+    final key = _slotKey(slot);
+    if (_busySlots.contains(key) || slot.log != null) {
       return;
     }
-    setState(() => _busy = true);
+    setState(() => _busySlots.add(key));
     try {
       await MedicineRepository.log(
         widget.store,
@@ -184,17 +190,18 @@ class _MedicineTodayPageState extends State<MedicineTodayPage> {
       }
     } finally {
       if (mounted) {
-        setState(() => _busy = false);
+        setState(() => _busySlots.remove(key));
       }
     }
   }
 
   Future<void> _correct(_DoseSlot slot) async {
     final log = slot.log;
-    if (_busy || log == null) {
+    final key = _slotKey(slot);
+    if (_busySlots.contains(key) || log == null) {
       return;
     }
-    setState(() => _busy = true);
+    setState(() => _busySlots.add(key));
     try {
       final undo = await MedicineRepository.deleteDose(
         widget.store,
@@ -220,7 +227,7 @@ class _MedicineTodayPageState extends State<MedicineTodayPage> {
       }
     } finally {
       if (mounted) {
-        setState(() => _busy = false);
+        setState(() => _busySlots.remove(key));
       }
     }
   }
@@ -242,6 +249,16 @@ class _MedicineTodayPageState extends State<MedicineTodayPage> {
       now.subtract(const Duration(days: 1)),
       yesterday: true,
     ).where((slot) => slot.log == null).toList();
+    // The one moment to act on: the first open one still ahead. Everything
+    // else on the page is the same panel; this one carries its own heading,
+    // so a full list does not have to be scanned to find it.
+    _DoseSlot? next;
+    for (final slot in today) {
+      if (slot.log == null && !slot.at.isBefore(now)) {
+        next = slot;
+        break;
+      }
+    }
 
     return Scaffold(
       appBar: NexAppBar(title: Text(strings(context, 'today'))),
@@ -282,7 +299,12 @@ class _MedicineTodayPageState extends State<MedicineTodayPage> {
               ),
               children: [
                 for (final slot in today)
-                  _slotRow(context, slot, strings: strings),
+                  _slotRow(
+                    context,
+                    slot,
+                    strings: strings,
+                    isNext: identical(slot, next),
+                  ),
                 if (yesterday.isNotEmpty) ...[
                   const SizedBox(height: NexSpacing.md),
                   Text(

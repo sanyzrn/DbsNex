@@ -120,6 +120,16 @@ class MedicineScheduleSection extends StatelessWidget {
             }),
             style: theme.textTheme.bodyMedium,
           ),
+        // Both day rules written: the weekday set is the one the routine
+        // reads (README → Decisions). The person is told, not left to
+        // wonder why the every-N-days line seems to change nothing.
+        if (schedule.weekdays.isNotEmpty && schedule.everyDays != null)
+          Text(
+            medicineStrings(context, 'bothDaysNote'),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
         if (schedule.startsOn != null || schedule.endsOn != null)
           Text(
             [

@@ -52,6 +52,8 @@ const medicineStrings = NexModuleStrings(
     'nameHint': 'As it is written on the box',
     'nameRequired': 'Write the medicine’s name.',
     'duplicateName': 'A medicine with this name is already on the list.',
+    'duplicateBody':
+        'Keep both, or go back and change the name — nothing is saved yet.',
     'keepBoth': 'Keep both',
     'strength': 'Strength',
     'strengthHint': 'Free text — as on the box',
@@ -176,6 +178,7 @@ const medicineStrings = NexModuleStrings(
     'nameHint': 'همان‌طور که روی جعبه است',
     'nameRequired': 'نام دارو را بنویسید.',
     'duplicateName': 'دارویی با این نام در فهرست هست.',
+    'duplicateBody': 'هر دو بمانند، یا برگردید و نام را عوض کنید — هنوز چیزی ذخیره نشده است.',
     'keepBoth': 'هر دو بمانند',
     'strength': 'غلظت',
     'strengthHint': 'متن آزاد — مثل روی جعبه',

@@ -2,16 +2,20 @@ part of 'medicine_screen.dart';
 
 /// One medicine on the active list: the name as it was written, the
 /// strength beside it, and the states worth reading on opening — stock,
-/// expiry, refill — all from numbers the person wrote themselves.
-/// One medicine on the active list: the name as it was written, the
-/// strength beside it, and the states worth reading on opening — stock,
-/// expiry, refill, whose it is and how long it lasts — all from numbers
-/// the person wrote themselves.
+/// expiry, refill, whose it is, how long it lasts and where today's
+/// routine stands — all from numbers and logs the person wrote themselves.
 class _MedicineRow extends StatelessWidget {
-  const _MedicineRow({required this.record, required this.onOpen});
+  const _MedicineRow({
+    required this.record,
+    required this.onOpen,
+    this.progress,
+  });
 
   final ModuleRecord record;
   final VoidCallback onOpen;
+
+  /// Where the routine stands today, when the screen could work it out.
+  final MedicineTodayProgress? progress;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +43,23 @@ class _MedicineRow extends StatelessWidget {
     final runoutWarn = MedicineLogic.runoutWarning(daysLeft, warnDays);
 
     final marks = <Widget>[
+      if (progress?.next case final next?)
+        Text(
+          strings(context, 'glanceNext', {
+            'time': MedicineFields.hm(context, next),
+          }),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: scheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        )
+      else if (progress?.allLogged == true)
+        Text(
+          strings(context, 'todayAllDone'),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: NexHue.teal.of(theme.brightness),
+          ),
+        ),
       if (quantity != null)
         Text(
           quantity == 0

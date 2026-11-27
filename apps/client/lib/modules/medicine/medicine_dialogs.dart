@@ -76,7 +76,7 @@ class MedicineDialogs {
     builder: (dialogContext) => NexAlertDialog(
       title: Text(strings(dialogContext, 'duplicateName')),
       content: NexDialogBody(
-        child: Text(strings(dialogContext, 'deleteMedicine', {'name': name})),
+        child: Text(strings(dialogContext, 'duplicateBody')),
       ),
       actions: [
         TextButton(
