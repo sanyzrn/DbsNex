@@ -4,12 +4,6 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
-- **Medicine: today, honestly counted.** The cabinet's Today card counts the doses still open rather than every routine moment, and says when a day is fully logged. Doses logged from a medicine's own page now count everywhere — the card, the quick view and the home screen's dates — not only on the Today page.
-
-- **Medicine: the next dose, at a glance.** Each row of the cabinet names the next dose still ahead, and the Today page marks the moment to act on, without locking the whole page while a write is in flight. "Me" joins the person filter for a household list, the duplicate-name question says what the choice is, a routine naming both weekday and every-N-days rules says which one counts, a long dose history opens on its newest slice, and a Persian line that had stayed English is Persian now.
-
-- **Video and PDF previews no longer go missing.** A preview that was still being read when its card appeared now lands on that card by itself, instead of leaving it blank until the date group was closed and reopened.
-
 ## v2.9.4
 
 - **Unified editor for smoother keyboard switching.** Rebuilt text input around one Flutter-based editor across the app to avoid keyboard closure and reopening when moving between fields, including Prompt Studio, Family Fund and Habits.
@@ -23,6 +17,18 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 - **Long notes stay light while typing.** The field now reads only the paragraph being written to choose its direction, instead of the whole note on every keystroke and every dragged selection handle.
 
 - **More right-to-left scripts find their direction.** A note opening in Adlam, Yezidi, Phoenician or another right-to-left script outside Persian and Arabic now takes its own direction instead of the interface's.
+
+- **Medicine: today, honestly counted.** The cabinet's Today card counts the doses still open rather than every routine moment, and says when a day is fully logged. Doses logged from a medicine's own page now count everywhere — the card, the quick view and the home screen's dates — not only on the Today page.
+
+- **Medicine: the next dose, at a glance.** Each row of the cabinet names the next dose still ahead, and the Today page marks the moment to act on, without locking the whole page while a write is in flight. "Me" joins the person filter for a household list, the duplicate-name question says what the choice is, a routine naming both weekday and every-N-days rules says which one counts, a long dose history opens on its newest slice, and a Persian line that had stayed English is Persian now.
+
+- **Video and PDF previews no longer go missing.** A preview that was still being read when its card appeared now lands on that card by itself, instead of leaving it blank until the date group was closed and reopened.
+
+- **Cheques: clearer follow-up and Sayad search.** Cheques needing follow-up are shown after overdue and returned items. Enter or search 16-digit Sayad IDs using Persian or Arabic digits, spaces or hyphens.
+
+- **Instalments: clearer progress and cash outlook.** Open the selected instalment from its due date, see payment dates and progress, and keep small instalments or long titles in the cash outlook. The monthly and four-week views also do less repeated work.
+
+- **Cheques: stronger privacy and reliable reminders.** Hidden amounts stay private in the outlook, month view and settlement confirmation. Settlement corrections remain possible; custom reminder intervals are restored and editing one plan updates only its own reminders.
 
 ## v2.9.3
 
