@@ -30,11 +30,7 @@ import '../widgets/nex_selection_menu.dart';
 TextDirection? nexDirectionOf(String? text) {
   final value = text;
   if (value == null || value.isEmpty) return null;
-  for (final rune in value.runes) {
-    final direction = _directionOfRune(rune);
-    if (direction != null) return direction;
-  }
-  return null;
+  return _firstStrongDirectionIn(value, 0, value.length);
 }
 
 /// The direction a finished block of text reads in: whichever script its own
@@ -78,11 +74,27 @@ TextDirection? nexDominantDirectionOf(String? text) {
   return rightToLeft > leftToRight ? TextDirection.rtl : TextDirection.ltr;
 }
 
-/// The direction of the paragraph a caret is in: the paragraph's own first
-/// strong letter and, when the paragraph carries none — it is empty, or a
-/// number, or punctuation — the nearest paragraph before it that does, then
-/// the nearest after, so the answer does not flip while a paragraph is still
-/// being started.
+/// The paragraph a caret is in: its bounds and its own direction.
+///
+/// [start] is the offset of the paragraph's first character and [end] the
+/// offset of the newline that ends it — the text's length for the last one.
+/// A caret on a newline belongs to the paragraph before it, as it always has,
+/// so [end] is a caret position this paragraph owns too.
+///
+/// [direction] is the paragraph's own first strong letter and, when it
+/// carries none — it is empty, or a number, or punctuation — the nearest
+/// paragraph before it that does, then the nearest after, so the answer does
+/// not flip while a paragraph is still being started. Null only when no
+/// paragraph in the field carries a direction at all.
+///
+/// The bounds are part of the answer because a field can hold onto them: a
+/// selection dragged inside one paragraph asks the same question again and
+/// again, and a caller that knows the paragraph has not changed does not need
+/// to scan for it. That is what keeps a handle drag free of the note's length
+/// — see `NexAutoDirection`.
+typedef NexCaretParagraph = ({int start, int end, TextDirection? direction});
+
+/// The paragraph [caret] is in, and the direction it should be laid out in.
 ///
 /// This is the editing twin of [nexDirectionOf]: reading asks a finished
 /// block of text for one direction, and editing asks the paragraph the caret
@@ -93,54 +105,79 @@ TextDirection? nexDominantDirectionOf(String? text) {
 /// field follows the paragraph being written, and every paragraph is right
 /// in its turn.
 ///
-/// The caret belongs to the paragraph it ends: a caret sitting on a newline
-/// ends the paragraph before it, not the one after. A neutral paragraph
-/// keeps the direction of its neighbour rather than the interface's, which
-/// is what keeps a new paragraph in the direction of the one above it — the
-/// moment its own first strong letter lands, its own direction takes over.
-TextDirection? nexCaretDirectionOf(String text, int caret) {
-  if (text.isEmpty) return null;
+/// Only the caret's paragraph and the neighbours it falls back through are
+/// read. It used to build the start offset of every paragraph first, which
+/// made a keystroke in a long note cost the note's whole length; a paragraph
+/// is found by the two newlines around it instead, and the text between them
+/// is scanned once.
+NexCaretParagraph nexCaretParagraphOf(String text, int caret) {
+  if (text.isEmpty) return (start: 0, end: 0, direction: null);
   final offset = caret.clamp(0, text.length);
-
-  /// Where each paragraph starts: after every newline, and the text itself.
-  final starts = <int>[0];
-  for (var i = 0; i < text.length; i++) {
-    if (text.codeUnitAt(i) == 0x0A) starts.add(i + 1);
-  }
-
-  /// The caret's paragraph: the last one that starts at or before it. A
-  /// caret on a newline is the end of the paragraph before that newline,
-  /// and that paragraph's start is still the last one at or before the
-  /// caret — the newline itself starts the next one.
-  var index = 0;
-  for (var i = 0; i < starts.length; i++) {
-    if (starts[i] <= offset) {
-      index = i;
-    } else {
-      break;
-    }
-  }
-
-  TextDirection? end(int start, int stop) =>
-      start >= stop ? null : nexDirectionOf(text.substring(start, stop));
+  final start = offset == 0 ? 0 : text.lastIndexOf('\n', offset - 1) + 1;
+  final stop = text.indexOf('\n', start);
+  final end = stop < 0 ? text.length : stop;
+  final own = _firstStrongDirectionIn(text, start, end);
+  if (own != null) return (start: start, end: end, direction: own);
 
   // Backwards first, then forwards: a paragraph being started reads as a
   // continuation of the one above it, and only the first paragraph of a
   // field takes its direction from below.
-  final own = end(
-    starts[index],
-    index + 1 < starts.length ? starts[index + 1] - 1 : text.length,
-  );
-  if (own != null) return own;
-  for (var i = index - 1; i >= 0; i--) {
-    final direction = end(starts[i], starts[i + 1] - 1);
-    if (direction != null) return direction;
+  var previousEnd = start - 1;
+  while (previousEnd >= 0) {
+    final previousStart = previousEnd == 0
+        ? 0
+        : text.lastIndexOf('\n', previousEnd - 1) + 1;
+    final direction = _firstStrongDirectionIn(text, previousStart, previousEnd);
+    if (direction != null) {
+      return (start: start, end: end, direction: direction);
+    }
+    previousEnd = previousStart - 1;
   }
-  for (var i = index + 1; i < starts.length; i++) {
-    final direction = end(
-      starts[i],
-      i + 1 < starts.length ? starts[i + 1] - 1 : text.length,
-    );
+
+  var nextStart = end + 1;
+  while (nextStart <= text.length) {
+    final stop = text.indexOf('\n', nextStart);
+    final nextEnd = stop < 0 ? text.length : stop;
+    final direction = _firstStrongDirectionIn(text, nextStart, nextEnd);
+    if (direction != null) {
+      return (start: start, end: end, direction: direction);
+    }
+    if (nextEnd >= text.length) break;
+    nextStart = nextEnd + 1;
+  }
+  return (start: start, end: end, direction: null);
+}
+
+/// The direction of the paragraph a caret is in.
+///
+/// See [nexCaretParagraphOf] for the rule and the bounds.
+TextDirection? nexCaretDirectionOf(String text, int caret) =>
+    nexCaretParagraphOf(text, caret).direction;
+
+/// The direction of the first strong character in `text[start, stop)`, or
+/// null when that range carries none.
+///
+/// Reads code units in place: no substring is made, so a paragraph of any
+/// length costs nothing beyond the characters until its first strong letter.
+/// A surrogate pair is read as the one rune it is; a lone surrogate carries
+/// no direction.
+TextDirection? _firstStrongDirectionIn(String text, int start, int stop) {
+  for (var i = start; i < stop; i++) {
+    final unit = text.codeUnitAt(i);
+    if (unit >= 0xD800 && unit <= 0xDBFF) {
+      if (i + 1 < stop) {
+        final low = text.codeUnitAt(i + 1);
+        if (low >= 0xDC00 && low <= 0xDFFF) {
+          final rune = 0x10000 + ((unit - 0xD800) << 10) + (low - 0xDC00);
+          i += 1;
+          final direction = _directionOfRune(rune);
+          if (direction != null) return direction;
+        }
+      }
+      continue;
+    }
+    if (unit >= 0xDC00 && unit <= 0xDFFF) continue;
+    final direction = _directionOfRune(unit);
     if (direction != null) return direction;
   }
   return null;
@@ -213,6 +250,41 @@ TextDirection? _directionOfRune(int rune) {
   if ((rune >= 0x0590 && rune <= 0x08FF) ||
       (rune >= 0xFB1D && rune <= 0xFDFF) ||
       (rune >= 0xFE70 && rune <= 0xFEFF)) {
+    return TextDirection.rtl;
+  }
+  // The right-to-left scripts written outside the Arabic and Hebrew blocks.
+  // They used to answer null — "no direction" — so a note opening in Adlam,
+  // Yezidi, Phoenician or an Arabic mathematical letter inherited the
+  // interface's direction instead of its own. The ranges are scripts, not a
+  // blanket range, because the same planes hold left-to-right scripts
+  // (Cypriot, Linear B, Deseret) that must not be swept in.
+  if ((rune >= 0x10840 && rune <= 0x1085F) || // Imperial Aramaic
+      (rune >= 0x10860 && rune <= 0x1087F) || // Palmyrene
+      (rune >= 0x10880 && rune <= 0x108AF) || // Nabataean
+      (rune >= 0x108E0 && rune <= 0x108FF) || // Hatran
+      (rune >= 0x10900 && rune <= 0x1091F) || // Phoenician
+      (rune >= 0x10920 && rune <= 0x1093F) || // Lydian
+      (rune >= 0x10A00 && rune <= 0x10A5F) || // Kharoshthi
+      (rune >= 0x10A60 && rune <= 0x10A7F) || // Old South Arabian
+      (rune >= 0x10A80 && rune <= 0x10A9F) || // Old North Arabian
+      (rune >= 0x10AC0 && rune <= 0x10AFF) || // Manichaean
+      (rune >= 0x10B00 && rune <= 0x10B3F) || // Avestan
+      (rune >= 0x10B40 && rune <= 0x10B5F) || // Inscriptional Parthian
+      (rune >= 0x10B60 && rune <= 0x10B7F) || // Inscriptional Pahlavi
+      (rune >= 0x10B80 && rune <= 0x10BAF) || // Psalter Pahlavi
+      (rune >= 0x10C00 && rune <= 0x10C4F) || // Old Turkic
+      (rune >= 0x10C80 && rune <= 0x10CFF) || // Old Hungarian
+      (rune >= 0x10D00 && rune <= 0x10D3F) || // Hanifi Rohingya
+      (rune >= 0x10E80 && rune <= 0x10EBF) || // Yezidi
+      (rune >= 0x10EC0 && rune <= 0x10EFF) || // Arabic Extended-C
+      (rune >= 0x10F00 && rune <= 0x10F2F) || // Old Sogdian
+      (rune >= 0x10F30 && rune <= 0x10F6F) || // Sogdian
+      (rune >= 0x10FB0 && rune <= 0x10FDF) || // Chorasmian
+      (rune >= 0x10FE0 && rune <= 0x10FFF) || // Elymaic
+      (rune >= 0x1E800 && rune <= 0x1E8DF) || // Mende Kikakui
+      (rune >= 0x1E900 && rune <= 0x1E95F) || // Adlam
+      (rune >= 0x1EE00 && rune <= 0x1EEFF)) {
+    // Arabic mathematical alphabetic symbols
     return TextDirection.rtl;
   }
   // Latin, then Latin supplements and IPA, then Greek/Cyrillic/Armenian.
@@ -621,6 +693,12 @@ class NexTextSurface extends StatelessWidget {
 ///   new base direction — and only then, once, when the answer actually
 ///   changes. The `TextField` below keeps its element and its state, its
 ///   focus and its selection; only the layout turns.
+/// - **It remembers the paragraph it answered for.** A selection handle
+///   dragged inside one paragraph notifies on every frame. The text is the
+///   same `String` object for all of those, and the anchor is still inside
+///   the remembered bounds, so the answer comes back without reading the
+///   note again. A keystroke makes a new string, and only the paragraph it
+///   landed in is read.
 class NexAutoDirection extends StatefulWidget {
   const NexAutoDirection({
     super.key,
@@ -642,6 +720,17 @@ class NexAutoDirection extends StatefulWidget {
 class _NexAutoDirectionState extends State<NexAutoDirection> {
   TextDirection? _direction;
 
+  /// The paragraph the last answer was about, and the text it was read from.
+  ///
+  /// A controller notifies on every selection change, and dragging a
+  /// selection handle produces a stream of them inside one paragraph. The
+  /// text is the same `String` object for all of those, so identity plus the
+  /// paragraph's bounds answers "same paragraph" without reading the note
+  /// again. A keystroke makes a new string and reads only the paragraph it
+  /// landed in.
+  String? _paragraphText;
+  NexCaretParagraph? _paragraph;
+
   @override
   void initState() {
     super.initState();
@@ -658,6 +747,8 @@ class _NexAutoDirectionState extends State<NexAutoDirection> {
     }
     if (oldWidget.controller != widget.controller ||
         oldWidget.direction != widget.direction) {
+      _paragraphText = null;
+      _paragraph = null;
       _direction = _resolveDirection();
     }
   }
@@ -668,8 +759,7 @@ class _NexAutoDirectionState extends State<NexAutoDirection> {
     super.dispose();
   }
 
-  TextDirection? _resolveDirection() {
-    if (widget.direction != null) return widget.direction;
+  NexCaretParagraph _resolveParagraph() {
     final value = widget.controller.value;
     // The anchor: the end a selection is *from* — the caret itself for a
     // caret, and for a dragged range the end that stays put while the other
@@ -677,7 +767,23 @@ class _NexAutoDirectionState extends State<NexAutoDirection> {
     // under the finger as it crossed into a paragraph written in the other
     // language; the anchor holds the side the writing is on.
     final anchor = value.selection.isValid ? value.selection.baseOffset : 0;
-    return nexCaretDirectionOf(widget.controller.text, anchor);
+    final text = value.text;
+    final cached = _paragraph;
+    if (cached != null &&
+        identical(text, _paragraphText) &&
+        anchor >= cached.start &&
+        anchor <= cached.end) {
+      return cached;
+    }
+    final paragraph = nexCaretParagraphOf(text, anchor);
+    _paragraphText = text;
+    _paragraph = paragraph;
+    return paragraph;
+  }
+
+  TextDirection? _resolveDirection() {
+    if (widget.direction != null) return widget.direction;
+    return _resolveParagraph().direction;
   }
 
   void _reread() {
