@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
+import 'nex_caret_movement.dart';
 import 'text_format_menu.dart';
 
 /// Where a person writes more than one line of their own words.
@@ -38,6 +39,13 @@ import 'text_format_menu.dart';
 /// it. Everywhere a note is *read* — the timeline, the reader, every
 /// preview — each paragraph keeps its own direction and its own side on
 /// every platform, through [NexTextSurface], as before.
+///
+/// Horizontal arrows are the framework's, with one correction: they move to
+/// the caret that is next *on screen* rather than the next in the string, so
+/// a right-to-left paragraph moves with the eye and an embedded run of the
+/// other script keeps its own direction — see `NexVisualCaretKeys`. The
+/// selection handles and the lens are the framework's own, enabled on the
+/// mobile platforms, and resolve against the same paragraph direction.
 ///
 /// The [controller] stays the source of truth for the rest of the app, on
 /// every platform alike. There is no channel, no second copy of the text,
@@ -183,6 +191,12 @@ class _NexTextFieldState extends State<NexTextField> {
       // The default paints a double-tapped word's highlight out to the end
       // of the line on right-to-left text.
       selectionWidthStyle: BoxWidthStyle.tight,
+      // The handles and the lens are the framework's own — on Android and
+      // iOS, from the same laid-out paragraph the field draws. Stated rather
+      // than inherited because 2.9.4 removed the native bridge the old
+      // editor needed, and a later edit that disables the lens should be
+      // visible here. See [NexVisualCaretKeys] for the arrows.
+      magnifierConfiguration: TextMagnifier.adaptiveMagnifierConfiguration,
       contextMenuBuilder: widget.onCopy != null
           ? _privateMenu
           : widget.formatting
@@ -192,7 +206,8 @@ class _NexTextFieldState extends State<NexTextField> {
     return NexAutoDirection(
       controller: widget.controller,
       direction: widget.textDirection,
-      builder: (context, direction) => field(direction),
+      builder: (context, direction) =>
+          NexVisualCaretKeys(child: field(direction)),
     );
   }
 

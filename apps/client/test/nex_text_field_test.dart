@@ -501,6 +501,31 @@ void main() {
     expect(controller.text, 'hello world');
   });
 
+  testWidgets('the handles and lens are the framework\'s, and on', (
+    tester,
+  ) async {
+    // 2.9.4 removed the custom magnifier bridge the native editor needed. The
+    // framework's lens is the one that remains, and it is on by default — but
+    // a later edit that passed `TextMagnifierConfiguration.disabled` would be
+    // invisible in review, so it is stated and held here. The direction above
+    // the field is what puts the handles on the ends the paragraph is drawn
+    // between; `nex_text_direction_test.dart` holds that separately.
+    final controller = TextEditingController(text: 'متن فارسی');
+    addTearDown(controller.dispose);
+    await pump(tester, NexTextField(controller: controller, maxLines: 3));
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(
+      field.magnifierConfiguration,
+      TextMagnifier.adaptiveMagnifierConfiguration,
+      reason: 'the selection lens was disabled',
+    );
+    expect(
+      Directionality.of(tester.element(find.byType(TextField))),
+      TextDirection.rtl,
+      reason: 'the handles resolve against this direction',
+    );
+  });
+
   testWidgets('the decoration is the one it was given', (tester) async {
     // The border, the label, the counter stay Flutter's, drawn around
     // the editor — the one thing a platform editor never gave.
