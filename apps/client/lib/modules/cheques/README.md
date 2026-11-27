@@ -1,5 +1,13 @@
 # Cheques & instalments / چک و قسط
 
+## Audit of main at `a36b5f42`
+
+Follow-up, search and cash views share one cheque/instalment snapshot. Details
+keep an event history and the editors keep drafts. Plans compute instalments
+locally from their schedule. The upgrade keeps these flows and fixes gaps in
+instalment visibility, Sayad follow-up, reminder reconciliation and amount
+privacy. The [audit report](AUDIT.md) records the changes and validation.
+
 ## Audit and completion
 
 Starting main: `4ce8d52354a37d253eaa9643a4f8fd412b4a40af` (initial research

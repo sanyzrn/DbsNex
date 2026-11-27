@@ -141,7 +141,7 @@ class _ChequeEventEditorState extends State<ChequeEventEditor> {
               [
                 widget.cheque.party,
                 widget.payment
-                    ? '${chequeMoney(c, amount!, unit: _unit)} ${s(c, _unit)}'
+                    ? '${chequeMoney(context, amount!, unit: _unit)} ${s(c, _unit)}'
                     : s(c, 'status_$_next'),
                 nexModuleDateLabel(c, _day),
                 _fields['target']!.text,

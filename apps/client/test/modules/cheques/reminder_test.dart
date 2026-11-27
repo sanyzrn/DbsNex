@@ -6,6 +6,7 @@ import 'package:nex_client/modules/cheques/model.dart';
 
 import '../../support/nex_harness.dart';
 import 'fixtures.dart';
+import 'plan_test.dart' show planRaw;
 
 class AlarmStore extends NexModuleStore {
   AlarmStore(NexTestHarness h) : super(h.services, 'cheques');
@@ -79,6 +80,15 @@ void main() {
         'remind': true,
         'privateAlert': true,
       });
+      store.stale = [
+        ModuleRecord(
+          module: 'cheques',
+          kind: '__reminder',
+          id: 'cheque:a:2',
+          body: const {},
+          updatedAt: DateTime(2026),
+        ),
+      ];
       await armCheque(
         store,
         c,
@@ -86,7 +96,7 @@ void main() {
         now: DateTime(2026, 11, 21),
         upkeep: true,
       );
-      expect(store.withdrawn.length, 6);
+      expect(store.withdrawn, ['cheque:a:2']);
       expect(store.cleared, isEmpty);
       await armCheque(
         store,
@@ -94,10 +104,49 @@ void main() {
         l10n,
         now: DateTime(2026, 11, 16),
       );
-      expect(store.cleared.length, 6);
+      expect(store.cleared.length, 7);
       expect(store.armed, isEmpty);
     },
   );
+  test(
+    'renewal schedules legacy offsets and only touches the requested plan',
+    () async {
+      final h = await NexTestHarness.create(name: 'scoped_plan_reminders_');
+      addTearDown(h.dispose);
+      final store = AlarmStore(h);
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      final c = Cheque('legacy', {
+        ...chequeRaw(),
+        'remind': true,
+        'reminderDays': [2],
+      });
+      await armCheque(store, c, l10n, now: DateTime(2026, 11, 16));
+      expect(store.armed, ['cheque:legacy:2']);
+      store.armed.clear();
+      for (final id in ['p', 'other']) {
+        await store.put('plan', id, {
+          ...planRaw(),
+          'first': '2026-11-20',
+          'remind': true,
+        });
+      }
+      store.stale = [
+        for (final id in ['plan:p:99:0', 'plan:other:99:0'])
+          ModuleRecord(
+            module: 'cheques',
+            kind: '__reminder',
+            id: id,
+            body: const {},
+            updatedAt: DateTime(2026),
+          ),
+      ];
+      await renewPlans(store, l10n, planId: 'p', now: DateTime(2026, 11, 16));
+      expect(store.armed, hasLength(8));
+      expect(store.armed.every((key) => key.startsWith('plan:p:')), isTrue);
+      expect(store.withdrawn, ['plan:p:99:0']);
+    },
+  );
+
   test('plan schedule edits withdraw obsolete slots without touching cheque alarms', () async {
     final h = await NexTestHarness.create(name: 'plan_prune_');
     addTearDown(h.dispose);

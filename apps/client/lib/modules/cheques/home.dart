@@ -88,8 +88,8 @@ class _ChequeHomeState extends State<ChequeHome> with WidgetsBindingObserver {
       builder: (_) => chequePrivateRoute(context, ChequeEditor(repo: _repo)),
     ),
   );
-  Future<void> _open(Cheque cheque) => cheque.id.startsWith('plan:')
-      ? _plans()
+  Future<void> _open(Cheque cheque) => cheque.recordKind == 'plan'
+      ? _plans(cheque)
       : Navigator.of(context).push<void>(
           NexPageRoute(
             builder: (_) => chequePrivateRoute(
@@ -102,20 +102,19 @@ class _ChequeHomeState extends State<ChequeHome> with WidgetsBindingObserver {
     String fold(String v) =>
         chequeDigits(v).toLowerCase().replaceAll('ي', 'ی').replaceAll('ك', 'ک');
     final q = fold(_search.text.trim());
+    final identifier = normalizedSayad(q);
     return _rows.where((c) {
       if (_direction != 'any' && c.direction != _direction) return false;
       if (q.isNotEmpty &&
-          ![
-            'party',
-            'bank',
-            'account',
-            'number',
-            'sayad',
-            'note',
-          ].any((k) => fold(c.text(k)).contains(q))) {
+          !['party', 'bank', 'account', 'number', 'sayad', 'note'].any((k) {
+            if (k == 'sayad') {
+              return identifier.isNotEmpty && c.sayad.contains(identifier);
+            }
+            return fold(c.text(k)).contains(q);
+          })) {
         return false;
       }
-      if (_filter == 'needsReview') return !c.valid;
+      if (_filter == 'needsReview' && c.valid) return false;
       if (_filter == 'openOnly' && (!c.valid || c.closed)) return false;
       if (_filter == 'closedOnly' && (!c.valid || !c.closed)) return false;
       if (_filter == 'overdueOnly' && !chequeOverdue(c, today)) return false;
@@ -156,10 +155,18 @@ class _ChequeHomeState extends State<ChequeHome> with WidgetsBindingObserver {
   }
 
   DateTime _month = DateTime.now();
-  Future<void> _plans() => Navigator.of(context).push<void>(
+  Future<void> _plans([Cheque? instalment]) => Navigator.of(context).push<void>(
     NexPageRoute(
-      builder: (_) =>
-          chequePrivateRoute(context, PlansPage(store: widget.store)),
+      builder: (_) => chequePrivateRoute(
+        context,
+        PlansPage(
+          store: widget.store,
+          planId: instalment?.recordId,
+          instalmentIndex: instalment == null
+              ? null
+              : int.tryParse(instalment.id.split(':').last),
+        ),
+      ),
     ),
   );
   void _moveMonth(int delta) {
@@ -243,6 +250,16 @@ class _ChequeHomeState extends State<ChequeHome> with WidgetsBindingObserver {
     final s = chequeStrings,
         rows = actionableCheques(_rows),
         invalid = _rows.where((c) => !c.valid).toList();
+    final urgent = <Cheque>[], sayad = <Cheque>[], upcoming = <Cheque>[];
+    for (final c in rows) {
+      if (chequeOverdue(c, today) || c.status == 'bounced') {
+        urgent.add(c);
+      } else if (c.text('sayadState') == 'todo') {
+        sayad.add(c);
+      } else {
+        upcoming.add(c);
+      }
+    }
     return ListView(
       key: const PageStorageKey('cheque-follow'),
       controller: _scroll[0],
@@ -263,27 +280,17 @@ class _ChequeHomeState extends State<ChequeHome> with WidgetsBindingObserver {
           const SizedBox(height: NexSpacing.md),
         ],
         if (rows.isEmpty && invalid.isEmpty) Text(s(context, 'noResults')),
-        if (rows.any((c) => chequeOverdue(c, today) || c.status == 'bounced'))
-          NexShelfHeading(
-            icon: Icons.warning_amber_outlined,
-            title: s(context, 'urgent'),
-          ),
-        for (final c in rows.where(
-          (c) => chequeOverdue(c, today) || c.status == 'bounced',
-        ))
-          ChequeTile(cheque: c, today: today, onTap: () => _open(c)),
-        NexSegmentSwap(selection: _tab, child: Text(s(context, 'upcoming'))),
-        for (final c in rows.where(
-          (c) => !chequeOverdue(c, today) && c.status != 'bounced',
-        ))
-          ChequeTile(cheque: c, today: today, onTap: () => _open(c)),
-        if (invalid.isNotEmpty)
-          NexShelfHeading(
-            icon: Icons.error_outline,
-            title: s(context, 'needsReview'),
-          ),
-        for (final c in invalid)
-          ChequeTile(cheque: c, today: today, onTap: () => _open(c)),
+        for (final (items, title, icon) in [
+          (urgent, 'urgent', Icons.warning_amber_outlined),
+          (sayad, 'sayadPending', Icons.fact_check_outlined),
+          (upcoming, 'upcoming', Icons.event_outlined),
+          (invalid, 'needsReview', Icons.error_outline),
+        ])
+          if (items.isNotEmpty) ...[
+            NexShelfHeading(icon: icon, title: s(context, title)),
+            for (final c in items)
+              ChequeTile(cheque: c, today: today, onTap: () => _open(c)),
+          ],
       ],
     );
   }

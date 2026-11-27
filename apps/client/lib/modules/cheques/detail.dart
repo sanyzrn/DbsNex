@@ -329,25 +329,26 @@ class _ChequeDetailState extends State<ChequeDetail> {
                       icon: const Icon(Icons.payments_outlined),
                       label: Text(s(context, 'settle')),
                     ),
-                  TextButton.icon(
-                    key: const ValueKey('cheque-status'),
-                    onPressed: _busy
-                        ? null
-                        : () => Navigator.of(context).push<void>(
-                            NexPageRoute(
-                              builder: (_) => chequePrivateRoute(
-                                context,
-                                ChequeEventEditor(
-                                  repo: widget.repo,
-                                  cheque: c,
-                                  payment: false,
+                  if (c.remaining > BigInt.zero)
+                    TextButton.icon(
+                      key: const ValueKey('cheque-status'),
+                      onPressed: _busy
+                          ? null
+                          : () => Navigator.of(context).push<void>(
+                              NexPageRoute(
+                                builder: (_) => chequePrivateRoute(
+                                  context,
+                                  ChequeEventEditor(
+                                    repo: widget.repo,
+                                    cheque: c,
+                                    payment: false,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                    icon: const Icon(Icons.swap_horiz),
-                    label: Text(s(context, 'statusChange')),
-                  ),
+                      icon: const Icon(Icons.swap_horiz),
+                      label: Text(s(context, 'statusChange')),
+                    ),
                 ] else
                   Text(s(context, 'eventLimit')),
                 const SizedBox(height: NexSpacing.md),
