@@ -17,8 +17,8 @@ shape, and every inherited test still passes.
   moment** — not on the Today card, not in the quick view, not on the
   home screen’s dates, which read "0 of N doses today" for a person who
   logs from the sheet and never opens Today. A log now answers the
-  moment at its own clock time as well as its slot, exactly as the Today
-  page has always matched. A log whose action is neither taken nor
+  moment named by its slot, or its own clock time if no slot is present;
+  one log cannot answer two moments. A log whose action is neither taken nor
   skipped answers nothing.
 - **The Persian reader saw English** for "No medicine for this person
   yet" — the Persian map carried the English sentence.
@@ -199,7 +199,7 @@ retrying in a loop.
 person's own tap writes a log. Stock leaves only through the same
 `MedicineRepository` path the detail sheet uses, so correction and Undo behave
 identically wherever the log came from. A log answers the moment it names
-(`slot`) or, written from the detail sheet, the moment at its own clock time;
+(`slot`) or, when no slot is present, the moment at its own clock time;
 this one match is what the Today page, the Today card, the quick view and the
 home screen's dates all read.
 

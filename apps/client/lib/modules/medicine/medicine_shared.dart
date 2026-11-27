@@ -17,11 +17,9 @@ class MedicineShared {
   final List<ModuleRecord> doses;
   final List<ModuleRecord> boxes;
 
-  /// Every moment a log answers, as `medicineId|day|HH:MM` keys: the
-  /// routine time the log says it answers (`slot`), and the clock time it
-  /// was logged at. A dose logged from the detail sheet carries no slot, so
-  /// only its own time can answer a moment — the same match the Today page
-  /// makes. A log whose action is neither taken nor skipped answers
+  /// The single moment each log answers, as `medicineId|day|HH:MM` keys.
+  /// An explicit slot takes precedence; only a slotless log falls back to
+  /// its own clock time, so one log cannot answer two routine moments. A log whose action is neither taken nor skipped answers
   /// nothing: it is not the person's word about a moment.
   static Set<String> answeredKeys(Iterable<ModuleRecord> doses) => {
     for (final dose in doses)
@@ -39,10 +37,7 @@ class MedicineShared {
     final local = at.toLocal();
     final id = MedicineModels.readString(dose.body, 'medicineId');
     final slot = MedicineModels.readString(dose.body, 'slot');
-    return [
-      '$id|${_day(local)}|${_hhmm(local)}',
-      if (slot.isNotEmpty) '$id|${_day(local)}|$slot',
-    ];
+    return ['$id|${_day(local)}|${slot.isNotEmpty ? slot : _hhmm(local)}'];
   }
 
   /// Whether [dose] answers the routine moment [time] on the day of [at].

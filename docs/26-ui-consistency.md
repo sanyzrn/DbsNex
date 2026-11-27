@@ -13,7 +13,7 @@ From the owner, as a note kept in the app and repeated since:
 > finish it. **Goal:** parts of the same kind take one source for colour,
 > corners, border, spacing and focus state; the differences they need come from
 > options and variants, not from copies. Do not redesign the pages, and do not
-> change the logic, data, rendering engine or native editor. Keep the glass
+>   change the logic, data, rendering engine or editor. Keep the glass
 > material, light and dark, Persian/English and RTL, large text, and the focus,
 > error and disabled states. Delete the replaced duplicate code, run the tests,
 > and report briefly.

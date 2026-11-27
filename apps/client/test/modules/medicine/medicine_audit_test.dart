@@ -152,7 +152,10 @@ void main() {
         'name': 'Medicine A',
         'times': [earlierToday(), lateToday()],
       });
-      await pump(tester, MedicineScreen(store: store));
+      await pump(
+        tester,
+        MedicineScreen(store: store, clock: () => DateTime(2026, 11, 27, 12)),
+      );
       final row = find.descendant(
         of: find.byKey(const ValueKey('medicine-row-m1')),
         matching: find.textContaining('Next at'),
@@ -324,15 +327,32 @@ void main() {
   });
 
   group('the Today page', () {
+    testWidgets('midnight is shown on its own day', (tester) async {
+      final store = await harness(tester);
+      final now = DateTime(2026, 11, 27, 12);
+      await store.put('medicine', 'm1', {
+        'v': 3,
+        'name': 'Medicine A',
+        'times': ['00:00'],
+      });
+      await pump(tester, MedicineTodayPage(store: store, clock: () => now));
+      expect(
+        find.byKey(const ValueKey('medicine-today-taken-2026-11-27-m1-00:00')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('the moment to act on carries its own heading', (tester) async {
       final store = await harness(tester);
-      final soon = DateTime.now().add(const Duration(hours: 1));
+      final now = DateTime(2026, 11, 27, 12);
+      final soon = now.add(const Duration(hours: 1));
       await store.put('medicine', 'm1', {
         'v': 3,
         'name': 'Medicine A',
         'times': [hhmm(soon)],
       });
-      await pump(tester, MedicineTodayPage(store: store));
+      await pump(tester, MedicineTodayPage(store: store, clock: () => now));
       expect(find.text('Next'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });

@@ -13,34 +13,15 @@ void main() {
     CaptureKind.checklist,
     CaptureKind.link,
   ]) {
-    testWidgets('${kind.name}: paste retains the native child focus', (
+    testWidgets('${kind.name}: paste keeps the editor\'s focus', (
       tester,
     ) async {
+      // The capture box's empty Send is a Paste: the clipboard's words go
+      // straight into the field, typed by nobody. The paste is a write into
+      // the controller from outside, and the editor — one the framework owns
+      // — must come out of it with its focus and its selection intact.
       final h = await NexTestHarness.create();
-      NexTextField.native = true;
       final messenger = tester.binding.defaultBinaryMessenger;
-      final calls = <String>[];
-      var viewId = -1;
-      messenger.setMockMethodCallHandler(SystemChannels.platform_views, (
-        call,
-      ) async {
-        if (call.method == 'create') {
-          viewId = (call.arguments as Map)['id'] as int;
-          messenger.setMockMethodCallHandler(
-            MethodChannel('nex/edit_text/$viewId'),
-            (call) async {
-              calls.add(call.method);
-              return null;
-            },
-          );
-          return viewId;
-        }
-        if (call.method == 'resize') {
-          final args = call.arguments as Map;
-          return {'width': args['width'], 'height': args['height']};
-        }
-        return null;
-      });
       messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
         if (call.method == 'Clipboard.getData') {
           return {'text': 'https://example.com'};
@@ -51,15 +32,7 @@ void main() {
         return null;
       });
       addTearDown(() async {
-        NexTextField.native = false;
-        messenger.setMockMethodCallHandler(SystemChannels.platform_views, null);
         messenger.setMockMethodCallHandler(SystemChannels.platform, null);
-        if (viewId >= 0) {
-          messenger.setMockMethodCallHandler(
-            MethodChannel('nex/edit_text/$viewId'),
-            null,
-          );
-        }
         await h.dispose();
       });
       await tester.pumpWidget(
@@ -79,35 +52,25 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final surface = find.byType(AndroidViewSurface);
-      expect(surface, findsOneWidget);
-      final nativeFocus = Focus.of(tester.element(surface));
-      nativeFocus.requestFocus();
-      await tester.pump();
-      await messenger.handlePlatformMessage(
-        'nex/edit_text/$viewId',
-        const StandardMethodCodec().encodeMethodCall(
-          const MethodCall('focus', {'focused': true}),
-        ),
-        (_) {},
+      final editor = find.descendant(
+        of: find.byType(NexTextField),
+        matching: find.byType(EditableText),
       );
+      expect(editor, findsOneWidget);
+      await tester.tap(editor);
       await tester.pump();
-      final parentFocus = tester
-          .widget<NexTextField>(find.byType(NexTextField))
-          .focusNode!;
-      expect(parentFocus.hasFocus, isTrue);
-      expect(parentFocus.hasPrimaryFocus, isFalse);
-      calls.clear();
+
       await tester.tap(find.byKey(const ValueKey('capture-send')));
       await tester.pumpAndSettle();
-      expect(FocusManager.instance.primaryFocus, same(nativeFocus));
-      expect(
-        calls.where((call) => call == 'focus' || call == 'unfocus'),
-        isEmpty,
-      );
+
       expect(
         tester.widget<NexTextField>(find.byType(NexTextField)).controller.text,
         'https://example.com',
+      );
+      expect(
+        tester.state<EditableTextState>(editor).widget.focusNode.hasFocus,
+        isTrue,
+        reason: 'the paste must not leave the editor without its focus',
       );
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();

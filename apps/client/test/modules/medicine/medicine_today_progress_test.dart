@@ -55,6 +55,23 @@ void main() {
     expect(p.next, DateTime(2026, 11, 27, 20));
   });
 
+  test('explicit slot takes precedence over the log clock time', () {
+    final p = MedicineTodayProgress.of(medicine(const {}), [
+      doseAt(DateTime(2026, 11, 27, 14), slot: '08:00'),
+    ], now);
+    expect((p.total, p.open), (3, 2));
+    expect(p.next, DateTime(2026, 11, 27, 14));
+  });
+
+  test('midnight is included in today and can be answered', () {
+    final m = medicine(const {'times': ['00:00', '14:00']});
+    final p = MedicineTodayProgress.of(m, [
+      doseAt(DateTime(2026, 11, 27), slot: '00:00'),
+    ], now);
+    expect((p.total, p.open), (2, 1));
+    expect(p.next, DateTime(2026, 11, 27, 14));
+  });
+
   test('a log from the detail sheet answers the moment at its own time', () {
     final p = MedicineTodayProgress.of(medicine(const {}), [
       doseAt(DateTime(2026, 11, 27, 8)),

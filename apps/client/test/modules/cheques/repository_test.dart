@@ -85,6 +85,16 @@ void main() {
     );
     expect(c.status, 'settled');
     expect(c.remaining, BigInt.zero);
+    await expectLater(
+      repo.addEvent(
+        c,
+        id: 'invalid-return',
+        kind: 'status',
+        day: DateTime(2026, 11, 17),
+        next: 'returned',
+      ),
+      throwsA(isA<ChequeFailure>()),
+    );
     c = await repo.reverseLast(c);
     expect(c.status, 'active');
     expect(c.remaining, BigInt.from(700));

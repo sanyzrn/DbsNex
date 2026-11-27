@@ -49,9 +49,10 @@ class _DoseSlot {
 /// writes down what the person says happened, at the moment the routine
 /// named.
 class MedicineTodayPage extends StatefulWidget {
-  const MedicineTodayPage({super.key, required this.store});
+  const MedicineTodayPage({super.key, required this.store, this.clock});
 
   final NexModuleStore store;
+  final DateTime Function()? clock;
 
   @override
   State<MedicineTodayPage> createState() => _MedicineTodayPageState();
@@ -136,7 +137,10 @@ class _MedicineTodayPageState extends State<MedicineTodayPage>
       if (!schedule.hasTimes) {
         continue;
       }
-      for (final at in schedule.occurrences(from: start, until: end)) {
+      for (final at in schedule.occurrences(
+        from: start.subtract(const Duration(microseconds: 1)),
+        until: end,
+      )) {
         final time = _hhmm(at);
         out.add(
           _DoseSlot(
@@ -243,10 +247,10 @@ class _MedicineTodayPageState extends State<MedicineTodayPage>
   Widget build(BuildContext context) {
     final strings = medicineStrings;
     final theme = Theme.of(context);
-    final now = DateTime.now();
+    final now = widget.clock?.call() ?? DateTime.now();
     final today = _slotsFor(now, yesterday: false);
     final yesterday = _slotsFor(
-      now.subtract(const Duration(days: 1)),
+      DateTime(now.year, now.month, now.day - 1),
       yesterday: true,
     ).where((slot) => slot.log == null).toList();
     // The one moment to act on: the first open one still ahead. Everything

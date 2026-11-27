@@ -44,12 +44,20 @@ class ChequeEditorOptions extends StatelessWidget {
                 maxLength: key == 'note'
                     ? 2000
                     : key == 'sayad'
-                    ? 16
+                    ? null
                     : key == 'number'
                     ? 60
                     : 100,
+                keyboardType: key == 'sayad'
+                    ? TextInputType.number
+                    : key == 'note'
+                    ? TextInputType.multiline
+                    : TextInputType.text,
+                textDirection: key == 'sayad' ? TextDirection.ltr : null,
+                enableIMEPersonalizedLearning: key != 'sayad',
                 decoration: InputDecoration(
                   labelText: s(context, key),
+                  helperText: key == 'sayad' ? s(context, 'sayadDigits') : null,
                   counterText: '',
                 ),
               ),

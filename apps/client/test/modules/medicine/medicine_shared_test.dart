@@ -103,6 +103,34 @@ void main() {
     expect(doses.last.done, isFalse);
   });
 
+  test('an explicit slot answers only that moment, not the clock time', () {
+    final shared = MedicineShared(
+      medicines: [
+        record('medicine', 'm1', {
+          'name': 'Medicine A',
+          'times': ['00:00', '08:00'],
+        }),
+      ],
+      doses: [
+        record(
+          'dose',
+          'd1',
+          MedicineModels.doseBody(
+            medicineId: 'm1',
+            action: MedicineModels.taken,
+            at: DateTime(2026, 11, 20, 8),
+            slot: '00:00',
+          ),
+        ),
+      ],
+    );
+    final dues = shared.duesBetween(
+      DateTime(2026, 11, 20),
+      DateTime(2026, 11, 20, 23, 59),
+    );
+    expect(dues.map((d) => d.done), [true, false]);
+  });
+
   test('a log whose action is neither taken nor skipped answers nothing', () {
     final shared = MedicineShared(
       medicines: [

@@ -73,7 +73,7 @@ class WordsAutoField extends StatelessWidget {
   );
 }
 
-/// Multiline text uses Nex's shared platform editor.
+/// Multiline text uses Nex's shared editor.
 class WordsNoteField extends StatelessWidget {
   const WordsNoteField({
     super.key,

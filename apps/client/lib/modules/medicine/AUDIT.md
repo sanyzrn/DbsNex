@@ -57,3 +57,10 @@ Every file of the module (~6,800 lines: cabinet, Today, Expiry, detail sheet, ed
 - `review/` detail and Today images remain one polish behind (README says so).
 - Reminder truncation above 160 alarms stays silent (platform cap); newest medicines win.
 - Device checks (TalkBack/VoiceOver, real Doze behaviour, release builds) remain maintainer acceptance, as the module's checklist states.
+
+## Maintainer follow-up before merge
+
+- Explicit dose slots take precedence over the clock timestamp, so one log cannot complete two routine moments.
+- Midnight (00:00) is included in both Today and cabinet progress.
+- Household filters reset when their selection is no longer available; fixed-clock widget tests cover time-dependent cases.
+- Added regression tests for midnight and explicit-slot matching. The original audit's test results predate these changes; fresh CI is required.

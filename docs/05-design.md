@@ -218,13 +218,15 @@ Accessibility is core functionality, not a compliance checkbox — a slow or con
 - Two-finger pinch on the home list collapses/expands all date groups; ordinary
   scrolling, card expansion and search remain separate controls.
 - Summaries follow their content direction even when the interface is English.
-- Every paragraph a person writes keeps its own direction and alignment while
-  it is edited, as it does when it is read: multi-line fields are
-  `NexTextField`, the platform's own editor on Android, with the system's
-  handles, magnifier and menu (formatting added, other apps' actions left
-  off). Single-line fields follow the typed script, or are left to right for
-  links, keys and amounts. `test/text_field_rule_test.dart` holds every field
-  to this ([ADR-037](./10-decisions.md#adr-037--text-a-person-writes-is-edited-in-the-platforms-own-editor-on-android)).
+- The paragraph a person is writing keeps its own direction and alignment,
+  in every field: `NexTextField` is the framework's editor laid out around
+  the caret's paragraph, with its handles, magnifier and menu (formatting
+  added, other apps' actions left off) and horizontal arrows that move by
+  what is on screen rather than through the string. A note at rest keeps
+  every paragraph's direction and side on every reading surface. Single-line
+  fields follow the typed script, or are left to right for links, keys and
+  amounts. `test/text_field_rule_test.dart` holds every field to this
+  ([ADR-037](./10-decisions.md#adr-037--text-a-person-writes-is-edited-in-the-platforms-own-editor-on-android)).
 - While typing in the settings search — or in the home search with words
   typed — the first touch outside it only closes the keyboard; elsewhere a touch outside a field does what it touches
   ([ADR-038](./10-decisions.md#adr-038--while-typing-in-the-settings-search-a-touch-outside-it-only-closes-the-keyboard)).

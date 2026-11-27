@@ -51,13 +51,15 @@ class MedicineTodayProgress {
     }
     final start = DateTime(now.year, now.month, now.day);
     final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-    final moments = schedule.occurrences(from: start, until: end);
+    final moments = schedule.occurrences(
+      from: start.subtract(const Duration(microseconds: 1)),
+      until: end,
+    );
     if (moments.isEmpty) {
       return const MedicineTodayProgress(total: 0, open: 0);
     }
-    // One pass over this medicine's logs: each log answers its slot and its
-    // own clock time, exactly as the Today page and the shared calendar
-    // read it.
+    // One pass over this medicine's logs, using the same slot-first match
+    // as Today and the shared calendar.
     final answered = MedicineShared.answeredKeys(
       MedicineLogic.dosesFor(doses, record.id),
     );

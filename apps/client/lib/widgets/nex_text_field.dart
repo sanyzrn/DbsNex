@@ -1,19 +1,12 @@
 import 'dart:async';
-import 'dart:io' show Platform;
-import 'dart:math' as math;
 import 'dart:ui' show BoxWidthStyle;
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
-import '../l10n/app_localizations.dart';
-import 'keyboard_dismisser.dart';
+import 'nex_caret_movement.dart';
 import 'text_format_menu.dart';
-import 'native_text_magnifier.dart';
 
 /// Where a person writes more than one line of their own words.
 ///
@@ -21,25 +14,44 @@ import 'native_text_magnifier.dart';
 /// note, a caption, a message, a bio — is a [NexTextField], never a bare
 /// `TextField`. `test/text_field_rule_test.dart` fails the build otherwise.
 ///
-/// On Android it is the platform's own editor, an `EditText`, embedded as a
-/// texture layer. Flutter's editor lays a whole field out in one
-/// direction: a Persian note with an English line in it put that line's
-/// full stop on the wrong end, an `!` after a Persian sentence in an English
-/// note sat before it, and the caret and selection handles followed the
-/// same scrambled order — so the end of a sentence could not be reached and
-/// the handles looked reversed. Android decides direction and alignment per
-/// paragraph, from each paragraph's first strong letter, which is what
-/// Telegram and every other app built on that editor show: every line in its
-/// own direction, aligned to its own side, with the system's handles,
-/// magnifier and menu.
+/// It is Flutter's own editor on every platform — Android included, since
+/// 2.9.4. Until then Android embedded the platform's own `EditText` as a
+/// texture layer, because it lays each paragraph out in its own direction,
+/// from its first strong letter, which a single `TextField` cannot do for a
+/// whole field at once. But a form of embedded editors hands its keyboard
+/// from one platform-view input client to the next as focus moves — native
+/// to native across Prompt Studio's and Family Fund's forms, native to
+/// Flutter from Habits' note to its name — and every such handoff passes
+/// through the engine's client switch, which closes and reopened the
+/// keyboard. Three releases of Dart-side coordination (2.9.1, 2.9.2,
+/// 2.9.3) could not reach that switch. One editor, owned by the framework,
+/// never passes through it: focus moves between [TextField]s stay inside
+/// the one input connection Flutter already keeps for the whole app. See
+/// `docs/development/nex-2.9.4-keyboard.md`.
 ///
-/// Everywhere else — Windows, and widget tests, which run on the host — it
-/// is Flutter's `TextField`, under [NexAutoDirection], as before.
+/// Direction and alignment — the reason the native editor existed — follow
+/// the paragraph being written. [NexAutoDirection] lays the field out
+/// around the caret's own paragraph, in that paragraph's own direction and
+/// on its own side, by the same first-strong rule the platform editor gave
+/// each paragraph: the paragraph being typed is always right, and the field
+/// turns with the caret. A paragraph whose script differs from the caret's
+/// paragraph sits on the caret's paragraph's side until the caret reaches
+/// it. Everywhere a note is *read* — the timeline, the reader, every
+/// preview — each paragraph keeps its own direction and its own side on
+/// every platform, through [NexTextSurface], as before.
 ///
-/// The [controller] stays the source of truth for the rest of the app: what
-/// is typed natively is written back into it, and anything the app writes
-/// into it (an AI rewrite, a format, a cleared composer) is sent to the
-/// native editor.
+/// Horizontal arrows are the framework's, with one correction: they move to
+/// the caret that is next *on screen* rather than the next in the string, so
+/// a right-to-left paragraph moves with the eye and an embedded run of the
+/// other script keeps its own direction — see `NexVisualCaretKeys`. The
+/// selection handles and the lens are the framework's own, enabled on the
+/// mobile platforms, and resolve against the same paragraph direction.
+///
+/// The [controller] stays the source of truth for the rest of the app, on
+/// every platform alike. There is no channel, no second copy of the text,
+/// and nothing to fall out of step: what is typed is in the controller the
+/// frame it is typed, and an AI rewrite, a format, a cleared composer
+/// written into the controller is in the editor the same frame.
 class NexTextField extends StatefulWidget {
   const NexTextField({
     super.key,
@@ -49,7 +61,6 @@ class NexTextField extends StatefulWidget {
     this.style,
     this.textDirection,
     this.monospace = false,
-    this.code = false,
     this.minLines,
     this.maxLines,
     this.expands = false,
@@ -67,7 +78,6 @@ class NexTextField extends StatefulWidget {
     this.enableSuggestions = true,
     this.enableIMEPersonalizedLearning = true,
     this.formatting = false,
-    this.useNativeEditor = true,
     this.onCopy,
   });
 
@@ -78,27 +88,15 @@ class NexTextField extends StatefulWidget {
 
   /// A direction the field keeps regardless of what is typed into it.
   ///
-  /// Null is the ordinary rule — each line follows its own first strong
-  /// letter, on Android by the platform's own editor and elsewhere through
-  /// [NexAutoDirection]. Code is the one field that is always left to right,
-  /// even in a Persian interface and even when its comments are Persian.
+  /// Null is the ordinary rule — the field follows the paragraph the caret
+  /// is in, each in its own direction, through [NexAutoDirection]. Code is
+  /// the one field that is always left to right, even in a Persian
+  /// interface and even when its comments are Persian.
   final TextDirection? textDirection;
 
-  /// Draw — and, on Android, really set — a fixed-width face. A [style]
-  /// alone cannot do it there: the platform editor is given its typeface
-  /// over the channel, not by Flutter's text style.
+  /// Draw a fixed-width face. Code is not prose, and its width is part of
+  /// how it reads.
   final bool monospace;
-
-  /// Whether the words are code, so the editor pairs brackets and quotes and
-  /// keeps a line's indentation on the next one.
-  ///
-  /// On the Flutter editor that is [inputFormatters]; Android's own editor
-  /// cannot run a Dart formatter, so the same two rules are its own
-  /// (`NexEditText.codeGestures`). Passing this and keeping the field on the
-  /// native editor is what lets a capture box move between code and the
-  /// other kinds without swapping editors — and so without dropping the
-  /// keyboard and blowing the sheet up and down.
-  final bool code;
 
   final int? minLines;
 
@@ -128,35 +126,19 @@ class NexTextField extends StatefulWidget {
   /// `nexFormatContextMenuBuilder`.
   final bool formatting;
 
-  /// Whether this field uses Android's own editor. Code was the one field
-  /// that opted out, for [inputFormatters]; the native editor now carries
-  /// the same code gestures, so a capture box keeps one editor for all its
-  /// kinds.
-  final bool useNativeEditor;
-
   /// Where Copy and Cut send the selected text instead of the clipboard —
   /// the vault's `PrivateClipboard`, which marks it sensitive and clears it.
   /// Null is the ordinary clipboard. With it set, Share is left off the
-  /// native selection menu, so what is copied privately cannot leave the
-  /// app by the side door.
+  /// selection menu, so what is copied privately cannot leave the app by
+  /// the side door.
   final Future<void> Function(String text)? onCopy;
-
-  /// Whether the native editor is used. True on Android; tests that drive
-  /// the native protocol set it, and must put it back.
-  static bool native = !kIsWeb && Platform.isAndroid;
-
-  /// Experimental native-editor loupe, using Flutter’s built-in TextMagnifier.
-  /// Kept independent of the renderer and native editor selection behavior.
-  static bool flutterMagnifier = true;
-
-  static const viewType = 'nex/edit_text';
 
   @override
   State<NexTextField> createState() => _NexTextFieldState();
 }
 
 class _NexTextFieldState extends State<NexTextField> {
-  /// The formatting menu for the Flutter editor, made once and kept.
+  /// The formatting menu, made once and kept.
   ///
   /// Not `nexFormatContextMenuBuilder(context)` in `build`: `EditableText`
   /// compares this builder against the previous one **by identity**, and a
@@ -170,10 +152,7 @@ class _NexTextFieldState extends State<NexTextField> {
       nexFormatContextMenuBuilder(context);
 
   @override
-  Widget build(BuildContext context) =>
-      NexTextField.native && widget.useNativeEditor
-      ? _NativeField(field: widget)
-      : _flutter(context);
+  Widget build(BuildContext context) => _flutter(context);
 
   Widget _flutter(BuildContext context) {
     final monoStyle = widget.monospace
@@ -212,6 +191,12 @@ class _NexTextFieldState extends State<NexTextField> {
       // The default paints a double-tapped word's highlight out to the end
       // of the line on right-to-left text.
       selectionWidthStyle: BoxWidthStyle.tight,
+      // The handles and the lens are the framework's own — on Android and
+      // iOS, from the same laid-out paragraph the field draws. Stated rather
+      // than inherited because 2.9.4 removed the native bridge the old
+      // editor needed, and a later edit that disables the lens should be
+      // visible here. See [NexVisualCaretKeys] for the arrows.
+      magnifierConfiguration: TextMagnifier.adaptiveMagnifierConfiguration,
       contextMenuBuilder: widget.onCopy != null
           ? _privateMenu
           : widget.formatting
@@ -221,7 +206,8 @@ class _NexTextFieldState extends State<NexTextField> {
     return NexAutoDirection(
       controller: widget.controller,
       direction: widget.textDirection,
-      builder: (context, direction) => field(direction),
+      builder: (context, direction) =>
+          NexVisualCaretKeys(child: field(direction)),
     );
   }
 
@@ -280,521 +266,4 @@ Future<void> nexPrivateCopy(
     selection: TextSelection.collapsed(offset: range.start),
   );
   onChanged?.call(text);
-}
-
-/// The Android half: an `EditText` in the widget tree, kept in step with
-/// [NexTextField.controller] over a channel of its own.
-///
-/// The protocol, one channel per view (`nex/edit_text/<id>`):
-///
-/// - from Dart: `setValue` {text, start, end}, `update` {config}, `focus`,
-///   `unfocus`;
-/// - from Android: `changed` {text, start, end}, `selection` {start, end},
-///   `height` {height}, `focus` {focused}, `submit`, `format` {id, start,
-///   end}, and — for a field with [NexTextField.onCopy] — `copy` {start,
-///   end, cut}; `magnifier` {show, x, caretX, top, bottom, left, right, width, height}.
-class _NativeField extends StatefulWidget {
-  const _NativeField({required this.field});
-
-  final NexTextField field;
-
-  @override
-  State<_NativeField> createState() => _NativeFieldState();
-}
-
-class _NativeFieldState extends State<_NativeField> {
-  MethodChannel? _channel;
-  final _viewKey = GlobalKey();
-  final _magnifier = NexNativeTextMagnifier();
-  late TextEditingController _controller = widget.field.controller;
-  FocusNode? _ownFocus;
-  FocusNode get _focus => widget.field.focusNode ?? (_ownFocus ??= FocusNode());
-
-  /// The value the native editor is known to hold. A controller change that
-  /// matches it came from there and is not sent back.
-  late TextEditingValue _native = _controller.value;
-
-  /// Set while a value from the native editor is being written into the
-  /// controller, so the listener does not echo it.
-  bool _fromNative = false;
-  bool _focused = false;
-  NexImeHide? _pendingHide;
-  double? _height;
-  Map<String, Object?>? _lastConfig;
-  AppLocalizations? _formatLocale;
-  List<Map<String, String>> _formats = const [];
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(_onController);
-    _focus.addListener(_onFocus);
-    // The field's node answers for its editor in the focus tree — the
-    // handoff's "does a native editor hold the keyboard" — whichever way
-    // the editor is reached: from Dart, or by the engine reporting the
-    // platform view's own node inside it.
-    nexImeHandoff.editorNodeAttached(_focus);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (ModalRoute.isCurrentOf(context) == false) _magnifier.hide();
-  }
-
-  @override
-  void didUpdateWidget(_NativeField old) {
-    super.didUpdateWidget(old);
-    if (!widget.field.enabled) _magnifier.hide();
-    if (old.field.controller != widget.field.controller) {
-      old.field.controller.removeListener(_onController);
-      _controller = widget.field.controller;
-      _controller.addListener(_onController);
-      _onController();
-    }
-    if (old.field.focusNode != widget.field.focusNode) {
-      final oldNode = old.field.focusNode ?? _ownFocus;
-      oldNode?.removeListener(_onFocus);
-      if (oldNode != null) nexImeHandoff.editorNodeDetached(oldNode);
-      _focus.addListener(_onFocus);
-      nexImeHandoff.editorNodeAttached(_focus);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.removeListener(_onController);
-    _focus.removeListener(_onFocus);
-    _pendingHide?.cancel();
-    // A field taken out of the tree is not holding a keyboard anyone can use,
-    // and leaving it in the registry would keep the next hide from running.
-    nexImeHandoff.editorDetached(this);
-    nexImeHandoff.editorNodeDetached(_focus);
-    _ownFocus?.dispose();
-    _channel?.setMethodCallHandler(null);
-    _magnifier.dispose();
-    super.dispose();
-  }
-
-  void _onController() {
-    if (_fromNative) return;
-    final value = _controller.value;
-    if (value.text == _native.text && value.selection == _native.selection) {
-      return;
-    }
-    _native = value;
-    _magnifier.hide();
-    final selection = value.selection.isValid
-        ? value.selection
-        : TextSelection.collapsed(offset: value.text.length);
-    unawaited(
-      _channel?.invokeMethod<void>('setValue', {
-        'text': value.text,
-        'start': selection.start,
-        'end': selection.end,
-      }),
-    );
-  }
-
-  /// Focus asked for from Dart — a `requestFocus` on the field's node —
-  /// is passed on, keyboard included.
-  ///
-  /// The field's node only ever holds focus itself when Dart has just asked
-  /// for it: once the editor takes focus, the platform view's own node,
-  /// inside this one, takes it over (PlatformViewLink). So primary focus
-  /// here always means "focus the editor", even when it already was — a
-  /// `requestFocus` on a focused composer takes focus from the platform
-  /// view's node, and that clears the editor's.
-  void _onFocus() {
-    if (_focus.hasPrimaryFocus) {
-      // Another field may be about to lose focus on the same frame; taking
-      // focus cancels the keyboard hide it deferred.
-      _pendingHide = null;
-      nexImeHandoff.gain();
-      unawaited(_channel?.invokeMethod<void>('focus'));
-    } else if (_focus.hasFocus) {
-      // The platform view's own node, inside this one, holds primary focus:
-      // the engine reporting that Android's editor claimed the keyboard —
-      // how a person's tap on the editor itself arrives. The claim is a
-      // gain: it cancels a hide that was armed before this sweep — a
-      // dismissal settling while the person went back into a field. The
-      // sweep notifies the new path before the old, so a handoff armed by
-      // the field being left is not answered here; `lose` does not arm one
-      // while any editor — this one included — holds the tree's focus.
-      //
-      // No command is sent: the editor already took focus on its own; a
-      // `focus` here would take focus from the platform view's node and
-      // clear the editor's again.
-      _pendingHide = null;
-      nexImeHandoff.gain();
-    } else if (!_focus.hasFocus && _focused) {
-      // Not immediately: a tap on the next field on this screen loses this
-      // focus and gains that one in the same frame, and hiding the IME here
-      // would close it just before the next field reopens it. The handoff
-      // gives that field the chance to take the keyboard over first. This
-      // field is the one letting go, so its own editor's focus report does
-      // not count as somebody else holding the keyboard.
-      _pendingHide = nexImeHandoff.lose(_unfocusEditor, except: this);
-    }
-  }
-
-  void _unfocusEditor() {
-    // This field is the one ending the session, so its own report is not
-    // another field holding the keyboard; anyone else's is.
-    if (!mounted || nexImeHandoff.otherEditorsHold(this)) return;
-    if (nexFlutterTextInputHasFocus()) return;
-    // Ending the session releases this field's claim as well. In the app the
-    // editor's own focus report follows and would do it; in a test, or when
-    // the editor had already let go, no report is coming.
-    nexImeHandoff.editorDetached(this);
-    // Ask the editor first: when it still holds focus its own `unfocus`
-    // clears the focus and releases the IME with it. The window hide is for
-    // the other order — the editor reported the loss that started this wait,
-    // so there is nothing left in it to release, and Android would otherwise
-    // leave the keyboard standing over a field nobody is in.
-    unawaited(_channel?.invokeMethod<void>('unfocus'));
-    unawaited(nexHideKeyboard());
-  }
-
-  void _focusFromPadding(TapUpDetails tap) {
-    final view = _viewKey.currentContext;
-    if (view == null) return;
-    final box = InputDecorator.containerOf(view);
-    if (box == null ||
-        !(Offset.zero & box.size).contains(
-          box.globalToLocal(tap.globalPosition),
-        )) {
-      return;
-    }
-    // The embedded EditText still receives its own taps and long presses.
-    // This covers the outline's space outside that platform view only.
-    if (_focus.hasFocus) {
-      unawaited(_channel?.invokeMethod<void>('focus'));
-    } else {
-      _focus.requestFocus();
-    }
-  }
-
-  Future<dynamic> _onNative(MethodCall call) async {
-    final args = (call.arguments as Map?)?.cast<String, Object?>() ?? const {};
-    switch (call.method) {
-      case 'magnifier':
-        if (!mounted) return;
-        _magnifier.update(
-          context: context,
-          source: _viewKey.currentContext?.findRenderObject() as RenderBox?,
-          geometry: args,
-          enabled:
-              NexTextField.flutterMagnifier && widget.field.enabled && _focused,
-        );
-      case 'changed':
-        _magnifier.hide();
-        final text = args['text']! as String;
-        final value = TextEditingValue(
-          text: text,
-          selection: _selection(args, text.length),
-        );
-        final textChanged = text != _controller.text;
-        final emptiness = text.isEmpty != _controller.text.isEmpty;
-        _native = value;
-        _fromNative = true;
-        try {
-          _controller.value = value;
-        } finally {
-          _fromNative = false;
-        }
-        if (textChanged) widget.field.onChanged?.call(text);
-        // The decoration's label sits inside an empty field and
-        // floats above a filled one, and the counter counts.
-        if ((emptiness || widget.field.maxLength != null) && mounted) {
-          setState(() {});
-        }
-      case 'selection':
-        final value = _controller.value.copyWith(
-          selection: _selection(args, _controller.text.length),
-          composing: TextRange.empty,
-        );
-        _native = value;
-        _fromNative = true;
-        try {
-          _controller.value = value;
-        } finally {
-          _fromNative = false;
-        }
-      case 'height':
-        final height = (args['height']! as num).toDouble();
-        if (height != _height && mounted) setState(() => _height = height);
-      case 'focus':
-        final focused = args['focused'] == true;
-        if (focused) {
-          // The editor has the keyboard: keep a previous field's deferred
-          // hide from landing on it, and let the handoff know a native editor
-          // — not only Flutter's tree — owns the IME right now.
-          nexImeHandoff.editorGainedFocus(this);
-        } else {
-          _magnifier.hide();
-          // Android sends this around every handoff — the old editor's
-          // loss is dispatched next to the new one's gain, and a second,
-          // stale loss follows once the platform view link clears the old
-          // view after Flutter's focus moved on. The report only updates
-          // the handoff's registry: hiding on it raced the next field's own
-          // report and, when that report was late, closed the keyboard the
-          // next field was already using. The session ends where it is
-          // meant to — a dismissal from the Dart side, a route leaving, this
-          // field's dispose — never on this event alone.
-          nexImeHandoff.editorLostFocus(this);
-        }
-        if (focused == _focused) return;
-        _focused = focused;
-        // Not a `requestFocus` here: the platform view's own node already
-        // took focus as the editor did, and asking for this one would take
-        // it back from that node — which clears the editor's focus again.
-        // The one case to act on is the editor losing focus while Dart
-        // still wants it here (the clear above raced a `focus`).
-        //
-        // Never while another editor holds the keyboard: the native tap that
-        // moved focus to the next field does not move Flutter's primary
-        // focus with it, so this check alone would pull the keyboard back to
-        // the field the person just left.
-        if (!focused && _focus.hasPrimaryFocus && !nexImeHandoff.hasEditors) {
-          unawaited(_channel?.invokeMethod<void>('focus'));
-        }
-        if (mounted) setState(() {});
-      case 'copy':
-        final copy = widget.field.onCopy;
-        if (copy == null) return;
-        await nexPrivateCopy(
-          _controller,
-          copy,
-          cut: args['cut'] == true,
-          onChanged: widget.field.onChanged,
-          selection: _selection(args, _controller.text.length),
-        );
-      case 'submit':
-        widget.field.onSubmitted?.call(_controller.text);
-      case 'format':
-        if (!mounted) return;
-        final command = args['id']! as String;
-        final value = _controller.value.copyWith(
-          selection: _selection(args, _controller.text.length),
-        );
-        final formatted = await nexApplyFormat(context, command, value);
-        if (!mounted) return;
-        if (command == 'link') {
-          if (ModalRoute.of(context)?.isCurrent == false) return;
-          // The URL field has completely left before this returns, so its
-          // input connection cannot steal or hide the editor's keyboard.
-          // Cancellation hands the same selection back too.
-          if (_focus.hasPrimaryFocus) {
-            // Route focus may already have returned during the dialog's
-            // exit; repeat the native hand-off now its IME client is gone.
-            await _channel?.invokeMethod<void>('focus');
-          } else {
-            _focus.requestFocus();
-          }
-        }
-        if (formatted == null || !mounted) return;
-        _controller.value = formatted;
-        widget.field.onChanged?.call(formatted.text);
-    }
-  }
-
-  static TextSelection _selection(Map<String, Object?> args, int length) {
-    final start = ((args['start'] as int?) ?? length).clamp(0, length);
-    final end = ((args['end'] as int?) ?? start).clamp(0, length);
-    return TextSelection(baseOffset: start, extentOffset: end);
-  }
-
-  /// Everything about the editor that is not its text.
-  Map<String, Object?> _config(BuildContext context) {
-    final field = widget.field;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final style = theme.textTheme.bodyLarge!.merge(field.style);
-    final enabled = field.enabled;
-    // These labels do not change while typing. Reuse their list so a shallow
-    // config comparison does not serialize a full menu on every rebuild.
-    if (field.formatting) {
-      final locale = AppLocalizations.of(context);
-      if (locale != _formatLocale) {
-        _formatLocale = locale;
-        _formats = [
-          for (final command in nexFormatCommands(locale))
-            {'id': command.id, 'label': command.label},
-        ];
-      }
-    }
-    final textColor = (style.color ?? scheme.onSurface).withValues(
-      alpha: enabled ? null : 0.38,
-    );
-    final hintColor =
-        field.decoration.hintStyle?.color ??
-        theme.inputDecorationTheme.hintStyle?.color ??
-        scheme.onSurfaceVariant;
-    final selection =
-        theme.textSelectionTheme.selectionColor ??
-        scheme.primary.withValues(alpha: 0.35);
-    final action = field.textInputAction;
-    // The app's own text size and the system's, as every Flutter text in
-    // the app gets them.
-    final scaler = MediaQuery.textScalerOf(context);
-    final fontSize = style.fontSize ?? 16;
-    // A label resting inside an empty field stands where the hint would be;
-    // the hint shows once the label has moved up out of its way.
-    final labelInside =
-        (field.decoration.labelText != null ||
-            field.decoration.label != null) &&
-        _controller.text.isEmpty &&
-        !_focused &&
-        field.decoration.floatingLabelBehavior != FloatingLabelBehavior.always;
-    return {
-      'hint': labelInside ? null : field.decoration.hintText,
-      'fontSize': scaler.scale(fontSize),
-      'lineHeight': style.height,
-      'letterSpacing': style.letterSpacing == null
-          ? null
-          : scaler.scale(fontSize) / fontSize * style.letterSpacing!,
-      'textColor': textColor.toARGB32(),
-      'hintColor': hintColor.toARGB32(),
-      'selectionColor': selection.toARGB32(),
-      'accentColor': scheme.primary.toARGB32(),
-      'minLines': field.expands ? 0 : (field.minLines ?? 1),
-      'maxLines': field.expands ? 0 : (field.maxLines ?? 0),
-      'expands': field.expands,
-      'imeAction': switch (action) {
-        TextInputAction.send => 'send',
-        TextInputAction.done => 'done',
-        TextInputAction.search => 'search',
-        TextInputAction.go => 'go',
-        TextInputAction.next => 'next',
-        _ => 'newline',
-      },
-      'keyboard': switch (field.keyboardType.index) {
-        2 => 'number',
-        3 => 'phone',
-        5 => 'email',
-        6 => 'url',
-        _ => 'text',
-      },
-      'capitalization': field.textCapitalization.name,
-      'autocorrect': field.autocorrect,
-      'suggestions': field.monospace ? false : field.enableSuggestions,
-      'incognito': !field.enableIMEPersonalizedLearning,
-      'enabled': enabled,
-      'readOnly': field.readOnly,
-      'maxLength': field.maxLength ?? 0,
-      'autofocus': field.autofocus,
-      'privateCopy': field.onCopy != null,
-      'flutterMagnifier': NexTextField.flutterMagnifier,
-      'monospace': field.monospace,
-      'code': field.code,
-      'textDirection': field.textDirection?.name,
-      'rtl': Directionality.of(context) == TextDirection.rtl,
-      'formats': field.formatting ? _formats : const <Map<String, String>>[],
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final config = _config(context);
-    if (_lastConfig != null && !mapEquals(config, _lastConfig)) {
-      unawaited(_channel?.invokeMethod<void>('update', config));
-    }
-    _lastConfig = config;
-    final field = widget.field;
-    final theme = Theme.of(context);
-    final style = theme.textTheme.bodyLarge!.merge(field.style);
-    // Until the editor has measured itself, the height its minimum lines
-    // will need.
-    final fallback =
-        MediaQuery.textScalerOf(context).scale(style.fontSize ?? 16) *
-        (style.height ?? 1.4) *
-        (field.minLines ?? 1);
-    final view = PlatformViewLink(
-      key: _viewKey,
-      viewType: NexTextField.viewType,
-      surfaceFactory: (context, controller) => AndroidViewSurface(
-        controller: controller as AndroidViewController,
-        // Every touch on the editor is the editor's: a drag selects or
-        // scrolls the text, it does not move the sheet around it.
-        gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{
-          Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
-        },
-        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-      ),
-      onCreatePlatformView: (params) {
-        final channel = MethodChannel('nex/edit_text/${params.id}')
-          ..setMethodCallHandler(_onNative);
-        _channel = channel;
-        final value = _controller.value;
-        final selection = value.selection.isValid
-            ? value.selection
-            : TextSelection.collapsed(offset: value.text.length);
-        _native = value;
-        // Keep the editor in a texture: forcing hybrid composition stalls
-        // the whole Flutter scene while the editor/keyboard opens or scrolls.
-        // The app uses its default SurfaceView again. Do not change the
-        // renderer of every page just to feed Android’s system magnifier.
-        // The experimental loupe uses Flutter’s stock TextMagnifier instead.
-        // InputDecorator alone owns the transparent editor's border and fill.
-        return PlatformViewsService.initSurfaceAndroidView(
-            id: params.id,
-            viewType: NexTextField.viewType,
-            layoutDirection: Directionality.of(context),
-            creationParams: {
-              ...config,
-              'text': value.text,
-              'start': selection.start,
-              'end': selection.end,
-            },
-            creationParamsCodec: const StandardMessageCodec(),
-            onFocus: () => params.onFocusChanged(true),
-          )
-          ..addOnPlatformViewCreatedListener(params.onPlatformViewCreated)
-          ..create();
-      },
-    );
-    final decoration = field.decoration
-        .applyDefaults(theme.inputDecorationTheme)
-        // The editor draws the hint itself, in the hint's own direction;
-        // the decoration keeps everything around it.
-        .copyWith(
-          hintText: '',
-          // The count a Flutter field shows under itself when it has a
-          // limit, unless the decoration says otherwise.
-          counterText:
-              field.decoration.counterText ??
-              (field.maxLength == null
-                  ? ''
-                  : '${_controller.text.characters.length}/${field.maxLength}'),
-        );
-    // In Flutter's text-field tap group, as every TextField is: a touch on
-    // it is a touch on a field (see NexKeyboardGuard).
-    final editable = field.enabled && !field.readOnly;
-    return TextFieldTapRegion(
-      child: Focus(
-        focusNode: _focus,
-        skipTraversal: true,
-        child: GestureDetector(
-          behavior: editable
-              ? HitTestBehavior.opaque
-              : HitTestBehavior.deferToChild,
-          excludeFromSemantics: true,
-          onTapUp: editable ? _focusFromPadding : null,
-          child: InputDecorator(
-            decoration: decoration,
-            isFocused: _focused,
-            isEmpty: _controller.text.isEmpty,
-            expands: field.expands,
-            child: field.expands
-                ? view
-                : SizedBox(
-                    height: math.max(_height ?? fallback, 1),
-                    child: view,
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
 }

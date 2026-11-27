@@ -13,8 +13,15 @@ import 'strings.dart';
 import 'widgets.dart';
 
 class PlansPage extends StatefulWidget {
-  const PlansPage({super.key, required this.store});
+  const PlansPage({
+    super.key,
+    required this.store,
+    this.planId,
+    this.instalmentIndex,
+  });
   final NexModuleStore store;
+  final String? planId;
+  final int? instalmentIndex;
   @override
   State<PlansPage> createState() => _PlansPageState();
 }
@@ -41,10 +48,20 @@ class _PlansPageState extends State<PlansPage> {
   Future<void> load() async {
     final g = ++generation;
     try {
-      final data = await widget.store.list('plan');
+      final id = widget.planId;
+      final data = id == null
+          ? [
+              for (final r in await widget.store.list('plan'))
+                InstalmentPlan(r.id, r.body),
+            ]
+          : [
+              if (await widget.store.get('plan', id)
+                  case final Map<String, Object?> body)
+                InstalmentPlan(id, body),
+            ];
       if (mounted && g == generation) {
         setState(() {
-          rows = data.map((r) => InstalmentPlan(r.id, r.body)).toList();
+          rows = data;
           loading = false;
           failed = false;
         });
@@ -65,7 +82,7 @@ class _PlansPageState extends State<PlansPage> {
           chequePrivateRoute(context, PlanEditor(repo: repo, plan: p)),
     ),
   );
-  Future<void> write(Future<void> Function() action) async {
+  Future<void> write(String planId, Future<void> Function() action) async {
     if (busy) return;
     setState(() => busy = true);
     try {
@@ -73,7 +90,11 @@ class _PlansPageState extends State<PlansPage> {
       if (mounted) {
         var ok = false;
         try {
-          ok = await renewPlans(widget.store, AppLocalizations.of(context));
+          ok = await renewPlans(
+            widget.store,
+            AppLocalizations.of(context),
+            planId: planId,
+          );
         } catch (_) {
           ok = false;
         }
@@ -122,18 +143,30 @@ class _PlansPageState extends State<PlansPage> {
       ),
     );
     if (yes != true || !mounted) return;
-    await write(() async {
+    await write(p.id, () async {
       final raw = await repo.delete(p);
       host?.show(
-        message: s.text(l10n, 'deleted'),
+        message: s.text(l10n, 'planDeleted'),
         actionLabel: s.text(l10n, 'undo'),
         onAction: () async {
           try {
             await repo.restore(p.id, raw);
-            await renewPlans(repo.store, l10n);
-          } catch (_) {
+          } catch (e) {
             host.show(
-              message: s.text(l10n, 'saveError'),
+              message: s.text(l10n, e is ChequeFailure ? e.code : 'saveError'),
+              kind: NexBannerKind.failed,
+            );
+            return;
+          }
+          var ok = false;
+          try {
+            ok = await renewPlans(repo.store, l10n, planId: p.id);
+          } catch (_) {
+            // The restored plan is already saved.
+          }
+          if (!ok) {
+            host.show(
+              message: s.text(l10n, 'remindError'),
               kind: NexBannerKind.failed,
             );
           }
@@ -142,20 +175,59 @@ class _PlansPageState extends State<PlansPage> {
     });
   }
 
+  Widget _instalment(InstalmentPlan p, int index, {bool selected = false}) {
+    final s = chequeStrings;
+    final number = nexDigits(
+      '${index + 1}',
+      persian: NexModuleStrings.persian(context),
+    );
+    final due = nexModuleDateLabel(context, p.date(index));
+    final paidOn = p.paidOn(index);
+    return CheckboxListTile(
+      key: ValueKey('instalment-${p.id}-$index'),
+      contentPadding: EdgeInsets.zero,
+      selected: selected,
+      value: paidOn != null,
+      onChanged: busy
+          ? null
+          : (_) => write(p.id, () async {
+              await repo.toggle(p, index);
+            }),
+      title: Text(
+        '${s(context, 'instalment')} $number · ${chequeMoney(context, p.amount(index))} ${s(context, 'toman')}',
+      ),
+      subtitle: Text(
+        [
+          due,
+          if (paidOn != null)
+            s(context, 'instalmentPaidOn', {
+              'date': nexModuleDateLabel(context, paidOn),
+            }),
+        ].join('\n'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = chequeStrings;
     return Scaffold(
       appBar: NexAppBar(
-        title: Text(s(context, 'plans')),
+        title: Text(
+          rows.length == 1 && widget.planId != null
+              ? rows.single.title
+              : s(context, 'plans'),
+        ),
         actions: const [ChequePrivacyButton()],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: null,
-        onPressed: () => edit(),
-        icon: const Icon(Icons.add),
-        label: Text(s(context, 'addPlan')),
-      ),
+      floatingActionButton: widget.planId != null || busy || loading || failed
+          ? null
+          : FloatingActionButton.extended(
+              heroTag: null,
+              onPressed: () => edit(),
+              icon: const Icon(Icons.add),
+              label: Text(s(context, 'addPlan')),
+            ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : failed
@@ -175,7 +247,10 @@ class _PlansPageState extends State<PlansPage> {
                 NexSpacing.xl + kMinInteractiveDimension * 2,
               ),
               children: [
-                if (rows.isEmpty) Text(s(context, 'noPlans')),
+                if (rows.isEmpty)
+                  Text(
+                    s(context, widget.planId == null ? 'noPlans' : 'noResults'),
+                  ),
                 for (final p in rows)
                   Padding(
                     padding: const EdgeInsets.only(bottom: NexSpacing.md),
@@ -190,26 +265,27 @@ class _PlansPageState extends State<PlansPage> {
                             Text(
                               '${s(context, 'plan_total')}: ${chequeMoney(context, p.total!, unit: 'rial')} ${s(context, 'rial')}',
                             ),
+                            Text(
+                              s(context, 'planProgress', {
+                                'paid': p.paidCount,
+                                'total': p.count,
+                              }),
+                            ),
                             TextButton(
-                              onPressed: () => edit(p),
+                              onPressed: busy ? null : () => edit(p),
                               child: Text(s(context, 'editPlan')),
                             ),
-                            for (var i = 0; i < p.count; i++)
-                              CheckboxListTile(
-                                contentPadding: EdgeInsets.zero,
-                                value: p.paid(i),
-                                onChanged: busy
-                                    ? null
-                                    : (_) => write(() async {
-                                        await repo.toggle(p, i);
-                                      }),
-                                title: Text(
-                                  '${s(context, 'instalment')} ${nexDigits('${i + 1}', persian: NexModuleStrings.persian(context))} · ${chequeMoney(context, p.amount(i))} ${s(context, 'toman')}',
-                                ),
-                                subtitle: Text(
-                                  nexModuleDateLabel(context, p.date(i)),
-                                ),
+                            if (widget.instalmentIndex case final int i
+                                when i >= 0 && i < p.count) ...[
+                              NexShelfHeading(
+                                icon: Icons.event_outlined,
+                                title: s(context, 'instalmentSelected'),
                               ),
+                              _instalment(p, i, selected: true),
+                            ],
+                            for (var i = 0; i < p.count; i++)
+                              if (i != widget.instalmentIndex)
+                                _instalment(p, i),
                           ],
                           TextButton(
                             onPressed: busy ? null : () => remove(p),

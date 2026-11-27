@@ -65,18 +65,23 @@ class InstalmentPlan {
   }
 
   /// Instalment [i]'s share of the total; the last one takes what does not
-  /// divide. A total in whole tomans is divided in whole tomans (2.8.4):
-  /// 10,000,000 tomans in three used to read 3,333,333.3 tomans.
+  /// divide. Prefer whole tomans when each instalment can still be positive.
   BigInt amount(int i) {
     final ten = BigInt.from(10);
-    final unit = total! % ten == BigInt.zero ? ten : BigInt.one;
-    final units = total! ~/ unit;
     final n = BigInt.from(count);
+    final rial = total!;
+    final unit = rial % ten == BigInt.zero && rial ~/ ten >= n
+        ? ten
+        : BigInt.one;
+    final units = rial ~/ unit;
     final share = units ~/ n;
     return (share + (i == count - 1 ? units % n : BigInt.zero)) * unit;
   }
 
-  bool paid(int i) => (raw['paid'] as Map).containsKey('$i');
+  int get paidCount =>
+      List.generate(count, paid).where((value) => value).length;
+  DateTime? paidOn(int i) => chequeDay((raw['paid'] as Map)['$i']);
+  bool paid(int i) => paidOn(i) != null;
   List<Cheque> cheques() => !valid
       ? []
       : [

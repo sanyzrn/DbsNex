@@ -124,7 +124,8 @@ class ChequeRepository {
       }
       status = n == old.remaining ? 'settled' : old.status;
     } else if (kind == 'status') {
-      if (next == old.status ||
+      if (old.remaining == BigInt.zero ||
+          next == old.status ||
           !chequeStatuses.contains(next) ||
           next == 'settled' ||
           (next == 'transferred' && target.trim().isEmpty) ||

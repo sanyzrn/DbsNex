@@ -13,37 +13,59 @@ List<Cheque> actionableCheques(Iterable<Cheque> rows) =>
 
 class ChequeWindow {
   ChequeWindow(this.from, this.to, Iterable<Cheque> rows) {
-    final snapshot = rows.toList();
-    final ids = ChequeDues(snapshot)
-        .duesBetween(from, DateTime(to.year, to.month, to.day - 1))
-        .where((d) => !d.done && d.kind != 'cheque-review')
-        .map((d) => d.id)
-        .toSet();
-    for (final c in snapshot) {
-      if (!ids.contains(c.recordKind == 'plan' ? c.id : 'cheque:${c.id}')) {
-        continue;
-      }
-      items.add(c);
-      if (c.direction == 'outgoing') {
-        outgoing += c.remaining;
-      } else {
-        incoming += c.remaining;
-      }
+    for (final due in _cashDues(rows, from, to)) {
+      _add(due.cheque);
     }
   }
+
+  ChequeWindow._(this.from, this.to);
   final DateTime from, to;
   final List<Cheque> items = [];
   BigInt incoming = BigInt.zero, outgoing = BigInt.zero;
+
+  void _add(Cheque cheque) {
+    items.add(cheque);
+    if (cheque.direction == 'outgoing') {
+      outgoing += cheque.remaining;
+    } else {
+      incoming += cheque.remaining;
+    }
+  }
 }
 
-List<ChequeWindow> chequeOutlook(List<Cheque> rows, DateTime today) => [
-  for (var i = 0; i < 4; i++)
-    ChequeWindow(
-      DateTime(today.year, today.month, today.day + 7 * i),
-      DateTime(today.year, today.month, today.day + 7 * (i + 1)),
-      rows,
-    ),
-];
+Iterable<({Cheque cheque, DateTime day})> _cashDues(
+  Iterable<Cheque> rows,
+  DateTime start,
+  DateTime end,
+) sync* {
+  if (!end.isAfter(start)) return;
+  final snapshot = ChequeDues(rows);
+  final ids = {
+    for (final c in snapshot.rows)
+      c.recordKind == 'plan' ? c.id : 'cheque:${c.id}': c,
+  };
+  for (final due in snapshot.duesBetween(
+    start,
+    DateTime(end.year, end.month, end.day - 1),
+  )) {
+    if (!due.done && due.kind != 'cheque-review') {
+      yield (cheque: ids[due.id]!, day: due.at);
+    }
+  }
+}
+
+List<ChequeWindow> chequeOutlook(List<Cheque> rows, DateTime today) {
+  DateTime start(int week) =>
+      DateTime(today.year, today.month, today.day + 7 * week);
+  final windows = [
+    for (var i = 0; i < 4; i++) ChequeWindow._(start(i), start(i + 1)),
+  ];
+  for (final (:cheque, :day) in _cashDues(rows, start(0), start(4))) {
+    windows[chequeDaysBetween(today, day) ~/ 7]._add(cheque);
+  }
+  return windows;
+}
+
 bool chequeOverdue(Cheque c, DateTime today) =>
     c.valid &&
     !c.closed &&

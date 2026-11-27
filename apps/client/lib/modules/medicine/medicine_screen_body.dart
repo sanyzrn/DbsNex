@@ -5,7 +5,7 @@ extension _MedicineScreenBody on _MedicineScreenState {
     final strings = medicineStrings;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final now = DateTime.now();
+    final now = widget.clock?.call() ?? DateTime.now();
     final active = _medicines
         .where((record) => !MedicineModels.readArchived(record.body))
         .toList();
@@ -24,7 +24,7 @@ extension _MedicineScreenBody on _MedicineScreenState {
       (record) => MedicineModels.readPerson(record.body).isEmpty,
     );
     final showMeChip = mine && people.isNotEmpty;
-    final shown = _onlyMe
+    final shown = _onlyMe && showMeChip
         ? active
               .where((record) => MedicineModels.readPerson(record.body).isEmpty)
               .toList()
@@ -180,7 +180,7 @@ extension _MedicineScreenBody on _MedicineScreenState {
                       ChoiceChip(
                         key: const ValueKey('medicine-person-all'),
                         label: Text(strings(context, 'allPeople')),
-                        selected: !_onlyMe && _peopleFilter == null,
+                        selected: !(_onlyMe && showMeChip) && _peopleFilter == null,
                         onSelected: (_) => _paint(() {
                           _onlyMe = false;
                           _peopleFilter = null;
@@ -200,7 +200,7 @@ extension _MedicineScreenBody on _MedicineScreenState {
                         ChoiceChip(
                           key: ValueKey('medicine-person-$person'),
                           label: Text(person),
-                          selected: !_onlyMe && _peopleFilter == person,
+                          selected: !(_onlyMe && showMeChip) && _peopleFilter == person,
                           onSelected: (_) => _paint(() {
                             _onlyMe = false;
                             _peopleFilter = person;

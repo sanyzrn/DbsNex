@@ -25,9 +25,10 @@ part 'medicine_rows.dart';
 /// active, what is archived, and nothing that claims to have been
 /// scheduled or checked while they were away.
 class MedicineScreen extends StatefulWidget {
-  const MedicineScreen({super.key, required this.store});
+  const MedicineScreen({super.key, required this.store, this.clock});
 
   final NexModuleStore store;
+  final DateTime Function()? clock;
 
   @override
   State<MedicineScreen> createState() => _MedicineScreenState();
@@ -135,7 +136,7 @@ class _MedicineScreenState extends State<MedicineScreen>
   Future<void> _openToday() async {
     await Navigator.of(context).push(
       NexPageRoute<void>(
-        builder: (_) => MedicineTodayPage(store: widget.store),
+        builder: (_) => MedicineTodayPage(store: widget.store, clock: widget.clock),
       ),
     );
   }
@@ -172,6 +173,25 @@ class _MedicineScreenState extends State<MedicineScreen>
       }
       setState(() {
         _medicines = medicines;
+        final active = medicines.where(
+          (record) => !MedicineModels.readArchived(record.body),
+        );
+        final hasMine = active.any(
+          (record) => MedicineModels.readPerson(record.body).isEmpty,
+        );
+        final hasNamed = active.any(
+          (record) => MedicineModels.readPerson(record.body).isNotEmpty,
+        );
+        if (_onlyMe && (!hasMine || !hasNamed)) {
+          _onlyMe = false;
+        }
+        if (_peopleFilter != null &&
+            !active.any(
+              (record) =>
+                  MedicineModels.readPerson(record.body) == _peopleFilter,
+            )) {
+          _peopleFilter = null;
+        }
         _boxes = boxes;
         _doses = doses;
         _loading = false;

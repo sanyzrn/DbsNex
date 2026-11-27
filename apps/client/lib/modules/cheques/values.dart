@@ -13,6 +13,11 @@ String chequeDigits(String text) {
   }).join();
 }
 
+/// Accept grouped identifiers copied from bank messages and Persian keyboards.
+String normalizedSayad(String text) => chequeDigits(
+  text,
+).replaceAll(RegExp(r'[\s\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069-]'), '');
+
 BigInt? chequeAmount(Object? raw) {
   if (raw is int) raw = raw.toString();
   if (raw is! String || !RegExp(r'^[1-9][0-9]{0,23}$').hasMatch(raw)) {

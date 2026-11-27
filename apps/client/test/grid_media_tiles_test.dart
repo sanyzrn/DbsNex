@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -347,6 +348,52 @@ void main() {
     expect(widths, hasLength(3));
     expect(widths.first, closeTo(widths[1] * 1.5, 1));
     expect(widths[1], widths[2]);
+  });
+
+  testWidgets('rebuilding a collage tile does not read its attachments '
+      'again', (tester) async {
+    final dir = Directory.systemTemp.createTempSync('grid_collage_once_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final more = [for (var i = 0; i < 3; i++) picture(dir, 'm$i.png').path];
+    final answer = Completer<List<String>>();
+    var reads = 0;
+
+    Widget tile() => NexNoteGridCard(
+      note: note(
+        'collage-once',
+        NoteType.photo,
+        uri: picture(dir, 'c.png').path,
+        attachments: 3,
+      ),
+      strings: NexCardStrings.fallback,
+      onTap: () {},
+      photos: (_) {
+        reads++;
+        return answer.future;
+      },
+    );
+
+    await host(tester, [tile()]);
+    expect(reads, 1, reason: 'the first build asks once');
+
+    // A rebuild while the read is still out — a pick, a size change, a row
+    // arriving above it. Asking the same note's attachments again starts a
+    // second read of the same pictures and resets what the tile shows.
+    await host(tester, [tile()]);
+    await tester.pump();
+    expect(reads, 1, reason: 'a rebuild reuses the read that is out');
+
+    answer.complete(more);
+    await tester.pumpAndSettle();
+    // One photo and three more: three are shown, the fourth is counted.
+    expect(find.text('+1'), findsOneWidget);
+
+    // And once the answer is in, a rebuild reads what is already known.
+    await host(tester, [tile()]);
+    await tester.pumpAndSettle();
+    expect(reads, 1, reason: 'a rebuild reads the pictures already read');
+    expect(find.text('+1'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('a video with no frame to be had keeps its words', (

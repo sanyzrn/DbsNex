@@ -7,6 +7,14 @@ import 'package:nex_client/modules/cheques/reminders.dart';
 import 'fixtures.dart';
 
 void main() {
+  test(
+    'Sayad IDs accept Persian and Arabic digits and bank-message grouping',
+    () {
+      expect(normalizedSayad('‎۱۲۳۴-٥٦٧٨ ۹۰۱۲ ۳۴۵۶'), '1234567890123456');
+      expect(normalizedSayad('1234X5678'), '1234X5678');
+    },
+  );
+
   test('Rial/Toman precision, bounds, grouping and three numeric scripts', () {
     expect(enteredAmount('۱٬۲۳۴', 'toman'), BigInt.from(12340));
     expect(enteredAmount('١٢٣٤', 'rial'), BigInt.from(1234));
