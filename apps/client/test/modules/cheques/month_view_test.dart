@@ -6,6 +6,8 @@ import 'package:nex_client/modules/cheques/month_view.dart';
 
 import 'fixtures.dart';
 
+import 'package:nex_client/modules/cheques/privacy.dart';
+
 /// The month view lists only the days something falls due, and marks one
 /// where more goes out than comes in (2.8.4) — no longer a card for every
 /// day of the month, most of them empty.
@@ -19,12 +21,15 @@ void main() {
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
-          body: ChequeMonth(
-            rows: rows,
-            month: DateTime(2026, 11, 20),
-            move: (_) {},
-            open: (_) {},
+        home: ChequePrivacy(
+          child: Scaffold(
+            appBar: AppBar(actions: const [ChequePrivacyButton()]),
+            body: ChequeMonth(
+              rows: rows,
+              month: DateTime(2026, 11, 20),
+              move: (_) {},
+              open: (_) {},
+            ),
           ),
         ),
       ),
@@ -48,6 +53,18 @@ void main() {
     expect(days(), findsNWidgets(2));
     expect(find.byIcon(Icons.south_east), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('hiding amounts also masks the direction of net cash flow', (
+    tester,
+  ) async {
+    await show(tester, [Cheque('a', chequeRaw(date: '2026-11-10'))]);
+    expect(find.byIcon(Icons.south_east), findsOneWidget);
+    await tester.tap(find.byTooltip('Hide amounts'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.south_east), findsNothing);
+    expect(find.textContaining('−••••'), findsNothing);
+    expect(days(), findsOneWidget);
   });
 
   testWidgets('a month with nothing due says so once', (tester) async {

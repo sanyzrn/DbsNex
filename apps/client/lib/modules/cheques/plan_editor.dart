@@ -142,6 +142,7 @@ class _PlanEditorState extends State<PlanEditor> {
           ok = await renewPlans(
             widget.repo.store,
             AppLocalizations.of(context),
+            planId: id,
           );
         } catch (_) {
           ok = false;

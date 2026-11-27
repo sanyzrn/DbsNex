@@ -207,12 +207,22 @@ class _ChequeEditorState extends State<ChequeEditor> {
 
   Future<void> _save() async {
     if (_loading || _saving || _failed) return;
+    final sayad = normalizedSayad(_fields['sayad']!.text);
+    if (_committed == null &&
+        sayad.isNotEmpty &&
+        !RegExp(r'^[0-9]{16}$').hasMatch(sayad)) {
+      setState(() {
+        _details = true;
+        _error = chequeStrings(context, 'sayadInvalid');
+      });
+      return;
+    }
     setState(() => _saving = true);
     try {
       _committed ??= await widget.repo.save(_id, widget.cheque?.raw, {
         for (final key in ['party', 'bank', 'account', 'number', 'note'])
           key: _fields[key]!.text.trim(),
-        'sayad': chequeDigits(_fields['sayad']!.text.trim()),
+        'sayad': sayad,
         'direction': _direction,
         'purpose': _purpose,
         'amountRial':

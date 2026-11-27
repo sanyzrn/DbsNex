@@ -41,6 +41,17 @@ void main() {
       expect(p.cheques().every((c) => c.valid), isTrue);
     },
   );
+  test('a long title and a tiny total produce valid positive instalments', () {
+    final plan = InstalmentPlan('small', {
+      ...planRaw(),
+      'title': 'س' * 100,
+      'totalRial': 10,
+    });
+    final rows = plan.cheques();
+    expect(rows.every((row) => row.valid), isTrue);
+    expect(rows.map((row) => row.face?.toInt()), [2, 2, 2, 4]);
+  });
+
   test('a total in whole tomans is paid in whole tomans (2.8.4)', () {
     final p = InstalmentPlan('p', {
       ...planRaw(),
@@ -135,6 +146,38 @@ void main() {
       );
     },
   );
+  testWidgets('tapping a due row opens its exact plan and instalment', (
+    t,
+  ) async {
+    final h = await NexTestHarness.create(name: 'focused_plan_');
+    addTearDown(h.dispose);
+    final store = NexModuleStore(h.services, 'cheques');
+    await t.runAsync(() async {
+      final repo = PlanRepository(store);
+      await repo.save('p', null, planRaw());
+      await repo.save('other', null, {...planRaw(), 'title': 'Unrelated'});
+    });
+    await t.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ChequePrivacy(child: ChequeHome(store: store)),
+      ),
+    );
+    await settleCheque(t);
+    final row = find.text('Laptop · 2/4');
+    await reachCheque(t, row);
+    await t.tap(row);
+    await settleCheque(t);
+    expect(find.text('Selected instalment'), findsOneWidget);
+    final tile = t.widget<CheckboxListTile>(
+      find.byKey(const ValueKey('instalment-p-1')),
+    );
+    expect(tile.selected, isTrue);
+    expect(find.text('Unrelated'), findsNothing);
+  });
+
   testWidgets('monthly cash calendar is reachable and amounts can be hidden', (
     t,
   ) async {

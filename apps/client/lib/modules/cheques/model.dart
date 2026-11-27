@@ -90,6 +90,8 @@ class Cheque {
                 chequeDay(raw['sayadCheckedDay']) == null)) {
       return false;
     }
+    // Derived party names append the instalment number to the plan title.
+    final instalment = recordKind == 'plan';
     if (raw['v'] != 1 ||
         !['incoming', 'outgoing'].contains(direction) ||
         !['payment', 'guarantee'].contains(purpose) ||
@@ -97,7 +99,7 @@ class Cheque {
         face == null ||
         !chequeStatuses.contains(status) ||
         party.trim().isEmpty ||
-        party.length > 100 ||
+        party.length > (instalment ? 110 : 100) ||
         text('bank').length > 100 ||
         text('account').length > 100 ||
         text('number').length > 60 ||

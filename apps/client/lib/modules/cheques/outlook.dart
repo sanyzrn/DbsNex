@@ -3,6 +3,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'logic.dart';
 import 'model.dart';
+import 'privacy.dart';
 import 'strings.dart';
 import 'widgets.dart';
 
@@ -21,33 +22,40 @@ class ChequeOutlook extends StatelessWidget {
   Future<void> _window(BuildContext context, ChequeWindow window) =>
       nexShowSheet<void>(
         context: context,
-        builder: (sheet) => SizedBox(
-          height: MediaQuery.sizeOf(sheet).height * .7,
-          child: ListView(
-            padding: const EdgeInsets.all(NexSpacing.md),
-            children: [
-              Text(
-                chequeStrings(sheet, 'windowDetails'),
-                style: Theme.of(sheet).textTheme.titleLarge,
+        builder: (_) => chequePrivateRoute(
+          context,
+          Builder(
+            builder: (sheet) => SizedBox(
+              height: MediaQuery.sizeOf(sheet).height * .7,
+              child: ListView(
+                padding: const EdgeInsets.all(NexSpacing.md),
+                children: [
+                  Text(
+                    chequeStrings(sheet, 'windowDetails'),
+                    style: Theme.of(sheet).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: NexSpacing.md),
+                  if (window.items.isEmpty)
+                    Text(chequeStrings(sheet, 'noResults')),
+                  for (final c in window.items)
+                    ChequeTile(
+                      cheque: c,
+                      today: today,
+                      onTap: () {
+                        Navigator.pop(sheet);
+                        open(c);
+                      },
+                    ),
+                ],
               ),
-              const SizedBox(height: NexSpacing.md),
-              if (window.items.isEmpty) Text(chequeStrings(sheet, 'noResults')),
-              for (final c in window.items)
-                ChequeTile(
-                  cheque: c,
-                  today: today,
-                  onTap: () {
-                    Navigator.pop(sheet);
-                    open(c);
-                  },
-                ),
-            ],
+            ),
           ),
         ),
       );
   @override
   Widget build(BuildContext context) {
     final s = chequeStrings, windows = chequeOutlook(rows, today);
+    final hidden = chequeHidden(context);
     final total = windows.fold(BigInt.zero, (sum, w) => sum + w.outgoing);
     var max = BigInt.one;
     for (final w in windows) {
@@ -60,17 +68,17 @@ class ChequeOutlook extends StatelessWidget {
         Text(
           '${s(context, key)}: ${chequeMoney(context, n)} ${s(context, 'toman')}',
         ),
-        const SizedBox(height: NexSpacing.xs),
-        Semantics(
-          label:
-              '${s(context, key)}: ${chequeMoney(context, n)} ${s(context, 'toman')}',
-          child: LinearProgressIndicator(
-            value: (n * BigInt.from(10000) ~/ max).toInt() / 10000,
-            color: key == 'outgoingTotal'
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.secondary,
+        if (!hidden) ...[
+          const SizedBox(height: NexSpacing.xs),
+          ExcludeSemantics(
+            child: LinearProgressIndicator(
+              value: (n * BigInt.from(10000) ~/ max).toInt() / 10000,
+              color: key == 'outgoingTotal'
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.secondary,
+            ),
           ),
-        ),
+        ],
       ],
     );
     return ListView(
