@@ -4,6 +4,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Video and PDF previews no longer go missing.** A preview that was still being read when its card appeared now lands on that card by itself, instead of leaving it blank until the date group was closed and reopened.
+
 ## v2.9.3
 
 - **More reliable keyboard switching.** Improved focus handling when moving between input fields, especially in Prompt Studio and Gold, to prevent unexpected keyboard closure and reopening.

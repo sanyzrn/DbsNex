@@ -220,11 +220,20 @@ class _MediaTileState extends State<_MediaTile> {
     }
 
     if (known != null) return built(known);
+    // One read per note, not one per build: the tile is rebuilt for a pick,
+    // a size change or a row arriving above it, and each of those used to
+    // start the attachments query again and reset what the tile showed.
+    final flight = _collageFlights[key] ??= widget
+        .photos!(widget.note)
+        .then((paths) {
+          if (_collages.length > 200) _collages.clear();
+          return _collages[key] = paths;
+        }, onError: (Object _) => const <String>[])
+        .whenComplete(() {
+          _collageFlights.remove(key);
+        });
     return FutureBuilder<List<String>>(
-      future: widget.photos!(widget.note).then((paths) {
-        if (_collages.length > 200) _collages.clear();
-        return _collages[key] = paths;
-      }, onError: (Object _) => const <String>[]),
+      future: flight,
       builder: (context, snapshot) => built(snapshot.data ?? const []),
     );
   }
@@ -394,6 +403,9 @@ class _MediaTileState extends State<_MediaTile> {
 
 /// A photo note's other pictures, already read, by note and its state.
 final _collages = <String, List<String>>{};
+
+/// The same, still being read: shared by every build until the answer lands.
+final _collageFlights = <String, Future<List<String>>>{};
 
 /// The tile in its colour while its picture is read.
 class _Waiting extends StatelessWidget {

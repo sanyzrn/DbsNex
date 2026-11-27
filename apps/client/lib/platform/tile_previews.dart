@@ -55,11 +55,19 @@ typedef NexTilePage = ({Uint8List bytes, int pages});
 /// disk: a preview is a copy of a note's contents, and a copy on disk is one
 /// more place a deleted note would still be. A failure is remembered too,
 /// so a file that has no frame is not asked again and again.
+///
+/// A request that is out is shared by every tile that asks for the same file
+/// while it is out, and is let go of the moment the answer lands — so a tile
+/// built mid-flight is answered too, and the next ask about a file that had
+/// none is a new question rather than an old, unfinished one.
 abstract final class NexTilePreviews {
   static const _budget = 32 * 1024 * 1024;
 
   static final _frames = <String, Uint8List?>{};
   static final _pages = <String, NexTilePage?>{};
+
+  /// Requests that are out, by what they will answer: one entry per frame or
+  /// page, shared by every tile that asks while it is out.
   static final _pending = <String, Future<Object?>>{};
   static var _bytes = 0;
 
@@ -76,13 +84,11 @@ abstract final class NexTilePreviews {
     if (_frames.containsKey(path)) {
       return SynchronousFuture(_touch(_frames, path));
     }
-    return (_pending['f:$path'] ??= NexVideoPreview.poster(path, width: width)
-            .then((bytes) {
-              _store(_frames, path, bytes, bytes?.length ?? 0);
-              return bytes;
-            })
-            .whenComplete(() => _pending.remove('f:$path')))
-        as Future<Uint8List?>;
+    return _ask(
+      'f:$path',
+      () => NexVideoPreview.poster(path, width: width),
+      (bytes) => _store(_frames, path, bytes, bytes?.length ?? 0),
+    );
   }
 
   /// The first page of the PDF at [path], with its page count.
@@ -90,16 +96,56 @@ abstract final class NexTilePreviews {
     if (_pages.containsKey(path)) {
       return SynchronousFuture(_touch(_pages, path));
     }
-    return (_pending['p:$path'] ??= NexPdfPreview.page(path, width: width)
-            .then((page) {
-              final value = page == null
-                  ? null
-                  : (bytes: page.bytes, pages: page.pageCount);
-              _store(_pages, path, value, page?.bytes.length ?? 0);
-              return value;
-            })
-            .whenComplete(() => _pending.remove('p:$path')))
-        as Future<NexTilePage?>;
+    return _ask<NexTilePage>(
+      'p:$path',
+      () async {
+        final page = await NexPdfPreview.page(path, width: width);
+        return page == null
+            ? null
+            : (bytes: page.bytes, pages: page.pageCount);
+      },
+      (value) => _store(_pages, path, value, value?.bytes.length ?? 0),
+    );
+  }
+
+  /// Asks [key]'s question once, however many tiles ask at the same time, and
+  /// lets go of the request as the answer lands — a picture or none.
+  ///
+  /// The letting go is a `finally` in an async body on purpose. It used to be
+  /// `whenComplete(() => _pending.remove(key))`, and `remove` hands back the
+  /// value it took out: the very future `whenComplete` was completing. It then
+  /// waited for that future to finish before completing its own — a request
+  /// waiting on itself, which never finished. Every tile built while the
+  /// request was out waited with it, showing its colour and no picture, and
+  /// only a card built again (closing and reopening a date group was the
+  /// workaround people found) read the frame that had arrived all along.
+  static Future<T?> _ask<T>(
+    String key,
+    Future<T?> Function() read,
+    void Function(T? value) store,
+  ) {
+    final pending = _pending[key];
+    if (pending != null) return pending as Future<T?>;
+    final flight = _settle(key, read, store);
+    _pending[key] = flight;
+    return flight;
+  }
+
+  static Future<T?> _settle<T>(
+    String key,
+    Future<T?> Function() read,
+    void Function(T? value) store,
+  ) async {
+    try {
+      final value = await read();
+      store(value);
+      return value;
+    } finally {
+      // `removeWhere`, not `remove`: `remove` hands the future being completed
+      // back to whoever asks, and holding a future nobody awaited is exactly
+      // the shape of the bug this replaces (see [_ask]).
+      _pending.removeWhere((asking, _) => asking == key);
+    }
   }
 
   static T? _touch<T>(Map<String, T?> map, String key) {
@@ -109,19 +155,24 @@ abstract final class NexTilePreviews {
   }
 
   static void _store<T>(Map<String, T?> map, String key, T? value, int size) {
+    // A second answer for the same key replaces the room the first took, so
+    // the budget keeps describing what is actually held.
+    if (map.containsKey(key)) _bytes -= _sizeOf(map[key]);
     map[key] = value;
     _bytes += size;
     while (_bytes > _budget && (_frames.isNotEmpty || _pages.isNotEmpty)) {
       final from = _frames.isNotEmpty ? _frames : _pages;
       final oldest = from.keys.first;
-      final gone = from.remove(oldest);
-      _bytes -= switch (gone) {
-        final Uint8List bytes => bytes.length,
-        (bytes: final Uint8List bytes, pages: int _) => bytes.length,
-        _ => 0,
-      };
+      _bytes -= _sizeOf(from.remove(oldest));
     }
   }
+
+  /// The room [value] takes from the budget.
+  static int _sizeOf(Object? value) => switch (value) {
+    final Uint8List bytes => bytes.length,
+    (bytes: final Uint8List bytes, pages: int _) => bytes.length,
+    _ => 0,
+  };
 
   /// Puts a frame or a page in place, as the channel would have answered.
   @visibleForTesting
