@@ -96,16 +96,10 @@ abstract final class NexTilePreviews {
     if (_pages.containsKey(path)) {
       return SynchronousFuture(_touch(_pages, path));
     }
-    return _ask<NexTilePage>(
-      'p:$path',
-      () async {
-        final page = await NexPdfPreview.page(path, width: width);
-        return page == null
-            ? null
-            : (bytes: page.bytes, pages: page.pageCount);
-      },
-      (value) => _store(_pages, path, value, value?.bytes.length ?? 0),
-    );
+    return _ask<NexTilePage>('p:$path', () async {
+      final page = await NexPdfPreview.page(path, width: width);
+      return page == null ? null : (bytes: page.bytes, pages: page.pageCount);
+    }, (value) => _store(_pages, path, value, value?.bytes.length ?? 0));
   }
 
   /// Asks [key]'s question once, however many tiles ask at the same time, and

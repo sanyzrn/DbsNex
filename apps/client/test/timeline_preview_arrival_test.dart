@@ -53,15 +53,13 @@ void main() {
     final asked = answer(after: const Duration(milliseconds: 20));
 
     // Bounded: a request that waits on itself never finishes at all.
-    final frame = await NexTilePreviews.frame(
-      '/clips/trip.mp4',
-    ).timeout(const Duration(seconds: 2));
+    final frame = await NexTilePreviews.frame('/clips/trip.mp4')
+        .timeout(const Duration(seconds: 2));
     expect(frame, picture);
     expect(NexTilePreviews.knownFrame('/clips/trip.mp4')?.bytes, picture);
 
-    final page = await NexTilePreviews.page(
-      '/docs/report.pdf',
-    ).timeout(const Duration(seconds: 2));
+    final page = await NexTilePreviews.page('/docs/report.pdf')
+        .timeout(const Duration(seconds: 2));
     expect(page?.bytes, picture);
     expect(page?.pages, 3);
     expect(NexTilePreviews.knownPage('/docs/report.pdf')?.page?.pages, 3);
@@ -86,9 +84,7 @@ void main() {
     addTearDown(tester.view.reset);
     final asked = answer();
 
-    final quiet = (await h.services.captureText(
-      'a note with no picture',
-    ))!;
+    final quiet = (await h.services.captureText('a note with no picture'))!;
     final video = await h.services.captureFile(
       mediaUri: '${h.mediaDir}/clip.mp4',
       mediaHash: 'video',

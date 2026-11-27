@@ -223,8 +223,7 @@ class _MediaTileState extends State<_MediaTile> {
     // One read per note, not one per build: the tile is rebuilt for a pick,
     // a size change or a row arriving above it, and each of those used to
     // start the attachments query again and reset what the tile showed.
-    final flight = _collageFlights[key] ??= widget
-        .photos!(widget.note)
+    final flight = _collageFlights[key] ??= widget.photos!(widget.note)
         .then((paths) {
           if (_collages.length > 200) _collages.clear();
           return _collages[key] = paths;
