@@ -136,7 +136,8 @@ class _MedicineScreenState extends State<MedicineScreen>
   Future<void> _openToday() async {
     await Navigator.of(context).push(
       NexPageRoute<void>(
-        builder: (_) => MedicineTodayPage(store: widget.store, clock: widget.clock),
+        builder: (_) =>
+            MedicineTodayPage(store: widget.store, clock: widget.clock),
       ),
     );
   }

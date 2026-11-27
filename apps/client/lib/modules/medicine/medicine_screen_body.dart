@@ -180,7 +180,8 @@ extension _MedicineScreenBody on _MedicineScreenState {
                       ChoiceChip(
                         key: const ValueKey('medicine-person-all'),
                         label: Text(strings(context, 'allPeople')),
-                        selected: !(_onlyMe && showMeChip) && _peopleFilter == null,
+                        selected:
+                            !(_onlyMe && showMeChip) && _peopleFilter == null,
                         onSelected: (_) => _paint(() {
                           _onlyMe = false;
                           _peopleFilter = null;
@@ -200,7 +201,9 @@ extension _MedicineScreenBody on _MedicineScreenState {
                         ChoiceChip(
                           key: ValueKey('medicine-person-$person'),
                           label: Text(person),
-                          selected: !(_onlyMe && showMeChip) && _peopleFilter == person,
+                          selected:
+                              !(_onlyMe && showMeChip) &&
+                              _peopleFilter == person,
                           onSelected: (_) => _paint(() {
                             _onlyMe = false;
                             _peopleFilter = person;

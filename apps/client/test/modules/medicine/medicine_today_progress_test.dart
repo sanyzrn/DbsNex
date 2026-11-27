@@ -64,7 +64,9 @@ void main() {
   });
 
   test('midnight is included in today and can be answered', () {
-    final m = medicine(const {'times': ['00:00', '14:00']});
+    final m = medicine(const {
+      'times': ['00:00', '14:00'],
+    });
     final p = MedicineTodayProgress.of(m, [
       doseAt(DateTime(2026, 11, 27), slot: '00:00'),
     ], now);
