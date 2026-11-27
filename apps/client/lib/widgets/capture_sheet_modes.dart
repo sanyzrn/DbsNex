@@ -230,8 +230,9 @@ extension _CaptureModes on _CaptureSheetState {
     } else {
       changed(text);
     }
-    // The native editor owns a child focus node. Re-requesting the parent
-    // steals that focus and briefly drops the IME before restoring it.
+    // A paste can arrive after the button took the focus from the field.
+    // Hand it back only when it is really gone; asking a focused field
+    // changes nothing and never closes the keyboard.
     if (!_fieldFocus.hasFocus) _fieldFocus.requestFocus();
   }
 
@@ -337,8 +338,8 @@ extension _CaptureModes on _CaptureSheetState {
             },
             border: InputBorder.none,
             // The composer owns the only surface and outline. The theme
-            // supplies focused/enabled borders even when `border` is none,
-            // including on Android's native editor (applyDefaults).
+            // supplies focused/enabled borders even when `border` is none;
+            // the shared editor's decoration applies the defaults.
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
             disabledBorder: InputBorder.none,

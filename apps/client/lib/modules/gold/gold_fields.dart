@@ -147,7 +147,7 @@ class GoldAutoTextField extends StatelessWidget {
   );
 }
 
-/// Multiline text uses Nex's shared platform editor.
+/// Multiline text uses Nex's shared editor.
 class GoldNoteField extends StatelessWidget {
   const GoldNoteField({
     super.key,

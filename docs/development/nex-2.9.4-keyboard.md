@@ -200,3 +200,135 @@ cross-paragraph selection through rebuilds without the field turning.
 4. **A slow third-party IME.** With no platform-view clients left, there is
    no client switch left to race; the 2.9.1–2.9.3 reports should now be
    closed by construction rather than by timing.
+5. **A hardware keyboard.** A tablet or the Windows build: the left and
+   right arrows moving with the eye in both languages, Shift extending the
+   selection the same way, and a plain arrow collapsing a selection to the
+   side it points at.
+
+## 7. Independent audit before merge
+
+The release was audited as a whole before merging, including against the
+editor AppFlowy builds for the same problem (appflowy-editor 6.2). Four
+findings changed code; the rest of this section records what was checked and
+what was deliberately left alone.
+
+### 7.1 Arrows moved through the string, not across the screen
+
+Flutter moves the caret in **logical** order: `arrowRight` always advances in
+the string. In «سلام hello» that made the right arrow step left on screen and
+the left arrow step right — the opposite of every platform text view, and of
+AppFlowy, which flips the arrows per block (`arrow_left_command.dart`,
+`arrow_right_command.dart`). The device matrix never covered a hardware
+keyboard, so neither 2.9.3's nor 2.9.4's record saw it.
+
+`NexVisualCaretKeys` (`apps/client/lib/widgets/nex_caret_movement.dart`)
+wraps every `NexTextField` and maps the four character arrows — plain and
+Shift — to a visual intent. The target is found from the laid-out text:
+`RenderEditable.getLocalRectForCaret` says where a candidate sits and
+`RenderEditable.getPositionForPoint` answers which character is under a
+probe. It is therefore decided per run, not per paragraph: an English word
+inside a Persian sentence keeps left-to-right arrows, and a Persian word in
+an English note keeps right-to-left ones. Where two directions meet, a caret
+has two visual positions; the one nearest the move is chosen. A plain arrow
+over a selection collapses to the visual side it points at instead of
+Flutter's logical end. At the edge of a line the framework's own intent
+crosses the line, so vertical movement, word movement, Home/End and every
+platform shortcut are untouched. AppFlowy's block-level flip is a good rule
+and the right starting point; the geometry is where this goes further than
+it.
+
+The regression tests drive the real field with key events — Persian,
+English, both embedded runs, Shift selection, collapse, line edges, and a
+right-then-left round trip at every boundary offset
+(`apps/client/test/nex_caret_movement_test.dart`). One of them also holds the
+keyboard line: crossing a paragraph turns the direction without replacing
+the editor, losing its focus or sending `TextInput.hide`.
+
+### 7.2 The direction rule read the whole note on every keystroke
+
+`nexCaretDirectionOf` built the start offset of every paragraph in the text,
+searched that list, and made a substring per paragraph it considered. A
+controller notifies on every keystroke **and** every frame of a selection
+handle drag, so a 142k-character note paid a full scan for each one. It now
+finds the two newlines around the caret, reads only that paragraph, and —
+when the paragraph is neutral — walks to the nearest neighbouring paragraph
+that has a direction. The field also remembers the paragraph it answered
+for: while the text object is unchanged and the anchor is still inside those
+bounds, a selection move is answered without reading anything. Measured on
+the host JIT, 2,000 scans at the end of a 142k-character note: **138.2 µs per
+scan before, 1.9–3.0 µs after** (0.9 µs mid-note, uncached), roughly 45–70×
+depending on what else the machine is doing.
+`packages/ui/benchmark/nex_direction_benchmark.dart` keeps the measurement.
+The bounds are part of the public rule as `nexCaretParagraphOf`, so the
+cache is checked against the same paragraph the field would resolve.
+
+### 7.3 Scripts outside the Arabic and Hebrew blocks had no direction
+
+First-strong covered the Arabic and Hebrew blocks, their presentation forms
+and the common left-to-right ranges. Adlam, Yezidi, Phoenician, Imperial
+Aramaic, Old South Arabian, Old Hungarian and the other right-to-left
+supplementary scripts answered *null* — "no direction" — so a note opening
+in one inherited the interface's direction. Their script ranges are now
+listed explicitly, and the left-to-right scripts that share those planes
+(Cypriot, Linear B, Deseret) are held out.
+`nex_caret_paragraph_test.dart` covers both halves.
+
+### 7.4 Leftovers from removing the native editor
+
+The native editor's Dart-side formatting helpers (`nexFormatCommands`,
+`nexApplyFormat`) had no callers left; they are gone. Comments and live docs
+that still said multi-line text is edited in Android's own editor were
+corrected (`docs/05-design.md`, `test/text_field_rule_test.dart`, the chat
+composer, the capture sheet, the keyboard dismisser, the Words and Gold
+notes), and ADR-042's loupe is marked withdrawn with the editor it magnified.
+
+### 7.5 Selection handles and the magnifier
+
+No custom selection UI was reintroduced. Flutter's handles, lens and menu
+are the ones in use. The magnifier is stated explicitly as
+`TextMagnifier.adaptiveMagnifierConfiguration` in `NexTextField` so a later
+edit cannot disable it silently, and a test holds it there. What makes the
+handles draw on the right ends is `NexAutoDirection`'s `Directionality`: the
+framework resolves handle sides against the ambient direction, which is what
+the direction work supplies. The existing test that the field owns that
+`Directionality` remains the handle-orientation test; the new one adds the
+lens.
+
+### 7.6 What was deliberately not done
+
+A single Flutter `TextField` still cannot lay out two paragraphs in two base
+directions at once. AppFlowy can, because its document is a tree of blocks
+and each block owns its own text layout and selection; that is a different
+product architecture, and §3.2–3.3 record why replacing the editor with one
+(and with Fleather, its Flutter sibling) was rejected: no per-paragraph
+rendering in the package, a replacement of every controller and every
+selection behaviour, no input formatters or `maxLength`, and — for the
+per-run `TextField` middle ground — a dead backspace at a run boundary.
+What ships is the honest limit already in ADR-037: the paragraph being
+written is always right; the others sit on its side until the caret reaches
+them; every reading surface keeps per-paragraph layout. The audit did not
+change that trade, and it did not reintroduce a native editor to get around
+it.
+
+### 7.7 Validation of the audit
+
+Commands ran on Flutter 3.47.9, host JIT, with the repository's analysers at
+`--fatal-infos` and the format gate over every changed file.
+
+| Check | Result |
+| --- | --- |
+| `packages/ui` analysis | clean |
+| `apps/client` analysis | clean |
+| `packages/ui` tests (full) | 479 passing — includes 7 new caret-paragraph and script tests |
+| `nex_caret_movement_test.dart` | 9 passing — arrows, Shift, collapse, edges, round trip, keyboard continuity |
+| `nex_text_field` + `keyboard_dismisser` | passing — including the new lens assertion |
+| App suite (full) | 4,942 passing, 7 skipped |
+| Direction benchmark | 142k characters, 2,000 scans: 138.2 µs → 2–3 µs per caret scan |
+
+The host used for the audit ships `libsqlite3.so.0` but not the unversioned
+`libsqlite3.so` the test harness loads, so the app suite ran with
+`LD_LIBRARY_PATH` pointing at a symlink to the system library. That is a
+host detail, not a test change; nothing was skipped or weakened for it. The
+device checks in §6 remain device checks. Nothing here claims the arrow keys
+or the lens were seen on the owner's phone; the tests drive the real widgets
+on the host, which is the strongest evidence available in CI.

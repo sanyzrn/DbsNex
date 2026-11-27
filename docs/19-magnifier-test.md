@@ -1,5 +1,10 @@
 # 2.0.6 experimental native-editor magnifier
 
+> **Withdrawn at 2.9.4.** The native editor this adapter magnified was removed
+> with ADR-037's reversal. Flutter's own `TextMagnifier` now serves every
+> field, and nothing of the bridge described below remains. This file is kept
+> as the record of the 2.0.6 experiment; its phone checks no longer apply.
+
 This uses Flutter's existing `TextMagnifier`, with a native geometry/touch adapter.
 No extra Flutter dependency, editor replacement or root renderer change is involved.
 The first test device is the owner's Android phone; no device run is claimed yet.

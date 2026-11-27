@@ -50,7 +50,7 @@ You are a native Persian-speaking UX writer and internationalisation engineer wh
 
 | Path | What it is |
 |---|---|
-| `apps/client/` | The Flutter app. `lib/screens` (incl. `cycle/`, `timeline/`, `note_detail/`, `settings/`, `vault/`), `lib/widgets` (incl. `ai_chat/`), `lib/modules` (the module platform, its API and every module), `lib/platform` (OS integration, services, preferences, the database worker `db_worker.dart`, model store and install controller), `lib/l10n` (`app_en.arb`, `app_fa.arb`), `assets/guide/{en,fa}.md` (in-app guide), `assets/CHANGELOG.md`, `android/` (Kotlin: `MainActivity.kt`, `ShareActivity.kt`, widget providers incl. `NexCycleWidget.kt`, `NexEditText.kt` native editor, `NexEmbedder.kt`, `DownloadService.kt`, the Quick Settings tile) |
+| `apps/client/` | The Flutter app. `lib/screens` (incl. `cycle/`, `timeline/`, `note_detail/`, `settings/`, `vault/`), `lib/widgets` (incl. `ai_chat/`), `lib/modules` (the module platform, its API and every module), `lib/platform` (OS integration, services, preferences, the database worker `db_worker.dart`, model store and install controller), `lib/l10n` (`app_en.arb`, `app_fa.arb`), `assets/guide/{en,fa}.md` (in-app guide), `assets/CHANGELOG.md`, `android/` (Kotlin: `MainActivity.kt`, `ShareActivity.kt`, widget providers incl. `NexCycleWidget.kt`, `NexEmbedder.kt`, `DownloadService.kt`, the Quick Settings tile) |
 | `packages/core/` | Pure Dart domain: models, ports (`NoteRepository`, `AIAdapter`, `NoteEmbedder`, `ChatAdapter`), enrichment, recap source and brief facts, search ranking, cycle prediction, sync merge. No Flutter, no SQLite |
 | `packages/data/` | Pure Dart: SQLite schema and migrations, repositories (notes, threads, commitments, scheduled notes, cycle, module records), FTS, the vector index, library maintenance |
 | `packages/ui/` | Design tokens (`NexSpacing`, `NexRadius`, motion), shared widgets, `nexShowSheet`, `NexPageRoute`, themes |
@@ -81,7 +81,7 @@ Confirm that a Persian speaker gets a first-class, natural, correctly laid-out e
 2. **Typography:** the Persian font and its fallback; ZWNJ (نیم‌فاصله) correct in strings («می‌شود», «یادداشت‌ها»); ی and ک only (never Arabic ي and ك); Persian versus Latin digits consistent and parsed correctly in inputs (dates, BBT temperatures, card numbers, CVV2); line height; diacritic clipping; ellipsis direction.
 3. **Bidi and direction**
    - Notes whose direction is taken from the text (`nexDirectionOf`, `NexTextSurface`, ADR-032); mixed Persian and English lines, numbers, URLs, hashtags, @ mentions and checklists in RTL text.
-   - The caret and selection in the native editor (`NexEditText.kt`) with mixed text.
+   - The caret, selection handles and horizontal arrows in a mixed Persian/English note.
    - Generated text: the smart summary, headline and assistant replies in Persian — direction, punctuation, digits, emoji at line start.
    - Licence notices that must stay English and LTR inside a Persian screen.
    - Icons that must mirror (back, chevrons) and must not (play, checkmarks); swipe directions in RTL.
@@ -90,7 +90,7 @@ Confirm that a Persian speaker gets a first-class, natural, correctly laid-out e
 6. **System surfaces in Persian:** every widget (including Cycle full and discreet), notifications (reminders, Cycle reminders, the model download progress), the tile label, share text, the update sheet.
 
 ### Accessibility
-7. **Screen readers (TalkBack):** every control labelled in both languages; decorative elements excluded; reading order; custom widgets (cards, hold menu, swipe actions, confirmation cards, lookup lines, the vault, the Cycle ring and calendar, the model picker and progress) expose roles, values and actions; announcements for saves, errors and download progress; platform views (the native editor) reachable and editable.
+7. **Screen readers (TalkBack):** every control labelled in both languages; decorative elements excluded; reading order; custom widgets (cards, hold menu, swipe actions, confirmation cards, lookup lines, the vault, the Cycle ring and calendar, the model picker and progress) expose roles, values and actions; announcements for saves, errors and download progress; the shared editor reachable and editable.
 8. **Text scaling:** the app's UI scale combined with the system font, clamped at 1.9×. Clipping, overlap or truncation of essential text at the maximum — cards (fixed height per density), the Cycle ring and calendar, settings rows, sheets, the model screen.
 9. **Contrast** for every theme and palette, light and dark: text, icons, disabled states, faint motifs, glass, focus rings, the Cycle space's soft colours, the error text in chat (WCAG AA 4.5:1 text, 3:1 UI).
 10. **Touch targets** of at least 48dp, including calendar days and widget buttons.

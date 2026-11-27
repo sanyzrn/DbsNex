@@ -155,8 +155,8 @@ final _guarded = <FocusNode>{};
 
 /// Selection handles and fingers extend beyond the painted input. Protect
 /// only a small halo around the currently focused field, not the whole sheet.
-/// Read its live render bounds so scrolling, keyboard animation and a native
-/// platform view's child focus all use the same rule. No larger hit target is
+/// Read its live render bounds so scrolling, the keyboard's animation and a
+/// field rebuilt in place all use the same rule. No larger hit target is
 /// added: nearby buttons keep their own taps and drags.
 bool _nearFocusedEditor(Offset globalPosition) {
   final context = FocusManager.instance.primaryFocus?.context;
