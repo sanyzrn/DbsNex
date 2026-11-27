@@ -50,7 +50,7 @@ You are a senior mobile application security engineer and privacy reviewer, expe
 
 | Path | What it is |
 |---|---|
-| `apps/client/` | The Flutter app. `lib/screens` (incl. `cycle/`, `timeline/`, `note_detail/`, `settings/`, `vault/`), `lib/widgets` (incl. `ai_chat/`), `lib/modules` (the module platform, its API and every module), `lib/platform` (OS integration, services, preferences, the database worker `db_worker.dart`, model store and install controller), `lib/l10n` (`app_en.arb`, `app_fa.arb`), `assets/guide/{en,fa}.md` (in-app guide), `assets/CHANGELOG.md`, `android/` (Kotlin: `MainActivity.kt`, `ShareActivity.kt`, widget providers incl. `NexCycleWidget.kt`, `NexEditText.kt` native editor, `NexEmbedder.kt`, `DownloadService.kt`, the Quick Settings tile) |
+| `apps/client/` | The Flutter app. `lib/screens` (incl. `cycle/`, `timeline/`, `note_detail/`, `settings/`, `vault/`), `lib/widgets` (incl. `ai_chat/`), `lib/modules` (the module platform, its API and every module), `lib/platform` (OS integration, services, preferences, the database worker `db_worker.dart`, model store and install controller), `lib/l10n` (`app_en.arb`, `app_fa.arb`), `assets/guide/{en,fa}.md` (in-app guide), `assets/CHANGELOG.md`, `android/` (Kotlin: `MainActivity.kt`, `ShareActivity.kt`, widget providers incl. `NexCycleWidget.kt`, `NexEmbedder.kt`, `DownloadService.kt`, the Quick Settings tile) |
 | `packages/core/` | Pure Dart domain: models, ports (`NoteRepository`, `AIAdapter`, `NoteEmbedder`, `ChatAdapter`), enrichment, recap source and brief facts, search ranking, cycle prediction, sync merge. No Flutter, no SQLite |
 | `packages/data/` | Pure Dart: SQLite schema and migrations, repositories (notes, threads, commitments, scheduled notes, cycle, module records), FTS, the vector index, library maintenance |
 | `packages/ui/` | Design tokens (`NexSpacing`, `NexRadius`, motion), shared widgets, `nexShowSheet`, `NexPageRoute`, themes |
@@ -126,7 +126,7 @@ Also check that what the app *says* about privacy (guide, settings text, consent
    - API keys: storage, display, logs, export.
    - What is sent to the provider versus what the disclosure log says — including the smart summary, the headline, enrichment and Cycle lookups.
    - The on-device search model: verify that while it is in use no note text is sent anywhere for search or related notes (`nexEmbeddingSpaceFor`, `EnrichmentService` with a `NoteEmbedder`).
-9. **Native code:** `NexEditText.kt` (input on its channel, private-copy mode, `IME_FLAG_NO_PERSONALIZED_LEARNING` on private fields), `NexAudioWaveform`, `PdfRenderer`, video preview, `NexEmbedder.kt` and the LiteRT-LM runtime loading untrusted files.
+9. **Native code:** `NexAudioWaveform`, `PdfRenderer`, video preview, `NexEmbedder.kt`, the private clipboard's native side and the LiteRT-LM runtime loading untrusted files.
 10. **Notifications and widgets:** can private, vault or Cycle content appear on the lock screen? Notification visibility, the widget snapshot files and who can read them, the Smart summary widget while the app is locked.
 11. **Logging:** search for `print`, `debugPrint`, `Log.` and similar, and for anything that writes note content, keys, tokens or cycle data.
 12. **Privacy truthfulness:** compare `assets/guide/en.md`, `assets/guide/fa.md`, settings copy, consent dialogs and `README.md` against the code — "nothing leaves the phone unless…", the on-device search claim, metrics "only on the phone", feedback contents, Cycle "never the day notes". A false privacy claim is at least High.

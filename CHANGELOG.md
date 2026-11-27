@@ -6,6 +6,20 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - **Video and PDF previews no longer go missing.** A preview that was still being read when its card appeared now lands on that card by itself, instead of leaving it blank until the date group was closed and reopened.
 
+## v2.9.4
+
+- **Unified editor for smoother keyboard switching.** Rebuilt text input around one Flutter-based editor across the app to avoid keyboard closure and reopening when moving between fields, including Prompt Studio, Family Fund and Habits.
+
+- **Improved multilingual editing.** The editor follows the active paragraph's direction and alignment as the cursor moves between Persian and English. Saved notes retain independent paragraph alignment in reading views.
+
+- **Arrows that follow the language.** In a note and every other multi-line field, left and right now move the cursor where the eye moves — in Persian, in English, and inside an English word in a Persian sentence — and Shift selects the same way. Previously the arrows moved through the string, so in Persian they went the wrong way.
+
+- **Arrows stay on their line at a wrap.** At the end of a wrapped line, left and right now cross cleanly to the next line instead of jumping past words, and a selection that covers several lines collapses to the end the arrow points at.
+
+- **Long notes stay light while typing.** The field now reads only the paragraph being written to choose its direction, instead of the whole note on every keystroke and every dragged selection handle.
+
+- **More right-to-left scripts find their direction.** A note opening in Adlam, Yezidi, Phoenician or another right-to-left script outside Persian and Arabic now takes its own direction instead of the interface's.
+
 ## v2.9.3
 
 - **More reliable keyboard switching.** Improved focus handling when moving between input fields, especially in Prompt Studio and Gold, to prevent unexpected keyboard closure and reopening.

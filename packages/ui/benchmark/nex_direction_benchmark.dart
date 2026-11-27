@@ -54,4 +54,37 @@ void main() {
       'dominant:     ${ms.toStringAsFixed(3)} ms/scan',
     );
   });
+
+  test('caret direction timing', () {
+    // The per-keystroke question, which the first-strong benchmark above does
+    // not answer: the field asks for the direction of the paragraph the caret
+    // is in, not of the whole note. This used to build the start offset of
+    // every paragraph in the document before it read one, so the cost grew
+    // with the note. It now reads the caret's paragraph and the neighbours it
+    // falls back through. The field also caches the paragraph while the caret
+    // stays inside it, so a selection drag is cheaper still — this number is
+    // the uncached worst case.
+    final line =
+        'پاراگراف فارسی با یک واژه English در میان آن و ادامهٔ نوشته. '
+        'An English paragraph with one Persian word, ادامه, in it.';
+    final document = List.filled(1200, line).join('\n');
+    final caret = document.length - 2;
+    const rounds = 2000;
+
+    for (var i = 0; i < 50; i++) {
+      nexCaretDirectionOf(document, caret);
+    }
+    final watch = Stopwatch()..start();
+    for (var i = 0; i < rounds; i++) {
+      nexCaretDirectionOf(document, caret);
+    }
+    watch.stop();
+
+    // ignore: avoid_print
+    print(
+      'caret direction: '
+      '${(watch.elapsedMicroseconds / rounds).toStringAsFixed(3)} us/scan '
+      'at the end of ${document.length ~/ 1000}k characters',
+    );
+  });
 }
