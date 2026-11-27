@@ -113,6 +113,18 @@ class NexVisualCaretAction extends Action<NexVisualCaretIntent> {
         _write(state, value, TextSelection.fromPosition(edge));
         return null;
       }
+      // A selection that spans visual lines has no one side of the screen to
+      // collapse toward: its start and end can both be on the right of one
+      // line and the left of another. Collapse by reading order instead —
+      // the framework's own collapse — with the visible direction mapped to
+      // the logical one for this field's base direction.
+      return Actions.maybeInvoke(
+        focusContext,
+        ExtendSelectionByCharacterIntent(
+          forward: _logicalForward(state, intent.forward),
+          collapseSelection: true,
+        ),
+      );
     }
 
     final target = nexVisualCaretTarget(
@@ -172,6 +184,12 @@ class NexVisualCaretAction extends Action<NexVisualCaretIntent> {
 /// paragraph, a left-to-right one, and every boundary between them. A caret
 /// at the join of two directions has two visual positions; the one nearest
 /// the move is chosen, which is the one the person sees the caret at.
+///
+/// A move stays on the line it started on. At a soft wrap the same logical
+/// offset has a caret at the end of one line and at the start of the next, and
+/// a horizontal move that took the farther one would jump a line without the
+/// person asking. When there is no caret on this line in that direction, the
+/// line's edge has been reached and the framework crosses it.
 @visibleForTesting
 TextPosition? nexVisualCaretTarget(
   RenderEditable editable,
@@ -195,6 +213,7 @@ TextPosition? nexVisualCaretTarget(
       editable,
       found.offset,
       originX: originX,
+      line: current,
       forward: forward,
     );
     if (target != null) return target;
@@ -203,15 +222,18 @@ TextPosition? nexVisualCaretTarget(
 }
 
 /// [offset] with the affinity that puts its caret nearest [originX], on the
-/// side the move is going. Null when neither affinity is on that side.
+/// side the move is going and on [line]. Null when neither affinity qualifies.
 ///
-/// Both affinities matter only where directions meet. A logical boundary
-/// there has two places on screen — one at each end of the run — and the
-/// person means the one the move is heading toward.
+/// Both affinities matter only where directions or lines meet. A logical
+/// boundary there has two places on screen — one at each end of the run, or
+/// one at the end of a wrapped line and one at the start of the next — and
+/// the person means the one the move is heading toward, on the line they are
+/// already on.
 TextPosition? _nearestCaret(
   RenderEditable editable,
   int offset, {
   required double originX,
+  required Rect line,
   required bool forward,
 }) {
   final downstream = editable.getLocalRectForCaret(
@@ -223,9 +245,9 @@ TextPosition? _nearestCaret(
   bool onTheWay(double x) =>
       forward ? x > originX + _epsilon : x < originX - _epsilon;
   final candidates = <({double x, TextPosition position})>[
-    if (onTheWay(downstream.left))
+    if (onTheWay(downstream.left) && _sameLine(line, downstream))
       (x: downstream.left, position: TextPosition(offset: offset)),
-    if (onTheWay(upstream.left))
+    if (onTheWay(upstream.left) && _sameLine(line, upstream))
       (
         x: upstream.left,
         position: TextPosition(offset: offset, affinity: TextAffinity.upstream),
@@ -236,15 +258,26 @@ TextPosition? _nearestCaret(
   return candidates.first.position;
 }
 
+/// Whether [a] and [b] are drawn on the same visual line.
+///
+/// Caret rectangles are as tall as their line. The centres of two different
+/// lines are at least half a line apart, so half the taller rectangle plus a
+/// pixel for rounding is a bound the next line cannot fit inside.
+bool _sameLine(Rect a, Rect b) {
+  final tolerance = math.max(a.height, b.height) / 2 + 1.0;
+  return (a.center.dy - b.center.dy).abs() <= tolerance;
+}
+
 const double _epsilon = 0.5;
 
-/// The end of [selection] on the side [forward] points at.
+/// The end of [selection] on the side [forward] points at, or null when the
+/// selection spans visual lines and has no one side to collapse toward.
 TextPosition? _visualSelectionEdge(
   RenderEditable editable,
   TextSelection selection, {
   required bool forward,
 }) {
-  ({double x, TextPosition position}) edge(int offset) {
+  ({double x, Rect rect, TextPosition position}) edge(int offset) {
     final downstream = editable.getLocalRectForCaret(
       TextPosition(offset: offset),
     );
@@ -255,9 +288,14 @@ TextPosition? _visualSelectionEdge(
         ? downstream.left >= upstream.left
         : downstream.left <= upstream.left;
     return downstreamWins
-        ? (x: downstream.left, position: TextPosition(offset: offset))
+        ? (
+            x: downstream.left,
+            rect: downstream,
+            position: TextPosition(offset: offset),
+          )
         : (
             x: upstream.left,
+            rect: upstream,
             position: TextPosition(
               offset: offset,
               affinity: TextAffinity.upstream,
@@ -267,6 +305,10 @@ TextPosition? _visualSelectionEdge(
 
   final start = edge(selection.start);
   final end = edge(selection.end);
+  // X alone is not a side of the screen when the selection spans lines: a
+  // start near the right edge of line one can be to the right of an end at
+  // the left edge of line two, and the arrow would collapse to the wrong one.
+  if (!_sameLine(start.rect, end.rect)) return null;
   return forward
       ? (start.x >= end.x ? start.position : end.position)
       : (start.x <= end.x ? start.position : end.position);

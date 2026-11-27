@@ -526,6 +526,50 @@ void main() {
     );
   });
 
+  testWidgets('a composing paragraph keeps its text, composition and focus', (
+    tester,
+  ) async {
+    // The IME owns the composing region until it commits. The direction turn
+    // from an empty field to a right-to-left paragraph rebuilds the layout;
+    // it must not rebuild the editor, drop the focus, or clear the region.
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    await pump(
+      tester,
+      NexTextField(controller: controller, maxLines: 5, autofocus: true),
+    );
+    await tester.showKeyboard(find.byType(EditableText));
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: 'سلام',
+        selection: TextSelection.collapsed(offset: 4),
+        composing: TextRange(start: 0, end: 4),
+      ),
+    );
+    await tester.pump();
+    expect(controller.value.composing, const TextRange(start: 0, end: 4));
+    expect(controller.text, 'سلام');
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).textDirection,
+      TextDirection.rtl,
+    );
+    final editor = find.byType(EditableText);
+    final state = tester.state<EditableTextState>(editor);
+    expect(state.widget.focusNode.hasFocus, isTrue);
+
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: 'سلام',
+        selection: TextSelection.collapsed(offset: 4),
+      ),
+    );
+    await tester.pump();
+    expect(controller.value.composing, TextRange.empty);
+    expect(controller.text, 'سلام');
+    expect(tester.state<EditableTextState>(editor), same(state));
+    expect(state.widget.focusNode.hasFocus, isTrue);
+  });
+
   testWidgets('the decoration is the one it was given', (tester) async {
     // The border, the label, the counter stay Flutter's, drawn around
     // the editor — the one thing a platform editor never gave.

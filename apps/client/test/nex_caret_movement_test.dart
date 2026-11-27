@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/widgets/nex_text_field.dart';
@@ -168,6 +169,209 @@ void main() {
     expect(controller.selection.baseOffset, 4);
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(controller.selection.baseOffset, 5);
+  });
+
+  RenderEditable editor(WidgetTester tester) =>
+      tester.state<EditableTextState>(find.byType(EditableText)).renderEditable;
+
+  double caretY(RenderEditable editable, int offset) =>
+      editable.getLocalRectForCaret(TextPosition(offset: offset)).center.dy;
+
+  /// The last caret offset drawn on the same visual line as [from].
+  int endOfLine(RenderEditable editable, int length, [int from = 0]) {
+    final y = caretY(editable, from);
+    var end = from;
+    while (end < length && (caretY(editable, end + 1) - y).abs() <= 1) {
+      end++;
+    }
+    return end;
+  }
+
+  testWidgets('a horizontal arrow crosses a wrapped line only at its edge', (
+    tester,
+  ) async {
+    // A horizontal move is a move on the line the caret is on. At the edge of
+    // that line there is no caret further sideways, so the framework crosses
+    // to the next line — one logical step, not a jump found by X alone.
+    const text = 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz';
+    final controller = await pump(tester, text, width: 100);
+    final editable = editor(tester);
+    final edge = endOfLine(editable, text.length);
+    expect(edge, lessThan(text.length), reason: 'the sample has to wrap');
+    expect(
+      caretY(editable, edge ~/ 2),
+      caretY(editable, edge),
+      reason: 'the sample has an interior caret on the first line',
+    );
+
+    await place(tester, controller, edge);
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(controller.selection.baseOffset, greaterThan(edge));
+    expect(
+      caretY(editable, controller.selection.baseOffset),
+      greaterThan(caretY(editable, edge)),
+      reason: 'it landed on the next line',
+    );
+
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(controller.selection.baseOffset, edge);
+    expect(
+      caretY(editable, controller.selection.baseOffset),
+      caretY(editable, edge),
+      reason: 'left returned to the same line',
+    );
+  });
+
+  testWidgets('a Persian wrapped line crosses in reading order', (
+    tester,
+  ) async {
+    // The end of a right-to-left line is its left edge. There, the left arrow
+    // is the one that continues reading, so it crosses to the next line; the
+    // right arrow returns to the line before it.
+    const text = 'یکدوسهچهارپنجششهفتهشتهنهده';
+    final controller = await pump(
+      tester,
+      text,
+      ambient: TextDirection.rtl,
+      width: 110,
+    );
+    final editable = editor(tester);
+    final edge = endOfLine(editable, text.length);
+    expect(edge, lessThan(text.length), reason: 'the sample has to wrap');
+
+    await place(tester, controller, edge);
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(controller.selection.baseOffset, greaterThan(edge));
+    expect(
+      caretY(editable, controller.selection.baseOffset),
+      greaterThan(caretY(editable, edge)),
+      reason: 'left reading crosses to the next line',
+    );
+
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(controller.selection.baseOffset, edge);
+    expect(
+      caretY(editable, controller.selection.baseOffset),
+      caretY(editable, edge),
+    );
+  });
+
+  testWidgets('Shift selects across a wrap one character at a time', (
+    tester,
+  ) async {
+    const text = 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz';
+    final controller = await pump(tester, text, width: 100);
+    final editable = editor(tester);
+    final edge = endOfLine(editable, text.length);
+
+    await place(tester, controller, edge);
+    await press(tester, LogicalKeyboardKey.arrowRight, shift: true);
+    expect(controller.selection.baseOffset, edge);
+    expect(controller.selection.extentOffset, edge + 1);
+    expect(
+      caretY(editable, controller.selection.extentOffset),
+      greaterThan(caretY(editable, edge)),
+      reason: 'the selected character is the first on the next line',
+    );
+  });
+
+  testWidgets('every step in a wrapped line can be undone by the other arrow', (
+    tester,
+  ) async {
+    // A jump over a line, or a caret picked from another line, breaks this at
+    // the step it happens: right then left no longer returns to the start.
+    const text = 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz';
+    final controller = await pump(tester, text, width: 100);
+    for (var offset = 0; offset < text.length; offset++) {
+      await place(tester, controller, offset);
+      await press(tester, LogicalKeyboardKey.arrowRight);
+      final afterRight = controller.selection.baseOffset;
+      await press(tester, LogicalKeyboardKey.arrowLeft);
+      expect(
+        controller.selection.baseOffset,
+        offset,
+        reason:
+            'right then left from $offset did not return (went to $afterRight)',
+      );
+    }
+  });
+
+  testWidgets(
+    'a selection across lines collapses to the right end on the right',
+    (tester) async {
+      // The selection starts near the right edge of line one and ends near the
+      // left edge of line two. X alone would say the start is the right side;
+      // a selection that spans lines collapses by reading order instead.
+      const text = 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz';
+      final controller = await pump(tester, text, width: 100);
+      final editable = editor(tester);
+      final edge = endOfLine(editable, text.length);
+
+      controller.selection = TextSelection(
+        baseOffset: edge,
+        extentOffset: edge + 2,
+      );
+      await tester.pump();
+      expect(
+        caretY(editable, edge),
+        lessThan(caretY(editable, edge + 2)),
+        reason: 'the selection has to span two lines',
+      );
+
+      await press(tester, LogicalKeyboardKey.arrowRight);
+      expect(controller.selection.isCollapsed, isTrue);
+      expect(controller.selection.baseOffset, edge + 2);
+
+      controller.selection = TextSelection(
+        baseOffset: edge,
+        extentOffset: edge + 2,
+      );
+      await tester.pump();
+      await press(tester, LogicalKeyboardKey.arrowLeft);
+      expect(controller.selection.isCollapsed, isTrue);
+      expect(controller.selection.baseOffset, edge);
+    },
+  );
+
+  testWidgets('a Persian selection across lines collapses by reading order', (
+    tester,
+  ) async {
+    const text = 'یکدوسهچهارپنجششهفتهشتهنهده';
+    final controller = await pump(
+      tester,
+      text,
+      ambient: TextDirection.rtl,
+      width: 110,
+    );
+    final editable = editor(tester);
+    final edge = endOfLine(editable, text.length);
+    controller.selection = TextSelection(
+      baseOffset: edge,
+      extentOffset: edge + 2,
+    );
+    await tester.pump();
+    expect(
+      caretY(editable, edge),
+      lessThan(caretY(editable, edge + 2)),
+      reason: 'the selection has to span two lines',
+    );
+
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(controller.selection.isCollapsed, isTrue);
+    expect(
+      controller.selection.baseOffset,
+      edge,
+      reason: 'in a right-to-left line the right side is the start',
+    );
+
+    controller.selection = TextSelection(
+      baseOffset: edge,
+      extentOffset: edge + 2,
+    );
+    await tester.pump();
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(controller.selection.isCollapsed, isTrue);
+    expect(controller.selection.baseOffset, edge + 2);
   });
 
   testWidgets('an arrow at the end of the line does not get stuck', (

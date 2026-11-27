@@ -232,8 +232,8 @@ an English note keeps right-to-left ones. Where two directions meet, a caret
 has two visual positions; the one nearest the move is chosen. A plain arrow
 over a selection collapses to the visual side it points at instead of
 Flutter's logical end. At the edge of a line the framework's own intent
-crosses the line, so vertical movement, word movement, Home/End and every
-platform shortcut are untouched. AppFlowy's block-level flip is a good rule
+crosses the line, so vertical movement, word movement, Home/End and the
+platform shortcuts that are not character arrows are untouched. AppFlowy's block-level flip is a good rule
 and the right starting point; the geometry is where this goes further than
 it.
 
@@ -320,7 +320,7 @@ Commands ran on Flutter 3.47.9, host JIT, with the repository's analysers at
 | `packages/ui` analysis | clean |
 | `apps/client` analysis | clean |
 | `packages/ui` tests (full) | 479 passing — includes 7 new caret-paragraph and script tests |
-| `nex_caret_movement_test.dart` | 9 passing — arrows, Shift, collapse, edges, round trip, keyboard continuity |
+| `nex_caret_movement_test.dart` | 15 passing — arrows, Shift, collapse, edges, wrap and multi-line cases, keyboard continuity |
 | `nex_text_field` + `keyboard_dismisser` | passing — including the new lens assertion |
 | App suite (full) | 4,942 passing, 7 skipped |
 | Direction benchmark | 142k characters, 2,000 scans: 138.2 µs → 2–3 µs per caret scan |
@@ -332,3 +332,136 @@ host detail, not a test change; nothing was skipped or weakened for it. The
 device checks in §6 remain device checks. Nothing here claims the arrow keys
 or the lens were seen on the owner's phone; the tests drive the real widgets
 on the host, which is the strongest evidence available in CI.
+
+## 8. Second audit: the line under the caret
+
+A second pass looked at the caret engine with wrapped lines and multi-line
+selections in view, and re-opened the per-paragraph question. One defect in
+the first pass was real; the rest records what was checked and what the
+architecture cannot do.
+
+### 8.1 Horizontal candidates were chosen by X alone
+
+`nexVisualCaretTarget` probes sideways on the caret's line, but the first
+pass chose between the two affinities of the offset it found by X only. At a
+soft wrap the same offset has one caret at the end of a line and one at the
+start of the next; X could take the other line, and a one-character move
+jumped across a wrap. The plain-arrow collapse over a selection had the same
+shape: it compared the two ends' X, so a selection from near the right edge
+of one line to near the left edge of the next line collapsed to the wrong
+end.
+
+Both now check the line. `_sameLine` accepts a caret only if its centre is
+within half a line height of the caret the move started from, and
+`_nearestCaret` drops candidates from another line, leaving the line edge to
+the framework's own crossing. A selection that spans lines has no single
+screen side, so it collapses by reading order — the framework's collapse of
+the logical start/end, mapped through the field's base direction — instead of
+by X. Single-line selections still collapse to the visual side the arrow
+points at.
+
+`nex_caret_movement_test.dart` now covers left-to-right and Persian wrapped
+lines (crossing and returning), Shift across a wrap, a right-then-left round
+trip at every offset of a wrapped paragraph, and left-to-right and
+right-to-left selections spanning lines. Fifteen tests, all on the real
+field.
+
+### 8.2 Independent paragraph direction: re-evaluated, still a block problem
+
+Flutter 3.47.9 still lays out one editable paragraph with one base
+direction. `RenderEditable`, `RenderParagraph` and `TextPainter` each take a
+single `TextDirection`; `TextStyle` and `TextSpan` expose no direction; and
+`ParagraphBuilder` fixes the base direction per `Paragraph` object. The
+framework request for per-paragraph direction
+([flutter/flutter#79749](https://github.com/flutter/flutter/issues/79749))
+has been open since 2021 and is still open. A `TextField` is one
+`Paragraph`: no API gives its second paragraph a different base direction or
+a different side.
+
+AppFlowy solves it one layer up. Each block is its own rich text with its
+own `textDirection` (`AppFlowyRichText.textDirection` in appflowy-editor),
+and the document owns selection and focus across blocks. That is one layout
+per paragraph, not one field with several directions.
+
+The alternatives were re-examined:
+
+| Route | Independent paragraphs | Cost |
+| --- | --- | --- |
+| Unicode isolates (RLI/LRI) at paragraph starts | No. They set the bidi level of the text, not the side `TextAlign.start` uses, and they would become editable characters in the stored string. | Caret offsets and the note's text corrupted; alignment still follows the field. |
+| A custom `RenderEditable` painting per paragraph | Paint only. | A fork of the editor's renderer: hit testing, selection boxes, handles, lens, semantics, IME and scrolling all assume one layout. |
+| A block editor, AppFlowy's model | Yes. | Replaces every controller; loses cross-paragraph selection, undo and formatting continuity; brings back the focus handoff surface this release removed. |
+| The native Android editor | Not applicable. | Forbidden; it is the source of the keyboard defect 2.9.4 removed. |
+
+The release keeps the honest limit: the paragraph the caret is in is laid
+out and aligned in its own direction on every keystroke, the other
+paragraphs sit on that side until the caret reaches them, and every reading
+surface keeps per-paragraph direction and alignment. Simultaneous
+independence needs a block editor and its own selection model as a product
+decision — with a migration, a formatting plan and a keyboard plan — not a
+patch to `NexTextField`, so it was not smuggled in behind a flag in a final
+release.
+
+### 8.3 IME, Unicode, performance, handles and lens
+
+- **IME composition.** The code formatter already declines while a composing
+  region is open. A new field test drives a composing Persian paragraph from
+  an empty field through the direction turn to commit: the composing region,
+  the text, the editor element and the focus all survive. No direction change
+  is made by rewriting the controller.
+- **Unicode.** The first-strong rule already covered Syriac, Thaana, N'Ko,
+  Samaritan, Mandaic and Arabic Extended-B inside the 0590–08FF block, plus
+  the supplementary right-to-left scripts added in the first pass. Surrogate
+  pairs are read as one rune and a lone surrogate is skipped, so no range or
+  offset gap remained to fix.
+- **Long text.** The paragraph scan and its cache are unchanged; the new line
+  checks are constant-time per candidate. The 142k-character benchmark is
+  unchanged.
+- **Handles and lens.** Flutter's handles, lens and menu remain; the lens is
+  stated as `TextMagnifier.adaptiveMagnifierConfiguration` and held by a
+  test. A long-press probe in the host harness does not mount the lens (it is
+  a platform overlay), so the device check is still the one that sees it; the
+  host holds the configuration and the direction the handles resolve against.
+
+### 8.4 Validation
+
+| Check | Result |
+| --- | --- |
+| `packages/ui` analysis | clean |
+| `apps/client` analysis | clean |
+| `packages/ui` tests (full) | 479 passing |
+| Focused editor suites | 38 passing |
+| `nex_caret_movement_test.dart` | 15 passing — the six new wrap and multi-line tests included |
+| `nex_text_field_test.dart` | passing — lens and IME composition held |
+| App suite (full) | 4,949 passing, 7 skipped |
+| Direction benchmark | 142k characters, 2,000 scans: 138.2 µs → 2–3 µs per caret scan |
+
+The same host note as §7.7 applies: the app suite ran with `LD_LIBRARY_PATH`
+pointing at a symlink to the system `libsqlite3.so.0`, because this host has
+no unversioned `libsqlite3.so`. Nothing was skipped or weakened for it. The
+device checks remain device checks; the host drives the real widgets, which
+is the strongest evidence available in CI.
+
+### 8.5 Manual device checklist
+
+Before release, on one Android phone and one iPhone, in both app languages
+and both themes:
+
+1. Write a note with Persian and English paragraphs. Move the caret between
+   them with on-screen and hardware arrows: the paragraph being edited is on
+   its own side, the keyboard never closes, and the caret does not blink or
+   jump.
+2. At the end of a long wrapped line, press left and right repeatedly. The
+   caret crosses the wrap one character at a time with no skipped word. Hold
+   Shift at the wrap: exactly one character is selected.
+3. Select across two or three lines and press an arrow. The selection
+   collapses to the side the arrow points at. Repeat in a Persian note.
+4. Select a word, check both handles sit on the paragraph's own ends, drag
+   each, and hold a handle to raise the lens. The lens follows the handle and
+   the menu acts on the selection.
+5. Type Persian with the system keyboard's composition and suggestions,
+   commit, then switch fields. The composing text is not dropped and the
+   keyboard does not close. Try the code capture with a Persian comment.
+6. Undo and redo a paragraph edit and a selection replacement, then reopen
+   the note and confirm the text is unchanged.
+7. Scroll and type in a long note (about 50k characters). Typing keeps up and
+   the caret follows without lag.

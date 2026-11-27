@@ -12,6 +12,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - **Arrows that follow the language.** In a note and every other multi-line field, left and right now move the cursor where the eye moves — in Persian, in English, and inside an English word in a Persian sentence — and Shift selects the same way. Previously the arrows moved through the string, so in Persian they went the wrong way.
 
+- **Arrows stay on their line at a wrap.** At the end of a wrapped line, left and right now cross cleanly to the next line instead of jumping past words, and a selection that covers several lines collapses to the end the arrow points at.
+
 - **Long notes stay light while typing.** The field now reads only the paragraph being written to choose its direction, instead of the whole note on every keystroke and every dragged selection handle.
 
 - **More right-to-left scripts find their direction.** A note opening in Adlam, Yezidi, Phoenician or another right-to-left script outside Persian and Arabic now takes its own direction instead of the interface's.
