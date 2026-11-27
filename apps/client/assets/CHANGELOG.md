@@ -4,6 +4,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.9.4
+
+- **Unified editor for smoother keyboard switching.** Rebuilt text input around one Flutter-based editor across the app to avoid keyboard closure and reopening when moving between fields, including Prompt Studio, Family Fund and Habits.
+
+- **Improved multilingual editing.** The editor follows the active paragraph's direction and alignment as the cursor moves between Persian and English. Saved notes retain independent paragraph alignment in reading views.
+
 ## v2.9.3
 
 - **More reliable keyboard switching.** Improved focus handling when moving between input fields, especially in Prompt Studio and Gold, to prevent unexpected keyboard closure and reopening.
