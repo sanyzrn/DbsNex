@@ -1,5 +1,56 @@
 # Medicine
 
+## Audit (module-medicine-audit)
+
+A pass over the finished module, fixing what had drifted and sharpening
+what a household reads first. Nothing was renamed, no record changed
+shape, and every inherited test still passes.
+
+**Fixed:**
+
+- **The Today card counted answered doses as open.** It said "3 doses
+  today" all day whatever was logged, because it never read the dose
+  logs. It now counts the moments still open, and when a day is fully
+  logged it says so ("All of today’s doses are logged") instead of
+  counting zero.
+- **A dose logged from the detail sheet never answered its routine
+  moment** — not on the Today card, not in the quick view, not on the
+  home screen’s dates, which read "0 of N doses today" for a person who
+  logs from the sheet and never opens Today. A log now answers the
+  moment named by its slot, or its own clock time if no slot is present;
+  one log cannot answer two moments. A log whose action is neither taken nor
+  skipped answers nothing.
+- **The Persian reader saw English** for "No medicine for this person
+  yet" — the Persian map carried the English sentence.
+- **The duplicate-name question showed "Delete it?"** — it reused the
+  delete dialog’s words for a question that is not about deleting. It
+  now says what the choice is.
+
+**Added:**
+
+- **"Me" in the person filter.** The README promised it; the chips never
+  had it, so a mixed household could not see only the person’s own
+  medicines. It appears beside the names when the list mixes "me" with
+  named people.
+- **The next dose on each row** ("Next at 21:00"), and "All of today’s
+  doses are logged" when a medicine’s day is done — the cabinet is the
+  home screen, and where today stands is the first thing it is opened
+  for. A moment with everything in the past and nothing ahead says
+  nothing rather than inventing a "next".
+- **A "Next" heading on the Today page** for the first open moment still
+  ahead, so a full list does not have to be scanned to find it.
+- **A note when a routine names both day rules.** Weekdays win over
+  "every N days" (a rule the record always had); the editor and the
+  detail sheet now say so instead of leaving both looking alive.
+
+**Kept quiet on purpose:** only the row whose write is in flight waits
+on the Today page (the whole page used to lock); the page rereads the
+day when the app comes back to the front, so one left open overnight
+stops saying "today" about yesterday; the detail sheet builds the
+newest fourteen history rows first and the rest on request — a routine
+kept for months used to build every row on open; and the summary cards
+open their page from anywhere on the card, not only from the button.
+
 ## Audit (upgrade pass)
 
 The module already did these, and they are kept exactly as they were: names,
@@ -59,23 +110,28 @@ Merged after checking the brief, `docs/18` and the design rules; changed:
 
 ## What it does
 
-The cabinet is the home screen: a quiet hero with the count, a person filter,
-a Today card (how many routine moments are still open), an expiry card (how
-many days need a look), then one row per medicine — name, strength, whose it
-is, stock, the earliest expiry and a "hard to find" mark the person set.
+The cabinet is the home screen: a quiet hero with the count, a person
+filter ("me" included when the list mixes people), a Today card (how many
+routine moments are still open, and "all logged" when none are), an expiry
+card (how many days need a look), then one row per medicine — name, strength,
+whose it is, stock, the next dose still ahead, the earliest expiry and a
+"hard to find" mark the person set.
 
-Pushing Today lists every routine moment for today with Taken and Skipped. A
-moment logged from there keeps the time it answers (`slot`) and moves stock
-only when the medicine has both a quantity and a dose unit count. Yesterday's
+Pushing Today lists every routine moment for today with Taken and Skipped,
+the first one still ahead under a "Next" heading. A moment logged from there
+keeps the time it answers (`slot`) and moves stock only when the medicine has
+both a quantity and a dose unit count. Yesterday's
 unlogged moments appear under "yesterday, no record" — the module never calls
 them missed. A log can be corrected; Undo is guarded against later changes.
+The page rereads the day when the app returns to the front.
 
 Pushing Expiry lists expired and soon-expiring boxes (and legacy medicine
 expiries), grouped, with a delete that can be undone.
 
 The detail sheet holds the person's information, the routine, the forecast
 ("runs out in about N days"), the warning, their hard-to-find switch, the
-reminder block, Boxes (add/delete) and Places (add/delete). The editor holds
+reminder block, Boxes (add/delete) and Places (add/delete); the dose history
+opens on its newest slice, with the rest one tap away. The editor holds
 the person, weekday chips, "every N days" with a start day, the start/end
 dates, the warning, and the hard-to-find switch, along with everything that
 was already there. No dose, interaction or substitute is ever suggested, and
@@ -142,7 +198,10 @@ retrying in a loop.
 **Today never accuses anyone.** A moment is "no record", not "missed". Only the
 person's own tap writes a log. Stock leaves only through the same
 `MedicineRepository` path the detail sheet uses, so correction and Undo behave
-identically wherever the log came from.
+identically wherever the log came from. A log answers the moment it names
+(`slot`) or, when no slot is present, the moment at its own clock time;
+this one match is what the Today page, the Today card, the quick view and the
+home screen's dates all read.
 
 **Money.** Prices are whole rials inside the record (`price`), entered and read
 as tomans — the unit people quote — with grouping and Persian digits. The
@@ -192,7 +251,28 @@ FA: دارو را با همان نام و جزئیاتی که خودتان می�
 
 ## Changelog
 
-EN: Whose medicine it is, with a person filter; weekday and every-N-days
+EN: The Today card counts the doses still open, and says when a day is
+fully logged; each row names the next dose still ahead; "Me" joins the
+person filter for a mixed household; doses logged from the detail sheet
+now answer their routine moment everywhere, not only on the Today page;
+the Today page marks the next moment to act on and stops locking the
+whole page while one write is in flight; the duplicate-name question
+says what the choice is; a routine naming both weekday and every-N-days
+rules says which one counts; a long dose history opens on its newest
+slice instead of building every row; and a Persian line that had stayed
+English is Persian now.
+
+FA: کارت «امروز» فقط نوبت‌های باز را می‌شمارد و وقتی همه ثبت شد، همان را
+می‌گوید؛ هر سطر، نوبت بعدیِ پیش‌رو را نام می‌برد؛ «من» به صافی افراد
+افزوده شده است؛ نوبت‌هایی که از صفحهٔ دارو ثبت می‌شوند حالا همه‌جا به
+عنوان پاسخ همان ساعت شمرده می‌شوند، نه فقط در صفحهٔ امروز؛ صفحهٔ امروز
+نوبت بعدی را مشخص می‌کند و هنگام هر ثبت، کل صفحه قفل نمی‌شود؛ پرسشِ
+نامِ تکراری دقیقاً می‌گوید انتخاب چیست؛ برنامه‌ای که هم روز هفته و هم
+«هر چند روز» دارد، می‌گوید کدام ملاک است؛ تاریخچهٔ طولانی نوبت‌ها با
+تازه‌ترین بخش باز می‌شود؛ و یک جملهٔ فارسی که انگلیسی مانده بود، فارسی
+شد.
+
+EN (previous): Whose medicine it is, with a person filter; weekday and every-N-days
 routines with start/end days; reminders planned from the routine that name the
 medicine, the person and the time; a Today page with one-tap Taken/Skipped and
 slot-accurate logs; a stock forecast with an editable early warning; boxes with
@@ -201,7 +281,7 @@ opt-in secure window; and a person-owned "hard to find lately" note. Existing
 records, logs, stocks, drafts and Undo behave exactly as before, and every
 inherited test still passes.
 
-FA: نام صاحب دارو و صافی افراد؛ برنامهٔ روزهای هفته و «هر چند روز» با تاریخ
+FA (previous): نام صاحب دارو و صافی افراد؛ برنامهٔ روزهای هفته و «هر چند روز» با تاریخ
 شروع و پایان؛ یادآورهای ساخته‌شده از برنامه که نام دارو، شخص و ساعت را
 می‌گویند؛ صفحهٔ امروز با ثبت یک‌لمسی و نوبت‌های دقیق؛ پیش‌بینی موجودی با
 هشدار قابل‌تنظیم؛ جعبه‌ها با انقضای مستقل و صفحهٔ انقضا؛ ثبت محل خرید، قیمت
@@ -280,23 +360,26 @@ No clinical database/dosing API requested or improvised by this module.
 
 ## Checks
 
-Completed in this pass (Linux, Flutter 3.47.9 / Dart 3.x, `LD_LIBRARY_PATH`
-pointed at a `libsqlite3.so` symlink because the sandbox has no package
-manager): `dart format` over the module's lib and test folders; `flutter
-analyze --fatal-infos lib/modules/medicine test/modules/medicine` and a
-whole-client `flutter analyze --fatal-infos` — No issues found; the module gate
-`flutter test test/module_kit_test.dart test/modules/medicine` — 154 passed
-(52 gate + 102 medicine, 81 inherited and 21 added); and one full `flutter
-test` run — 4104 passed, 4 skipped, 0 failed. No file is over 400 lines (max
-365 in lib, 339 in the inherited tests) and the Persian words carry no bidi
-control characters.
+Completed in the audit pass (Linux, Flutter 3.47.9 / Dart 3.13.7, the
+repository's own pinned SDK): `dart format` over the module's lib and test
+folders; `flutter analyze --fatal-infos lib/modules/medicine
+test/modules/medicine` — no issues; the module gate `flutter test
+test/module_kit_test.dart test/modules/medicine` — all green, with the
+module's suite grown from 106 to 133 (12 for the today progress logic, 13
+for the audit's surfaces, 2 added to the shared-shape tests); the
+inherited tests untouched and passing as they were. No lib file is over
+400 lines (max 375) and the Persian words carry no bidi control
+characters.
 
-Captured screens in `review/`: cabinet, detail sheet and Today in Persian dark
-and English light, rendered from the real themes and fonts with synthetic
-placeholder data. They are widget renders, not device screenshots. Android/iOS
-permissions, native keyboards, TalkBack/VoiceOver and platform release builds
-still need maintainer/device acceptance, as does the checklist above.
+The `review/` screens are from the earlier upgrade pass, one release of
+polish behind (they lack the next-dose marks). They were re-rendered and
+checked in this pass but not committed; regenerating them is
+`flutter test test/modules/medicine/screen_review_test.dart
+--dart-define=NEX_CAPTURE=<dir>`. All are widget renders, not device
+screenshots. Android/iOS permissions, native keyboards, TalkBack and
+platform release builds are maintainer work, as is the device checklist
+above.
 
-Only this module's lib and test directories changed. Registry, plans, hero,
-ARB, pubspec, module API and other modules are untouched; the module stays
-"Soon" in `module_rollout.dart` so the shell arms nothing yet.
+Only this module's lib and test directories changed, plus the module
+README and the user-facing changelogs. Registry, rollout, hero, ARB,
+pubspec, module API and other modules are untouched.

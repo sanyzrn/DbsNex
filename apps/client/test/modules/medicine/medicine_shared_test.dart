@@ -69,6 +69,94 @@ void main() {
     expect(dues.every((d) => d.private), isTrue);
   });
 
+  test('a log from the detail sheet answers the moment at its own time', () {
+    // A dose logged with no slot — the detail sheet’s «Taken» — must still
+    // mark the routine moment it answers, or a person who never opens the
+    // Today page reads “0 of 2 doses today” having taken both.
+    final shared = MedicineShared(
+      medicines: [
+        record('medicine', 'm1', {
+          'v': 3,
+          'name': 'Medicine A',
+          'times': ['08:00', '20:00'],
+        }),
+      ],
+      doses: [
+        record(
+          'dose',
+          'd1',
+          MedicineModels.doseBody(
+            medicineId: 'm1',
+            action: MedicineModels.taken,
+            at: DateTime(2026, 11, 20, 8),
+          ),
+        ),
+      ],
+    );
+    final dues = shared.duesBetween(
+      DateTime(2026, 11, 20),
+      DateTime(2026, 11, 20, 23, 59),
+    );
+    final doses = dues.where((d) => d.kind == 'dose').toList();
+    expect(doses, hasLength(2));
+    expect(doses.first.done, isTrue, reason: 'logged at the routine’s time');
+    expect(doses.last.done, isFalse);
+  });
+
+  test('an explicit slot answers only that moment, not the clock time', () {
+    final shared = MedicineShared(
+      medicines: [
+        record('medicine', 'm1', {
+          'name': 'Medicine A',
+          'times': ['00:00', '08:00'],
+        }),
+      ],
+      doses: [
+        record(
+          'dose',
+          'd1',
+          MedicineModels.doseBody(
+            medicineId: 'm1',
+            action: MedicineModels.taken,
+            at: DateTime(2026, 11, 20, 8),
+            slot: '00:00',
+          ),
+        ),
+      ],
+    );
+    final dues = shared.duesBetween(
+      DateTime(2026, 11, 20),
+      DateTime(2026, 11, 20, 23, 59),
+    );
+    expect(dues.map((d) => d.done), [true, false]);
+  });
+
+  test('a log whose action is neither taken nor skipped answers nothing', () {
+    final shared = MedicineShared(
+      medicines: [
+        record('medicine', 'm1', {
+          'v': 3,
+          'name': 'Medicine A',
+          'times': ['08:00'],
+        }),
+      ],
+      doses: [
+        record('dose', 'd1', {
+          'v': 2,
+          'medicineId': 'm1',
+          'action': 'something-else',
+          'at': DateTime(2026, 11, 20, 8).toUtc().toIso8601String(),
+          'slot': '08:00',
+        }),
+      ],
+    );
+    final dues = shared.duesBetween(
+      DateTime(2026, 11, 20),
+      DateTime(2026, 11, 20, 23, 59),
+    );
+    expect(dues.singleWhere((d) => d.kind == 'dose').done, isFalse);
+  });
+
   test('a line per medicine, with whose it is; the person as an object', () {
     final body = MedicineModels.medicineBody(
       name: 'Medicine A',

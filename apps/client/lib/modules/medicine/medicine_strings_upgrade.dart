@@ -11,6 +11,12 @@ const medicineStringsUpgradeEn = <String, String>{
   'personNote': 'Each medicine can belong to one person at home.',
   'personFor': 'For {person}',
   'everyone': 'Everyone',
+  // The note under a routine that names both kinds of day rule: the
+  // weekday set is the one that counts (README → Decisions), and the
+  // person is told so rather than left to guess.
+  'bothDaysNote':
+      'The days of the week are the ones that count; “every N days” is '
+      'not used while both are written.',
   'scheduleLabel': 'Routine',
   'scheduleNote':
       'The days and times you mean to take it — your routine, not a '
@@ -49,6 +55,8 @@ const medicineStringsUpgradeEn = <String, String>{
   'today': 'Today',
   'todayDoses': '{count} doses today',
   'todayOne': '1 dose today',
+  'todayAllDone': 'All of today’s doses are logged',
+  'nextUp': 'Next',
   'todayEmpty':
       'No times written for today. Add times on a medicine to see them '
       'here.',
@@ -97,6 +105,7 @@ const medicineStringsUpgradeEn = <String, String>{
   'badPrice': 'Write a price in tomans, or leave it empty',
   'savePlace': 'Save place',
   'noPlaces': 'No place recorded yet.',
+  'showAllHistory': 'Show all ({count})',
   'placeSaved': 'Place saved',
   'placeDeleted': 'Place removed',
   'boughtOn': 'Bought {date}',
@@ -115,8 +124,11 @@ const medicineStringsUpgradeFa = <String, String>{
   'personHint': '«من» یا نامی از خانه',
   'personNote': 'هر دارو می‌تواند مال یکی از افراد خانه باشد.',
   'personFor': 'برای {person}',
-  'noMedicinesFor': 'No medicine for this person yet.',
+  'noMedicinesFor': 'برای این شخص هنوز دارویی ثبت نشده است.',
   'everyone': 'همه',
+  'bothDaysNote':
+      'روزهای هفته ملاک است؛ تا وقتی هر دو نوشته شده‌اند، «هر چند روز» '
+      'استفاده نمی‌شود.',
   'scheduleLabel': 'برنامهٔ مصرف',
   'scheduleNote':
       'روزها و ساعت‌هایی که خودتان قصد دارید؛ برنامهٔ شماست، نه دستور '
@@ -154,6 +166,8 @@ const medicineStringsUpgradeFa = <String, String>{
   'today': 'امروز',
   'todayDoses': '{count} نوبت امروز',
   'todayOne': '۱ نوبت امروز',
+  'todayAllDone': 'همهٔ نوبت‌های امروز ثبت شده است',
+  'nextUp': 'بعدی',
   'todayEmpty':
       'برای امروز ساعتی نوشته نشده است. در هر دارو ساعت‌هایش را وارد کنید.',
   'yesterdayNoRecord': 'دیروز، بدون ثبت',
@@ -203,6 +217,7 @@ const medicineStringsUpgradeFa = <String, String>{
   'badPrice': 'قیمت را به تومان بنویسید یا خالی بگذارید',
   'savePlace': 'ثبت جا',
   'noPlaces': 'هنوز جایی ثبت نشده.',
+  'showAllHistory': 'نمایش همه ({count})',
   'placeSaved': 'جا ثبت شد',
   'placeDeleted': 'جا حذف شد',
   'boughtOn': 'خرید {date}',

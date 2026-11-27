@@ -17,17 +17,48 @@ class MedicineShared {
   final List<ModuleRecord> doses;
   final List<ModuleRecord> boxes;
 
+  /// The single moment each log answers, as `medicineId|day|HH:MM` keys.
+  /// An explicit slot takes precedence; only a slotless log falls back to
+  /// its own clock time, so one log cannot answer two routine moments. A log whose action is neither taken nor skipped answers
+  /// nothing: it is not the person's word about a moment.
+  static Set<String> answeredKeys(Iterable<ModuleRecord> doses) => {
+    for (final dose in doses)
+      if (_isAWord(dose))
+        if (MedicineModels.readDate(dose.body, 'at') case final at?)
+          ..._keysOf(dose, at),
+  };
+
+  static bool _isAWord(ModuleRecord dose) {
+    final action = MedicineModels.readString(dose.body, 'action');
+    return action == MedicineModels.taken || action == MedicineModels.skipped;
+  }
+
+  static Iterable<String> _keysOf(ModuleRecord dose, DateTime at) {
+    final local = at.toLocal();
+    final id = MedicineModels.readString(dose.body, 'medicineId');
+    final slot = MedicineModels.readString(dose.body, 'slot');
+    return ['$id|${_day(local)}|${slot.isNotEmpty ? slot : _hhmm(local)}'];
+  }
+
+  /// Whether [dose] answers the routine moment [time] on the day of [at].
+  static bool answers(
+    ModuleRecord dose,
+    String medicineId,
+    DateTime at,
+    String time,
+  ) {
+    final when = MedicineModels.readDate(dose.body, 'at');
+    if (when == null || !_isAWord(dose)) {
+      return false;
+    }
+    return _keysOf(dose, when).contains('$medicineId|${_day(at)}|$time');
+  }
+
   /// Everything this module has falling due between [from] and [to].
   List<ModuleDue> duesBetween(DateTime from, DateTime to) {
     final names = <String, String>{};
     final dues = <ModuleDue>[];
-    final answered = <String>{
-      for (final dose in doses)
-        if (MedicineModels.readDate(dose.body, 'at') case final at?)
-          if (dose.body['slot'] case final String slot)
-            '${MedicineModels.readString(dose.body, 'medicineId')}|'
-                '${_day(at.toLocal())}|$slot',
-    };
+    final answered = answeredKeys(doses);
     for (final record in medicines) {
       final name = MedicineModels.readString(record.body, 'name').trim();
       names[record.id] = name;
@@ -99,4 +130,8 @@ class MedicineShared {
   static String _day(DateTime at) =>
       '${at.year}-${at.month.toString().padLeft(2, '0')}-'
       '${at.day.toString().padLeft(2, '0')}';
+
+  static String _hhmm(DateTime at) =>
+      '${at.hour.toString().padLeft(2, '0')}:'
+      '${at.minute.toString().padLeft(2, '0')}';
 }

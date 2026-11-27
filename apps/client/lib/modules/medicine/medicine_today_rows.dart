@@ -1,11 +1,14 @@
 part of 'medicine_today_page.dart';
 
-/// One routine moment as the Today page draws it.
+/// One routine moment as the Today page draws it. The moment the person is
+/// to act on next carries the panel's own heading, so it stands out of a
+/// full list without a second visual language.
 extension _MedicineTodayRows on _MedicineTodayPageState {
   Widget _slotRow(
     BuildContext context,
     _DoseSlot slot, {
     required NexModuleStrings strings,
+    bool isNext = false,
   }) {
     final theme = Theme.of(context);
     final body = slot.medicine.body;
@@ -25,10 +28,17 @@ extension _MedicineTodayRows on _MedicineTodayPageState {
             action == MedicineModels.taken ? 'loggedTaken' : 'loggedSkipped',
             {'time': MedicineFields.hm(context, loggedTime ?? slot.at)},
           );
+    // Only this moment's buttons wait while its write is in flight.
+    final busy = _busySlots.contains(_slotKey(slot));
 
     return Padding(
       padding: const EdgeInsets.only(bottom: NexSpacing.sm),
       child: NexPanel(
+        key: ValueKey(
+          'medicine-today-panel-${slot.day}-${slot.medicine.id}-${slot.time}',
+        ),
+        title: isNext ? strings(context, 'nextUp') : null,
+        icon: isNext ? Icons.schedule_outlined : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -71,7 +81,7 @@ extension _MedicineTodayRows on _MedicineTodayPageState {
                       key: ValueKey(
                         'medicine-today-taken-${slot.day}-${slot.medicine.id}-${slot.time}',
                       ),
-                      onPressed: _busy
+                      onPressed: busy
                           ? null
                           : () => unawaited(_log(slot, MedicineModels.taken)),
                       icon: const Icon(Icons.check_outlined),
@@ -84,7 +94,7 @@ extension _MedicineTodayRows on _MedicineTodayPageState {
                       key: ValueKey(
                         'medicine-today-skipped-${slot.day}-${slot.medicine.id}-${slot.time}',
                       ),
-                      onPressed: _busy
+                      onPressed: busy
                           ? null
                           : () => unawaited(_log(slot, MedicineModels.skipped)),
                       icon: const Icon(Icons.remove_outlined),
@@ -100,7 +110,7 @@ extension _MedicineTodayRows on _MedicineTodayPageState {
                   key: ValueKey(
                     'medicine-today-correct-${slot.day}-${slot.medicine.id}-${slot.time}',
                   ),
-                  onPressed: _busy ? null : () => unawaited(_correct(slot)),
+                  onPressed: busy ? null : () => unawaited(_correct(slot)),
                   icon: const Icon(Icons.undo),
                   label: Text(AppLocalizations.of(context).delete),
                 ),

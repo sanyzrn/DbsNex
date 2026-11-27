@@ -205,7 +205,12 @@ class MedicineInfoSection extends StatelessWidget {
 
 /// The dose history block of the detail sheet: what was logged, when,
 /// and the correction beside each entry.
-class MedicineHistorySection extends StatelessWidget {
+///
+/// A routine kept for months writes hundreds of logs; building every row
+/// on open made the sheet crawl on the phones this module is mostly used
+/// on. The newest slice is built first, and the whole history only when
+/// the person asks for it.
+class MedicineHistorySection extends StatefulWidget {
   const MedicineHistorySection({
     super.key,
     required this.doses,
@@ -217,9 +222,24 @@ class MedicineHistorySection extends StatelessWidget {
   /// Deleting a log is a correction: stock the log took comes back.
   final void Function(ModuleRecord dose) onDelete;
 
+  /// How many of the newest entries are built before the person asks for
+  /// the rest. Weeks of a three-times-a-day routine, not months of it.
+  static const shown = 14;
+
+  @override
+  State<MedicineHistorySection> createState() => _MedicineHistorySectionState();
+}
+
+class _MedicineHistorySectionState extends State<MedicineHistorySection> {
+  bool _all = false;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final doses = widget.doses;
+    final shown = _all || doses.length <= MedicineHistorySection.shown
+        ? doses
+        : doses.take(MedicineHistorySection.shown).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -235,9 +255,23 @@ class MedicineHistorySection extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           )
-        else
-          for (final dose in doses)
-            MedicineDoseRow(dose: dose, onDelete: () => onDelete(dose)),
+        else ...[
+          for (final dose in shown)
+            MedicineDoseRow(dose: dose, onDelete: () => widget.onDelete(dose)),
+          if (shown.length < doses.length)
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton(
+                key: const ValueKey('medicine-history-show-all'),
+                onPressed: () => setState(() => _all = true),
+                child: Text(
+                  medicineStrings(context, 'showAllHistory', {
+                    'count': doses.length,
+                  }),
+                ),
+              ),
+            ),
+        ],
       ],
     );
   }
