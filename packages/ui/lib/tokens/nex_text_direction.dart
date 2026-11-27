@@ -21,8 +21,8 @@ import '../widgets/nex_selection_menu.dart';
 /// of each language it happened to contain.
 ///
 /// First-strong is the rule Unicode itself specifies for this (UAX #9, P2/P3)
-/// and what `dir="auto"` does on the web. Its virtue here is not accuracy so
-/// much as *stability*: once the first letter is down the answer is fixed, so
+/// and what `dir="auto"` does on the web. Its virtue here is not accuracy
+/// so much as *stability*: once the first letter is down the answer is fixed, so
 /// nothing moves while you write.
 ///
 /// Returns null when the text carries no strong directional character (a photo
@@ -76,6 +76,74 @@ TextDirection? nexDominantDirectionOf(String? text) {
   }
   if (rightToLeft == leftToRight) return firstStrong;
   return rightToLeft > leftToRight ? TextDirection.rtl : TextDirection.ltr;
+}
+
+/// The direction of the paragraph a caret is in: the paragraph's own first
+/// strong letter and, when the paragraph carries none — it is empty, or a
+/// number, or punctuation — the nearest paragraph before it that does, then
+/// the nearest after, so the answer does not flip while a paragraph is still
+/// being started.
+///
+/// This is the editing twin of [nexDirectionOf]: reading asks a finished
+/// block of text for one direction, and editing asks the paragraph the caret
+/// is in for the direction the field should lay out in. It is also the rule
+/// Android's own editor gave every paragraph (`TEXT_DIRECTION_FIRST_STRONG`,
+/// resolved per paragraph, alignment to the paragraph's own start), which a
+/// single `TextField` cannot reproduce for a whole field at once — so the
+/// field follows the paragraph being written, and every paragraph is right
+/// in its turn.
+///
+/// The caret belongs to the paragraph it ends: a caret sitting on a newline
+/// ends the paragraph before it, not the one after. A neutral paragraph
+/// keeps the direction of its neighbour rather than the interface's, which
+/// is what keeps a new paragraph in the direction of the one above it — the
+/// moment its own first strong letter lands, its own direction takes over.
+TextDirection? nexCaretDirectionOf(String text, int caret) {
+  if (text.isEmpty) return null;
+  final offset = caret.clamp(0, text.length);
+
+  /// Where each paragraph starts: after every newline, and the text itself.
+  final starts = <int>[0];
+  for (var i = 0; i < text.length; i++) {
+    if (text.codeUnitAt(i) == 0x0A) starts.add(i + 1);
+  }
+
+  /// The caret's paragraph: the last one that starts at or before it. A
+  /// caret on a newline is the end of the paragraph before that newline,
+  /// and that paragraph's start is still the last one at or before the
+  /// caret — the newline itself starts the next one.
+  var index = 0;
+  for (var i = 0; i < starts.length; i++) {
+    if (starts[i] <= offset) {
+      index = i;
+    } else {
+      break;
+    }
+  }
+
+  TextDirection? end(int start, int stop) =>
+      start >= stop ? null : nexDirectionOf(text.substring(start, stop));
+
+  // Backwards first, then forwards: a paragraph being started reads as a
+  // continuation of the one above it, and only the first paragraph of a
+  // field takes its direction from below.
+  final own = end(
+    starts[index],
+    index + 1 < starts.length ? starts[index + 1] - 1 : text.length,
+  );
+  if (own != null) return own;
+  for (var i = index - 1; i >= 0; i--) {
+    final direction = end(starts[i], starts[i + 1] - 1);
+    if (direction != null) return direction;
+  }
+  for (var i = index + 1; i < starts.length; i++) {
+    final direction = end(
+      starts[i],
+      i + 1 < starts.length ? starts[i + 1] - 1 : text.length,
+    );
+    if (direction != null) return direction;
+  }
+  return null;
 }
 
 /// The direction one character carries, or null if it carries none.
@@ -300,8 +368,8 @@ enum NexTextFit {
 ///
 /// Only the paragraph turns. Wrapping a whole card or sheet in a
 /// [Directionality] also moves its icons, dates and buttons, so a Persian note
-/// came out mirrored against everything around it — the text was right and the
-/// layout was wrong. Direction belongs to the text; the surface keeps the
+/// came out mirrored against everything around it — the text was right and
+/// the layout was wrong. Direction belongs to the text; the surface keeps the
 /// direction the interface language gives it.
 class NexTextSurface extends StatelessWidget {
   const NexTextSurface(
@@ -314,7 +382,7 @@ class NexTextSurface extends StatelessWidget {
   });
 
   /// One line of the user's text, as wide as it is and ellipsised past
-  /// [maxLines]: a checklist item, a link's headline.
+  /// axLines]: a checklist item, a link's headline.
   const NexTextSurface.line(
     this.text, {
     super.key,
@@ -335,8 +403,8 @@ class NexTextSurface extends StatelessWidget {
   /// is invisible from the outside: on a phone, a paragraph that does not
   /// answer a long press does not read as "this app has not implemented
   /// selection here", it reads as "selection in this app is broken". Nex
-  /// renders most of what a person *reads* through this widget, so most of
-  /// what a person reads could not be copied out of.
+  /// renders most of what a person *reads* through this widget, so most
+  /// of what a person reads could not be copied out of.
   ///
   /// True wraps the block in a [SelectionArea], which is what brings the long
   /// press, the double tap, the handles, the magnifier and Copy. The area
@@ -476,13 +544,28 @@ class NexTextSurface extends StatelessWidget {
   }
 }
 
-/// Runs a text field in the direction of the script being typed into it.
+/// Runs a text field in the direction of the paragraph being typed into.
 ///
 /// A `TextField` takes its direction from the ambient [Directionality] — the
 /// interface language — unless it is told otherwise, and the interface
 /// language is not what decides here. A Persian sentence typed into a
 /// left-to-right field is laid out around the wrong base direction, so it
 /// scrambles as it is written and settles the moment it is saved.
+///
+/// **The paragraph the caret is in decides.** The direction comes from that
+/// paragraph's own first strong letter — [nexCaretDirectionOf] — with a
+/// paragraph that carries none of its own following the one above it, so
+/// starting a new paragraph keeps the side the writing was on. This is what
+/// Android's own editor gave every paragraph, and what a single `TextField`
+/// cannot give a whole field at once: a field laid out in one direction puts
+/// a Persian paragraph in an English note, or an English line in a Persian
+/// one, on the wrong side with its punctuation at the wrong end. Here the
+/// paragraph being written is always right, in its own direction and on its
+/// own side — the field follows the caret. For a selection wider than the
+/// caret the anchor decides — the end the selection is *from*, which stays
+/// put while the other end is dragged — so a handle dragged into a
+/// paragraph in the other language never relayouts the field out from under
+/// the finger.
 ///
 /// **It supplies a [Directionality], not just a `textDirection` argument**,
 /// and that distinction is the whole reason this is a widget rather than a
@@ -512,11 +595,12 @@ class NexTextSurface extends StatelessWidget {
 /// )
 /// ```
 ///
-/// A null direction means the text carries none of its own — it is empty, or
-/// it is a number — and the field keeps the ambient one. That is what puts a
-/// placeholder at the right edge in Persian and the left in English.
+/// A null direction means the caret's paragraph and its neighbours carry none
+/// of their own — the text is empty, or numbers only — and the field keeps
+/// the ambient one. That is what puts a placeholder at the right edge in
+/// Persian and the left in English.
 ///
-/// Two things it is careful about, both learned the hard way:
+/// Three things it is careful about, all learned the hard way:
 ///
 /// - **It rebuilds on a change of direction, not on a change of value.** A
 ///   `TextEditingController` notifies its listeners when the *selection*
@@ -531,6 +615,12 @@ class NexTextSurface extends StatelessWidget {
 ///   which, for a focused field, means losing focus and selection at the
 ///   moment the first letter is typed, exactly when the direction stops being
 ///   null.
+/// - **A change of direction rebuilds the field in place, not from
+///   scratch.** The direction moves with the caret, so crossing into a
+///   paragraph written in the other language re-lays the field out around the
+///   new base direction — and only then, once, when the answer actually
+///   changes. The `TextField` below keeps its element and its state, its
+///   focus and its selection; only the layout turns.
 class NexAutoDirection extends StatefulWidget {
   const NexAutoDirection({
     super.key,
@@ -578,8 +668,17 @@ class _NexAutoDirectionState extends State<NexAutoDirection> {
     super.dispose();
   }
 
-  TextDirection? _resolveDirection() =>
-      widget.direction ?? nexDirectionOf(widget.controller.text);
+  TextDirection? _resolveDirection() {
+    if (widget.direction != null) return widget.direction;
+    final value = widget.controller.value;
+    // The anchor: the end a selection is *from* — the caret itself for a
+    // caret, and for a dragged range the end that stays put while the other
+    // one is dragged. A field that followed the dragged end would relayout
+    // under the finger as it crossed into a paragraph written in the other
+    // language; the anchor holds the side the writing is on.
+    final anchor = value.selection.isValid ? value.selection.baseOffset : 0;
+    return nexCaretDirectionOf(widget.controller.text, anchor);
+  }
 
   void _reread() {
     final next = _resolveDirection();
