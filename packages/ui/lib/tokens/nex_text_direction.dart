@@ -21,8 +21,8 @@ import '../widgets/nex_selection_menu.dart';
 /// of each language it happened to contain.
 ///
 /// First-strong is the rule Unicode itself specifies for this (UAX #9, P2/P3)
-/// and what `dir="auto"` does on the web. Its virtue here is not accuracy
-/// so much as *stability*: once the first letter is down the answer is fixed, so
+/// and what `dir="auto"` does on the web. Its virtue here is not accuracy so
+/// much as *stability*: once the first letter is down the answer is fixed, so
 /// nothing moves while you write.
 ///
 /// Returns null when the text carries no strong directional character (a photo
@@ -368,8 +368,8 @@ enum NexTextFit {
 ///
 /// Only the paragraph turns. Wrapping a whole card or sheet in a
 /// [Directionality] also moves its icons, dates and buttons, so a Persian note
-/// came out mirrored against everything around it — the text was right and
-/// the layout was wrong. Direction belongs to the text; the surface keeps the
+/// came out mirrored against everything around it — the text was right and the
+/// layout was wrong. Direction belongs to the text; the surface keeps the
 /// direction the interface language gives it.
 class NexTextSurface extends StatelessWidget {
   const NexTextSurface(
@@ -382,7 +382,7 @@ class NexTextSurface extends StatelessWidget {
   });
 
   /// One line of the user's text, as wide as it is and ellipsised past
-  /// axLines]: a checklist item, a link's headline.
+  /// [maxLines]: a checklist item, a link's headline.
   const NexTextSurface.line(
     this.text, {
     super.key,
@@ -403,8 +403,8 @@ class NexTextSurface extends StatelessWidget {
   /// is invisible from the outside: on a phone, a paragraph that does not
   /// answer a long press does not read as "this app has not implemented
   /// selection here", it reads as "selection in this app is broken". Nex
-  /// renders most of what a person *reads* through this widget, so most
-  /// of what a person reads could not be copied out of.
+  /// renders most of what a person *reads* through this widget, so most of
+  /// what a person reads could not be copied out of.
   ///
   /// True wraps the block in a [SelectionArea], which is what brings the long
   /// press, the double tap, the handles, the magnifier and Copy. The area

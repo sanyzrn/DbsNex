@@ -297,7 +297,7 @@ void main() {
     // without a mark the preview reads as the note's ending rather than
     // its beginning.
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: Scaffold(
           body: SizedBox(
             width: 300,
@@ -336,7 +336,7 @@ void main() {
     // Small budgets filtered the blanks before they got here; a four-row
     // preview used to spend a row of them on air.
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: Scaffold(
           body: SizedBox(
             width: 300,
