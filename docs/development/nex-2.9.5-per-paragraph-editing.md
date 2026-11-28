@@ -228,3 +228,50 @@ which created a template due on the 28th and expected it to be ahead — was a
 date-dependent test, not an editor bug: it failed on the 28th of any month. It
 now pins the screen's clock through `ExpensesScreen(now:)` instead of reading
 the wall clock, so it answers the same on every day.
+
+## The field prerequisites, and the wall behind them
+
+The three things a prose field needs before it can leave `NexTextField` are now
+in `NexParagraphEditor` itself, so a field of the new engine is a drop-in
+widget rather than a special case:
+
+* **a frame** — `decoration`, with the hint, the fill, the outline and the
+  content padding drawn by `_NexFieldFrame`;
+* **a line box** — `minLines`/`maxLines`, with the height taken from the text
+  (one line per `\n`), clamped to the box, and the engine scrolling inside it.
+  A caller that gives neither keeps the old behaviour exactly: fill the space
+  you are given (the note sheet's `Expanded`);
+* **a formatting bar** — `formatting: true` shows the same seven commands the
+  capture composer's selection menu offers (bold, italic, monospace,
+  strikethrough, quote, link, clear), anchored above the selection and acting
+  through `NexTextFormatting` on the controller, so the note stays one plain
+  Markdown string.
+
+`InputDecorator` cannot be used for the frame: it is a slotted render object,
+and Super Editor's viewport and Android selection overlay are slotted too, so a
+slotted child inside a slotted parent throws
+(`RenderConstrainedBox expected a child of type RenderBox but received a child
+of type _RenderSliverHybridStack`). `_NexFieldFrame` draws what matters without
+it; fields that need a label, an error line, a counter or an icon keep the
+platform field.
+
+### Why the module fields are still on `TextField`
+
+Routing every prose `NexTextField` to the engine was implemented and measured,
+then reverted, because the editor cannot yet be mounted inside a scrolling
+form. `SuperEditor` (0.3.0-dev.52) builds its viewport from slotted render
+objects and throws the same sliver error as above when it is placed inside a
+`SingleChildScrollView` — with an explicit `SizedBox` height, with
+`shrinkWrap: true`, and with no frame at all. Most module forms (feedback,
+expenses, journal, settings) are exactly that shape, so the conversion turned
+132 tests in the first shard red at the *build* stage, not at an assertion.
+
+Doing it properly needs one of:
+
+1. an upstream fix (or a newer pinned Super Editor) that lets
+   `DocumentScaffold` render as a box inside an unbounded scrollable, or
+2. a per-field decision made by the form (bounded parent → engine), which is
+   the "two parallel paths" this ADR exists to avoid.
+
+Until one lands, `NexTextField` stays the field, the note sheet stays on the
+engine, and the prerequisites above are ready for the switch.

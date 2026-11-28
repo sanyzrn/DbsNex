@@ -1,6 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:super_editor/super_editor.dart';
+
+import '../l10n/app_localizations.dart';
+import 'text_format_menu.dart';
 
 /// Resolves every paragraph's direction once, from the paragraphs' own text,
 /// and hands it to each paragraph component as it is laid out.
@@ -53,7 +59,7 @@ class _NexParagraphComponentBuilder extends ParagraphComponentBuilder {
 ///
 /// One instance lives as long as the state, so a relayout caused by a
 /// selection or a drag reads the map instead of walking the document again.
-/// [resolve] is called only when the text changed — once per edit, not once per
+/// It is rebuilt only when the text changes — once per edit, not once per
 /// paragraph and certainly not once per frame.
 class _NexDirectionResolver {
   Map<String, TextDirection> directions = const {};
@@ -168,6 +174,16 @@ class _NexDirectionResolver {
 /// rewrite would edit the text that is about to be replaced. Read-only renders
 /// the same document through `SuperReader`, which has no input connection at
 /// all, so nothing can arrive.
+///
+/// ## A drop-in field
+///
+/// Two things a `TextField` gives for free are given here too, so a field can
+/// move to this engine without losing anything: [decoration] (hint included)
+/// around the text, and the line box [minLines]/[maxLines] describe — growing
+/// with the text up to the maximum, then scrolling. [formatting] adds the same
+/// seven commands the capture sheet's selection menu offers, in a small bar
+/// above the selection, because Super Editor draws its own selection UI and
+/// the platform's context menu is not part of it.
 class NexParagraphEditor extends StatefulWidget {
   const NexParagraphEditor({
     super.key,
@@ -175,7 +191,12 @@ class NexParagraphEditor extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.readOnly = false,
+    this.enabled = true,
     this.style,
+    this.decoration = const InputDecoration(),
+    this.minLines,
+    this.maxLines,
+    this.formatting = false,
     this.onChanged,
   });
 
@@ -194,7 +215,26 @@ class NexParagraphEditor extends StatefulWidget {
   /// change, and a key pressed during it cannot change it either.
   final bool readOnly;
 
+  /// False dims the field and takes no input, as a disabled `TextField` does.
+  final bool enabled;
+
   final TextStyle? style;
+
+  /// The field's frame: hint, helper, error, borders and padding.
+  ///
+  /// The engine draws the text; this draws what a `TextField` would draw
+  /// around it, through the same `InputDecorator`, so the theme's borders,
+  /// hints and colours arrive unchanged.
+  final InputDecoration decoration;
+
+  /// The line box: at least [minLines] tall, and with [maxLines] set, no
+  /// taller — the text scrolls inside after that.
+  final int? minLines;
+  final int? maxLines;
+
+  /// Bold, italic, monospace, strikethrough, quote, link and clear, in a bar
+  /// over the selection — see [NexTextFormatting].
+  final bool formatting;
 
   /// Called with the joined text whenever the document changes.
   final ValueChanged<String>? onChanged;
@@ -209,6 +249,14 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
   late Editor _editor;
 
   final _resolver = _NexDirectionResolver();
+
+  /// The document's scroll position, kept so the format bar can be placed in
+  /// the viewport rather than in the document.
+  final _scroll = ScrollController();
+
+  /// The laid-out document, for the format bar's anchor. Super Editor exposes
+  /// it through the key its viewport was built with.
+  final _layoutKey = GlobalKey();
 
   /// Why a selection changed when the caller set it rather than a finger.
   ///
@@ -237,11 +285,16 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
   /// caller asked for.
   bool _rebuilding = false;
 
+  /// Set by a format command: the bar goes away until the selection moves
+  /// again, the way a platform's menu closes after a command.
+  bool _formatBarDismissed = false;
+
   @override
   void initState() {
     super.initState();
     _build(widget.controller.text, widget.controller.selection);
     widget.controller.addListener(_onControllerChanged);
+    _scroll.addListener(_onScrolled);
   }
 
   @override
@@ -257,8 +310,15 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
   @override
   void dispose() {
     widget.controller.removeListener(_onControllerChanged);
+    _scroll
+      ..removeListener(_onScrolled)
+      ..dispose();
     _tearDown();
     super.dispose();
+  }
+
+  void _onScrolled() {
+    if (widget.formatting) setState(() {});
   }
 
   void _tearDown() {
@@ -294,7 +354,7 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     // The composer's own listeners hear about composing regions and
     // interaction mode; the selection is published on its notifier. Listening
     // to the composer alone would leave the controller's caret where it was
-    // while a finger moved the editor's — and the formatting menu reads that
+    // while a finger moved the editor's — and the formatting bar reads that
     // caret.
     _composer.selectionNotifier.addListener(_onComposerChanged);
     final caret = selection != null && selection.isValid
@@ -346,8 +406,10 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     if (text == _knownText) return;
     _knownText = text;
     _resolver.directions = _resolveDirections();
+    _formatBarDismissed = false;
     _writeController(text);
     widget.onChanged?.call(text);
+    if (widget.minLines != null) setState(() {});
   }
 
   /// One pass over the paragraphs: each direction is its own, else the nearest
@@ -389,6 +451,7 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     if (_rebuilding) return;
     final selection = _composer.selection;
     if (selection == null) return;
+    _formatBarDismissed = false;
     final start = _offsetOf(selection.base);
     final end = _offsetOf(selection.extent);
     if (start == null || end == null) return;
@@ -476,12 +539,155 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     return null;
   }
 
+  /// Applies a formatting command to the controller's selection and writes the
+  /// result back, which is the same door the AI rewrite comes through: the
+  /// document is rebuilt from the new string, so the note keeps being one
+  /// plain string with Markdown in it.
+  Future<void> _format(_NexFormatCommand command) async {
+    final value = widget.controller.value;
+    final selection = value.selection;
+    if (!selection.isValid || selection.isCollapsed) return;
+    final start = selection.start;
+    final end = selection.end;
+    NexFormattedText? result;
+    switch (command) {
+      case _NexFormatCommand.bold:
+        result = NexTextFormatting.toggleInline(
+          value.text,
+          start,
+          end,
+          NexInlineFormat.bold,
+        );
+      case _NexFormatCommand.italic:
+        result = NexTextFormatting.toggleInline(
+          value.text,
+          start,
+          end,
+          NexInlineFormat.italic,
+        );
+      case _NexFormatCommand.mono:
+        result = NexTextFormatting.toggleInline(
+          value.text,
+          start,
+          end,
+          NexInlineFormat.mono,
+        );
+      case _NexFormatCommand.strikethrough:
+        result = NexTextFormatting.toggleInline(
+          value.text,
+          start,
+          end,
+          NexInlineFormat.strikethrough,
+        );
+      case _NexFormatCommand.quote:
+        result = NexTextFormatting.toggleQuote(value.text, start, end);
+      case _NexFormatCommand.link:
+        final url = await nexAskForLinkUrl(context);
+        if (!mounted || url == null || url.isEmpty) return;
+        result = NexTextFormatting.link(value.text, start, end, url);
+      case _NexFormatCommand.clear:
+        result = NexTextFormatting.clear(value.text, start, end);
+    }
+    if (!mounted) return;
+    setState(() => _formatBarDismissed = true);
+    widget.controller.value = TextEditingValue(
+      text: result.text,
+      selection: TextSelection(
+        baseOffset: result.start,
+        extentOffset: result.end,
+      ),
+    );
+  }
+
+  /// The line height the style draws with, text scale included.
+  double _lineHeight(BuildContext context) {
+    final style =
+        widget.style ??
+        DefaultTextStyle.of(context).style
+            .copyWith(color: Theme.of(context).colorScheme.onSurface);
+    final fontSize = style.fontSize ?? 16;
+    final factor = style.height ?? 1.5;
+    return MediaQuery.textScalerOf(context).scale(fontSize) * factor;
+  }
+
+  /// The height the field wants: its text's lines, inside the box its
+  /// [NexParagraphEditor.minLines]/[NexParagraphEditor.maxLines] describe.
+  double _fieldHeight(BuildContext context) {
+    final lines = '\n'.allMatches(widget.controller.text).length + 1;
+    final minLines = widget.minLines ?? 1;
+    final maxLines = widget.maxLines;
+    final visible = maxLines == null
+        ? math.max(lines, minLines)
+        : lines.clamp(minLines, maxLines);
+    return visible * _lineHeight(context);
+  }
+
+  /// Where the format bar goes: just above the selection, in viewport
+  /// coordinates, and never off the top.
+  Rect? _selectionRect() {
+    final selection = _composer.selection;
+    if (selection == null || selection.isCollapsed) return null;
+    final state = _layoutKey.currentState;
+    if (state == null) return null;
+    final layout = state as DocumentLayout;
+    final rect = layout.getRectForSelection(selection.base, selection.extent);
+    if (rect == null) return null;
+    final offset = _scroll.hasClients ? _scroll.offset : 0.0;
+    return rect.shift(Offset(0, -offset));
+  }
+
+  Widget _formatBar(BuildContext context, Rect anchor) {
+    final l10n = AppLocalizations.of(context);
+    final entries = <(_NexFormatCommand, String)>[
+      (_NexFormatCommand.bold, l10n.formatBold),
+      (_NexFormatCommand.italic, l10n.formatItalic),
+      (_NexFormatCommand.mono, l10n.formatMono),
+      (_NexFormatCommand.strikethrough, l10n.formatStrikethrough),
+      (_NexFormatCommand.quote, l10n.formatQuote),
+      (_NexFormatCommand.link, l10n.formatLink),
+      (_NexFormatCommand.clear, l10n.formatClear),
+    ];
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: math.max(0, anchor.top - 44),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Material(
+          elevation: 3,
+          borderRadius: BorderRadius.circular(NexRadius.sm),
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.xs),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final (command, label) in entries)
+                  TextButton(
+                    onPressed: () => _format(command),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(44, 32),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: NexSpacing.xs,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    child: Text(label, style: const TextStyle(fontSize: 12)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final body = widget.style ?? theme.textTheme.bodyLarge;
     final style = body?.copyWith(
-      color: theme.colorScheme.onSurface,
+      color: widget.enabled ? theme.colorScheme.onSurface : theme.disabledColor,
       // The engine draws each paragraph flush to its own side rather than
       // centring it, so the leading has to come from the style, not from a
       // padding that would shift one side only.
@@ -511,29 +717,162 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     final selectionStyle = SelectionStyles(
       selectionColor: theme.colorScheme.primary.withValues(alpha: 0.22),
     );
-    if (widget.readOnly) {
+    final Widget content;
+    if (widget.readOnly || !widget.enabled) {
       // No IME connection at all: a key pressed while the document is only
       // being shown has nowhere to arrive, so it cannot edit the text that is
       // about to be replaced.
-      return SuperReader(
+      content = SuperReader(
         editor: _editor,
         stylesheet: stylesheet,
         componentBuilders: builders,
         selectionStyle: selectionStyle,
       );
+    } else {
+      content = SuperEditor(
+        editor: _editor,
+        focusNode: widget.focusNode,
+        autofocus: widget.autofocus,
+        scrollController: _scroll,
+        documentLayoutKey: _layoutKey,
+        // The field decides its own height from its lines and may sit inside a
+        // sheet that already scrolls; the editor then shrinks to that height
+        // instead of demanding a viewport of its own.
+        shrinkWrap: true,
+        // The note is prose, and a note keeps its own formatting as Markdown in
+        // its text. Turning markdown into blocks here would change what the
+        // note is, so the editor shows the same plain source the field showed,
+        // with only the paragraph component.
+        componentBuilders: builders,
+        stylesheet: stylesheet,
+        selectionStyle: selectionStyle,
+      );
     }
-    final editor = SuperEditor(
-      editor: _editor,
-      focusNode: widget.focusNode,
-      autofocus: widget.autofocus,
-      // The note is prose, and a note keeps its own formatting as Markdown in
-      // its text. Turning markdown into blocks here would change what the note
-      // is, so the editor shows the same plain source the field showed, with
-      // only the paragraph component.
-      componentBuilders: builders,
-      stylesheet: stylesheet,
-      selectionStyle: selectionStyle,
+    final showFormatBar =
+        widget.formatting &&
+        !widget.readOnly &&
+        widget.enabled &&
+        !_formatBarDismissed &&
+        (_composer.selection?.isCollapsed ?? true) == false;
+    final anchor = showFormatBar ? _selectionRect() : null;
+    // A caller that says nothing about lines wants the whole space it is
+    // given — the note sheet gives the editor an `Expanded` and lets it fill
+    // the page and scroll. Only a caller that describes a field gets a field:
+    // the box its lines ask for, and the frame around it.
+    if (widget.minLines == null && widget.maxLines == null) return content;
+    // No `LayoutBuilder` here: the engine mounts slotted render objects
+    // (its viewport and its selection overlay), and a subtree mounted during
+    // someone else's layout pass attaches those slots to the wrong parent.
+    // The height comes from the text, and a parent that is shorter simply
+    // clips it and lets the engine scroll.
+    final desired = _fieldHeight(context);
+    final box = math.max(desired, _lineHeight(context));
+    final fieldBody = SizedBox(
+      height: box,
+      child: anchor == null
+          ? content
+          : ClipRect(
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(child: content),
+                  _formatBar(context, anchor),
+                ],
+              ),
+            ),
     );
-    return editor;
+    return _NexFieldFrame(
+      decoration: widget.decoration,
+      isEmpty: widget.controller.text.isEmpty,
+      isEnabled: widget.enabled,
+      child: fieldBody,
+    );
   }
 }
+
+/// The frame a [InputDecoration] draws around a field, without the
+/// [InputDecorator] that would break the engine.
+///
+/// Super Editor's viewport and its selection overlay are *slotted* render
+/// objects, and `InputDecorator` is one too: a slotted child nested inside a
+/// slotted parent lands in the wrong slot and the layout throws. The frame that
+/// matters — the hint, the fill, the outline and the padding — is small enough
+/// to draw here, and fields that need a label, an error line, a counter or an
+/// icon keep the platform field instead (see [NexTextField]).
+class _NexFieldFrame extends StatelessWidget {
+  const _NexFieldFrame({
+    required this.decoration,
+    required this.isEmpty,
+    required this.isEnabled,
+    required this.child,
+  });
+
+  final InputDecoration decoration;
+  final bool isEmpty;
+  final bool isEnabled;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final side = decoration.enabledBorder is OutlineInputBorder
+        ? (decoration.enabledBorder! as OutlineInputBorder).borderSide
+        : (decoration.border is OutlineInputBorder
+              ? (decoration.border! as OutlineInputBorder).borderSide
+              : BorderSide.none);
+    final radius = decoration.border is OutlineInputBorder
+        ? (decoration.border! as OutlineInputBorder).borderRadius
+        : const BorderRadius.all(Radius.circular(NexRadius.sm));
+    final fill = decoration.fillColor;
+    final padding =
+        decoration.contentPadding ??
+        const EdgeInsets.symmetric(
+          horizontal: NexSpacing.xs,
+          vertical: NexSpacing.xs,
+        );
+    final text = decoration.hintText;
+    final hintStyle =
+        decoration.hintStyle ??
+        theme.textTheme.bodyLarge?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: decoration.filled == true ? fill : null,
+        borderRadius: radius,
+        border: side == BorderSide.none
+            ? null
+            : Border.all(
+                color: isEnabled ? side.color : theme.disabledColor,
+                width: side.width,
+              ),
+      ),
+      child: Padding(
+        padding: padding,
+        child: text == null || !isEmpty
+            ? child
+            : Stack(
+                children: [
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Align(
+                        alignment: AlignmentDirectional.topStart,
+                        child: Text(
+                          text,
+                          style: hintStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.start,
+                        ),
+                      ),
+                    ),
+                  ),
+                  child,
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+enum _NexFormatCommand { bold, italic, mono, strikethrough, quote, link, clear }
