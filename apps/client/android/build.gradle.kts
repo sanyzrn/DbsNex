@@ -1,3 +1,5 @@
+import com.android.build.api.variant.LibraryAndroidComponentsExtension
+
 allprojects {
     repositories {
         google()
@@ -56,6 +58,14 @@ subprojects {
 subprojects {
     plugins.withId("com.android.library") {
         plugins.apply("org.jetbrains.kotlin.android")
+        if (name == "super_keyboard") {
+            // This plugin explicitly sets Java 8. Align it with the Kotlin
+            // target below after its own build script has configured the DSL.
+            extensions.getByType<LibraryAndroidComponentsExtension>().finalizeDsl { android ->
+                android.compileOptions.sourceCompatibility = JavaVersion.VERSION_17
+                android.compileOptions.targetCompatibility = JavaVersion.VERSION_17
+            }
+        }
     }
 }
 
