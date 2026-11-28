@@ -95,3 +95,90 @@ the Android soft-keyboard behaviours (Backspace at a paragraph start, Enter
 splitting, composing text, the magnifier and the drag handles) are covered by
 the engine's own implementation and by its upstream test suite, not by a
 physical run; and the formatting menu's new position was not seen on a device.
+
+## 6. Audit, 2.9.5
+
+### What was wrong with the first implementation
+
+Four things, found by reading it again and by driving it through the paths a
+person drives:
+
+1. **A reversed selection was flattened.** `_build` placed the document's
+   caret from `selection.start` and `selection.end`, which are always ordered,
+   so a drag from the bottom of a paragraph upwards reached the document as a
+   forward selection. The controller now keeps `baseOffset`/`extentOffset`, and
+   the comparison that decides whether to write the controller compares those
+   fields, not their ends.
+2. **The controller never followed a tap or a drag.** The state listened to the
+   composer itself, but `DocumentComposer` publishes selection changes on
+   `selectionNotifier`; its own listeners hear about composing regions and
+   interaction mode. The editor's caret moved and the controller's stayed put,
+   so the formatting menu — which reads the controller — formatted the old
+   position. Found by the input tests, not by any earlier suite: every earlier
+   test set the selection through the controller, which is the path that
+   already worked.
+3. **Undo and redo were invisible to the cache.** `Editor.undo` rolls the
+   editables back and notifies with an **empty** change log, so the incremental
+   path concluded nothing had changed. An empty log now rebuilds the paragraph
+   index, because an empty log means "all of it, unknown".
+4. **`readOnly` was `IgnorePointer`.** An ignored pointer still holds the
+   platform input connection: a hardware keyboard could type into the document
+   that the AI rewrite was about to replace. Read-only now renders the same
+   document through `SuperReader`, which has no input connection at all.
+
+### What a keystroke costs
+
+The note is mirrored in `_paragraphs` (each paragraph's text) and `_starts`
+(each paragraph's start offset), with `_indexById` for the reverse lookup.
+A change log naming one node updates one entry and recomputes the offset table
+(integer adds); the joined string is assembled from cached strings, so a
+keystroke no longer calls `toPlainText` once per paragraph. Placing the caret
+is a binary search. Directions are resolved in one pass per text change and
+handed to the layout through a resolver the components read, instead of each
+paragraph walking its neighbours during layout.
+
+Measured on the 500-line mixed note in
+`test/nex_paragraph_editor_perf_test.dart`, with frames excluded so the numbers
+are the document work and not the layout:
+
+| | before | after |
+| --- | --- | --- |
+| open | ~1.45 s | ~1.5 s |
+| keystroke (document work) | 21–45 ms | 18–24 ms |
+| caret move | 3.7 ms | 3.3–3.8 ms |
+
+The difference is **inside run-to-run noise on this machine**, and that is the
+honest result: the per-keystroke cost is dominated upstream — Super Editor
+serialises the whole document for the IME and re-sends it on every delta, and a
+frame lays every paragraph out. The change is still worth keeping (it removes an
+allocation per paragraph per keystroke, which is what grows on very long notes
+and slower devices) but it does not make a 500-line note fast by itself, and no
+claim to the contrary belongs in the release notes.
+
+### What the tests now drive
+
+`test/nex_paragraph_editor_input_test.dart` (7 tests): typing through the IME
+against the value the engine published to it; the IME's newline splitting a
+paragraph, with each line taking its own direction; Backspace joining across a
+paragraph boundary; a selection anchored below and extended above arriving in
+the controller reversed; the caret walking the whole note without any
+paragraph's direction or alignment changing; undo and redo restoring text, caret
+and string; read-only having no input connection.
+
+Character input reaches Super Editor through the IME on every target
+(`TextInputSource.ime` is its default), so a "hardware typing" test would be
+testing a path that does not exist; the keys that are keys — Backspace, Enter,
+undo — are tested as key events.
+
+### Not validated
+
+No device or emulator was available. The soft keyboard on Android (composing
+text, the GBoard newline behaviours Super Editor special-cases, the magnifier and
+drag handles), Windows IME behaviour, and touch scrolling inside the editor were
+not exercised. `docs/development/nex-2.9.5-editor-device-checklist.md` is the
+run-through for a person with a device.
+
+A full `flutter test` run over the app's 545 test files passes, with one
+pre-existing failure unrelated to the editor: `modules/expenses` "nothing is
+offered before its day" creates a template due on day 28 and expects it to be
+ahead — it fails on the 28th of any month, and this one ran on 28 November.

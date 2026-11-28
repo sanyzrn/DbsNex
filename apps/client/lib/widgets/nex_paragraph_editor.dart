@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Lays a paragraph out by the rule Nex's reading surfaces use.
+/// Resolves every paragraph's direction once, from the paragraphs' own text,
+/// and hands it to each paragraph component as it is laid out.
+///
+/// The map is rebuilt whenever the text changes; a node the map has not seen
+/// yet (the second half of a split) falls back to the same neighbour walk for
+/// that one node, so a relayout that runs before the map is refreshed is still
+/// right — just not cached.
 ///
 /// Super Editor's own paragraph builder decides direction from the paragraph's
 /// **first character**: anything outside a right-to-left block answers left to
@@ -19,11 +25,9 @@ import 'package:super_editor/super_editor.dart';
 /// only one paragraph at a time; here every paragraph follows it at once, and
 /// none of them depends on the caret.
 class _NexParagraphComponentBuilder extends ParagraphComponentBuilder {
-  const _NexParagraphComponentBuilder(this.fallbackDirection);
+  const _NexParagraphComponentBuilder(this.resolver);
 
-  /// The interface's direction, used only when no paragraph in the document
-  /// carries a strong character of its own.
-  final TextDirection fallbackDirection;
+  final _NexDirectionResolver resolver;
 
   @override
   SingleColumnLayoutComponentViewModel? createViewModel(
@@ -32,7 +36,7 @@ class _NexParagraphComponentBuilder extends ParagraphComponentBuilder {
   ) {
     final viewModel = super.createViewModel(document, node);
     if (viewModel is! ParagraphComponentViewModel) return viewModel;
-    final direction = _directionOf(document, node);
+    final direction = resolver.directionOf(document, node);
     viewModel.textDirection = direction;
     // Alignment is the paragraph's own side, not the document's: a per-
     // paragraph direction with one shared alignment would put a Persian
@@ -43,8 +47,25 @@ class _NexParagraphComponentBuilder extends ParagraphComponentBuilder {
         : TextAlign.left;
     return viewModel;
   }
+}
 
-  TextDirection _directionOf(Document document, DocumentNode node) {
+/// The per-document direction cache behind [_NexParagraphComponentBuilder].
+///
+/// One instance lives as long as the state, so a relayout caused by a
+/// selection or a drag reads the map instead of walking the document again.
+/// [resolve] is called only when the text changed — once per edit, not once per
+/// paragraph and certainly not once per frame.
+class _NexDirectionResolver {
+  Map<String, TextDirection> directions = const {};
+
+  /// The interface's direction, used only when no paragraph in the document
+  /// carries a strong character of its own.
+  TextDirection fallback = TextDirection.ltr;
+
+  TextDirection directionOf(Document document, DocumentNode node) =>
+      directions[node.id] ?? _walk(document, node);
+
+  TextDirection _walk(Document document, DocumentNode node) {
     final own = _strongDirection(node);
     if (own != null) return own;
     var before = document.getNodeBeforeById(node.id);
@@ -59,7 +80,7 @@ class _NexParagraphComponentBuilder extends ParagraphComponentBuilder {
       if (direction != null) return direction;
       after = document.getNodeAfterById(after.id);
     }
-    return fallbackDirection;
+    return fallback;
   }
 
   static TextDirection? _strongDirection(DocumentNode node) =>
@@ -126,6 +147,25 @@ class _NexParagraphComponentBuilder extends ParagraphComponentBuilder {
 /// The [controller] remains the source of truth in both directions. Typing
 /// writes the joined text into it the frame it happens; an AI rewrite, a draft
 /// recovery or the editor's own undo writing into it rebuilds the document.
+///
+/// ## The cost of a keystroke
+///
+/// A note is a string, and a string is what the controller and every reader of
+/// it expect, so a keystroke does have to produce the whole note once. What it
+/// must not do is *re-read* the whole note: this state keeps each paragraph's
+/// text and start offset beside the document ([_paragraphs], [_starts]) and
+/// updates only the paragraphs a change log names. A keystroke therefore costs
+/// one paragraph's text plus one join, not one `toPlainText` per line and a
+/// walk of every node for the caret; mapping the caret is a binary search.
+///
+/// ## Read-only means no input, not a blocked finger
+///
+/// [readOnly] is not `IgnorePointer`. A widget under an ignored pointer still
+/// holds the platform input connection, so a hardware keyboard or an IME can
+/// keep editing a document that is only being shown — which during an AI
+/// rewrite would edit the text that is about to be replaced. Read-only renders
+/// the same document through `SuperReader`, which has no input connection at
+/// all, so nothing can arrive.
 class NexParagraphEditor extends StatefulWidget {
   const NexParagraphEditor({
     super.key,
@@ -146,8 +186,10 @@ class NexParagraphEditor extends StatefulWidget {
   final FocusNode? focusNode;
   final bool autofocus;
 
-  /// Shows the document but takes no edits. The AI rewrite uses it while it
-  /// is working; the text underneath does not change.
+  /// Shows the document but takes no input: no IME connection, no caret.
+  ///
+  /// The AI rewrite uses it while it is working; the text underneath does not
+  /// change, and a key pressed during it cannot change it either.
   final bool readOnly;
 
   final TextStyle? style;
@@ -163,6 +205,23 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
   late MutableDocument _document;
   late MutableDocumentComposer _composer;
   late Editor _editor;
+
+  /// Every paragraph's plain text, in document order — the cache [_join] and
+  /// the selection mapping work from, so no change has to re-read the document.
+  List<String> _paragraphs = const [];
+
+  /// The node id behind each entry of [_paragraphs].
+  List<String> _ids = const [];
+
+  /// Where each paragraph starts in the joined text. Paragraph `i` occupies
+  /// `[_starts[i], _starts[i] + _paragraphs[i].length]`, and the newline that
+  /// joins it to the next is its next index.
+  List<int> _starts = const [];
+
+  /// The paragraph index of each node id.
+  final Map<String, int> _indexById = {};
+
+  final _resolver = _NexDirectionResolver();
 
   /// Why a selection changed when the caller set it rather than a finger.
   ///
@@ -217,7 +276,7 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
 
   void _tearDown() {
     _document.removeListener(_onDocumentChanged);
-    _composer.removeListener(_onComposerChanged);
+    _composer.selectionNotifier.removeListener(_onComposerChanged);
     _document.dispose();
     _editor.dispose();
   }
@@ -243,19 +302,98 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
       isHistoryEnabled: true,
     );
     _knownText = text;
+    _indexParagraphs(); // The lines are already in hand: no toPlainText pass.
+    _resolver.directions = const {};
     _document.addListener(_onDocumentChanged);
-    _composer.addListener(_onComposerChanged);
+    // The composer's own listeners hear about composing regions and
+    // interaction mode; the selection is published on its notifier. Listening
+    // to the composer alone would leave the controller's caret where it was
+    // while a finger moved the editor's — and the formatting menu reads that
+    // caret.
+    _composer.selectionNotifier.addListener(_onComposerChanged);
+    final caret = selection != null && selection.isValid
+        ? selection
+        : TextSelection.collapsed(offset: text.length);
+    _applySelection(caret);
+  }
+
+  /// Adopts [selection] as the document's selection without treating it as a
+  /// user interaction.
+  void _applySelection(TextSelection selection) {
     _rebuilding = true;
-    final start = selection?.start ?? text.length;
-    final end = selection?.end ?? text.length;
     _composer.setSelectionWithReason(
       DocumentSelection(
-        base: _positionAt(text, start),
-        extent: _positionAt(text, end),
+        base: _positionAt(selection.baseOffset),
+        extent: _positionAt(selection.extentOffset),
       ),
       _controllerSelection,
     );
     _rebuilding = false;
+  }
+
+  /// Rebuilds the paragraph cache from the document. Only an edit that changes
+  /// the number of paragraphs pays this; a keystroke updates one entry.
+  void _indexParagraphs() {
+    final paragraphs = <String>[];
+    final ids = <String>[];
+    for (final node in _document) {
+      paragraphs.add(node is TextNode ? node.text.toPlainText() : '');
+      ids.add(node.id);
+    }
+    _paragraphs = paragraphs;
+    _ids = ids;
+    _recomputeStarts();
+    _indexById
+      ..clear()
+      ..addEntries([for (var i = 0; i < ids.length; i++) MapEntry(ids[i], i)]);
+  }
+
+  void _recomputeStarts() {
+    final starts = List<int>.filled(_paragraphs.length, 0);
+    var offset = 0;
+    for (var i = 0; i < _paragraphs.length; i++) {
+      starts[i] = offset;
+      offset += _paragraphs[i].length + 1;
+    }
+    _starts = starts;
+  }
+
+  /// Brings the paragraph cache up to date with [changeLog].
+  ///
+  /// Returns whether any paragraph's text changed. A selection-only or purely
+  /// attributive change answers `false` and costs nothing beyond the log.
+  bool _syncParagraphs(DocumentChangeLog changeLog) {
+    var structural = false;
+    for (final change in changeLog.changes) {
+      if (change is NodeInsertedEvent ||
+          change is NodeRemovedEvent ||
+          change is NodeMovedEvent) {
+        structural = true;
+        break;
+      }
+    }
+    if (structural) {
+      _indexParagraphs();
+      return true;
+    }
+    var changed = false;
+    for (final change in changeLog.changes) {
+      if (change is! NodeDocumentChange) continue;
+      final index = _indexById[change.nodeId];
+      if (index == null) {
+        // A node the cache has not seen: adopt the document wholesale once,
+        // rather than leaving a paragraph unmapped.
+        _indexParagraphs();
+        return true;
+      }
+      final node = _document.getNodeById(change.nodeId);
+      final text = node is TextNode ? node.text.toPlainText() : '';
+      if (text == _paragraphs[index]) continue;
+      _paragraphs[index] = text;
+      changed = true;
+    }
+    if (changed) _recomputeStarts();
+    return changed;
   }
 
   /// Rebuilds the document after an external write — an AI rewrite, a
@@ -267,17 +405,7 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
       // Selection-only change: follow it in the document instead of
       // rebuilding, which would drop the composition and the scroll position.
       final selection = widget.controller.selection;
-      if (selection.isValid) {
-        _rebuilding = true;
-        _composer.setSelectionWithReason(
-          DocumentSelection(
-            base: _positionAt(text, selection.start),
-            extent: _positionAt(text, selection.end),
-          ),
-          _controllerSelection,
-        );
-        _rebuilding = false;
-      }
+      if (selection.isValid) _applySelection(selection);
       return;
     }
     setState(() {
@@ -293,30 +421,75 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
   }
 
   void _onDocumentChanged(DocumentChangeLog changeLog) {
-    final text = _join(_document);
+    // Undo and redo roll the editables back and notify without a change log:
+    // nothing says which paragraphs changed because all of them may have, so
+    // the cache is rebuilt rather than trusted.
+    if (changeLog.changes.isEmpty) {
+      _indexParagraphs();
+    } else if (!_syncParagraphs(changeLog)) {
+      return;
+    }
+    final text = _paragraphs.join('\n');
     if (text == _knownText) return;
     _knownText = text;
+    _resolver.directions = _resolveDirections();
     _writeController(text);
     widget.onChanged?.call(text);
+  }
+
+  /// One pass over the paragraphs: each direction is its own, else the nearest
+  /// before, else the nearest after, else the surface's.
+  ///
+  /// This is O(paragraphs) and runs once per text change — never per layout,
+  /// which is what makes dragging a selection handle cheap on a long note.
+  Map<String, TextDirection> _resolveDirections() {
+    final count = _paragraphs.length;
+    final own = List<TextDirection?>.generate(
+      count,
+      (i) => nexDirectionOf(_paragraphs[i]),
+      growable: false,
+    );
+    final before = List<TextDirection?>.filled(count, null);
+    TextDirection? carry;
+    for (var i = 0; i < count; i++) {
+      before[i] = carry;
+      carry = own[i] ?? carry;
+    }
+    final after = List<TextDirection?>.filled(count, null);
+    carry = null;
+    for (var i = count - 1; i >= 0; i--) {
+      after[i] = carry;
+      carry = own[i] ?? carry;
+    }
+    final fallback = _resolver.fallback;
+    return {
+      for (var i = 0; i < count; i++)
+        _ids[i]: own[i] ?? before[i] ?? after[i] ?? fallback,
+    };
   }
 
   void _onComposerChanged() {
     if (_rebuilding) return;
     final selection = _composer.selection;
     if (selection == null) return;
-    final text = _knownText;
-    final start = _offsetOf(text, selection.base);
-    final end = _offsetOf(text, selection.extent);
+    final start = _offsetOf(selection.base);
+    final end = _offsetOf(selection.extent);
     if (start == null || end == null) return;
     final current = widget.controller.selection;
-    if (current.isValid && current.start == start && current.end == end) return;
+    // Compared field by field, not start/end: an anchor dragged upwards has
+    // base > extent, and normalising it here would turn the selection around
+    // and send the next Shift+arrow to the wrong end.
+    if (current.isValid &&
+        current.baseOffset == start &&
+        current.extentOffset == end) {
+      return;
+    }
     _writeSelection(TextSelection(baseOffset: start, extentOffset: end));
   }
 
   void _writeController(String text) {
     final selection =
-        _absoluteSelection(text) ??
-        TextSelection.collapsed(offset: text.length);
+        _absoluteSelection() ?? TextSelection.collapsed(offset: text.length);
     _writingController = true;
     widget.controller.value = TextEditingValue(
       text: text,
@@ -334,60 +507,50 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     _writingController = false;
   }
 
-  TextSelection? _absoluteSelection(String text) {
+  TextSelection? _absoluteSelection() {
     final selection = _composer.selection;
     if (selection == null) return null;
-    final start = _offsetOf(text, selection.base);
-    final end = _offsetOf(text, selection.extent);
+    final start = _offsetOf(selection.base);
+    final end = _offsetOf(selection.extent);
     if (start == null || end == null) return null;
     return TextSelection(baseOffset: start, extentOffset: end);
   }
 
-  static String _join(Document document) => document
-      .map((node) => node is TextNode ? node.text.toPlainText() : '')
-      .join('\n');
-
-  /// Where [text]'s [offset] sits in a fresh document: the paragraph it is in,
-  /// and how far into that paragraph.
+  /// Where [offset] sits in the document: the paragraph it is in, and how far
+  /// into that paragraph.
   ///
-  /// Each paragraph costs its own length plus the newline that joins it to the
-  /// next, which is exactly how [_build] split the text.
-  DocumentPosition _positionAt(String text, int offset) {
-    final target = offset.clamp(0, text.length);
-    var remaining = target;
-    for (final node in _document) {
-      final length = node is TextNode ? node.text.length : 0;
-      if (remaining <= length) {
-        return DocumentPosition(
-          nodeId: node.id,
-          nodePosition: TextNodePosition(offset: remaining),
-        );
+  /// A binary search over [_starts], so the cost of a caret move does not grow
+  /// with the length of the note.
+  DocumentPosition _positionAt(int offset) {
+    final target = offset.clamp(0, _knownText.length);
+    var low = 0;
+    var high = _starts.length - 1;
+    while (low < high) {
+      final middle = (low + high + 1) >> 1;
+      if (_starts[middle] <= target) {
+        low = middle;
+      } else {
+        high = middle - 1;
       }
-      remaining -= length + 1;
     }
-    final last = _document.lastOrNull;
+    final index = low;
     return DocumentPosition(
-      nodeId: last?.id ?? '',
+      nodeId: _ids[index],
       nodePosition: TextNodePosition(
-        offset: last is TextNode ? last.text.length : 0,
+        offset: (target - _starts[index]).clamp(0, _paragraphs[index].length),
       ),
     );
   }
 
   /// The reverse of [_positionAt]: an absolute offset into the joined text.
-  int? _offsetOf(String text, DocumentPosition position) {
-    var offset = 0;
-    for (final node in _document) {
-      if (node.id == position.nodeId) {
-        final length = node is TextNode ? node.text.length : 0;
-        final inParagraph = position.nodePosition is TextNodePosition
-            ? (position.nodePosition as TextNodePosition).offset
-            : 0;
-        return offset + inParagraph.clamp(0, length);
-      }
-      offset += (node is TextNode ? node.text.length : 0) + 1;
-    }
-    return null;
+  int? _offsetOf(DocumentPosition position) {
+    final index = _indexById[position.nodeId];
+    if (index == null) return null;
+    final nodePosition = position.nodePosition;
+    final inParagraph = nodePosition is TextNodePosition
+        ? nodePosition.offset.clamp(0, _paragraphs[index].length)
+        : 0;
+    return _starts[index] + inParagraph;
   }
 
   @override
@@ -401,6 +564,41 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
       // padding that would shift one side only.
       height: body.height ?? 1.5,
     );
+    final direction = Directionality.of(context);
+    if (_resolver.fallback != direction || _resolver.directions.isEmpty) {
+      _resolver.fallback = direction;
+      _resolver.directions = _resolveDirections();
+    }
+    final stylesheet = defaultStylesheet.copyWith(
+      addRulesAfter: [
+        StyleRule(BlockSelector.all, (document, node) {
+          final rules = <String, Object>{
+            Styles.padding: const CascadingPadding.symmetric(
+              horizontal: 0,
+              vertical: 0,
+            ),
+          };
+          final textStyle = style;
+          if (textStyle != null) rules[Styles.textStyle] = textStyle;
+          return rules;
+        }),
+      ],
+    );
+    final builders = [_NexParagraphComponentBuilder(_resolver)];
+    final selectionStyle = SelectionStyles(
+      selectionColor: theme.colorScheme.primary.withValues(alpha: 0.22),
+    );
+    if (widget.readOnly) {
+      // No IME connection at all: a key pressed while the document is only
+      // being shown has nowhere to arrive, so it cannot edit the text that is
+      // about to be replaced.
+      return SuperReader(
+        editor: _editor,
+        stylesheet: stylesheet,
+        componentBuilders: builders,
+        selectionStyle: selectionStyle,
+      );
+    }
     final editor = SuperEditor(
       editor: _editor,
       focusNode: widget.focusNode,
@@ -409,31 +607,10 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
       // its text. Turning markdown into blocks here would change what the note
       // is, so the editor shows the same plain source the field showed, with
       // only the paragraph component.
-      componentBuilders: [
-        _NexParagraphComponentBuilder(Directionality.of(context)),
-      ],
-      stylesheet: defaultStylesheet.copyWith(
-        addRulesAfter: [
-          StyleRule(BlockSelector.all, (document, node) {
-            final rules = <String, Object>{
-              Styles.padding: const CascadingPadding.symmetric(
-                horizontal: 0,
-                vertical: 0,
-              ),
-            };
-            final textStyle = style;
-            if (textStyle != null) rules[Styles.textStyle] = textStyle;
-            return rules;
-          }),
-        ],
-      ),
-      selectionStyle: SelectionStyles(
-        selectionColor: theme.colorScheme.primary.withValues(alpha: 0.22),
-      ),
+      componentBuilders: builders,
+      stylesheet: stylesheet,
+      selectionStyle: selectionStyle,
     );
-    // While the AI rewrite runs the document is shown, not taken: the text is
-    // the model's to replace, and an edit under it would be applied to a value
-    // that is about to be thrown away.
-    return widget.readOnly ? IgnorePointer(child: editor) : editor;
+    return editor;
   }
 }

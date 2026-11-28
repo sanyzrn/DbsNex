@@ -4,6 +4,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Formatting follows the selection.** Bold, italic and the rest now apply to what you selected, however you selected it — a tap or a drag moves the note's caret with it instead of leaving the toolbar working on the old position.
+
 - **Each paragraph keeps its own direction.** A note now lays out every paragraph in the language it is written in — Persian on the right, English on the left — at the same time, so a mixed note is read and typed correctly.
 
 - **The page stops turning as you edit.** Moving the cursor, selecting across paragraphs or dragging a selection handle no longer changes the direction or alignment of the rest of the note, and the text no longer jumps under your finger.
