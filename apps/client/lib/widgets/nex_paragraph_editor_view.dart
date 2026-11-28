@@ -1,5 +1,52 @@
 part of 'nex_paragraph_editor.dart';
 
+class _FieldHeightCache {
+  const _FieldHeightCache({
+    required this.text,
+    required this.maxWidth,
+    required this.style,
+    required this.textScaler,
+    required this.locale,
+    required this.fallback,
+    required this.minLines,
+    required this.maxLines,
+    required this.maxHeightConstraint,
+    required this.height,
+  });
+
+  final String text;
+  final double maxWidth;
+  final TextStyle style;
+  final TextScaler textScaler;
+  final Locale? locale;
+  final TextDirection fallback;
+  final int minLines;
+  final int? maxLines;
+  final double maxHeightConstraint;
+  final double height;
+
+  bool matches({
+    required String text,
+    required double maxWidth,
+    required TextStyle style,
+    required TextScaler textScaler,
+    required Locale? locale,
+    required TextDirection fallback,
+    required int minLines,
+    required int? maxLines,
+    required double maxHeightConstraint,
+  }) =>
+      identical(this.text, text) &&
+      this.maxWidth == maxWidth &&
+      this.style == style &&
+      this.textScaler == textScaler &&
+      this.locale == locale &&
+      this.fallback == fallback &&
+      this.minLines == minLines &&
+      this.maxLines == maxLines &&
+      this.maxHeightConstraint == maxHeightConstraint;
+}
+
 extension _NexParagraphEditorView on _NexParagraphEditorState {
   double _fieldHeight(
     BuildContext context,
@@ -8,10 +55,27 @@ extension _NexParagraphEditorView on _NexParagraphEditorState {
   ) {
     final minLines = widget.minLines ?? 1;
     final maxLines = widget.maxLines;
+    final textScaler = MediaQuery.textScalerOf(context);
+    final locale = Localizations.maybeLocaleOf(context);
+    final cached = _heightCache;
+    if (cached != null &&
+        cached.matches(
+          text: _knownText,
+          maxWidth: constraints.maxWidth,
+          style: style,
+          textScaler: textScaler,
+          locale: locale,
+          fallback: _resolver.fallback,
+          minLines: minLines,
+          maxLines: maxLines,
+          maxHeightConstraint: constraints.maxHeight,
+        )) {
+      return cached.height;
+    }
     final painter = TextPainter(
       textDirection: _resolver.fallback,
-      textScaler: MediaQuery.textScalerOf(context),
-      locale: Localizations.maybeLocaleOf(context),
+      textScaler: textScaler,
+      locale: locale,
     );
     try {
       painter.text = TextSpan(text: ' ', style: style);
@@ -36,7 +100,20 @@ extension _NexParagraphEditorView on _NexParagraphEditorState {
           break;
         }
       }
-      return totalHeight.clamp(minHeight, maxHeight);
+      final measured = totalHeight.clamp(minHeight, maxHeight);
+      _heightCache = _FieldHeightCache(
+        text: _knownText,
+        maxWidth: constraints.maxWidth,
+        style: style,
+        textScaler: textScaler,
+        locale: locale,
+        fallback: _resolver.fallback,
+        minLines: minLines,
+        maxLines: maxLines,
+        maxHeightConstraint: constraints.maxHeight,
+        height: measured,
+      );
+      return measured;
     } finally {
       painter.dispose();
     }
@@ -76,6 +153,58 @@ extension _NexParagraphEditorView on _NexParagraphEditorState {
     return ExecutionInstruction.continueExecution;
   }
 
+  ExecutionInstruction _handleFormatShortcut({
+    required SuperEditorContext editContext,
+    required KeyEvent keyEvent,
+  }) {
+    if (!widget.formatting || widget.readOnly || !widget.enabled) {
+      return ExecutionInstruction.continueExecution;
+    }
+    if (keyEvent is! KeyDownEvent) {
+      return ExecutionInstruction.continueExecution;
+    }
+    final keyboard = HardwareKeyboard.instance;
+    final modifier = keyboard.isControlPressed || keyboard.isMetaPressed;
+    if (!modifier || keyboard.isAltPressed || keyboard.isShiftPressed) {
+      return ExecutionInstruction.continueExecution;
+    }
+    final key = keyEvent.logicalKey;
+    if (key == LogicalKeyboardKey.keyB) {
+      unawaited(_format(NexFormatCommand.bold));
+      return ExecutionInstruction.haltExecution;
+    }
+    if (key == LogicalKeyboardKey.keyI) {
+      unawaited(_format(NexFormatCommand.italic));
+      return ExecutionInstruction.haltExecution;
+    }
+    return ExecutionInstruction.continueExecution;
+  }
+
+  ExecutionInstruction _handleClipboardShortcut({
+    required SuperEditorContext editContext,
+    required KeyEvent keyEvent,
+  }) {
+    final keyboard = HardwareKeyboard.instance;
+    if (keyEvent is! KeyDownEvent ||
+        !(keyboard.isControlPressed || keyboard.isMetaPressed) ||
+        keyboard.isShiftPressed ||
+        keyboard.isAltPressed) {
+      return ExecutionInstruction.continueExecution;
+    }
+    switch (keyEvent.logicalKey) {
+      case LogicalKeyboardKey.keyX:
+        unawaited(_copySelection(cut: true));
+      case LogicalKeyboardKey.keyC:
+        unawaited(_copySelection(cut: false));
+      case LogicalKeyboardKey.keyV:
+        unawaited(_pasteClipboard());
+      default:
+        return ExecutionInstruction.continueExecution;
+    }
+    _hideToolbars();
+    return ExecutionInstruction.haltExecution;
+  }
+
   ExecutionInstruction _handleHorizontalArrow({
     required SuperEditorContext editContext,
     required KeyEvent keyEvent,
@@ -110,6 +239,28 @@ extension _NexParagraphEditorView on _NexParagraphEditorState {
 
     final forward = key == LogicalKeyboardKey.arrowRight;
     final expand = keyboard.isShiftPressed;
+
+    // Use the first selected paragraph's reading order for both drag directions.
+    if (!expand &&
+        !selection.isCollapsed &&
+        selection.base.nodeId != extent.nodeId) {
+      final normalized = selection.normalize(_document);
+      final first = _document.getNodeById(normalized.start.nodeId) ?? node;
+      final downstream =
+          forward ==
+          (_resolver.directionOf(_document, first) == TextDirection.ltr);
+      final targetPos = downstream ? normalized.end : normalized.start;
+      _editor.execute([
+        ChangeSelectionRequest(
+          DocumentSelection.collapsed(position: targetPos),
+          SelectionChangeType.collapseSelection,
+          SelectionReason.userInteraction,
+        ),
+        const ClearComposingRegionRequest(),
+      ]);
+      return ExecutionInstruction.haltExecution;
+    }
+
     TextPosition? target;
     if (selection.isCollapsed || expand) {
       target = nexVisualCaretInLayout(
@@ -159,11 +310,15 @@ extension _NexParagraphEditorView on _NexParagraphEditorState {
     return ExecutionInstruction.haltExecution;
   }
 
+  /// Minimal single-rule stylesheet for plain-text paragraphs.
+  ///
+  /// Avoids `defaultStylesheet`'s ~15 rich-block rules and attribution styler,
+  /// cutting per-paragraph style evaluation cost on long notes.
   Stylesheet _stylesheetFor(TextStyle style) {
     if (_lastStyle == style && _stylesheet != null) return _stylesheet!;
     _lastStyle = style;
-    return _stylesheet = defaultStylesheet.copyWith(
-      addRulesAfter: [
+    return _stylesheet = Stylesheet(
+      rules: [
         StyleRule(
           BlockSelector.all,
           (document, node) => {
@@ -175,42 +330,148 @@ extension _NexParagraphEditorView on _NexParagraphEditorState {
           },
         ),
       ],
+      inlineTextStyler: (attributions, existingStyle) => existingStyle,
     );
   }
 
-  Rect? _selectionRect() {
+  List<ContextMenuButtonItem> _buildSelectionMenuItems(BuildContext context) {
     final selection = _composer.selection;
-    if (selection == null || selection.isCollapsed) return null;
-    final state = _layoutKey.currentState;
-    if (state == null) return null;
-    final layout = state as DocumentLayout;
-    final rect = layout.getRectForSelection(selection.base, selection.extent);
-    if (rect == null) return null;
-    final offset = _scroll.hasClients ? _scroll.offset : 0.0;
-    return rect.shift(Offset(0, -offset));
+    final hasExpandedSelection = selection != null && !selection.isCollapsed;
+    final canEdit = !widget.readOnly && widget.enabled;
+    final items = <ContextMenuButtonItem>[
+      if (hasExpandedSelection && canEdit)
+        ContextMenuButtonItem(
+          type: ContextMenuButtonType.cut,
+          onPressed: () {
+            _hideToolbars();
+            unawaited(_copySelection(cut: true));
+          },
+        ),
+      if (hasExpandedSelection)
+        ContextMenuButtonItem(
+          type: ContextMenuButtonType.copy,
+          onPressed: () {
+            _hideToolbars();
+            unawaited(_copySelection(cut: false));
+          },
+        ),
+      if (canEdit)
+        ContextMenuButtonItem(
+          type: ContextMenuButtonType.paste,
+          onPressed: () {
+            _hideToolbars();
+            unawaited(_pasteClipboard());
+          },
+        ),
+      if (_knownText.isNotEmpty)
+        ContextMenuButtonItem(
+          type: ContextMenuButtonType.selectAll,
+          onPressed: () {
+            _selectAll();
+          },
+        ),
+    ];
+
+    if (widget.formatting && canEdit && hasExpandedSelection) {
+      final l10n = Localizations.of<AppLocalizations>(
+        context,
+        AppLocalizations,
+      );
+      if (l10n != null) {
+        items.addAll(
+          nexFormatMenuItems(
+            l10n,
+            onCommand: (command) {
+              _hideToolbars();
+              unawaited(_format(command));
+            },
+          ),
+        );
+      }
+    }
+    return items;
   }
 
-  Widget _formatBar(BuildContext context, Rect anchor) {
-    final l10n = AppLocalizations.of(context);
-    return Positioned(
-      left: 0,
-      right: 0,
-      top: math.max(0, anchor.top - 44),
-      child: Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: NexSelectionFormatBar(
-          labels: {
-            NexFormatCommand.bold: l10n.formatBold,
-            NexFormatCommand.italic: l10n.formatItalic,
-            NexFormatCommand.mono: l10n.formatMono,
-            NexFormatCommand.strikethrough: l10n.formatStrikethrough,
-            NexFormatCommand.quote: l10n.formatQuote,
-            NexFormatCommand.link: l10n.formatLink,
-            NexFormatCommand.clear: l10n.formatClear,
-          },
-          onSelected: _format,
-        ),
-      ),
+  Widget _buildMobileToolbar(
+    BuildContext context,
+    Key mobileToolbarKey,
+    Object focalPoint,
+  ) {
+    // Super Editor positions the toolbar alongside its selection handles.
+    // Give its follower a compact child that fits above or below the selection.
+    return ValueListenableBuilder(
+      valueListenable: _composer.selectionNotifier,
+      builder: (context, _, _) {
+        final items = _buildSelectionMenuItems(context);
+        if (items.isEmpty) return const SizedBox.shrink();
+        final standard = items.where(
+          (item) => item.type != ContextMenuButtonType.custom,
+        );
+        final formatting = items.where(
+          (item) => item.type == ContextMenuButtonType.custom,
+        );
+        final theme = Theme.of(context);
+        return Material(
+          key: mobileToolbarKey,
+          color: theme.colorScheme.surfaceContainerHigh,
+          elevation: 5,
+          borderRadius: BorderRadius.circular(NexRadius.md),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: math.max(0, MediaQuery.sizeOf(context).width - 24),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    primary: false,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final item in standard)
+                          TextButton(
+                            onPressed: item.onPressed,
+                            child: Text(
+                              AdaptiveTextSelectionToolbar.getButtonLabel(
+                                context,
+                                item,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (formatting.isNotEmpty)
+                  PopupMenuButton<ContextMenuButtonItem>(
+                    tooltip: AppLocalizations.of(context).formatMenu,
+                    requestFocus: false,
+                    onSelected: (item) => item.onPressed?.call(),
+                    itemBuilder: (context) => [
+                      for (final item in formatting)
+                        PopupMenuItem(value: item, child: Text(item.label!)),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDesktopContextMenu(Offset globalPosition) {
+    final items = _buildSelectionMenuItems(context);
+    if (items.isEmpty) return;
+    _contextMenuController.show(
+      context: context,
+      contextMenuBuilder: (menuContext) =>
+          AdaptiveTextSelectionToolbar.buttonItems(
+            anchors: TextSelectionToolbarAnchors(primaryAnchor: globalPosition),
+            buttonItems: items,
+          ),
     );
   }
 
@@ -231,9 +492,16 @@ extension _NexParagraphEditorView on _NexParagraphEditorState {
       _resolver.fallback = direction;
       _resolver.directions = _resolveDirections();
     }
+    final highlightColor = theme.colorScheme.primary.withValues(alpha: 0.22);
+    _paragraphBuilder
+      ..highlightColor = highlightColor
+      ..textStyle = style;
     final stylesheet = _stylesheetFor(style);
-    final selectionStyle = SelectionStyles(
-      selectionColor: theme.colorScheme.primary.withValues(alpha: 0.22),
+    // Selection highlights are painted per paragraph via [_NexParagraphHighlight]
+    // using `nexLevelSelectionRects` and a single non-overlapping Path fill.
+    const selectionStyle = SelectionStyles(
+      selectionColor: Colors.transparent,
+      highlightEmptyTextBlocks: false,
     );
     final Widget content;
     if (widget.readOnly || !widget.enabled) {
@@ -247,51 +515,56 @@ extension _NexParagraphEditorView on _NexParagraphEditorState {
         selectionStyle: selectionStyle,
       );
     } else {
-      content = SuperEditor(
-        editor: _editor,
-        focusNode: _focus,
-        autofocus: widget.autofocus,
-        inputRole: _inputRole,
-        scrollController: _scroll,
-        documentLayoutKey: _layoutKey,
-        shrinkWrap: false,
-        imeConfiguration: _NexImeConfiguration(
-          inputType: widget.keyboardType,
-          capitalization: widget.textCapitalization,
-          personalizedLearning: widget.enableIMEPersonalizedLearning,
-          enableAutocorrect: widget.autocorrect,
-          enableSuggestions: widget.enableSuggestions,
-          keyboardBrightness: theme.brightness,
-          keyboardActionButton: widget.textInputAction,
+      content = SuperEditorIosControlsScope(
+        controller: _iosControls,
+        child: SuperEditorAndroidControlsScope(
+          controller: _androidControls,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onSecondaryTapUp: (details) =>
+                _showDesktopContextMenu(details.globalPosition),
+            child: SuperEditor(
+              editor: _editor,
+              focusNode: _focus,
+              autofocus: widget.autofocus,
+              inputRole: _inputRole,
+              scrollController: _scroll,
+              shrinkWrap: false,
+              documentOverlayBuilders: [
+                const SuperEditorIosToolbarFocalPointDocumentLayerBuilder(),
+                const SuperEditorIosHandlesDocumentLayerBuilder(),
+                const SuperEditorAndroidToolbarFocalPointDocumentLayerBuilder(),
+                const SuperEditorAndroidHandlesDocumentLayerBuilder(),
+                DefaultCaretOverlayBuilder(
+                  caretStyle: CaretStyle(
+                    width: 2,
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                  displayCaretWithExpandedSelection: false,
+                ),
+              ],
+              imeConfiguration: _NexImeConfiguration(
+                inputType: widget.keyboardType,
+                capitalization: widget.textCapitalization,
+                personalizedLearning: widget.enableIMEPersonalizedLearning,
+                enableAutocorrect: widget.autocorrect,
+                enableSuggestions: widget.enableSuggestions,
+                keyboardBrightness: theme.brightness,
+                keyboardActionButton: widget.textInputAction,
+              ),
+              imeOverrides: _ime,
+              keyboardActions: _keyboardActions,
+              componentBuilders: _builders,
+              stylesheet: stylesheet,
+              selectionStyle: selectionStyle,
+            ),
+          ),
         ),
-        imeOverrides: _ime,
-        keyboardActions: [
-          _handleEnter,
-          _handleHorizontalArrow,
-          for (final action in defaultImeKeyboardActions)
-            if (action != cmdBToToggleBold && action != cmdIToToggleItalics)
-              action,
-        ],
-        componentBuilders: _builders,
-        stylesheet: stylesheet,
-        selectionStyle: selectionStyle,
       );
     }
-    final showFormatBar =
-        widget.formatting &&
-        !widget.readOnly &&
-        widget.enabled &&
-        !_formatBarDismissed &&
-        (_composer.selection?.isCollapsed ?? true) == false;
-    final anchor = showFormatBar ? (_selectionRect() ?? Rect.zero) : null;
-    // Keep the editor in the same element when its selection menu opens.
-    final bodyWithToolbar = ClipRect(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [content, if (anchor != null) _formatBar(context, anchor)],
-      ),
-    );
-    if (!_isField) return TextFieldTapRegion(child: bodyWithToolbar);
+    final editorBody = ClipRect(child: content);
+    if (!_isField) return TextFieldTapRegion(child: editorBody);
 
     final decorated = ListenableBuilder(
       listenable: _focus,
@@ -329,12 +602,9 @@ extension _NexParagraphEditorView on _NexParagraphEditorState {
               scrollDirection: Axis.horizontal,
               physics: const NeverScrollableScrollPhysics(),
               primary: false,
-              child: SizedBox(
-                width: constraints.maxWidth,
-                child: bodyWithToolbar,
-              ),
+              child: SizedBox(width: constraints.maxWidth, child: editorBody),
             ),
-            _ => bodyWithToolbar,
+            _ => editorBody,
           };
           return SizedBox(
             height: widget.expands && constraints.hasBoundedHeight
@@ -382,6 +652,116 @@ extension _NexParagraphEditorView on _NexParagraphEditorState {
       ),
     );
   }
+}
+
+/// Paints a single non-overlapping, row-levelled selection highlight behind a
+/// [ParagraphComponent] so mixed Persian/Latin runs and line-height multipliers
+/// never produce overlapping alpha bands or jagged box heights.
+class _NexParagraphHighlight extends StatelessWidget {
+  const _NexParagraphHighlight({
+    required this.text,
+    required this.style,
+    required this.textDirection,
+    required this.textAlign,
+    required this.selection,
+    required this.color,
+    required this.child,
+  });
+
+  final String text;
+  final TextStyle style;
+  final TextDirection textDirection;
+  final TextAlign textAlign;
+  final TextSelection selection;
+  final Color color;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _NexParagraphHighlightPainter(
+        text: text,
+        style: style,
+        textDirection: textDirection,
+        textAlign: textAlign,
+        textScaler: MediaQuery.textScalerOf(context),
+        locale: Localizations.maybeLocaleOf(context),
+        selection: selection,
+        color: color,
+      ),
+      child: child,
+    );
+  }
+}
+
+class _NexParagraphHighlightPainter extends CustomPainter {
+  _NexParagraphHighlightPainter({
+    required this.text,
+    required this.style,
+    required this.textDirection,
+    required this.textAlign,
+    required this.textScaler,
+    required this.locale,
+    required this.selection,
+    required this.color,
+  });
+
+  final String text;
+  final TextStyle style;
+  final TextDirection textDirection;
+  final TextAlign textAlign;
+  final TextScaler textScaler;
+  final Locale? locale;
+  final TextSelection selection;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (text.isEmpty || selection.isCollapsed || size.width <= 0) return;
+    final clamped = TextSelection(
+      baseOffset: selection.baseOffset.clamp(0, text.length),
+      extentOffset: selection.extentOffset.clamp(0, text.length),
+    );
+    if (clamped.isCollapsed) return;
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: textDirection,
+      textAlign: textAlign,
+      textScaler: textScaler,
+      locale: locale,
+    );
+    try {
+      painter.layout(minWidth: size.width, maxWidth: size.width);
+      final boxes = painter.getBoxesForSelection(
+        clamped,
+        boxHeightStyle: BoxHeightStyle.tight,
+        boxWidthStyle: BoxWidthStyle.tight,
+      );
+      if (boxes.isEmpty) return;
+      final rects = nexLevelSelectionRects([
+        for (final box in boxes) box.toRect(),
+      ]);
+      if (rects.isEmpty) return;
+      final path = Path();
+      for (final rect in rects) {
+        path.addRect(rect);
+      }
+      canvas.drawPath(path, Paint()..color = color);
+    } finally {
+      painter.dispose();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_NexParagraphHighlightPainter old) =>
+      old.text != text ||
+      old.style != style ||
+      old.textDirection != textDirection ||
+      old.textAlign != textAlign ||
+      old.textScaler != textScaler ||
+      old.locale != locale ||
+      old.selection != selection ||
+      old.color != color;
 }
 
 class _NexImeActions extends DeltaTextInputClientDecorator {

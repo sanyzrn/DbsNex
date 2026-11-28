@@ -51,6 +51,20 @@ class _VaultEditorState extends State<VaultEditor> {
   };
   bool discard = false;
 
+  final _privateMenus = <String, EditableTextContextMenuBuilder>{};
+
+  EditableTextContextMenuBuilder _privateMenuFor(String key) =>
+      _privateMenus.putIfAbsent(
+        key,
+        () =>
+            (context, state) => nexPrivateSelectionMenu(
+              state,
+              copy: PrivateClipboard.copy,
+              onChanged: (_) => _changed(),
+              canCut: () => mounted && !widget.busy,
+            ),
+      );
+
   /// The one secret field whose value is on screen in the clear, by its
   /// key. Passwords used to sit in plain sight in every list and editor —
   /// `secret` only ever chose the keyboard — and a shoulder on a train
@@ -390,48 +404,7 @@ class _VaultEditorState extends State<VaultEditor> {
       autocorrect: false,
       enableSuggestions: false,
       enableIMEPersonalizedLearning: false,
-      contextMenuBuilder: (context, state) =>
-          AdaptiveTextSelectionToolbar.buttonItems(
-            anchors: state.contextMenuAnchors,
-            buttonItems: [
-              for (final item in state.contextMenuButtonItems)
-                if (item.type == ContextMenuButtonType.copy ||
-                    item.type == ContextMenuButtonType.cut)
-                  ContextMenuButtonItem(
-                    type: item.type,
-                    label: item.label,
-                    onPressed: () async {
-                      final c = fields[key]!;
-                      final value = c.value;
-                      state.hideToolbar();
-                      if (!value.selection.isValid) return;
-                      try {
-                        await PrivateClipboard.copy(
-                          value.selection.textInside(value.text),
-                        );
-                        if (!mounted) return;
-                        if (item.type == ContextMenuButtonType.cut &&
-                            c.value == value) {
-                          final text =
-                              value.selection.textBefore(value.text) +
-                              value.selection.textAfter(value.text);
-                          c.value = TextEditingValue(
-                            text: text,
-                            selection: TextSelection.collapsed(
-                              offset: value.selection.start,
-                            ),
-                          );
-                          _changed();
-                        }
-                      } catch (_) {
-                        /* The original text stays intact if copying fails. */
-                      }
-                    },
-                  )
-                else
-                  item,
-            ],
-          ),
+      contextMenuBuilder: _privateMenuFor(key),
       textDirection: ltr ? TextDirection.ltr : null,
       keyboardType:
           keyboard ??

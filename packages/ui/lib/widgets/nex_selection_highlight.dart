@@ -41,35 +41,74 @@ class _NexSelectionHighlightState extends State<NexSelectionHighlight> {
 }
 
 /// Keep horizontal gaps: a bidi selection can have unselected text between
-/// selected runs. Only their vertical bounds should agree.
+/// selected runs. Vertical bounds are unified per visual row, overlapping
+/// horizontal runs within a row are merged, and adjacent rows are clamped so
+/// semi-transparent highlights never overlap and double-paint.
 List<Rect> nexLevelSelectionRects(List<Rect> source) {
   final sorted = source.where((r) => !r.isEmpty).toList()
     ..sort((a, b) => a.top.compareTo(b.top));
-  final result = <Rect>[];
+  final rows = <({double top, double bottom, List<Rect> spans})>[];
   final row = <Rect>[];
   Rect? bounds;
+
   void flush() {
-    if (bounds == null) return;
+    final rowBounds = bounds;
+    if (rowBounds == null) return;
+    row.sort((a, b) => a.left.compareTo(b.left));
+    final merged = <Rect>[];
     for (final rect in row) {
-      result.add(
-        Rect.fromLTRB(rect.left, bounds.top, rect.right, bounds.bottom),
-      );
+      if (merged.isNotEmpty && rect.left <= merged.last.right) {
+        final last = merged.removeLast();
+        merged.add(
+          Rect.fromLTRB(
+            last.left,
+            rowBounds.top,
+            rect.right > last.right ? rect.right : last.right,
+            rowBounds.bottom,
+          ),
+        );
+      } else {
+        merged.add(
+          Rect.fromLTRB(rect.left, rowBounds.top, rect.right, rowBounds.bottom),
+        );
+      }
     }
+    rows.add((top: rowBounds.top, bottom: rowBounds.bottom, spans: merged));
     row.clear();
   }
 
   for (final rect in sorted) {
     // Runs share a row if their vertical centers overlap. Neighboring lines
     // and headings retain their own height and spacing.
-    if (bounds != null &&
-        (rect.center.dy >= bounds.bottom || rect.bottom <= bounds.center.dy)) {
+    final rowBounds = bounds;
+    if (rowBounds != null &&
+        (rect.center.dy >= rowBounds.bottom ||
+            rect.bottom <= rowBounds.center.dy)) {
       flush();
       bounds = null;
     }
     row.add(rect);
-    bounds = bounds == null ? rect : bounds.expandToInclude(rect);
+    bounds = bounds?.expandToInclude(rect) ?? rect;
   }
   flush();
+
+  // Clamp adjacent visual rows so tall glyphs or line-height multipliers
+  // cannot cause consecutive lines to overlap and double-blend alpha.
+  final result = <Rect>[];
+  for (var i = 0; i < rows.length; i++) {
+    var top = rows[i].top;
+    var bottom = rows[i].bottom;
+    if (i > 0 && top < rows[i - 1].bottom) {
+      top = (rows[i - 1].bottom + top) / 2;
+    }
+    if (i + 1 < rows.length && bottom > rows[i + 1].top) {
+      bottom = (bottom + rows[i + 1].top) / 2;
+    }
+    if (bottom <= top) continue;
+    for (final span in rows[i].spans) {
+      result.add(Rect.fromLTRB(span.left, top, span.right, bottom));
+    }
+  }
   return result;
 }
 
@@ -81,10 +120,13 @@ class _HighlightPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
-    for (final rect in nexLevelSelectionRects(selection.value.selectionRects)) {
-      canvas.drawRect(rect, paint);
+    final rects = nexLevelSelectionRects(selection.value.selectionRects);
+    if (rects.isEmpty) return;
+    final path = Path();
+    for (final rect in rects) {
+      path.addRect(rect);
     }
+    canvas.drawPath(path, Paint()..color = color);
   }
 
   @override

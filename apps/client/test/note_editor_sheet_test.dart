@@ -156,6 +156,31 @@ void main() {
     );
   });
 
+  testWidgets('only the sheet handle owns the swipe to discard', (
+    tester,
+  ) async {
+    await open(tester, initial: 'original note');
+    await replaceNote(tester, 'changed note');
+
+    await tester.fling(
+      find.byType(NexParagraphEditor),
+      const Offset(0, 130),
+      900,
+    );
+    await tester.pumpAndSettle();
+    expect(find.bySubtype<AlertDialog>(), findsNothing);
+    expect(find.byType(NoteEditorSheet), findsOneWidget);
+
+    await tester.fling(
+      find.byKey(const ValueKey('nex-sheet-swipe-handle')),
+      const Offset(0, 130),
+      900,
+    );
+    await tester.pumpAndSettle();
+    expect(find.bySubtype<AlertDialog>(), findsOneWidget);
+    expect(controllerOf(tester).text, 'changed note');
+  });
+
   testWidgets('the shared note and caption editor opens the caret at the end', (
     tester,
   ) async {

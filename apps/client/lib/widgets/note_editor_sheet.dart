@@ -16,7 +16,6 @@ import 'nex_banner.dart';
 import 'nex_dialog.dart';
 import 'keyboard_dismisser.dart';
 import 'nex_paragraph_editor.dart';
-import 'text_format_menu.dart';
 
 /// Editing a note's words.
 ///
@@ -83,7 +82,9 @@ class NoteEditorSheet extends StatefulWidget {
       return await nexShowSheet<String>(
         context: context,
         dismissible: false,
+        // Keep the sheet handle while the editor owns drags inside its body.
         swipeToClose: true,
+        swipeFromContent: false,
         builder: (_) => NoteEditorSheet(
           initial: initial,
           preferences: preferences,
@@ -300,114 +301,6 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
     if (mounted) Navigator.pop(context, _text.text);
   }
 
-  /// Bold, italic and the rest — on the note being written.
-  ///
-  /// These were on the field's selection menu, which the document editor does
-  /// not own. They are here instead of nowhere: the note is Markdown in plain
-  /// text, so each command is the same [NexTextFormatting] transformation on
-  /// the same selection, reachable with the keyboard up and identical on
-  /// Android, Windows and every other target.
-  Widget _formatMenu(BuildContext context, AppLocalizations l10n) =>
-      NexPopupMenuButton<_NoteFormat>(
-        icon: const Icon(Icons.text_format),
-        tooltip: l10n.formatMenu,
-        enabled: _running == null,
-        // Read when the menu opens, not when the sheet was built: the sheet
-        // does not rebuild on a selection change, by design.
-        itemBuilder: (context) {
-          final selection = _text.selection;
-          final range = selection.isValid && !selection.isCollapsed;
-          PopupMenuEntry<_NoteFormat> item(
-            _NoteFormat value,
-            IconData icon,
-            String label,
-          ) => nexMenuItem(
-            value: value,
-            icon: icon,
-            label: label,
-            enabled: range,
-          );
-          return [
-            item(_NoteFormat.bold, Icons.format_bold, l10n.formatBold),
-            item(_NoteFormat.italic, Icons.format_italic, l10n.formatItalic),
-            item(_NoteFormat.mono, Icons.code, l10n.formatMono),
-            item(
-              _NoteFormat.strikethrough,
-              Icons.format_strikethrough,
-              l10n.formatStrikethrough,
-            ),
-            item(_NoteFormat.quote, Icons.format_quote, l10n.formatQuote),
-            item(_NoteFormat.link, Icons.link, l10n.formatLink),
-            item(_NoteFormat.clear, Icons.format_clear, l10n.formatClear),
-          ];
-        },
-        onSelected: (format) => unawaited(_applyNoteFormat(format)),
-      );
-
-  Future<void> _applyNoteFormat(_NoteFormat format) async {
-    final value = _text.value;
-    final where = value.selection;
-    if (!where.isValid || where.isCollapsed) return;
-    void write(NexFormattedText result) {
-      _text.value = TextEditingValue(
-        text: result.text,
-        selection: TextSelection(
-          baseOffset: result.start,
-          extentOffset: result.end,
-        ),
-      );
-    }
-
-    switch (format) {
-      case _NoteFormat.bold:
-        write(
-          NexTextFormatting.toggleInline(
-            value.text,
-            where.start,
-            where.end,
-            NexInlineFormat.bold,
-          ),
-        );
-      case _NoteFormat.italic:
-        write(
-          NexTextFormatting.toggleInline(
-            value.text,
-            where.start,
-            where.end,
-            NexInlineFormat.italic,
-          ),
-        );
-      case _NoteFormat.mono:
-        write(
-          NexTextFormatting.toggleInline(
-            value.text,
-            where.start,
-            where.end,
-            NexInlineFormat.mono,
-          ),
-        );
-      case _NoteFormat.strikethrough:
-        write(
-          NexTextFormatting.toggleInline(
-            value.text,
-            where.start,
-            where.end,
-            NexInlineFormat.strikethrough,
-          ),
-        );
-      case _NoteFormat.quote:
-        write(
-          NexTextFormatting.toggleQuote(value.text, where.start, where.end),
-        );
-      case _NoteFormat.link:
-        final url = await nexAskForLinkUrl(context);
-        if (!mounted || url == null || url.isEmpty) return;
-        write(NexTextFormatting.link(value.text, where.start, where.end, url));
-      case _NoteFormat.clear:
-        write(NexTextFormatting.clear(value.text, where.start, where.end));
-    }
-  }
-
   bool get _canSave =>
       (widget.allowEmpty || _text.text.trim().isNotEmpty) && _running == null;
   void _toggleSize() => setState(() => _expanded = !_expanded);
@@ -431,14 +324,29 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
         scheme.primary,
         scheme.primary.withValues(alpha: 0.05),
       ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: NexSpacing.sm),
+      child: ListenableBuilder(
+        listenable: _focus,
+        builder: (context, child) => AnimatedContainer(
+          key: const ValueKey('note-editor-surface'),
+          duration: NexMotion.of(context, NexMotion.fast),
+          curve: NexMotion.curve,
+          padding: const EdgeInsets.all(NexSpacing.sm),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(NexRadius.md),
+            border: Border.all(
+              color: _focus.hasFocus ? scheme.primary : scheme.outlineVariant,
+            ),
+          ),
+          child: child,
+        ),
         child: NexParagraphEditor(
           key: _fieldKey,
           controller: _text,
           focusNode: _focus,
           autofocus: true,
           readOnly: _running != null,
+          formatting: true,
         ),
       ),
     );
@@ -499,7 +407,6 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                           tooltip: l10n.undo,
                           icon: const Icon(Icons.undo),
                         ),
-                      _formatMenu(context, l10n),
                       IconButton(
                         onPressed: _toggleSize,
                         tooltip: _expanded
@@ -754,6 +661,3 @@ class _StyleChip extends StatelessWidget {
     ),
   );
 }
-
-/// The commands the editor's formatting menu offers.
-enum _NoteFormat { bold, italic, mono, strikethrough, quote, link, clear }

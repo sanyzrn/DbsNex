@@ -231,55 +231,73 @@ class _NexTextFieldState extends State<NexTextField> {
     );
   }
 
-  /// The platform's menu with Copy and Cut sent through [NexTextField.onCopy].
   Widget _privateMenu(BuildContext context, EditableTextState state) =>
-      AdaptiveTextSelectionToolbar.buttonItems(
-        anchors: state.contextMenuAnchors,
-        buttonItems: [
-          for (final item in state.contextMenuButtonItems)
-            if (item.type == ContextMenuButtonType.copy ||
-                item.type == ContextMenuButtonType.cut)
-              ContextMenuButtonItem(
-                type: item.type,
-                label: item.label,
-                onPressed: () {
-                  state.hideToolbar();
-                  unawaited(
-                    nexPrivateCopy(
-                      widget.controller,
-                      widget.onCopy!,
-                      cut: item.type == ContextMenuButtonType.cut,
-                      onChanged: widget.onChanged,
-                    ),
-                  );
-                },
-              )
-            else if (item.type != ContextMenuButtonType.share)
-              item,
-        ],
+      nexPrivateSelectionMenu(
+        state,
+        copy: widget.onCopy!,
+        onChanged: (text) => widget.onChanged?.call(text),
+        canCut: () => mounted && widget.enabled && !widget.readOnly,
       );
 }
+
+/// Keep private fields' menu limited to editing commands. Copy and Cut use
+/// the caller's private clipboard, including its Android sensitive-clip flag.
+Widget nexPrivateSelectionMenu(
+  EditableTextState state, {
+  required Future<void> Function(String) copy,
+  required ValueChanged<String> onChanged,
+  required bool Function() canCut,
+}) => AdaptiveTextSelectionToolbar.buttonItems(
+  anchors: state.contextMenuAnchors,
+  buttonItems: [
+    for (final item in state.contextMenuButtonItems)
+      if (item.type == ContextMenuButtonType.copy ||
+          item.type == ContextMenuButtonType.cut)
+        ContextMenuButtonItem(
+          type: item.type,
+          label: item.label,
+          onPressed: () {
+            if (!state.mounted) return;
+            state.hideToolbar();
+            unawaited(
+              nexPrivateCopy(
+                state.widget.controller,
+                copy,
+                cut: item.type == ContextMenuButtonType.cut,
+                onChanged: onChanged,
+                canCut: canCut,
+              ),
+            );
+          },
+        )
+      else if (item.type == ContextMenuButtonType.paste ||
+          item.type == ContextMenuButtonType.selectAll)
+        item,
+  ],
+);
 
 /// Copies the selection in [controller] through [copy], and for a cut takes
 /// it out of the text once the copy has gone through. The text is left as
 /// it was when the copy fails, or when the text changed in the meantime.
-@visibleForTesting
 Future<void> nexPrivateCopy(
   TextEditingController controller,
   Future<void> Function(String text) copy, {
   required bool cut,
   ValueChanged<String>? onChanged,
   TextSelection? selection,
+  bool Function()? canCut,
 }) async {
   final value = controller.value;
   final range = selection ?? value.selection;
-  if (!range.isValid || range.isCollapsed) return;
+  if (!range.isValid || range.isCollapsed || range.end > value.text.length) {
+    return;
+  }
   try {
     await copy(range.textInside(value.text));
   } catch (_) {
     return;
   }
-  if (!cut || controller.text != value.text) return;
+  if (!cut || canCut?.call() == false || controller.value != value) return;
   final text = range.textBefore(value.text) + range.textAfter(value.text);
   controller.value = TextEditingValue(
     text: text,

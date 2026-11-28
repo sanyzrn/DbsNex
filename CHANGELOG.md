@@ -4,6 +4,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.9.6
+
+- Smoother text selection in Persian and English, with clearer highlights and handles that can move across paragraphs.
+- Formatting now lives beside Cut, Copy and Paste in the selection menu. Formatting a note supports Undo and Redo.
+- Notes have a distinct writing surface and open faster when they contain many paragraphs.
+
 ## v2.9.5
 
 - **Independent paragraph direction.** Persian and English paragraphs now keep their own alignment while writing or editing notes, checklists, AI chat and multiline module fields. Moving the caret or selecting across paragraphs no longer flips the entire field.

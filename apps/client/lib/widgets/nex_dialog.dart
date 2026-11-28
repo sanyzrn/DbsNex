@@ -196,6 +196,7 @@ Future<T?> nexShowSheet<T>({
   required WidgetBuilder builder,
   bool dismissible = true,
   bool swipeToClose = false,
+  bool swipeFromContent = true,
 }) => NexDesktopScope.isDesktop(context)
     ? nexShowPanel<T>(
         context: context,
@@ -292,7 +293,9 @@ Future<T?> nexShowSheet<T>({
               ),
             ),
           );
-          final framed = guarded ? _SwipeToClose(child: sheet) : sheet;
+          final framed = guarded
+              ? _SwipeToClose(fromContent: swipeFromContent, child: sheet)
+              : sheet;
           // A modal sheet does not make room for the keyboard by itself: its fields
           // sat under it and could not be reached. Lift the sheet by the keyboard's
           // height, once, here — and tell what is inside the keyboard is already
@@ -320,8 +323,9 @@ Future<T?> nexShowSheet<T>({
 /// instead, which is exactly the path the system back gesture takes, so the
 /// editor's PopScope still decides: a clean editor closes, a dirty one asks.
 class _SwipeToClose extends StatefulWidget {
-  const _SwipeToClose({required this.child});
+  const _SwipeToClose({required this.fromContent, required this.child});
 
+  final bool fromContent;
   final Widget child;
 
   @override
@@ -386,27 +390,28 @@ class _SwipeToCloseState extends State<_SwipeToClose>
   }
 
   @override
-  Widget build(BuildContext context) => _SwipeScope(
-    onUpdate: _drag,
-    onEnd: _end,
-    child: NotificationListener<ScrollNotification>(
-      onNotification: _onScroll,
-      // Parts of the sheet that do not scroll — its heading, the space
-      // between fields — drag it directly.
-      child: GestureDetector(
-        onVerticalDragUpdate: _drag,
-        onVerticalDragEnd: _end,
-        child: AnimatedBuilder(
-          animation: _offset,
-          builder: (context, child) => Transform.translate(
-            offset: Offset(0, _offset.value),
-            child: child,
-          ),
-          child: widget.child,
-        ),
-      ),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final translated = AnimatedBuilder(
+      animation: _offset,
+      builder: (context, child) =>
+          Transform.translate(offset: Offset(0, _offset.value), child: child),
+      child: widget.child,
+    );
+    return _SwipeScope(
+      onUpdate: _drag,
+      onEnd: _end,
+      child: widget.fromContent
+          ? NotificationListener<ScrollNotification>(
+              onNotification: _onScroll,
+              child: GestureDetector(
+                onVerticalDragUpdate: _drag,
+                onVerticalDragEnd: _end,
+                child: translated,
+              ),
+            )
+          : translated,
+    );
+  }
 }
 
 class _SwipeScope extends InheritedWidget {
