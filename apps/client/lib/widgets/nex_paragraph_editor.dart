@@ -6,6 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:super_editor/super_editor.dart';
 
 import '../l10n/app_localizations.dart';
+import 'nex_field_chrome.dart';
 import 'text_format_menu.dart';
 
 /// Resolves every paragraph's direction once, from the paragraphs' own text,
@@ -386,7 +387,10 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
       // Selection-only change: follow it in the document instead of
       // rebuilding, which would drop the composition and the scroll position.
       final selection = widget.controller.selection;
-      if (selection.isValid) _applySelection(selection);
+      if (selection.isValid) {
+        _applySelection(selection);
+        if (widget.formatting) setState(() {});
+      }
       return;
     }
     setState(() {
@@ -449,6 +453,8 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
 
   void _onComposerChanged() {
     if (_rebuilding) return;
+    // The bar follows the selection, so a selection is a rebuild.
+    if (widget.formatting) setState(() {});
     final selection = _composer.selection;
     if (selection == null) return;
     _formatBarDismissed = false;
@@ -543,7 +549,7 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
   /// result back, which is the same door the AI rewrite comes through: the
   /// document is rebuilt from the new string, so the note keeps being one
   /// plain string with Markdown in it.
-  Future<void> _format(_NexFormatCommand command) async {
+  Future<void> _format(NexFormatCommand command) async {
     final value = widget.controller.value;
     final selection = value.selection;
     if (!selection.isValid || selection.isCollapsed) return;
@@ -551,41 +557,41 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     final end = selection.end;
     NexFormattedText? result;
     switch (command) {
-      case _NexFormatCommand.bold:
+      case NexFormatCommand.bold:
         result = NexTextFormatting.toggleInline(
           value.text,
           start,
           end,
           NexInlineFormat.bold,
         );
-      case _NexFormatCommand.italic:
+      case NexFormatCommand.italic:
         result = NexTextFormatting.toggleInline(
           value.text,
           start,
           end,
           NexInlineFormat.italic,
         );
-      case _NexFormatCommand.mono:
+      case NexFormatCommand.mono:
         result = NexTextFormatting.toggleInline(
           value.text,
           start,
           end,
           NexInlineFormat.mono,
         );
-      case _NexFormatCommand.strikethrough:
+      case NexFormatCommand.strikethrough:
         result = NexTextFormatting.toggleInline(
           value.text,
           start,
           end,
           NexInlineFormat.strikethrough,
         );
-      case _NexFormatCommand.quote:
+      case NexFormatCommand.quote:
         result = NexTextFormatting.toggleQuote(value.text, start, end);
-      case _NexFormatCommand.link:
+      case NexFormatCommand.link:
         final url = await nexAskForLinkUrl(context);
         if (!mounted || url == null || url.isEmpty) return;
         result = NexTextFormatting.link(value.text, start, end, url);
-      case _NexFormatCommand.clear:
+      case NexFormatCommand.clear:
         result = NexTextFormatting.clear(value.text, start, end);
     }
     if (!mounted) return;
@@ -638,45 +644,23 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
 
   Widget _formatBar(BuildContext context, Rect anchor) {
     final l10n = AppLocalizations.of(context);
-    final entries = <(_NexFormatCommand, String)>[
-      (_NexFormatCommand.bold, l10n.formatBold),
-      (_NexFormatCommand.italic, l10n.formatItalic),
-      (_NexFormatCommand.mono, l10n.formatMono),
-      (_NexFormatCommand.strikethrough, l10n.formatStrikethrough),
-      (_NexFormatCommand.quote, l10n.formatQuote),
-      (_NexFormatCommand.link, l10n.formatLink),
-      (_NexFormatCommand.clear, l10n.formatClear),
-    ];
     return Positioned(
       left: 0,
       right: 0,
       top: math.max(0, anchor.top - 44),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
-        child: Material(
-          elevation: 3,
-          borderRadius: BorderRadius.circular(NexRadius.sm),
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.xs),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final (command, label) in entries)
-                  TextButton(
-                    onPressed: () => _format(command),
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(44, 32),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: NexSpacing.xs,
-                      ),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    child: Text(label, style: const TextStyle(fontSize: 12)),
-                  ),
-              ],
-            ),
-          ),
+        child: NexSelectionFormatBar(
+          labels: {
+            NexFormatCommand.bold: l10n.formatBold,
+            NexFormatCommand.italic: l10n.formatItalic,
+            NexFormatCommand.mono: l10n.formatMono,
+            NexFormatCommand.strikethrough: l10n.formatStrikethrough,
+            NexFormatCommand.quote: l10n.formatQuote,
+            NexFormatCommand.link: l10n.formatLink,
+            NexFormatCommand.clear: l10n.formatClear,
+          },
+          onSelected: _format,
         ),
       ),
     );
@@ -754,7 +738,9 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
         widget.enabled &&
         !_formatBarDismissed &&
         (_composer.selection?.isCollapsed ?? true) == false;
-    final anchor = showFormatBar ? _selectionRect() : null;
+    // A selection the layout cannot place yet (the frame right after a
+    // programmatic selection) still gets the bar, at the top of the field.
+    final anchor = showFormatBar ? (_selectionRect() ?? Rect.zero) : null;
     // A caller that says nothing about lines wants the whole space it is
     // given — the note sheet gives the editor an `Expanded` and lets it fill
     // the page and scroll. Only a caller that describes a field gets a field:
@@ -781,7 +767,7 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
               ),
             ),
     );
-    return _NexFieldFrame(
+    return NexFieldFrame(
       decoration: widget.decoration,
       isEmpty: widget.controller.text.isEmpty,
       isEnabled: widget.enabled,
@@ -789,90 +775,3 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     );
   }
 }
-
-/// The frame a [InputDecoration] draws around a field, without the
-/// [InputDecorator] that would break the engine.
-///
-/// Super Editor's viewport and its selection overlay are *slotted* render
-/// objects, and `InputDecorator` is one too: a slotted child nested inside a
-/// slotted parent lands in the wrong slot and the layout throws. The frame that
-/// matters — the hint, the fill, the outline and the padding — is small enough
-/// to draw here, and fields that need a label, an error line, a counter or an
-/// icon keep the platform field instead (see [NexTextField]).
-class _NexFieldFrame extends StatelessWidget {
-  const _NexFieldFrame({
-    required this.decoration,
-    required this.isEmpty,
-    required this.isEnabled,
-    required this.child,
-  });
-
-  final InputDecoration decoration;
-  final bool isEmpty;
-  final bool isEnabled;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final side = decoration.enabledBorder is OutlineInputBorder
-        ? (decoration.enabledBorder! as OutlineInputBorder).borderSide
-        : (decoration.border is OutlineInputBorder
-              ? (decoration.border! as OutlineInputBorder).borderSide
-              : BorderSide.none);
-    final radius = decoration.border is OutlineInputBorder
-        ? (decoration.border! as OutlineInputBorder).borderRadius
-        : const BorderRadius.all(Radius.circular(NexRadius.sm));
-    final fill = decoration.fillColor;
-    final padding =
-        decoration.contentPadding ??
-        const EdgeInsets.symmetric(
-          horizontal: NexSpacing.xs,
-          vertical: NexSpacing.xs,
-        );
-    final text = decoration.hintText;
-    final hintStyle =
-        decoration.hintStyle ??
-        theme.textTheme.bodyLarge?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        );
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: decoration.filled == true ? fill : null,
-        borderRadius: radius,
-        border: side == BorderSide.none
-            ? null
-            : Border.all(
-                color: isEnabled ? side.color : theme.disabledColor,
-                width: side.width,
-              ),
-      ),
-      child: Padding(
-        padding: padding,
-        child: text == null || !isEmpty
-            ? child
-            : Stack(
-                children: [
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: Align(
-                        alignment: AlignmentDirectional.topStart,
-                        child: Text(
-                          text,
-                          style: hintStyle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.start,
-                        ),
-                      ),
-                    ),
-                  ),
-                  child,
-                ],
-              ),
-      ),
-    );
-  }
-}
-
-enum _NexFormatCommand { bold, italic, mono, strikethrough, quote, link, clear }
