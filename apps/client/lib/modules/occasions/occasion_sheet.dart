@@ -97,6 +97,9 @@ class _OccasionSheetState extends State<_OccasionSheet> {
   late final FormDraft _draft;
   bool _restoring = true;
   bool _saving = false;
+  bool _checkingDuplicate = false;
+
+  bool get _busy => _saving || _checkingDuplicate;
   late final String _recordId = widget.occasion?.id ?? widget.store.newId();
   String? _titleError, _dayError, _yearError;
 
@@ -333,20 +336,22 @@ class _OccasionSheetState extends State<_OccasionSheet> {
   }
 
   Future<void> _save() async {
-    if (_saving) return;
+    if (_busy) return;
     final occasion = _build();
     if (occasion == null) return;
-    setState(() => _saving = true);
+    setState(() => _checkingDuplicate = true);
     final messenger = NexBannerHost.of(context);
     final failedText = occasionsStrings(context, 'saveError');
     final remindFailed = occasionsStrings(context, 'remindFailed');
     final l10n = AppLocalizations.of(context);
     try {
-      if (!await _confirmDuplicate(occasion)) {
-        if (mounted) setState(() => _saving = false);
-        return;
-      }
+      final confirmed = await _confirmDuplicate(occasion);
       if (!mounted) return;
+      setState(() {
+        _checkingDuplicate = false;
+        _saving = confirmed;
+      });
+      if (!confirmed) return;
       final prior = await widget.store.get('occasion', occasion.id);
       await widget.store.put('occasion', occasion.id, {
         ...?prior,
@@ -354,7 +359,12 @@ class _OccasionSheetState extends State<_OccasionSheet> {
       });
     } catch (_) {
       messenger?.show(kind: NexBannerKind.failed, message: failedText);
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() {
+          _checkingDuplicate = false;
+          _saving = false;
+        });
+      }
       return;
     }
     try {
@@ -393,9 +403,9 @@ class _OccasionSheetState extends State<_OccasionSheet> {
     final l10n = AppLocalizations.of(context);
     return DraftGuard(
       draft: _draft,
-      busy: () => _saving,
+      busy: () => _busy,
       child: AbsorbPointer(
-        absorbing: _restoring || _saving,
+        absorbing: _restoring || _busy,
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsetsDirectional.symmetric(
@@ -680,14 +690,14 @@ class _OccasionSheetState extends State<_OccasionSheet> {
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(52),
                   ),
-                  onPressed: _saving ? null : () => unawaited(_save()),
+                  onPressed: _busy ? null : () => unawaited(_save()),
                   child: _saving
                       ? const NexInlineSpinner(size: 20)
                       : Text(l10n.save),
                 ),
                 const SizedBox(height: NexSpacing.sm),
                 TextButton(
-                  onPressed: _saving
+                  onPressed: _busy
                       ? null
                       : () async {
                           await _draft.clear();
