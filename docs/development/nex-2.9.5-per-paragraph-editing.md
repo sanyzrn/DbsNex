@@ -126,34 +126,78 @@ person drives:
    that the AI rewrite was about to replace. Read-only now renders the same
    document through `SuperReader`, which has no input connection at all.
 
-### What a keystroke costs
+### What a keystroke costs, and what the paragraph cache was worth
 
-The note is mirrored in `_paragraphs` (each paragraph's text) and `_starts`
-(each paragraph's start offset), with `_indexById` for the reverse lookup.
-A change log naming one node updates one entry and recomputes the offset table
-(integer adds); the joined string is assembled from cached strings, so a
-keystroke no longer calls `toPlainText` once per paragraph. Placing the caret
-is a binary search. Directions are resolved in one pass per text change and
-handed to the layout through a resolver the components read, instead of each
-paragraph walking its neighbours during layout.
+The note is mirrored the simple way: each document change joins the paragraphs,
+writes the controller and refreshes the direction map. An earlier version of
+this file also kept a per-paragraph cache, a start-offset table and a
+binary-search caret mapping. Measured on 500, 2000 and 5000-line mixed notes,
+with frames excluded so the numbers are document work and not layout:
 
-Measured on the 500-line mixed note in
-`test/nex_paragraph_editor_perf_test.dart`, with frames excluded so the numbers
-are the document work and not the layout:
-
-| | before | after |
+| lines | with cache (type / verify) | without cache |
 | --- | --- | --- |
-| open | ~1.45 s | ~1.5 s |
-| keystroke (document work) | 21–45 ms | 18–24 ms |
-| caret move | 3.7 ms | 3.3–3.8 ms |
+| 500 | 32.9 ms | 26.0 ms |
+| 2000 | 151.0 ms | 113.9 ms |
+| 5000 | 324.1 ms | 275.2 ms |
 
-The difference is **inside run-to-run noise on this machine**, and that is the
-honest result: the per-keystroke cost is dominated upstream — Super Editor
-serialises the whole document for the IME and re-sends it on every delta, and a
-frame lays every paragraph out. The change is still worth keeping (it removes an
-allocation per paragraph per keystroke, which is what grows on very long notes
-and slower devices) but it does not make a 500-line note fast by itself, and no
-claim to the contrary belongs in the release notes.
+The cache was **not faster** at any size — within noise at best, consistently a
+little slower because it allocated four lists and a map per keystroke. It was
+removed. What dominates a keystroke is upstream: Super Editor serialises the
+whole document for the IME and re-sends it on every delta. The direction map
+stays, because it is one pass per text change and it keeps a relayout from
+walking the document per paragraph.
+
+### Against 2.9.4
+
+The same notes, in `NexTextField` — the field 2.9.4 shipped — typing arriving as
+a whole value update the way Flutter's test IME sends one, one frame per
+keystroke on both sides:
+
+| lines | 2.9.4 open | new open | 2.9.4 per keystroke | new per keystroke | 2.9.4 per caret move | new per caret move |
+| --- | --- | --- | --- | --- | --- | --- |
+| 500 | 647 ms | 1268 ms | 68.2 ms | 25.0 ms | 14.3 ms | 4.4 ms |
+| 2000 | 561 ms | 2236 ms | 376.0 ms | 87.6 ms | 76.4 ms | 13.2 ms |
+| 5000 | 2051 ms | 4143 ms | 1773.2 ms | 218.5 ms | 302.4 ms | 40.8 ms |
+
+So: the document engine costs about twice as much to **open** a long note, and
+answers typing 2.7× faster at 500 lines, 4.3× at 2000 and 8.1× at 5000, with
+caret moves 3–7× faster. The field's cost grows faster than linearly with the
+note because it lays the whole note out around the caret's paragraph on every
+change; the document engine lays out the paragraphs the change touched. Both
+numbers are from a debug test host, not a device, so treat the **ratios** as the
+finding and the absolute times as indicative.
+
+### Remaining prose fields: what unification needs
+
+Only the note editor uses the document engine so far. The capture composer —
+the place a note is first written — and the module note fields still use
+`NexTextField`, and they still have 2.9.4's behaviour: the paragraph being
+edited and the rest of the field are laid out as one paragraph, so a mixed note
+turns as the caret moves.
+
+Moving them is not a one-line swap. Three things are missing from
+`NexParagraphEditor` before it can stand in for a `NexTextField`:
+
+1. **Field chrome.** `decoration` (hint, helper, error, borders) and the
+   min/max line box a `TextField` grows in. The engine currently fills the space
+   it is given and draws no hint.
+2. **The formatting menu.** The capture composer's note field offers
+   bold/italic/mono/strike/quote/link through the platform selection menu.
+   Super Editor draws its own selection toolbar, so that menu has to be rebuilt
+   on the document engine (or moved to a visible toolbar), or the composer loses
+   a feature when it switches.
+3. **One field for every capture kind.** The composer deliberately keeps one
+   field instance across Note, Checklist, Link and Code, because swapping the
+   editor when the kind changes takes the keyboard with it. Code needs a
+   monospaced, left-to-right document with its bracket/indent formatter; the
+   document engine can be monospaced and forced left-to-right, but the input
+   formatter has no equivalent there yet.
+
+Until those three exist, converting the composer would trade the direction bug
+for a lost formatting menu and a keyboard that blinks on Note↔Code; converting
+the module fields would trade it for missing hints and wrong heights. The
+`NexTextField` path stays for code (`snippet_editor_sheet.dart`, capture Code,
+security toolbox) and for the private vault, as asked.
 
 ### What the tests now drive
 
@@ -178,7 +222,9 @@ drag handles), Windows IME behaviour, and touch scrolling inside the editor were
 not exercised. `docs/development/nex-2.9.5-editor-device-checklist.md` is the
 run-through for a person with a device.
 
-A full `flutter test` run over the app's 545 test files passes, with one
-pre-existing failure unrelated to the editor: `modules/expenses` "nothing is
-offered before its day" creates a template due on day 28 and expects it to be
-ahead — it fails on the 28th of any month, and this one ran on 28 November.
+A full `flutter test` run over the app's 545 test files passes. The one failure
+it used to report — `modules/expenses` "nothing is offered before its day",
+which created a template due on the 28th and expected it to be ahead — was a
+date-dependent test, not an editor bug: it failed on the 28th of any month. It
+now pins the screen's clock through `ExpensesScreen(now:)` instead of reading
+the wall clock, so it answers the same on every day.

@@ -151,12 +151,14 @@ class _NexDirectionResolver {
 /// ## The cost of a keystroke
 ///
 /// A note is a string, and a string is what the controller and every reader of
-/// it expect, so a keystroke does have to produce the whole note once. What it
-/// must not do is *re-read* the whole note: this state keeps each paragraph's
-/// text and start offset beside the document ([_paragraphs], [_starts]) and
-/// updates only the paragraphs a change log names. A keystroke therefore costs
-/// one paragraph's text plus one join, not one `toPlainText` per line and a
-/// walk of every node for the caret; mapping the caret is a binary search.
+/// it expect, so a keystroke does have to produce the whole note once. That is
+/// what this state does and all it does: join the paragraphs, write the
+/// controller, refresh the direction map. An earlier version also kept a
+/// paragraph cache and a binary-search offset table; measured against this
+/// shape on 500, 2000 and 5000-line notes it bought nothing — the cost is the
+/// join, the IME serialisation upstream and the layout — so it was removed
+/// rather than maintained. See
+/// `docs/development/nex-2.9.5-per-paragraph-editing.md`.
 ///
 /// ## Read-only means no input, not a blocked finger
 ///
@@ -205,21 +207,6 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
   late MutableDocument _document;
   late MutableDocumentComposer _composer;
   late Editor _editor;
-
-  /// Every paragraph's plain text, in document order — the cache [_join] and
-  /// the selection mapping work from, so no change has to re-read the document.
-  List<String> _paragraphs = const [];
-
-  /// The node id behind each entry of [_paragraphs].
-  List<String> _ids = const [];
-
-  /// Where each paragraph starts in the joined text. Paragraph `i` occupies
-  /// `[_starts[i], _starts[i] + _paragraphs[i].length]`, and the newline that
-  /// joins it to the next is its next index.
-  List<int> _starts = const [];
-
-  /// The paragraph index of each node id.
-  final Map<String, int> _indexById = {};
 
   final _resolver = _NexDirectionResolver();
 
@@ -302,7 +289,6 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
       isHistoryEnabled: true,
     );
     _knownText = text;
-    _indexParagraphs(); // The lines are already in hand: no toPlainText pass.
     _resolver.directions = const {};
     _document.addListener(_onDocumentChanged);
     // The composer's own listeners hear about composing regions and
@@ -331,71 +317,6 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     _rebuilding = false;
   }
 
-  /// Rebuilds the paragraph cache from the document. Only an edit that changes
-  /// the number of paragraphs pays this; a keystroke updates one entry.
-  void _indexParagraphs() {
-    final paragraphs = <String>[];
-    final ids = <String>[];
-    for (final node in _document) {
-      paragraphs.add(node is TextNode ? node.text.toPlainText() : '');
-      ids.add(node.id);
-    }
-    _paragraphs = paragraphs;
-    _ids = ids;
-    _recomputeStarts();
-    _indexById
-      ..clear()
-      ..addEntries([for (var i = 0; i < ids.length; i++) MapEntry(ids[i], i)]);
-  }
-
-  void _recomputeStarts() {
-    final starts = List<int>.filled(_paragraphs.length, 0);
-    var offset = 0;
-    for (var i = 0; i < _paragraphs.length; i++) {
-      starts[i] = offset;
-      offset += _paragraphs[i].length + 1;
-    }
-    _starts = starts;
-  }
-
-  /// Brings the paragraph cache up to date with [changeLog].
-  ///
-  /// Returns whether any paragraph's text changed. A selection-only or purely
-  /// attributive change answers `false` and costs nothing beyond the log.
-  bool _syncParagraphs(DocumentChangeLog changeLog) {
-    var structural = false;
-    for (final change in changeLog.changes) {
-      if (change is NodeInsertedEvent ||
-          change is NodeRemovedEvent ||
-          change is NodeMovedEvent) {
-        structural = true;
-        break;
-      }
-    }
-    if (structural) {
-      _indexParagraphs();
-      return true;
-    }
-    var changed = false;
-    for (final change in changeLog.changes) {
-      if (change is! NodeDocumentChange) continue;
-      final index = _indexById[change.nodeId];
-      if (index == null) {
-        // A node the cache has not seen: adopt the document wholesale once,
-        // rather than leaving a paragraph unmapped.
-        _indexParagraphs();
-        return true;
-      }
-      final node = _document.getNodeById(change.nodeId);
-      final text = node is TextNode ? node.text.toPlainText() : '';
-      if (text == _paragraphs[index]) continue;
-      _paragraphs[index] = text;
-      changed = true;
-    }
-    if (changed) _recomputeStarts();
-    return changed;
-  }
-
   /// Rebuilds the document after an external write — an AI rewrite, a
   /// recovered draft, the sheet's undo. The engine's keyboard state is
   /// replaced with it; the controller already holds the truth.
@@ -421,15 +342,7 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
   }
 
   void _onDocumentChanged(DocumentChangeLog changeLog) {
-    // Undo and redo roll the editables back and notify without a change log:
-    // nothing says which paragraphs changed because all of them may have, so
-    // the cache is rebuilt rather than trusted.
-    if (changeLog.changes.isEmpty) {
-      _indexParagraphs();
-    } else if (!_syncParagraphs(changeLog)) {
-      return;
-    }
-    final text = _paragraphs.join('\n');
+    final text = _join(_document);
     if (text == _knownText) return;
     _knownText = text;
     _resolver.directions = _resolveDirections();
@@ -440,15 +353,19 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
   /// One pass over the paragraphs: each direction is its own, else the nearest
   /// before, else the nearest after, else the surface's.
   ///
-  /// This is O(paragraphs) and runs once per text change — never per layout,
-  /// which is what makes dragging a selection handle cheap on a long note.
+  /// Computed once per text change and read by every paragraph while it lays
+  /// out, so a selection drag — which relayouts the components — does not walk
+  /// the document again.
   Map<String, TextDirection> _resolveDirections() {
-    final count = _paragraphs.length;
-    final own = List<TextDirection?>.generate(
-      count,
-      (i) => nexDirectionOf(_paragraphs[i]),
-      growable: false,
-    );
+    final ids = <String>[];
+    final own = <TextDirection?>[];
+    for (final node in _document) {
+      ids.add(node.id);
+      own.add(
+        node is TextNode ? nexDirectionOf(node.text.toPlainText()) : null,
+      );
+    }
+    final count = ids.length;
     final before = List<TextDirection?>.filled(count, null);
     TextDirection? carry;
     for (var i = 0; i < count; i++) {
@@ -464,7 +381,7 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     final fallback = _resolver.fallback;
     return {
       for (var i = 0; i < count; i++)
-        _ids[i]: own[i] ?? before[i] ?? after[i] ?? fallback,
+        ids[i]: own[i] ?? before[i] ?? after[i] ?? fallback,
     };
   }
 
@@ -516,41 +433,47 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     return TextSelection(baseOffset: start, extentOffset: end);
   }
 
+  static String _join(Document document) => document
+      .map((node) => node is TextNode ? node.text.toPlainText() : '')
+      .join('\n');
+
   /// Where [offset] sits in the document: the paragraph it is in, and how far
   /// into that paragraph.
-  ///
-  /// A binary search over [_starts], so the cost of a caret move does not grow
-  /// with the length of the note.
   DocumentPosition _positionAt(int offset) {
-    final target = offset.clamp(0, _knownText.length);
-    var low = 0;
-    var high = _starts.length - 1;
-    while (low < high) {
-      final middle = (low + high + 1) >> 1;
-      if (_starts[middle] <= target) {
-        low = middle;
-      } else {
-        high = middle - 1;
+    var remaining = offset.clamp(0, _knownText.length);
+    for (final node in _document) {
+      final length = node is TextNode ? node.text.length : 0;
+      if (remaining <= length) {
+        return DocumentPosition(
+          nodeId: node.id,
+          nodePosition: TextNodePosition(offset: remaining),
+        );
       }
+      remaining -= length + 1;
     }
-    final index = low;
+    final last = _document.lastOrNull;
     return DocumentPosition(
-      nodeId: _ids[index],
+      nodeId: last?.id ?? '',
       nodePosition: TextNodePosition(
-        offset: (target - _starts[index]).clamp(0, _paragraphs[index].length),
+        offset: last is TextNode ? last.text.length : 0,
       ),
     );
   }
 
   /// The reverse of [_positionAt]: an absolute offset into the joined text.
   int? _offsetOf(DocumentPosition position) {
-    final index = _indexById[position.nodeId];
-    if (index == null) return null;
-    final nodePosition = position.nodePosition;
-    final inParagraph = nodePosition is TextNodePosition
-        ? nodePosition.offset.clamp(0, _paragraphs[index].length)
-        : 0;
-    return _starts[index] + inParagraph;
+    var offset = 0;
+    for (final node in _document) {
+      if (node.id == position.nodeId) {
+        final length = node is TextNode ? node.text.length : 0;
+        final inParagraph = position.nodePosition is TextNodePosition
+            ? (position.nodePosition as TextNodePosition).offset
+            : 0;
+        return offset + inParagraph.clamp(0, length);
+      }
+      offset += (node is TextNode ? node.text.length : 0) + 1;
+    }
+    return null;
   }
 
   @override
