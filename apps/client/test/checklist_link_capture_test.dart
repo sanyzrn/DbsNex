@@ -11,13 +11,14 @@ import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
 /// The two capture types added alongside text, voice, photo and file — from
 /// the button in the capture sheet through to what the card shows.
 /// The capture sheet's one field — the timeline has a search field too.
 final _field = find.descendant(
   of: find.byType(CaptureSheet),
-  matching: find.byType(TextField),
+  matching: nexInputs(),
 );
 
 /// Its Send — the + button behind it is called Capture too.
@@ -60,8 +61,12 @@ void main() {
     (tester) async {
       await openComposer(tester);
       final sheet = find.byType(CaptureSheet);
-      final text = tester.widget<TextField>(_field);
-      final defaults = text.decoration!.applyDefaults(
+      final decoration = tester
+          .widget<InputDecorator>(
+            find.descendant(of: _field, matching: find.byType(InputDecorator)),
+          )
+          .decoration;
+      final defaults = decoration.applyDefaults(
         Theme.of(tester.element(_field)).inputDecorationTheme,
       );
       expect(defaults.filled, isFalse);
@@ -85,12 +90,12 @@ void main() {
       }
       // The same field and draft survive all three text modes.
       final editor = tester.element(_field);
-      await tester.enterText(_field, 'milk\neggs');
+      await enterNexText(tester, _field, 'milk\neggs');
       for (final label in ['Checklist', 'Link', 'Note']) {
         await tester.tap(tool(label));
         await tester.pumpAndSettle();
         expect(tester.element(_field), same(editor));
-        expect(tester.widget<TextField>(_field).controller!.text, 'milk\neggs');
+        expect(nexInputController(tester, _field).text, 'milk\neggs');
       }
       await tester.tap(_send);
       await tester.pumpAndSettle();
@@ -157,7 +162,7 @@ void main() {
     expect(find.text('An item, one per line'), findsOneWidget);
 
     // One field, one item per line — not five taps into five separate rows.
-    await tester.enterText(_field, 'milk\nbread\nolives');
+    await enterNexText(tester, _field, 'milk\nbread\nolives');
     await tester.pumpAndSettle();
     expect(find.text('3 items'), findsOneWidget);
     await tester.tap(_send);
@@ -181,7 +186,7 @@ void main() {
   testWidgets('a note already written becomes a list in place, reminder '
       'and all, leaving nothing behind', (tester) async {
     await openComposer(tester);
-    await tester.enterText(_field, 'milk\neggs');
+    await enterNexText(tester, _field, 'milk\neggs');
     await tester.pumpAndSettle();
     // Saved as a note from the first keystroke (ADR-002)…
     final draft = (await services.timeline(limit: 5)).single;
@@ -223,7 +228,7 @@ void main() {
     tester,
   ) async {
     await openComposer(tester);
-    await tester.enterText(_field, 'milk\neggs');
+    await enterNexText(tester, _field, 'milk\neggs');
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Checklist'));
     await tester.pumpAndSettle();
@@ -263,9 +268,9 @@ void main() {
     tester,
   ) async {
     await openComposer(tester);
-    await tester.enterText(_field, 'first');
+    await enterNexText(tester, _field, 'first');
     await tester.pumpAndSettle(const Duration(milliseconds: 700));
-    await tester.enterText(_field, 'first, and the rest');
+    await enterNexText(tester, _field, 'first, and the rest');
     // Gone before the debounce: the last words are written by dispose.
     Navigator.of(tester.element(find.byType(CaptureSheet))).pop();
     await tester.pumpAndSettle(const Duration(seconds: 1));
@@ -300,7 +305,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // No scheme, the way people actually paste.
-    await tester.enterText(_field, 'www.example.com/a');
+    await enterNexText(tester, _field, 'www.example.com/a');
     await tester.pumpAndSettle();
     // The site it will open, under the box, before anything is kept.
     expect(find.text('example.com'), findsOneWidget);
@@ -321,7 +326,11 @@ void main() {
     await openComposer(tester);
     await tester.tap(find.byTooltip('Link'));
     await tester.pumpAndSettle();
-    await tester.enterText(_field, 'Friday dinner https://example.com/recipe');
+    await enterNexText(
+      tester,
+      _field,
+      'Friday dinner https://example.com/recipe',
+    );
     await tester.pumpAndSettle();
     expect(find.text('example.com · Friday dinner'), findsOneWidget);
     await tester.tap(_send);
@@ -342,7 +351,7 @@ void main() {
     await tester.tap(find.byTooltip('Link'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(_field, 'example.com/kept');
+    await enterNexText(tester, _field, 'example.com/kept');
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
@@ -358,7 +367,7 @@ void main() {
     await tester.tap(find.byTooltip('Link'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(_field, 'not a link');
+    await enterNexText(tester, _field, 'not a link');
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
@@ -377,7 +386,7 @@ void main() {
     tester,
   ) async {
     await openComposer(tester);
-    await tester.enterText(_field, 'optimistic words');
+    await enterNexText(tester, _field, 'optimistic words');
     await tester.pumpAndSettle();
 
     await tester.tap(_send);
@@ -402,7 +411,7 @@ void main() {
     await tester.tap(find.byTooltip('Link'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(_field, 'javascript:alert(1)');
+    await enterNexText(tester, _field, 'javascript:alert(1)');
     await tester.pumpAndSettle();
     // The verdict waits for the words to be still — not the first character.
     expect(find.text('That does not look like a link.'), findsNothing);
@@ -480,10 +489,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('capture-send')));
     await tester.pumpAndSettle();
-    expect(
-      tester.widget<TextField>(_field).controller!.text,
-      'https://example.com/a',
-    );
+    expect(nexInputController(tester, _field).text, 'https://example.com/a');
   });
 
   testWidgets('the detail sheet ticks an item, and offers no title', (
@@ -575,10 +581,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // Lines, not the storage format: no `- [x]` reaches the person editing.
-    final field = find.byType(TextField).last;
-    expect(tester.widget<TextField>(field).controller!.text, 'milk\nbread');
+    final field = nexInputs().last;
+    expect(nexInputController(tester, field).text, 'milk\nbread');
 
-    await tester.enterText(field, 'milk\neggs');
+    await enterNexText(tester, field, 'milk\neggs');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();

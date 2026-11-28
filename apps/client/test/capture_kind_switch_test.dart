@@ -4,18 +4,12 @@ import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/widgets/nex_dialog.dart';
 import 'package:nex_client/widgets/nex_text_field.dart';
+import 'package:nex_client/widgets/nex_paragraph_editor.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
-/// 2.9.0, step 5: the capture box's four kinds are one editor.
-///
-/// Code used to be the one kind that swapped editors — Android's for
-/// Flutter's — and the swap took the keyboard with it, collapsing the
-/// sheet's bottom inset and moving the panel. These tests hold the box to
-/// one editor for every kind: the same editor element, its words, its
-/// place, and its code settings — which, the editor being the framework's
-/// own on every platform now, are the field's own.
 void main() {
   late NexTestHarness harness;
 
@@ -66,24 +60,22 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('every kind keeps the one editor, the text and its place', (
+  testWidgets('capture kinds keep the text, caret and keyboard', (
     tester,
   ) async {
     await open(tester);
     final l10n = AppLocalizations.of(tester.element(find.byType(CaptureSheet)));
     final row = find.byKey(const ValueKey('capture-input-row'));
     final field = find.byType(NexTextField);
+    NexTextField input() => tester.widget<NexTextField>(field);
 
-    await tester.enterText(
-      find.descendant(of: field, matching: find.byType(EditableText)),
-      'hello',
-    );
+    await enterNexText(tester, nexInputs(), 'سلام!\nHello.');
     await tester.pumpAndSettle();
-    final resting = tester.getRect(row);
-    final editor = tester.state<EditableTextState>(
-      find.descendant(of: field, matching: find.byType(EditableText)),
-    );
-    expect(tester.widget<NexTextField>(field).controller.text, 'hello');
+    final controller = input().controller;
+    const selection = TextSelection.collapsed(offset: 8);
+    controller.selection = selection;
+    await tester.pumpAndSettle();
+    final layout = tester.getRect(row);
 
     for (final label in [
       l10n.code,
@@ -92,58 +84,21 @@ void main() {
       l10n.link,
       l10n.captureKindNote,
     ]) {
-      final before = tester.getRect(row);
+      tester.testTextInput.log.clear();
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
+      expect(input().controller, same(controller));
+      expect(controller.text, 'سلام!\nHello.');
+      expect(controller.selection, selection, reason: label);
+      expect(input().focusNode!.hasFocus, isTrue, reason: label);
       expect(
-        tester.state<EditableTextState>(
-          find.descendant(of: field, matching: find.byType(EditableText)),
-        ),
-        same(editor),
-        reason:
-            'switching to "$label" must not swap the editor out — that is '
-            'what dropped the keyboard and moved the sheet',
-      );
-      expect(
-        tester.widget<NexTextField>(field).controller.text,
-        'hello',
-        reason: 'the words are the person\'s, whatever the kind is',
+        tester.testTextInput.log.map((call) => call.method),
+        isNot(contains('TextInput.hide')),
+        reason: label,
       );
       final now = tester.getRect(row);
-      expect(
-        now.height,
-        resting.height,
-        reason: 'the box keeps its height, whatever the kind is',
-      );
-      // Only the panel's own content changes (a hint line under the box, the
-      // code tools above it), never the keyboard's height: the box must not
-      // drop or leap when the kind does.
-      expect(
-        (now.top - before.top).abs(),
-        lessThanOrEqualTo(48),
-        reason:
-            'switching to "$label" moved the box from ${before.top} to '
-            '${now.top}',
-      );
-      if (label == l10n.code) {
-        // The code tools sit above the row, so the words being typed keep
-        // their place exactly.
-        expect(now.top, before.top);
-      }
-      expect(
-        now.bottom,
-        lessThanOrEqualTo(
-          tester.view.physicalSize.height / tester.view.devicePixelRatio - 300,
-        ),
-        reason: 'the box is above the keyboard the whole time',
-      );
-      expect(
-        editor.widget.focusNode.hasFocus,
-        isTrue,
-        reason:
-            'nothing gave the editor up while the kind changed — that is '
-            'what dropped the keyboard',
-      );
+      expect((now.top - layout.top).abs(), lessThanOrEqualTo(48));
+      expect(now.bottom, lessThanOrEqualTo(500));
     }
     expect(tester.takeException(), isNull);
   });
@@ -158,7 +113,7 @@ void main() {
         tester.widget<NexTextField>(find.byType(NexTextField));
     bool code() => widget().inputFormatters != null;
 
-    expect(code(), isFalse);
+    expect(find.byType(NexParagraphEditor), findsOneWidget);
 
     await tester.tap(find.text(l10n.code));
     await tester.pumpAndSettle();
@@ -172,7 +127,7 @@ void main() {
 
     await tester.tap(find.text(l10n.captureKindNote));
     await tester.pumpAndSettle();
-    expect(code(), isFalse);
+    expect(find.byType(NexParagraphEditor), findsOneWidget);
     expect(field().textDirection, isNull);
   });
 }

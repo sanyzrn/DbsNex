@@ -27,6 +27,7 @@ import 'package:nex_client/widgets/nex_brand.dart';
 import 'package:nex_client/widgets/tag_color_picker.dart';
 
 import 'support/in_process_db.dart';
+import 'support/text_input.dart';
 
 /// Builds the real service graph against an in-process database.
 ///
@@ -258,9 +259,9 @@ void main() {
       );
       final captureField = find.descendant(
         of: find.byType(CaptureSheet),
-        matching: find.byType(TextField),
+        matching: nexInputs(),
       );
-      await tester.enterText(captureField, 'put the bins out');
+      await enterNexText(tester, captureField, 'put the bins out');
       await tester.pump();
 
       expect(find.byTooltip('Remind'), findsOneWidget);
@@ -278,7 +279,7 @@ void main() {
       expect(find.text('Save'), findsNothing);
 
       // Emptied again, it goes with the note it belonged to.
-      await tester.enterText(captureField, '');
+      await enterNexText(tester, captureField, '');
       await tester.pump();
       expect(
         tester
@@ -308,10 +309,10 @@ void main() {
       // leaves the tree — scope to the capture sheet's field specifically.
       final captureField = find.descendant(
         of: find.byType(CaptureSheet),
-        matching: find.byType(TextField),
+        matching: nexInputs(),
       );
 
-      await tester.enterText(captureField, 'first line');
+      await enterNexText(tester, captureField, 'first line');
       await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
@@ -326,7 +327,7 @@ void main() {
       );
       expect(find.byType(CaptureSheet), findsOneWidget);
 
-      await tester.enterText(captureField, 'first line\nsecond line');
+      await enterNexText(tester, captureField, 'first line\nsecond line');
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pumpAndSettle();
 
@@ -348,12 +349,13 @@ void main() {
 
       final captureField = find.descendant(
         of: find.byType(CaptureSheet),
-        matching: find.byType(TextField),
+        matching: nexInputs(),
       );
       // A field left unbounded (`maxLines: null` with nothing capping its
       // height) grows with every line pasted in, and used to push the
       // submit button below the bottom of the sheet entirely.
-      await tester.enterText(
+      await enterNexText(
+        tester,
         captureField,
         List.filled(60, 'a line').join('\n'),
       );
@@ -393,10 +395,10 @@ void main() {
 
     final captureField = find.descendant(
       of: find.byType(CaptureSheet),
-      matching: find.byType(TextField),
+      matching: nexInputs(),
     );
 
-    await tester.enterText(captureField, 'a line');
+    await enterNexText(tester, captureField, 'a line');
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pump();
 

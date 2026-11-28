@@ -236,9 +236,7 @@ extension _CaptureModes on _CaptureSheetState {
     if (!_fieldFocus.hasFocus) _fieldFocus.requestFocus();
   }
 
-  /// The one field the text kinds share — the same widget in the same place,
-  /// so switching kind changes its hint and its keyboard and never takes the
-  /// focus or the text away.
+  /// The shared capture field keeps its text and focus across kind changes.
   Widget _field(BuildContext context, AppLocalizations l10n) {
     final kind = _kind;
     final enterSends = widget.preferences.enterSubmitsCapture;
@@ -263,10 +261,6 @@ extension _CaptureModes on _CaptureSheetState {
         maxHeight: MediaQuery.sizeOf(context).height * 0.35,
       ),
       child: Focus(
-        // A multiline field's own default is to insert a newline on Enter —
-        // textInputAction only changes the on-screen keyboard's action
-        // button, physical Enter still needs catching here. Shift+Enter is
-        // the escape hatch to actually start a new line while this is on.
         onKeyEvent: (node, event) {
           if (code &&
               !_closing &&
@@ -280,32 +274,14 @@ extension _CaptureModes on _CaptureSheetState {
             changed(controller.text);
             return KeyEventResult.handled;
           }
-          final submits =
-              !code && (link || (kind == CaptureKind.note && enterSends));
-          if (!submits || event is! KeyDownEvent) {
-            return KeyEventResult.ignored;
-          }
-          final isEnter =
-              event.logicalKey == LogicalKeyboardKey.enter ||
-              event.logicalKey == LogicalKeyboardKey.numpadEnter;
-          if (!isEnter || HardwareKeyboard.instance.isShiftPressed) {
-            return KeyEventResult.ignored;
-          }
-          _submit();
-          return KeyEventResult.handled;
+          return KeyEventResult.ignored;
         },
-        // Never a bare `TextField`: this is where a person writes more than
-        // one line of their own words — see [NexTextField] for the rule and
-        // for how the direction follows the paragraph being typed into.
         child: NexTextField(
           controller: controller,
           focusNode: _fieldFocus,
           autofocus: true,
           minLines: 3,
           readOnly: _closing,
-          // Bold, italic and the rest, appended to the platform's own
-          // Cut/Copy/Paste rather than replacing them — in a note, where
-          // they mean something.
           formatting: kind == CaptureKind.note,
           // Code is always left to right and fixed-width, even in a Persian
           // interface and even with Persian comments in it. Markdown stays
@@ -313,11 +289,7 @@ extension _CaptureModes on _CaptureSheetState {
           // something the person writing a snippet has to see or maintain.
           textDirection: code ? TextDirection.ltr : null,
           monospace: code,
-          // Every kind keeps the same editor, which is the whole point: an
-          // editor swapped out when Code is chosen takes the keyboard with
-          // it. The code gestures — bracket pairing, indent carry — ride on
-          // the same field as everything else, through [inputFormatters], so
-          // nothing here changes when the kind does.
+          // Code keeps its syntax and bracket/indent input formatter.
           inputFormatters: code ? const [NexCodeInputFormatter()] : null,
           // The same keyboard for every kind. A URL keyboard has no
           // suggestion strip, so switching to Link and back made the keyboard

@@ -4,11 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/widgets/nex_dialog.dart';
+import 'package:nex_client/widgets/nex_paragraph_editor.dart';
 import 'package:nex_client/widgets/note_editor_sheet.dart';
-import 'package:nex_client/widgets/text_format_menu.dart';
+import 'package:nex_client/widgets/nex_field_chrome.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
 void main() {
   late NexTestHarness harness;
@@ -74,26 +76,39 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     if (capture) {
-      await tester.enterText(find.byType(TextField), 'one two three');
+      await enterNexText(tester, nexInputs(), 'one two three');
       await tester.pumpAndSettle();
     }
   }
 
-  Future<void> format(WidgetTester tester, String label) async {
-    final state = tester.state<EditableTextState>(find.byType(EditableText));
-    state.userUpdateTextEditingValue(
-      state.textEditingValue.copyWith(
-        selection: const TextSelection(baseOffset: 4, extentOffset: 7),
-      ),
-      SelectionChangedCause.tap,
-    );
+  Future<void> format(
+    WidgetTester tester,
+    String label, {
+    required bool capture,
+  }) async {
+    if (!capture) {
+      // The note editor formats from its own toolbar: select, open, pick.
+      final controller = tester
+          .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+          .controller;
+      controller.selection = const TextSelection(
+        baseOffset: 4,
+        extentOffset: 7,
+      );
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.text_format));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+      return;
+    }
+    final controller = nexInputController(tester, nexInputs());
+    controller.selection = const TextSelection(baseOffset: 4, extentOffset: 7);
     await tester.pump();
-    final context = tester.element(find.byType(TextField));
-    final menu = nexFormatContextMenuBuilder(context)(
-      context,
-      state,
-    ) as AdaptiveTextSelectionToolbar;
-    menu.buttonItems!.firstWhere((item) => item.label == label).onPressed!();
+    final bar = find.byType(NexSelectionFormatBar);
+    final command = find.descendant(of: bar, matching: find.text(label));
+    await tester.ensureVisible(command);
+    await tester.tap(command);
     await tester.pumpAndSettle();
   }
 
@@ -130,7 +145,7 @@ void main() {
         '$kind: $label keeps editing, Save ends the keyboard session',
         (tester) async {
           await open(tester, capture: capture);
-          await format(tester, label);
+          await format(tester, label, capture: capture);
           if (label == 'Link') {
             final dialog = find.bySubtype<AlertDialog>();
             expect(dialog, findsOneWidget);
@@ -143,12 +158,12 @@ void main() {
             );
             await tester.pumpAndSettle();
             expect(find.bySubtype<AlertDialog>(), findsNothing);
-            final state = tester.state<EditableTextState>(
-              find.byType(EditableText),
+            final editor = tester.widget<NexParagraphEditor>(
+              find.byType(NexParagraphEditor),
             );
-            expect(state.widget.focusNode.hasFocus, isTrue);
+            expect(editor.focusNode!.hasFocus, isTrue);
             expect(
-              state.textEditingValue.text,
+              editor.controller.text,
               'one [two](https://example.com) three',
             );
           }
@@ -168,7 +183,7 @@ void main() {
       '$kind: cancelling Link returns to the same text and still closes cleanly',
       (tester) async {
         await open(tester, capture: capture);
-        await format(tester, 'Link');
+        await format(tester, 'Link', capture: capture);
         await tester.tap(
           find.descendant(
             of: find.bySubtype<AlertDialog>(),
@@ -176,10 +191,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(
-          tester.widget<TextField>(find.byType(TextField)).controller!.text,
-          'one two three',
-        );
+        expect(nexInputController(tester, nexInputs()).text, 'one two three');
         expect(tester.testTextInput.isVisible, isTrue);
         await finish(tester, capture: capture);
       },
@@ -189,7 +201,7 @@ void main() {
     tester,
   ) async {
     await open(tester, capture: false);
-    await format(tester, 'Link');
+    await format(tester, 'Link', capture: false);
     final dialog = find.bySubtype<AlertDialog>();
     await tester.enterText(
       find.descendant(of: dialog, matching: find.byType(TextField)),

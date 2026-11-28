@@ -51,7 +51,8 @@ Future<void> _add(
     );
   }
   if (instructions.isNotEmpty) {
-    await tester.enterText(
+    await enterNexText(
+      tester,
       find.byKey(const ValueKey('medicine-instructions')),
       instructions,
     );

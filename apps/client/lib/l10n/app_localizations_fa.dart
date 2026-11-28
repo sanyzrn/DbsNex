@@ -7041,4 +7041,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get editCode => 'ویرایش کد';
+
+  @override
+  String get formatMenu => 'قالب‌بندی';
 }

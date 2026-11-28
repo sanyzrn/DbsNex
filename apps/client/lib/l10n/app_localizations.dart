@@ -10921,6 +10921,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit code'**
   String get editCode;
+
+  /// No description provided for @formatMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Formatting'**
+  String get formatMenu;
 }
 
 class _AppLocalizationsDelegate

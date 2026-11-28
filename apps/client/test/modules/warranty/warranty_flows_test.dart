@@ -9,6 +9,7 @@ import '../../support/add_button.dart';
 import '../../support/nex_harness.dart';
 import 'warranty_widget_test.dart'
     show addWarranty, pumpWarranty, scrollWarrantyTo;
+import '../../support/text_input.dart';
 
 /// The warranties screen, further along: claims kept as dated notes,
 /// archiving and deleting with Undo, and the states that hold up —
@@ -42,7 +43,8 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('warranty-add-claim')));
       await tester.pumpAndSettle();
-      await tester.enterText(
+      await enterNexText(
+        tester,
         find.byKey(const ValueKey('warranty-claim-field')),
         'Called the shop; part ordered.',
       );
@@ -108,7 +110,8 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('warranty-add-service')));
       await tester.pumpAndSettle();
-      await tester.enterText(
+      await enterNexText(
+        tester,
         find.byKey(const ValueKey('warranty-claim-field')),
         'Annual check.',
       );

@@ -6,14 +6,13 @@ import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
 /// Hold Send to have a note arrive later. Until then it is nowhere a note
 /// is; at its time it is an ordinary note.
 void main() {
-  Finder captureField() => find.descendant(
-    of: find.byType(CaptureSheet),
-    matching: find.byType(TextField),
-  );
+  Finder captureField() =>
+      find.descendant(of: find.byType(CaptureSheet), matching: nexInputs());
   Finder send() => find.byKey(const ValueKey('capture-send'));
 
   testWidgets('held Send schedules the note and takes it off the timeline', (
@@ -24,7 +23,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
-    await tester.enterText(captureField(), 'open me next month');
+    await enterNexText(tester, captureField(), 'open me next month');
     await tester.pumpAndSettle();
     // The hint waits for the words to be still before it arrives, so it
     // never lands under a keyboard that is itself still arriving.
@@ -66,7 +65,7 @@ void main() {
     final harness = await pumpNexApp(tester);
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
-    await tester.enterText(captureField(), 'right now');
+    await enterNexText(tester, captureField(), 'right now');
     await tester.pumpAndSettle();
     await tester.tap(send());
     await tester.pumpAndSettle();

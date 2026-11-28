@@ -11,6 +11,8 @@ import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/widgets/ai_chat_sheet.dart';
+import 'package:nex_client/widgets/nex_paragraph_editor.dart';
+import 'package:super_editor/super_editor.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:nex_ui/nex_ui.dart';
@@ -23,6 +25,8 @@ import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/platform/chat_history.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/text_input.dart';
 
 // The provider receives optional context before the original question.
 // A standalone lookup findings turn must never be mistaken for a question.
@@ -964,25 +968,22 @@ Sure, here you go:
       await tester.pumpAndSettle();
     }
 
-    /// The composer's own direction, which is not the sheet's.
-    TextDirection? composerDirection(WidgetTester tester) => tester
-        .widget<TextField>(
+    List<TextDirection> composerDirections(WidgetTester tester) => tester
+        .widgetList<ParagraphComponent>(
           find.descendant(
             of: find.byType(AiChatSheet),
-            matching: find.byType(TextField),
+            matching: find.byType(ParagraphComponent),
           ),
         )
-        .textDirection;
+        .map((paragraph) => paragraph.viewModel.textDirection)
+        .toList();
 
     testWidgets('Enter makes a new line; only the button sends', (
       tester,
     ) async {
       await openSheet(tester, client: replying('sure'));
-      final field = tester.widget<TextField>(
-        find.descendant(
-          of: find.byType(AiChatSheet),
-          matching: find.byType(TextField),
-        ),
+      final field = tester.widget<NexParagraphEditor>(
+        find.descendant(of: find.byType(AiChatSheet), matching: nexInputs()),
       );
       // A prompt is prose: the on-screen action key breaks the line, and
       // the send button beside the field is the only thing that sends.
@@ -1002,7 +1003,7 @@ Sure, here you go:
               locale: Locale(language),
               reduceMotion: reduceMotion,
             );
-            await tester.enterText(find.byType(TextField), 'hello');
+            await enterNexText(tester, nexInputs(), 'hello');
             await tester.pumpAndSettle();
             await tester.tap(find.byKey(const ValueKey('send')));
             for (var i = 0; i < 10; i++) {
@@ -1078,9 +1079,9 @@ Sure, here you go:
         );
         final field = find.descendant(
           of: find.byType(AiChatSheet),
-          matching: find.byType(TextField),
+          matching: nexInputs(),
         );
-        await tester.enterText(field, 'Keep this pending question');
+        await enterNexText(tester, field, 'Keep this pending question');
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('send')));
         for (var i = 0; i < 10; i++) {
@@ -1144,9 +1145,9 @@ Sure, here you go:
         );
         final field = find.descendant(
           of: find.byType(AiChatSheet),
-          matching: find.byType(TextField),
+          matching: nexInputs(),
         );
-        await tester.enterText(field, 'when is my period?');
+        await enterNexText(tester, field, 'when is my period?');
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('send')));
         await tester.pumpAndSettle();
@@ -1187,14 +1188,14 @@ Sure, here you go:
       );
       final field = find.descendant(
         of: find.byType(AiChatSheet),
-        matching: find.byType(TextField),
+        matching: nexInputs(),
       );
-      await tester.enterText(field, 'original question');
+      await enterNexText(tester, field, 'original question');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
       expect(find.text('Recovered answer'), findsNothing);
-      await tester.enterText(field, 'new draft');
+      await enterNexText(tester, field, 'new draft');
       await tester.tap(find.text('Try again'));
       await tester.pumpAndSettle();
       expect(sent, hasLength(2));
@@ -1207,7 +1208,7 @@ Sure, here you go:
         ),
         hasLength(1),
       );
-      expect(tester.widget<TextField>(field).controller!.text, 'new draft');
+      expect(nexInputController(tester, field).text, 'new draft');
       expect(find.text('Recovered answer'), findsOneWidget);
     });
 
@@ -1239,9 +1240,9 @@ Sure, here you go:
       );
       final field = find.descendant(
         of: find.byType(AiChatSheet),
-        matching: find.byType(TextField),
+        matching: nexInputs(),
       );
-      await tester.enterText(field, 'when is my period?');
+      await enterNexText(tester, field, 'when is my period?');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1266,9 +1267,9 @@ Sure, here you go:
 
       final field = find.descendant(
         of: find.byType(AiChatSheet),
-        matching: find.byType(TextField),
+        matching: nexInputs(),
       );
-      await tester.enterText(field, 'چند روز به پریودی من مونده؟');
+      await enterNexText(tester, field, 'چند روز به پریودی من مونده؟');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1334,9 +1335,9 @@ Sure, here you go:
       );
       final field = find.descendant(
         of: find.byType(AiChatSheet),
-        matching: find.byType(TextField),
+        matching: nexInputs(),
       );
-      await tester.enterText(field, 'when is my period?');
+      await enterNexText(tester, field, 'when is my period?');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1346,31 +1347,27 @@ Sure, here you go:
       expect(find.text('Read your Cycle summary'), findsNothing);
     });
 
-    testWidgets('the composer turns to the script being typed', (tester) async {
+    testWidgets('the composer lays out each paragraph in its own direction', (
+      tester,
+    ) async {
       await openSheet(
         tester,
         client: MockClient((_) async => http.Response('{}', 200)),
       );
-
       final field = find.descendant(
         of: find.byType(AiChatSheet),
-        matching: find.byType(TextField),
+        matching: nexInputs(),
       );
-
-      // Empty: no direction of its own, so the placeholder sits at whichever
-      // edge the interface language puts it.
-      expect(composerDirection(tester), isNull);
-
-      // The reported case — a Persian question with two English words in it.
-      // Laid out left-to-right, bidi reorders the runs around the wrong base
-      // and the line scrambles while it is being typed.
-      await tester.enterText(field, 'به نظرت واسه ویندوز lmstudio بهتره؟');
+      await enterNexText(
+        tester,
+        field,
+        'به نظرت واسه ویندوز lmstudio بهتره؟\nis lmstudio better than ollama?',
+      );
       await tester.pump();
-      expect(composerDirection(tester), TextDirection.rtl);
-
-      await tester.enterText(field, 'is lmstudio better than ollama?');
-      await tester.pump();
-      expect(composerDirection(tester), TextDirection.ltr);
+      expect(composerDirections(tester), [
+        TextDirection.rtl,
+        TextDirection.ltr,
+      ]);
     });
 
     testWidgets('the assistant\'s answer is rendered, the question is not', (
@@ -1382,7 +1379,7 @@ Sure, here you go:
       );
       // The user's own turn is Markdown-shaped on purpose: they typed those
       // asterisks and the app has no business eating them.
-      await tester.enterText(find.byType(TextField).last, 'give me a **list**');
+      await enterNexText(tester, nexInputs().last, 'give me a **list**');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1397,7 +1394,7 @@ Sure, here you go:
 
     testWidgets('a plain answer stays plain', (tester) async {
       await openSheet(tester, client: replying('No, ollama is simpler.'));
-      await tester.enterText(find.byType(TextField).last, 'lmstudio?');
+      await enterNexText(tester, nexInputs().last, 'lmstudio?');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1439,7 +1436,7 @@ Sure, here you go:
         tester,
         client: replying('The code is 4471.\nSources: [${note.id}]'),
       );
-      await tester.enterText(find.byType(TextField).last, 'boiler code?');
+      await enterNexText(tester, nexInputs().last, 'boiler code?');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1484,7 +1481,7 @@ Sure, here you go:
           );
         }),
       );
-      await tester.enterText(find.byType(TextField).last, 'boiler code');
+      await enterNexText(tester, nexInputs().last, 'boiler code');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1501,7 +1498,7 @@ Sure, here you go:
           'Nothing about that.\nSources: [01890000-0000-7000-8000-000000000000]',
         ),
       );
-      await tester.enterText(find.byType(TextField).last, 'anything?');
+      await enterNexText(tester, nexInputs().last, 'anything?');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1515,7 +1512,7 @@ Sure, here you go:
         tester,
         client: replying('[general] Paris is the capital of France.'),
       );
-      await tester.enterText(find.byType(TextField).last, 'capital?');
+      await enterNexText(tester, nexInputs().last, 'capital?');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1542,10 +1539,7 @@ Sure, here you go:
         tester,
         client: replying('```nex\n{"action":"delete","id":"${note.id}"}\n```'),
       );
-      await tester.enterText(
-        find.byType(TextField).last,
-        'delete the cooler note',
-      );
+      await enterNexText(tester, nexInputs().last, 'delete the cooler note');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1564,7 +1558,7 @@ Sure, here you go:
     });
 
     Future<void> ask(WidgetTester tester, String text) async {
-      await tester.enterText(find.byType(TextField).last, text);
+      await enterNexText(tester, nexInputs().last, text);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1789,8 +1783,9 @@ Sure, here you go:
           '```nex\n{"action":"create","text":"See the doctor","at":"$at"}\n```',
         ),
       );
-      await tester.enterText(
-        find.byType(TextField).last,
+      await enterNexText(
+        tester,
+        nexInputs().last,
         'remind me to see the doctor at nine',
       );
       await tester.pumpAndSettle();
@@ -1824,7 +1819,7 @@ Sure, here you go:
           '```nex\n{"action":"delete","id":"a-note-that-never-existed"}\n```',
         ),
       );
-      await tester.enterText(find.byType(TextField).last, 'delete that one');
+      await enterNexText(tester, nexInputs().last, 'delete that one');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1847,7 +1842,7 @@ Sure, here you go:
         tester,
         client: replying('```nex\n{"action":"delete","id":"${note.id}"}\n```'),
       );
-      await tester.enterText(find.byType(TextField).last, 'delete it');
+      await enterNexText(tester, nexInputs().last, 'delete it');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1864,7 +1859,7 @@ Sure, here you go:
       await tester.pumpAndSettle();
 
       await openSheet(tester, client: replying('You wrote about the cooler.'));
-      await tester.enterText(find.byType(TextField).last, 'what did I write?');
+      await enterNexText(tester, nexInputs().last, 'what did I write?');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -1962,10 +1957,7 @@ Sure, here you go:
       );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byType(TextField).last,
-        'what about the cooler?',
-      );
+      await enterNexText(tester, nexInputs().last, 'what about the cooler?');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -2030,7 +2022,7 @@ Sure, here you go:
       );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).last, 'find something');
+      await enterNexText(tester, nexInputs().last, 'find something');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
@@ -2091,7 +2083,7 @@ Sure, here you go:
       );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).last, question);
+      await enterNexText(tester, nexInputs().last, question);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();

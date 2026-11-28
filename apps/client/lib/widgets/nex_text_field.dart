@@ -6,52 +6,14 @@ import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'nex_caret_movement.dart';
+import 'nex_paragraph_editor.dart';
 import 'text_format_menu.dart';
 
-/// Where a person writes more than one line of their own words.
+/// Shared input for prose and specialised fields (ADR-037).
 ///
-/// **The rule (ADR-037):** every field that takes multi-line user text — a
-/// note, a caption, a message, a bio — is a [NexTextField], never a bare
-/// `TextField`. `test/text_field_rule_test.dart` fails the build otherwise.
-///
-/// It is Flutter's own editor on every platform — Android included, since
-/// 2.9.4. Until then Android embedded the platform's own `EditText` as a
-/// texture layer, because it lays each paragraph out in its own direction,
-/// from its first strong letter, which a single `TextField` cannot do for a
-/// whole field at once. But a form of embedded editors hands its keyboard
-/// from one platform-view input client to the next as focus moves — native
-/// to native across Prompt Studio's and Family Fund's forms, native to
-/// Flutter from Habits' note to its name — and every such handoff passes
-/// through the engine's client switch, which closes and reopened the
-/// keyboard. Three releases of Dart-side coordination (2.9.1, 2.9.2,
-/// 2.9.3) could not reach that switch. One editor, owned by the framework,
-/// never passes through it: focus moves between [TextField]s stay inside
-/// the one input connection Flutter already keeps for the whole app. See
-/// `docs/development/nex-2.9.4-keyboard.md`.
-///
-/// Direction and alignment — the reason the native editor existed — follow
-/// the paragraph being written. [NexAutoDirection] lays the field out
-/// around the caret's own paragraph, in that paragraph's own direction and
-/// on its own side, by the same first-strong rule the platform editor gave
-/// each paragraph: the paragraph being typed is always right, and the field
-/// turns with the caret. A paragraph whose script differs from the caret's
-/// paragraph sits on the caret's paragraph's side until the caret reaches
-/// it. Everywhere a note is *read* — the timeline, the reader, every
-/// preview — each paragraph keeps its own direction and its own side on
-/// every platform, through [NexTextSurface], as before.
-///
-/// Horizontal arrows are the framework's, with one correction: they move to
-/// the caret that is next *on screen* rather than the next in the string, so
-/// a right-to-left paragraph moves with the eye and an embedded run of the
-/// other script keeps its own direction — see `NexVisualCaretKeys`. The
-/// selection handles and the lens are the framework's own, enabled on the
-/// mobile platforms, and resolve against the same paragraph direction.
-///
-/// The [controller] stays the source of truth for the rest of the app, on
-/// every platform alike. There is no channel, no second copy of the text,
-/// and nothing to fall out of step: what is typed is in the controller the
-/// frame it is typed, and an AI rewrite, a format, a cleared composer
-/// written into the controller is in the editor the same frame.
+/// Multiline prose uses one paragraph document and one Flutter IME client.
+/// Fixed-direction input, code and private clipboard fields use Flutter's
+/// native field with their own keyboard and clipboard policies.
 class NexTextField extends StatefulWidget {
   const NexTextField({
     super.key,
@@ -88,10 +50,7 @@ class NexTextField extends StatefulWidget {
 
   /// A direction the field keeps regardless of what is typed into it.
   ///
-  /// Null is the ordinary rule — the field follows the paragraph the caret
-  /// is in, each in its own direction, through [NexAutoDirection]. Code is
-  /// the one field that is always left to right, even in a Persian
-  /// interface and even when its comments are Persian.
+  /// Null lets each prose paragraph choose its own direction.
   final TextDirection? textDirection;
 
   /// Draw a fixed-width face. Code is not prose, and its width is part of
@@ -151,8 +110,68 @@ class _NexTextFieldState extends State<NexTextField> {
   late final EditableTextContextMenuBuilder _formatMenu =
       nexFormatContextMenuBuilder(context);
 
+  final _nativeKey = GlobalKey();
+
+  bool _usesParagraphs(NexTextField field) =>
+      field.maxLines != 1 &&
+      field.textDirection == null &&
+      !field.monospace &&
+      field.onCopy == null &&
+      field.keyboardType == TextInputType.multiline &&
+      (field.inputFormatters?.isEmpty ?? true);
+
   @override
-  Widget build(BuildContext context) => _flutter(context);
+  void didUpdateWidget(NexTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_usesParagraphs(oldWidget) &&
+        !_usesParagraphs(widget) &&
+        widget.focusNode?.hasFocus == true) {
+      // The capture composer keeps its FocusNode when switching to Code.
+      // EditableText needs an explicit request because focus was already
+      // granted, so it won't get a second focus-change notification.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || widget.focusNode?.hasFocus != true) return;
+        _requestNativeKeyboard(_nativeKey.currentContext as Element?);
+      });
+    }
+  }
+
+  void _requestNativeKeyboard(Element? element) {
+    if (element is StatefulElement && element.state is EditableTextState) {
+      (element.state as EditableTextState).requestKeyboard();
+      return;
+    }
+    element?.visitChildren(_requestNativeKeyboard);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_usesParagraphs(widget)) return _flutter(context);
+
+    return NexParagraphEditor(
+      controller: widget.controller,
+      focusNode: widget.focusNode,
+      asField: true,
+      style: widget.style,
+      decoration: widget.decoration,
+      minLines: widget.minLines,
+      maxLines: widget.maxLines,
+      expands: widget.expands,
+      autofocus: widget.autofocus,
+      enabled: widget.enabled,
+      readOnly: widget.readOnly,
+      keyboardType: widget.keyboardType,
+      textInputAction: widget.textInputAction ?? TextInputAction.newline,
+      textCapitalization: widget.textCapitalization,
+      onChanged: widget.onChanged,
+      onSubmitted: widget.onSubmitted,
+      maxLength: widget.maxLength,
+      autocorrect: widget.autocorrect,
+      enableSuggestions: widget.enableSuggestions,
+      enableIMEPersonalizedLearning: widget.enableIMEPersonalizedLearning,
+      formatting: widget.formatting,
+    );
+  }
 
   Widget _flutter(BuildContext context) {
     final monoStyle = widget.monospace
@@ -161,6 +180,7 @@ class _NexTextFieldState extends State<NexTextField> {
           )
         : widget.style;
     Widget field(TextDirection? direction) => TextField(
+      key: _nativeKey,
       controller: widget.controller,
       focusNode: widget.focusNode,
       decoration: widget.decoration,

@@ -10,7 +10,9 @@ import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/widgets/ai_chat_sheet.dart';
 import 'package:nex_core/nex_core.dart';
+
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
 void main() {
   for (final allowed in [false, true]) {
@@ -71,16 +73,16 @@ void main() {
       await tester.pumpAndSettle();
       final field = find.descendant(
         of: find.byType(AiChatSheet),
-        matching: find.byType(TextField),
+        matching: nexInputs(),
       );
-      await tester.enterText(field, 'Describe it');
+      await enterNexText(tester, field, 'Describe it');
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
       expect(requests, isNotEmpty);
       expect(requests.last.contains('image_url'), allowed);
       if (allowed) {
         await h.preferences.setAiCapabilities(const AiCapabilities(ocr: false));
-        await tester.enterText(field, 'Again');
+        await enterNexText(tester, field, 'Again');
         await tester.tap(find.byKey(const ValueKey('send')));
         await tester.pumpAndSettle();
         expect(
@@ -90,7 +92,7 @@ void main() {
         );
       } else {
         await h.preferences.setAiCapabilities(const AiCapabilities(ocr: true));
-        await tester.enterText(field, 'Read the picture now');
+        await enterNexText(tester, field, 'Read the picture now');
         await tester.tap(find.byKey(const ValueKey('send')));
         await tester.pumpAndSettle();
         expect(

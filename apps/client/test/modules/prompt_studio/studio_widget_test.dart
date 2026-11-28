@@ -9,6 +9,7 @@ import 'package:nex_client/modules/prompt_studio/studio_repository.dart';
 import 'package:nex_client/widgets/focus_reveal.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/text_input.dart';
 
 class FaultStore extends NexModuleStore {
   FaultStore(NexTestHarness h) : super(h.services, 'prompt_studio');
@@ -69,7 +70,7 @@ void main() {
   Future<void> enter(WidgetTester t, String key, String text) async {
     final f = find.byKey(ValueKey('studio-$key'));
     await revealStudio(t, f);
-    await t.enterText(f, text);
+    await enterNexText(t, f, text);
     await t.pumpAndSettle();
   }
 
@@ -202,7 +203,8 @@ void main() {
             .onPressed,
         isNull,
       );
-      await t.enterText(
+      await enterNexText(
+        t,
         find.byKey(const ValueKey('fill-name')),
         r'$1 {{another}}',
       );
@@ -240,7 +242,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 300));
       expect(await store.get('draft', 'fill:p'), isNull);
 
-      await t.enterText(field, 'Unfinished');
+      await enterNexText(t, field, 'Unfinished');
       await t.binding.handlePopRoute();
       await settleStudio(t);
       await t.tap(find.text('My prompt'));

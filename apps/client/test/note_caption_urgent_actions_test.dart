@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
+import 'package:nex_client/widgets/nex_paragraph_editor.dart';
 import 'package:nex_client/widgets/note_editor_sheet.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -42,9 +43,17 @@ void main() {
       await tester.pumpAndSettle();
       final field = find.descendant(
         of: find.byType(NoteEditorSheet),
-        matching: find.byType(TextField),
+        matching: find.byType(NexParagraphEditor),
       );
-      await tester.enterText(field, 'Separate caption needle260.');
+      const caption = 'Separate caption needle260.';
+      tester
+          .widget<NexParagraphEditor>(field)
+          .controller
+          .value = const TextEditingValue(
+        text: caption,
+        selection: TextSelection.collapsed(offset: caption.length),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(l.save));
       await tester.pumpAndSettle();
       var saved = (await h.services.getById(note.id))!;

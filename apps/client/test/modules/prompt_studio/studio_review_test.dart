@@ -14,6 +14,7 @@ import 'package:nex_client/modules/prompt_studio/studio_workbench.dart';
 
 import '../../support/nex_harness.dart';
 import 'studio_widget_test.dart' show settleStudio, revealStudio;
+import '../../support/text_input.dart';
 
 void main() {
   for (final fa in [true, false]) {
@@ -103,7 +104,8 @@ void main() {
               for (final key in PromptTemplate(entry.body).slots) {
                 final field = find.byKey(ValueKey('fill-$key'));
                 await revealStudio(t, field);
-                await t.enterText(
+                await enterNexText(
+                  t,
                   field,
                   fa
                       ? (key == 'موضوع' ? 'بسته‌بندی چای' : 'دوستداران طراحی')
