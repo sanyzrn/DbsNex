@@ -78,9 +78,17 @@ class _NexParagraphComponentBuilder extends ParagraphComponentBuilder {
     SingleColumnLayoutComponentViewModel componentViewModel,
   ) {
     if (componentViewModel is! ParagraphComponentViewModel) return null;
-    final child = ParagraphComponent(
+    // Nex paragraphs have no block indentation. Use their text component
+    // directly so opening a long note doesn't lay out a row per paragraph.
+    final child = TextComponent(
       key: componentContext.componentKey,
-      viewModel: componentViewModel,
+      text: componentViewModel.text,
+      textStyleBuilder: componentViewModel.textStyleBuilder,
+      textDirection: componentViewModel.textDirection,
+      textAlign: componentViewModel.textAlignment,
+      textScaler: componentViewModel.textScaler,
+      underlines: componentViewModel.createUnderlines(),
+      selectionColor: Colors.transparent,
     );
     final selection = componentViewModel.selection;
     if (selection == null || selection.isCollapsed || highlightColor.a == 0) {
@@ -465,6 +473,15 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     _knownText = text;
     _heightCache = null;
     _resolver.directions = _resolveDirections();
+    if (_composer.selection == null && _focus.hasFocus) {
+      // Undo can reset the composer to its checkpoint with no caret.
+      final extent = widget.controller.selection.extentOffset;
+      _applySelection(
+        TextSelection.collapsed(
+          offset: extent < 0 ? text.length : extent.clamp(0, text.length),
+        ),
+      );
+    }
     _writeController(text);
     widget.onChanged?.call(text);
     if (_isField) setState(() {});
@@ -645,45 +662,48 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
         .map((change) => change.nodeId)
         .toSet();
     TextSelection? selectionBeforeSplit;
-    var split = false;
     for (final id in changedIds) {
       final node = _document.getNodeById(id);
       if (node is! ParagraphNode) continue;
       final text = node.text.toPlainText();
-      for (
-        var offset = text.lastIndexOf('\n');
-        offset >= 0;
-        offset = offset == 0 ? -1 : text.lastIndexOf('\n', offset - 1)
-      ) {
-        if (!split) selectionBeforeSplit = _absoluteSelection();
-        final newId = Editor.createNodeId();
-        dispatcher.execute([
-          SplitParagraphRequest(
-            nodeId: id,
-            splitPosition: TextPosition(offset: offset),
-            newNodeId: newId,
-            replicateExistingMetadata: false,
-          ),
-          DeleteContentRequest(
-            documentRange: DocumentRange(
-              start: DocumentPosition(
-                nodeId: newId,
-                nodePosition: const TextNodePosition(offset: 0),
-              ),
-              end: DocumentPosition(
-                nodeId: newId,
-                nodePosition: const TextNodePosition(offset: 1),
-              ),
-            ),
-          ),
-        ]);
-        split = true;
-      }
+      if (!text.contains('\n')) continue;
+      selectionBeforeSplit ??= _absoluteSelection();
+      _splitParagraph(dispatcher, id, text);
     }
     if (selectionBeforeSplit != null) {
       _moveSelection(dispatcher, selectionBeforeSplit);
     }
     if (changedIds.isNotEmpty) _enforceLength(dispatcher);
+  }
+
+  void _splitParagraph(RequestDispatcher dispatcher, String id, String text) {
+    for (
+      var offset = text.lastIndexOf('\n');
+      offset >= 0;
+      offset = offset == 0 ? -1 : text.lastIndexOf('\n', offset - 1)
+    ) {
+      final newId = Editor.createNodeId();
+      dispatcher.execute([
+        SplitParagraphRequest(
+          nodeId: id,
+          splitPosition: TextPosition(offset: offset),
+          newNodeId: newId,
+          replicateExistingMetadata: false,
+        ),
+        DeleteContentRequest(
+          documentRange: DocumentRange(
+            start: DocumentPosition(
+              nodeId: newId,
+              nodePosition: const TextNodePosition(offset: 0),
+            ),
+            end: DocumentPosition(
+              nodeId: newId,
+              nodePosition: const TextNodePosition(offset: 1),
+            ),
+          ),
+        ),
+      ]);
+    }
   }
 
   void _enforceLength(RequestDispatcher dispatcher) {
@@ -730,17 +750,25 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
       newEnd -= updated[--newTail].length;
     }
     final at = _positionAt(start);
+    final replacement = after.text.substring(start, newEnd);
     dispatcher.execute([
       if (oldEnd > start)
         DeleteContentRequest(
           documentRange: DocumentRange(start: at, end: _positionAt(oldEnd)),
         ),
-      if (newEnd > start)
-        PasteEditorRequest(
-          content: after.text.substring(start, newEnd),
-          pastePosition: at,
+      if (replacement.isNotEmpty)
+        InsertTextRequest(
+          documentPosition: at,
+          textToInsert: replacement,
+          attributions: const {},
         ),
     ]);
+    // Length enforcement can reach this branch from inside the edit reaction.
+    // Normalize the inserted paragraphs here so it also works in that case.
+    if (replacement.contains('\n')) {
+      final node = _document.getNodeById(at.nodeId)! as ParagraphNode;
+      _splitParagraph(dispatcher, node.id, node.text.toPlainText());
+    }
     final selection = after.selection.isValid
         ? after.selection
         : TextSelection.collapsed(offset: after.text.length);
@@ -812,9 +840,11 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
         editor.execute([const DeleteSelectionRequest(TextAffinity.downstream)]);
       }
       editor.execute([
-        PasteEditorRequest(
-          content: pasted,
-          pastePosition: _composer.selection?.extent ?? target,
+        const ClearComposingRegionRequest(),
+        InsertTextRequest(
+          documentPosition: _composer.selection?.extent ?? target,
+          textToInsert: pasted,
+          attributions: const {},
         ),
       ]);
     } finally {

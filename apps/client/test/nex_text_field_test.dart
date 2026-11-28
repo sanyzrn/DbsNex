@@ -12,9 +12,9 @@ import 'package:super_editor/super_editor.dart';
 
 import 'support/text_input.dart';
 
-List<TextDirection> _directions(WidgetTester tester) => [
-  for (final element in find.byType(ParagraphComponent).evaluate())
-    (element.widget as ParagraphComponent).viewModel.textDirection,
+List<TextDirection?> _directions(WidgetTester tester) => [
+  for (final element in find.byType(TextComponent).evaluate())
+    (element.widget as TextComponent).textDirection,
 ];
 
 void main() {

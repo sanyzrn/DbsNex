@@ -57,7 +57,7 @@ List<Rect> nexLevelSelectionRects(List<Rect> source) {
     row.sort((a, b) => a.left.compareTo(b.left));
     final merged = <Rect>[];
     for (final rect in row) {
-      if (merged.isNotEmpty && rect.left <= merged.last.right) {
+      if (merged.isNotEmpty && rect.left < merged.last.right) {
         final last = merged.removeLast();
         merged.add(
           Rect.fromLTRB(

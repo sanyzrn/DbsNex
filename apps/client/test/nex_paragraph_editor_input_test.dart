@@ -54,17 +54,17 @@ void main() {
   Editor engine(WidgetTester tester) =>
       tester.widget<SuperEditor>(find.byType(SuperEditor)).editor;
 
-  List<ParagraphComponentViewModel> laidOut(WidgetTester tester) => [
-    for (final element in find.byType(ParagraphComponent).evaluate())
-      (element.widget as ParagraphComponent).viewModel,
+  List<TextComponent> laidOut(WidgetTester tester) => [
+    for (final element in find.byType(TextComponent).evaluate())
+      (element.widget as TextComponent),
   ];
 
-  List<TextDirection> directions(WidgetTester tester) => [
+  List<TextDirection?> directions(WidgetTester tester) => [
     for (final line in laidOut(tester)) line.textDirection,
   ];
 
   List<TextAlign?> alignments(WidgetTester tester) => [
-    for (final line in laidOut(tester)) line.textAlignment,
+    for (final line in laidOut(tester)) line.textAlign,
   ];
 
   Future<void> press(

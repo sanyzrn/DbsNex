@@ -8,7 +8,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - Smoother text selection in Persian and English, with clearer highlights and handles that can move across paragraphs.
 - Formatting now lives beside Cut, Copy and Paste in the selection menu. Formatting a note supports Undo and Redo.
-- Notes have a distinct writing surface and open faster when they contain many paragraphs.
+- Notes have a distinct writing surface, and the editor does less layout work on long notes.
 
 ## v2.9.5
 

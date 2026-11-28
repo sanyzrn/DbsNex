@@ -149,6 +149,8 @@ void main() {
       engine.undo();
       await tester.pumpAndSettle();
       expect(controller.text, 'one two three');
+      expect(controller.selection.textInside(controller.text), 'two');
+      expect(tester.testTextInput.isVisible, isTrue);
 
       engine.redo();
       await tester.pumpAndSettle();
@@ -184,6 +186,40 @@ void main() {
       tester.widget<SuperEditor>(find.byType(SuperEditor)).editor.undo();
       await tester.pumpAndSettle();
       expect(controller.text, 'سلام دنیا\nHello world');
+    });
+
+    testWidgets('paste replaces a mixed selection and undo restores it', (
+      tester,
+    ) async {
+      const initial = 'سلام دنیا\nHello world';
+      final controller = await pumpEditor(
+        tester,
+        text: initial,
+        selection: const TextSelection(baseOffset: 15, extentOffset: 5),
+      );
+      final messenger = tester.binding.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.getData') {
+          return {'text': 'Nex\nآزمایش'};
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyV);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      expect(controller.text, 'سلام Nex\nآزمایش world');
+      final editor = tester
+          .widget<SuperEditor>(find.byType(SuperEditor))
+          .editor;
+      editor.undo();
+      await tester.pumpAndSettle();
+      expect(controller.text, initial);
+      expect(editor.composer.selection, isNotNull);
+      expect(tester.testTextInput.isVisible, isTrue);
     });
 
     testWidgets('cut leaves text intact when the selection moves mid-copy', (

@@ -170,11 +170,11 @@ void main() {
       expect(find.text('Helper'), findsOneWidget);
       expect(find.text('${text.length}/180'), findsOneWidget);
       expect(find.byIcon(Icons.edit), findsOneWidget);
-      final paragraphs = find.byType(ParagraphComponent).evaluate();
+      final paragraphs = find.byType(TextComponent).evaluate();
       expect(
         [
           for (final paragraph in paragraphs)
-            (paragraph.widget as ParagraphComponent).viewModel.textDirection,
+            (paragraph.widget as TextComponent).textDirection,
         ],
         [TextDirection.rtl, TextDirection.ltr],
       );

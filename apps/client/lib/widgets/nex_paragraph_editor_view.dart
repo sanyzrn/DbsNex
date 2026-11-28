@@ -655,7 +655,7 @@ extension _NexParagraphEditorView on _NexParagraphEditorState {
 }
 
 /// Paints a single non-overlapping, row-levelled selection highlight behind a
-/// [ParagraphComponent] so mixed Persian/Latin runs and line-height multipliers
+/// [TextComponent] so mixed Persian/Latin runs and line-height multipliers
 /// never produce overlapping alpha bands or jagged box heights.
 class _NexParagraphHighlight extends StatelessWidget {
   const _NexParagraphHighlight({

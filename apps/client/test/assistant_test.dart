@@ -968,14 +968,14 @@ Sure, here you go:
       await tester.pumpAndSettle();
     }
 
-    List<TextDirection> composerDirections(WidgetTester tester) => tester
-        .widgetList<ParagraphComponent>(
+    List<TextDirection?> composerDirections(WidgetTester tester) => tester
+        .widgetList<TextComponent>(
           find.descendant(
             of: find.byType(AiChatSheet),
-            matching: find.byType(ParagraphComponent),
+            matching: find.byType(TextComponent),
           ),
         )
-        .map((paragraph) => paragraph.viewModel.textDirection)
+        .map((paragraph) => paragraph.textDirection)
         .toList();
 
     testWidgets('Enter makes a new line; only the button sends', (
