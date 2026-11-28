@@ -230,8 +230,11 @@ TextDirection? _directionOfRune(int rune) {
       (rune >= 0x0610 && rune <= 0x061A) || // Arabic honorific marks
       (rune >= 0x064B && rune <= 0x065F) || // harakat: fatha, damma, kasra…
       rune == 0x0670 || // superscript alef
+      rune == 0x0609 || // ARABIC-INDIC PER MILLE SIGN (ET)
+      rune == 0x060A || // ARABIC-INDIC PER TEN THOUSAND SIGN (ET)
       (rune >= 0x06D6 && rune <= 0x06DC) || // Quranic annotation marks
       (rune >= 0x06DF && rune <= 0x06E4) ||
+      rune == 0x06E9 || // ARABIC PLACE OF SAJDAH (ON)
       rune == 0x06E7 ||
       rune == 0x06E8 ||
       (rune >= 0x06EA && rune <= 0x06ED)) {

@@ -107,8 +107,8 @@ void main() {
     await open(tester, initial: text);
 
     final directions = [
-      for (final element in find.byType(ParagraphComponent).evaluate())
-        (element.widget as ParagraphComponent).viewModel.textDirection,
+      for (final element in find.byType(TextComponent).evaluate())
+        (element.widget as TextComponent).textDirection,
     ];
     expect(directions, [
       TextDirection.rtl,
@@ -125,8 +125,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     final after = [
-      for (final element in find.byType(ParagraphComponent).evaluate())
-        (element.widget as ParagraphComponent).viewModel.textDirection,
+      for (final element in find.byType(TextComponent).evaluate())
+        (element.widget as TextComponent).textDirection,
     ];
     expect(after, directions);
   });

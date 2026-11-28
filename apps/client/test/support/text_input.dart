@@ -5,6 +5,7 @@ import 'package:nex_client/widgets/nex_paragraph_editor.dart';
 import 'package:nex_client/widgets/nex_text_field.dart';
 import 'package:super_editor/src/test/ime.dart';
 import 'package:super_editor/super_editor.dart';
+import 'package:super_editor/super_editor_test.dart' show SuperEditorRobot;
 
 /// Finds editable inputs in their screen order.
 Finder nexInputs({String? hintText}) => find.byWidgetPredicate(
@@ -31,6 +32,32 @@ Finder _editor(Finder root) => find.descendant(
   matching: find.byType(SuperEditor),
   matchRoot: true,
 );
+
+/// Invokes the touch gesture that opens the contextual toolbar.
+Future<void> selectNexWord(WidgetTester tester, int offset) async {
+  final finder = find.byType(SuperEditor);
+  final node = tester.widget<SuperEditor>(finder).editor.document.first;
+  await tester.doubleTapAtDocumentPosition(
+    DocumentPosition(
+      nodeId: node.id,
+      nodePosition: TextNodePosition(offset: offset),
+    ),
+    finder,
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> chooseNexFormat(WidgetTester tester, String command) async {
+  await tester.tap(find.byTooltip('Formatting'));
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.ancestor(
+      of: find.text(command),
+      matching: find.byType(PopupMenuItem<ContextMenuButtonItem>),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
 
 Future<void> showNexKeyboard(WidgetTester tester, Finder field) async {
   final editor = _editor(field);

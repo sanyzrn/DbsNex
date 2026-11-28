@@ -7,7 +7,11 @@ import 'occasion_model.dart';
 /// Birthdays & occasions in the shared shape (2.8.5), and its glance.
 ///
 /// What falls due is the day each date comes round, in its own calendar. A
-/// remembrance is private: its name never leaves the module unasked.
+/// remembrance is private: its name never leaves the module unasked — not on
+/// the home tile (the glance's headline and detail), which is read over a
+/// shoulder, and never to the assistant or the dates card (they take the
+/// `private` flag). The quick view's facts, behind a tap, may name it, the
+/// way the medicine module keeps names for the tap-opened view alone.
 class OccasionsShared {
   const OccasionsShared(this.occasions);
 
@@ -66,11 +70,15 @@ Future<ModuleGlance?> occasionsGlance(
   final dues = OccasionsShared.fromRecords(await store.list('occasion'))
       .duesBetween(today, today.add(const Duration(days: 366)));
   if (dues.isEmpty) return ModuleGlance(headline: t('glanceEmpty'));
-  final next = dues.first;
+  // The tile is on the home screen, read over a shoulder: a remembrance's
+  // name never goes on it. The next date that may be named; when every date
+  // is a remembrance, one neutral line that says a date is coming, never
+  // which — the notification says the same thing, for the same reason.
+  final next = dues.where((d) => !d.private).firstOrNull;
   final month = dues.where((d) => d.at.difference(today).inDays < 31).length;
   return ModuleGlance(
-    headline: next.title,
-    detail: nexDueWhen(l10n, next.at, today),
+    headline: next == null ? t('glancePrivate') : next.title,
+    detail: nexDueWhen(l10n, (next ?? dues.first).at, today),
     facts: [
       for (final due in dues.take(6))
         ModuleGlanceFact(

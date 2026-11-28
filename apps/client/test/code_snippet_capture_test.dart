@@ -154,10 +154,8 @@ void main() {
     tester.testTextInput.log.clear();
     await tester.tap(find.text(l10n.captureKindNote));
     await tester.pumpAndSettle();
-    final paragraph = tester.widget<ParagraphComponent>(
-      find.byType(ParagraphComponent),
-    );
-    expect(paragraph.viewModel.textDirection, TextDirection.rtl);
+    final paragraph = tester.widget<TextComponent>(find.byType(TextComponent));
+    expect(paragraph.textDirection, TextDirection.rtl);
     expect(focus.hasFocus, isTrue);
     expect(controller.text, '   سلام');
     expect(controller.selection, selection);

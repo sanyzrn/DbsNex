@@ -7,6 +7,34 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import 'nex_dialog.dart';
 
+enum NexFormatCommand { bold, italic, mono, strikethrough, quote, link, clear }
+
+/// Localized label for a [NexFormatCommand], shared across all text editors
+/// and contextual selection menus so command names never drift.
+String nexFormatCommandLabel(AppLocalizations l10n, NexFormatCommand command) =>
+    switch (command) {
+      NexFormatCommand.bold => l10n.formatBold,
+      NexFormatCommand.italic => l10n.formatItalic,
+      NexFormatCommand.mono => l10n.formatMono,
+      NexFormatCommand.strikethrough => l10n.formatStrikethrough,
+      NexFormatCommand.quote => l10n.formatQuote,
+      NexFormatCommand.link => l10n.formatLink,
+      NexFormatCommand.clear => l10n.formatClear,
+    };
+
+/// Builds the seven formatting [ContextMenuButtonItem]s in canonical order so
+/// native `TextField`s and `NexParagraphEditor` offer identical selection menus.
+List<ContextMenuButtonItem> nexFormatMenuItems(
+  AppLocalizations l10n, {
+  required void Function(NexFormatCommand command) onCommand,
+}) => [
+  for (final command in NexFormatCommand.values)
+    ContextMenuButtonItem(
+      label: nexFormatCommandLabel(l10n, command),
+      onPressed: () => onCommand(command),
+    ),
+];
+
 /// The formatting half of a text field's own selection menu.
 ///
 /// Bold, italic and the rest arrive where a phone already puts Cut and Copy —
@@ -59,46 +87,83 @@ EditableTextContextMenuBuilder nexFormatContextMenuBuilder(BuildContext host) {
         state.hideToolbar();
       }
 
-      items.addAll(<ContextMenuButtonItem>[
-        for (final format in NexInlineFormat.values)
-          ContextMenuButtonItem(
-            label: _labelFor(l10n, format),
-            onPressed: () => apply(
-              (text, start, end) =>
-                  NexTextFormatting.toggleInline(text, start, end, format),
-            ),
-          ),
-        ContextMenuButtonItem(
-          label: l10n.formatQuote,
-          onPressed: () => apply(NexTextFormatting.toggleQuote),
-        ),
-        ContextMenuButtonItem(
-          label: l10n.formatLink,
-          onPressed: () async {
-            // Read the selection before the dialog, not after: opening one
-            // takes the focus off the field, and where the selection is by
-            // the time an answer comes back is not this code's business.
-            final value = state.textEditingValue;
-            final where = value.selection;
-            state.hideToolbar();
-            final url = await nexAskForLinkUrl(host);
-            if (!state.mounted ||
-                !host.mounted ||
-                ModalRoute.of(host)?.isCurrent == false) {
-              return;
+      items.addAll(
+        nexFormatMenuItems(
+          l10n,
+          onCommand: (command) async {
+            switch (command) {
+              case NexFormatCommand.bold:
+                apply(
+                  (text, start, end) => NexTextFormatting.toggleInline(
+                    text,
+                    start,
+                    end,
+                    NexInlineFormat.bold,
+                  ),
+                );
+              case NexFormatCommand.italic:
+                apply(
+                  (text, start, end) => NexTextFormatting.toggleInline(
+                    text,
+                    start,
+                    end,
+                    NexInlineFormat.italic,
+                  ),
+                );
+              case NexFormatCommand.mono:
+                apply(
+                  (text, start, end) => NexTextFormatting.toggleInline(
+                    text,
+                    start,
+                    end,
+                    NexInlineFormat.mono,
+                  ),
+                );
+              case NexFormatCommand.strikethrough:
+                apply(
+                  (text, start, end) => NexTextFormatting.toggleInline(
+                    text,
+                    start,
+                    end,
+                    NexInlineFormat.strikethrough,
+                  ),
+                );
+              case NexFormatCommand.quote:
+                apply(NexTextFormatting.toggleQuote);
+              case NexFormatCommand.link:
+                // Read the selection before the dialog, not after: opening one
+                // takes the focus off the field, and where the selection is by
+                // the time an answer comes back is not this code's business.
+                final value = state.textEditingValue;
+                final where = value.selection;
+                state.hideToolbar();
+                final url = await nexAskForLinkUrl(host);
+                if (!state.mounted ||
+                    !host.mounted ||
+                    ModalRoute.of(host)?.isCurrent == false) {
+                  return;
+                }
+                state.widget.focusNode.requestFocus();
+                if (url == null ||
+                    url.isEmpty ||
+                    state.textEditingValue.text != value.text ||
+                    state.widget.readOnly) {
+                  return;
+                }
+                write(
+                  NexTextFormatting.link(
+                    value.text,
+                    where.start,
+                    where.end,
+                    url,
+                  ),
+                );
+              case NexFormatCommand.clear:
+                apply(NexTextFormatting.clear);
             }
-            state.widget.focusNode.requestFocus();
-            if (url == null || url.isEmpty) return;
-            write(
-              NexTextFormatting.link(value.text, where.start, where.end, url),
-            );
           },
         ),
-        ContextMenuButtonItem(
-          label: l10n.formatClear,
-          onPressed: () => apply(NexTextFormatting.clear),
-        ),
-      ]);
+      );
     }
 
     return AdaptiveTextSelectionToolbar.buttonItems(
@@ -107,14 +172,6 @@ EditableTextContextMenuBuilder nexFormatContextMenuBuilder(BuildContext host) {
     );
   };
 }
-
-String _labelFor(AppLocalizations l10n, NexInlineFormat format) =>
-    switch (format) {
-      NexInlineFormat.bold => l10n.formatBold,
-      NexInlineFormat.italic => l10n.formatItalic,
-      NexInlineFormat.mono => l10n.formatMono,
-      NexInlineFormat.strikethrough => l10n.formatStrikethrough,
-    };
 
 /// Asks where a link should point. Null when the question was dismissed.
 ///

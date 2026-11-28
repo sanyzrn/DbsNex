@@ -8,9 +8,27 @@ import 'occasion_math.dart';
 import 'occasion_model.dart';
 import 'occasion_text.dart';
 
+/// How much each kind's colours are deepened wherever white words or figures
+/// sit on them — the hero card, the calendar tile's month band, the «today»
+/// pill. The raw colours are celebration-bright (a birthday runs to
+/// #FFB347, on which white measures 1.8:1, unreadable in daylight); this
+/// much keeps them unmistakably their kind while white on every one of them
+/// clears 4.5:1, which `occasion_contrast_test.dart` pins for every end of
+/// every gradient. Icons drawn as ink beside ordinary text use
+/// [occasionDeepen] for the same reason.
+const double occasionColourScrim = 0.42;
+
+/// [colour] deepened for white words on it (see [occasionColourScrim]).
+Color occasionDeepen(Color colour) => Color.alphaBlend(
+  Colors.black.withValues(alpha: occasionColourScrim),
+  colour,
+);
+
 /// The look of each kind of date (2.4.0): a pair of colours for its card,
 /// and the mark that goes with it. A birthday is warm, an anniversary rose,
-/// a remembrance a quiet dusk, anything else violet.
+/// a remembrance a quiet dusk, anything else violet. The gradient is the
+/// deepened pair — white words sit on it (see [occasionColourScrim]); the
+/// undimmed [from] remains the accent for icons and washes.
 class OccasionLook {
   const OccasionLook(this.from, this.to, this.mark, this.icon);
 
@@ -51,7 +69,7 @@ class OccasionLook {
   LinearGradient get gradient => LinearGradient(
     begin: AlignmentDirectional.topStart,
     end: AlignmentDirectional.bottomEnd,
-    colors: [from, to],
+    colors: [occasionDeepen(from), occasionDeepen(to)],
   );
 }
 
@@ -173,33 +191,39 @@ class OccasionCountdownRing extends StatelessWidget {
     final progress = days <= 0 ? 1.0 : (1 - days / 366).clamp(0.04, 1.0);
     return SizedBox.square(
       dimension: size,
-      child: CustomPaint(
-        painter: _RingPainter(progress: progress, color: color),
-        child: Center(
-          child: days <= 0
-              ? Icon(icon, color: color, size: size * 0.42)
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      nexDigits('$days', persian: persian),
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w700,
-                        height: 1,
+      child: Semantics(
+        label: days <= 0
+            ? occasionsStrings(context, 'today')
+            : countdownText(context, days),
+        excludeSemantics: true,
+        child: CustomPaint(
+          painter: _RingPainter(progress: progress, color: color),
+          child: Center(
+            child: days <= 0
+                ? Icon(icon, color: color, size: size * 0.42)
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        nexDigits('$days', persian: persian),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w700,
+                          height: 1,
+                        ),
                       ),
-                    ),
-                    Text(
-                      occasionsStrings(
-                        context,
-                        days == 1 ? 'ringDay' : 'ringDays',
+                      Text(
+                        occasionsStrings(
+                          context,
+                          days == 1 ? 'ringDay' : 'ringDays',
+                        ),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: color,
+                        ),
                       ),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: color.withValues(alpha: 0.85),
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
@@ -358,6 +382,15 @@ class OccasionHeroCard extends StatelessWidget {
     final title = occasion.title.isEmpty
         ? occasionsStrings(context, 'untitled')
         : occasion.title;
+    // One line to a screen reader: who, what kind of date, when it comes and
+    // the age it comes to — the eyebrow, the date line and the ring's number
+    // are pieces of one fact, not facts of their own.
+    final said = [
+      title,
+      occasionKindLabel(context, occasion.kind),
+      countdownText(context, days),
+      ?years,
+    ].join(', ');
     const white = Colors.white;
     final card = DecoratedBox(
       decoration: BoxDecoration(
@@ -391,7 +424,7 @@ class OccasionHeroCard extends StatelessWidget {
                             Text(
                               eyebrow,
                               style: theme.textTheme.labelLarge?.copyWith(
-                                color: white.withValues(alpha: 0.9),
+                                color: white,
                               ),
                             ),
                             const SizedBox(height: NexSpacing.xs),
@@ -418,7 +451,7 @@ class OccasionHeroCard extends StatelessWidget {
                                 ?years,
                               ].join(' · '),
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: white.withValues(alpha: 0.92),
+                                color: white,
                               ),
                             ),
                           ],
@@ -442,7 +475,18 @@ class OccasionHeroCard extends StatelessWidget {
     if (onTap == null) return card;
     return Semantics(
       button: true,
-      child: GestureDetector(onTap: onTap, child: card),
+      label: said,
+      // On the day the card carries the copy and share buttons; excluding
+      // the children's semantics would read the card and then leave its own
+      // buttons unreachable to a screen reader, so only a quiet card is one
+      // spoken line.
+      excludeSemantics: actions == null,
+      onTap: onTap,
+      child: GestureDetector(
+        onTap: onTap,
+        excludeFromSemantics: true,
+        child: card,
+      ),
     );
   }
 }
@@ -465,6 +509,10 @@ class OccasionCountdownPill extends StatelessWidget {
     final scheme = theme.colorScheme;
     final look = OccasionLook.of(occasion.kind);
     final near = days <= 7;
+    // Ink deep enough to read on its own pale wash (see occasionColourScrim);
+    // the gradient fill of the day itself is the deepened pair, with white on
+    // it.
+    final ink = occasionDeepen(look.from);
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: days == 0 ? look.gradient : null,
@@ -487,7 +535,7 @@ class OccasionCountdownPill extends StatelessWidget {
             color: days == 0
                 ? Colors.white
                 : near
-                ? look.from
+                ? ink
                 : scheme.onSurfaceVariant,
             fontWeight: near ? FontWeight.w700 : FontWeight.w500,
           ),

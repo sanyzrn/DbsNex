@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
-import 'package:nex_client/widgets/nex_field_chrome.dart';
 import 'package:nex_client/widgets/nex_paragraph_editor.dart';
 import 'package:nex_client/widgets/nex_text_field.dart';
 import 'package:super_editor/super_editor.dart';
@@ -97,10 +96,11 @@ void main() {
     expect(unbounded, greaterThan(capped));
   });
 
-  testWidgets('a selection offers the format bar and bold writes markdown', (
+  testWidgets('a Persian word opens one toolbar and bold writes markdown', (
     tester,
   ) async {
     final controller = TextEditingController(text: 'سلام دنیا');
+    addTearDown(controller.dispose);
     await tester.pumpWidget(
       _host(
         NexParagraphEditor(
@@ -113,25 +113,21 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(NexParagraphEditor));
-    await tester.pumpAndSettle();
     final editor = find.byType(SuperEditor);
     final state = tester.state(editor);
     tester.testTextInput.log.clear();
-    controller.selection = const TextSelection(baseOffset: 0, extentOffset: 4);
-    await tester.pumpAndSettle();
-    expect(find.byType(NexSelectionFormatBar), findsOneWidget);
+    await selectNexWord(tester, 2);
+    expect(controller.selection.textInside(controller.text), 'سلام');
+    expect(find.byKey(DocumentKeys.mobileToolbar), findsOneWidget);
     expect(tester.state(editor), same(state));
     expect(
       tester.testTextInput.log.map((call) => call.method),
       isNot(contains('TextInput.hide')),
     );
 
-    await tester.tap(find.text('Bold'));
-    await tester.pumpAndSettle();
+    await chooseNexFormat(tester, 'Bold');
     expect(controller.text, '**سلام** دنیا');
-    // The menu closes after a command, the way a platform menu does.
-    expect(find.byType(NexSelectionFormatBar), findsNothing);
+    expect(find.byKey(DocumentKeys.mobileToolbar), findsNothing);
   });
 
   testWidgets(
@@ -174,11 +170,11 @@ void main() {
       expect(find.text('Helper'), findsOneWidget);
       expect(find.text('${text.length}/180'), findsOneWidget);
       expect(find.byIcon(Icons.edit), findsOneWidget);
-      final paragraphs = find.byType(ParagraphComponent).evaluate();
+      final paragraphs = find.byType(TextComponent).evaluate();
       expect(
         [
           for (final paragraph in paragraphs)
-            (paragraph.widget as ParagraphComponent).viewModel.textDirection,
+            (paragraph.widget as TextComponent).textDirection,
         ],
         [TextDirection.rtl, TextDirection.ltr],
       );

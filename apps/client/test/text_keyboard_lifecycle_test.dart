@@ -6,7 +6,6 @@ import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/widgets/nex_dialog.dart';
 import 'package:nex_client/widgets/nex_paragraph_editor.dart';
 import 'package:nex_client/widgets/note_editor_sheet.dart';
-import 'package:nex_client/widgets/nex_field_chrome.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
@@ -81,35 +80,9 @@ void main() {
     }
   }
 
-  Future<void> format(
-    WidgetTester tester,
-    String label, {
-    required bool capture,
-  }) async {
-    if (!capture) {
-      // The note editor formats from its own toolbar: select, open, pick.
-      final controller = tester
-          .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
-          .controller;
-      controller.selection = const TextSelection(
-        baseOffset: 4,
-        extentOffset: 7,
-      );
-      await tester.pump();
-      await tester.tap(find.byIcon(Icons.text_format));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(label).last);
-      await tester.pumpAndSettle();
-      return;
-    }
-    final controller = nexInputController(tester, nexInputs());
-    controller.selection = const TextSelection(baseOffset: 4, extentOffset: 7);
-    await tester.pump();
-    final bar = find.byType(NexSelectionFormatBar);
-    final command = find.descendant(of: bar, matching: find.text(label));
-    await tester.ensureVisible(command);
-    await tester.tap(command);
-    await tester.pumpAndSettle();
+  Future<void> format(WidgetTester tester, String label) async {
+    await selectNexWord(tester, 5);
+    await chooseNexFormat(tester, label);
   }
 
   Future<void> finish(WidgetTester tester, {required bool capture}) async {
@@ -145,7 +118,7 @@ void main() {
         '$kind: $label keeps editing, Save ends the keyboard session',
         (tester) async {
           await open(tester, capture: capture);
-          await format(tester, label, capture: capture);
+          await format(tester, label);
           if (label == 'Link') {
             final dialog = find.bySubtype<AlertDialog>();
             expect(dialog, findsOneWidget);
@@ -183,7 +156,7 @@ void main() {
       '$kind: cancelling Link returns to the same text and still closes cleanly',
       (tester) async {
         await open(tester, capture: capture);
-        await format(tester, 'Link', capture: capture);
+        await format(tester, 'Link');
         await tester.tap(
           find.descendant(
             of: find.bySubtype<AlertDialog>(),
@@ -201,7 +174,7 @@ void main() {
     tester,
   ) async {
     await open(tester, capture: false);
-    await format(tester, 'Link', capture: false);
+    await format(tester, 'Link');
     final dialog = find.bySubtype<AlertDialog>();
     await tester.enterText(
       find.descendant(of: dialog, matching: find.byType(TextField)),

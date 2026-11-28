@@ -19,6 +19,11 @@ over by accident.
 A start year is optional («I do not know the year»): without it no age is shown
 and none is guessed.
 
+A long list is searchable by name — or by the note, where the gift ideas
+live — from the bar, with Persian letters folded the way the app's search
+folds them. Saving a name that already keeps the same day of the same
+calendar asks once before the date is kept twice.
+
 Not here: reading contacts or a calendar, importing, sending anything to
 anyone, photos, widgets, CSV/ICS export. They need platform interfaces the
 module kit does not give (see Platform requests).
@@ -50,12 +55,13 @@ module kit does not give (see Platform requests).
   module's `keepUp`, which the app calls for every module that is on — as
   well as when the module opens and when the occasion is saved, so a date
   keeps ringing year after year without its screen being opened. A new date
-  reminds by default (a day before and on the day, at 09:00). They are
-  cleared when the occasion is deleted, archived or muted. The notification
-  is the occasion's name with its mark (🎂, 💞, 📅) and when it is, with the
-  age it comes to — except a remembrance, which stays neutral on a lock
-  screen. They need the notification permission; when an alarm cannot be
-  set, saving still succeeds and the person is told once.
+  reminds by default (a day before and on the day, at 09:00). Lead times
+  come from the kit's one set: on the day, 1, 3, 7, 14 or 30 days before.
+  They are cleared when the occasion is deleted, archived or muted. The
+  notification is the occasion's name with its mark (🎂, 💞, 📅) and when it
+  is, with the age it comes to — except a remembrance, which stays neutral on
+  a lock screen. They need the notification permission; when an alarm cannot
+  be set, saving still succeeds and the person is told once.
 - **Not tied into the timeline.** A date is not copied into the notes, the
   brief or the assistant: remembrances are personal, the module kit keeps a
   module's records to itself, and the reminders already reach the person at
@@ -66,10 +72,21 @@ module kit does not give (see Platform requests).
   copy and share buttons for a greeting. Each row is a calendar page with
   the day in the occasion's own calendar, and a pill for how far away it is.
   Each kind has three greetings, with **Another** to switch between them.
+  The kind colours are deepened wherever white words sit on them — the
+  brightest measured 1.8:1 — so every card, tile band and «today» pill
+  reads at 4.5:1 or better (`occasion_contrast_test.dart` pins every end of
+  every gradient). A row and the hero card each read as one line to a
+  screen reader: who, what kind of date, when it comes, the age it comes to.
 - **The Jalali code** is the app's own (`nexPersianDate`, `nexGregorianDate`,
   years 1–3177); outside it, an occasion has no next day and is listed to be
   fixed rather than guessed.
 - **Greetings** are plain text a person copies or shares by their own tap.
+- **The glance (2.8.5) keeps a remembrance off the home tile.** The tile the
+  home screen shows never names a remembrance: the next date that may be
+  named leads it, and when every date is a remembrance one neutral line says
+  a date is coming. The quick view behind a tap may name them, the way the
+  medicine module does; the dates card and the assistant take the `private`
+  flag and say a count, as they always did.
 
 ## Words, guide, changelog
 

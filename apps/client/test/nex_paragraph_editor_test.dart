@@ -40,9 +40,9 @@ void main() {
 
   /// Every paragraph as the editor actually lays it out: its text, the
   /// direction it was given, and the side it aligns to.
-  List<ParagraphComponentViewModel> laidOut(WidgetTester tester) => [
-    for (final element in find.byType(ParagraphComponent).evaluate())
-      (element.widget as ParagraphComponent).viewModel,
+  List<TextComponent> laidOut(WidgetTester tester) => [
+    for (final element in find.byType(TextComponent).evaluate())
+      (element.widget as TextComponent),
   ];
 
   testWidgets('an empty note opens as one empty paragraph', (tester) async {
@@ -82,7 +82,7 @@ void main() {
   ) async {
     await pump(tester, text: 'سلام\nHello');
     // Left and right in the same document, at the same time — the whole point.
-    expect(laidOut(tester).map((line) => line.textAlignment), [
+    expect(laidOut(tester).map((line) => line.textAlign), [
       TextAlign.right,
       TextAlign.left,
     ]);

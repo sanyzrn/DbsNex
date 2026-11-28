@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/widgets/nex_text_field.dart';
 import 'package:super_editor/super_editor.dart';
+import 'package:super_editor/super_editor_test.dart' show SuperEditorInspector;
 
 /// Horizontal arrows move where the eye moves, not where the string goes.
 ///
@@ -71,10 +72,7 @@ void main() {
     // movement did the opposite.
     final controller = await pump(tester, 'سلام hello');
     expect(
-      tester
-          .widget<ParagraphComponent>(find.byType(ParagraphComponent))
-          .viewModel
-          .textDirection,
+      tester.widget<TextComponent>(find.byType(TextComponent)).textDirection,
       TextDirection.rtl,
     );
 
@@ -117,10 +115,7 @@ void main() {
     // character, as it does in any right-to-left text.
     final controller = await pump(tester, 'hello سلام');
     expect(
-      tester
-          .widget<ParagraphComponent>(find.byType(ParagraphComponent))
-          .viewModel
-          .textDirection,
+      tester.widget<TextComponent>(find.byType(TextComponent)).textDirection,
       TextDirection.ltr,
     );
 
@@ -179,7 +174,7 @@ void main() {
 
   DocumentComponent editor(WidgetTester tester) {
     final editor = tester.widget<SuperEditor>(find.byType(SuperEditor));
-    final layout = editor.documentLayoutKey!.currentState! as DocumentLayout;
+    final layout = SuperEditorInspector.findDocumentLayout();
     final node = editor.editor.document.first;
     return layout.getComponentByNodeId(node.id)!;
   }
@@ -413,8 +408,8 @@ void main() {
     expect(controller.selection.baseOffset, greaterThanOrEqualTo(5));
     expect(
       tester
-          .widgetList<ParagraphComponent>(find.byType(ParagraphComponent))
-          .map((paragraph) => paragraph.viewModel.textDirection),
+          .widgetList<TextComponent>(find.byType(TextComponent))
+          .map((paragraph) => paragraph.textDirection),
       [TextDirection.rtl, TextDirection.ltr],
     );
     expect(
