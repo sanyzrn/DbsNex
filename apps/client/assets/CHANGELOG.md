@@ -4,6 +4,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Maintenance.** See upcoming insurance and inspection dates at a glance, renew them in one tap, and track fuel cost per litre and monthly quota usage. Service costs open in tomans, with rials a tap away.
+
 ## v2.9.4
 
 - **Unified editor for smoother keyboard switching.** Rebuilt text input around one Flutter-based editor across the app to avoid keyboard closure and reopening when moving between fields, including Prompt Studio, Family Fund and Habits.

@@ -26,9 +26,16 @@ import 'strings.dart';
 /// filters and the records. Everything recomputes from the records on every
 /// change; nothing is cached across opens except what the store keeps.
 class ExpensesScreen extends StatefulWidget {
-  const ExpensesScreen({super.key, required this.store});
+  const ExpensesScreen({super.key, required this.store, this.now});
 
   final NexModuleStore store;
+
+  /// The moment the screen opens "today" in.
+  ///
+  /// Production leaves it null and reads the clock once, when the screen opens,
+  /// so a long session does not drift. Tests pin it: what a month offers must
+  /// not depend on the day the suite happens to run.
+  final DateTime? now;
 
   @override
   State<ExpensesScreen> createState() => _ExpensesScreenState();
@@ -51,7 +58,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   /// Captured once per open: a month is computed from the day the module
   /// was opened, not against a ticking clock.
-  late final DateTime _openedAt = DateTime.now();
+  late final DateTime _openedAt = widget.now ?? DateTime.now();
 
   @override
   void initState() {

@@ -143,14 +143,19 @@ class _FuelEditorSheetState extends State<FuelEditorSheet> {
     _markDirty();
   }
 
+  int? get _parsedLitres {
+    final litres = parseMeterInput(_litres.text);
+    return litres != null && litres > 0 && litres <= FuelEntry.maxLitres
+        ? litres
+        : null;
+  }
+
   Future<void> _save() async {
     if (_busy) return;
-    final litres = parseMeterInput(_litres.text);
+    final litres = _parsedLitres;
     final price = rialFromTomanInput(_price.text);
     final rate = _rate;
     if (litres == null ||
-        litres <= 0 ||
-        litres > FuelEntry.maxLitres ||
         price == null ||
         rate == null ||
         rate.isEmpty ||
@@ -170,7 +175,21 @@ class _FuelEditorSheetState extends State<FuelEditorSheet> {
         rate: rate,
         notes: _notes.text,
       );
-      await widget.controller.saveFuel(entry, draftId: _draft.draftId);
+      await widget.controller.saveFuel(
+        entry,
+        existing: widget.existing,
+        editedKeys: widget.existing == null
+            ? null
+            : _draft.editedKeys(const {
+                'litres': ['litres'],
+                'litres_scale': ['litres'],
+                'priceRial': ['price'],
+                'notes': ['notes'],
+                'date': ['date'],
+                'rate': ['rate'],
+              }),
+        draftId: _draft.draftId,
+      );
       if (mounted) Navigator.pop(context);
     } catch (_) {
       _draft.resume();
@@ -220,7 +239,10 @@ class _FuelEditorSheetState extends State<FuelEditorSheet> {
   Widget build(BuildContext context) {
     final s = maintenanceStrings;
     final theme = Theme.of(context);
-    final rates = _rates;
+    final rateNames = {
+      for (final rate in _rates) rate.name,
+      if (_rate case final String name when name.isNotEmpty) name,
+    };
     return PopScope(
       canPop: !_dirty && !_busy,
       onPopInvokedWithResult: (didPop, _) {
@@ -292,8 +314,7 @@ class _FuelEditorSheetState extends State<FuelEditorSheet> {
                         textDirection: TextDirection.ltr,
                         decoration: InputDecoration(
                           labelText: s(context, 'fuelLitres'),
-                          errorText:
-                              _errors && parseMeterInput(_litres.text) == null
+                          errorText: _errors && _parsedLitres == null
                               ? s(context, 'fuelBadLitres')
                               : null,
                         ),
@@ -323,7 +344,7 @@ class _FuelEditorSheetState extends State<FuelEditorSheet> {
                         style: theme.textTheme.labelLarge,
                       ),
                       const SizedBox(height: NexSpacing.xs),
-                      if (rates.isEmpty)
+                      if (rateNames.isEmpty)
                         Text(
                           s(context, 'fuelRateRequired'),
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -335,15 +356,13 @@ class _FuelEditorSheetState extends State<FuelEditorSheet> {
                           spacing: NexSpacing.sm,
                           runSpacing: NexSpacing.xs,
                           children: [
-                            for (final rate in rates)
+                            for (final name in rateNames)
                               ChoiceChip(
-                                key: ValueKey(
-                                  'maintenance-fuel-rate-${rate.name}',
-                                ),
-                                label: Text(rate.name),
-                                selected: _rate == rate.name,
+                                key: ValueKey('maintenance-fuel-rate-$name'),
+                                label: Text(name),
+                                selected: _rate == name,
                                 onSelected: (_) {
-                                  setState(() => _rate = rate.name);
+                                  setState(() => _rate = name);
                                   _markDirty();
                                 },
                               ),

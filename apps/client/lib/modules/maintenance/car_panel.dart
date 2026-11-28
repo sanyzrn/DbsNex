@@ -136,10 +136,26 @@ class CarExpiryRow extends StatelessWidget {
           itemKey == 'insurance' ? 'insuranceExpiresAt' : 'inspectionExpiresAt',
         ],
       );
-      // A renewed date moves its reminder with it (2.8.4).
-      await CarReminders.planOne(controller.store, asset.id, l10n);
     } catch (_) {
       if (context.mounted) maintenanceWriteFailure(context);
+      return;
+    }
+
+    bool reminderSet;
+    try {
+      reminderSet = await CarReminders.planOne(
+        controller.store,
+        asset.id,
+        l10n,
+      );
+    } catch (_) {
+      reminderSet = false;
+    }
+    if (!reminderSet && context.mounted) {
+      NexBannerHost.of(context)?.show(
+        kind: NexBannerKind.failed,
+        message: maintenanceStrings(context, 'carReminderNotSet'),
+      );
     }
   }
 
@@ -233,15 +249,18 @@ class CarExpiryRow extends StatelessWidget {
                 ),
               ),
             ),
-            // Renewal day: one tap moves the date a year on, with the
-            // documented month-end convention; a reminder follows it. The
-            // month-end rule means 29 February lands on 28 February in a
-            // non-leap year — the same convention the intervals keep.
             if (date != null)
               TextButton.icon(
                 key: ValueKey('maintenance-car-renew-$itemKey'),
-                onPressed: () =>
-                    unawaited(_write(context, date: addMonths(date!, 12))),
+                onPressed: () => unawaited(
+                  _write(
+                    context,
+                    date: CarLogic.renewalDate(
+                      date!,
+                      solar: NexModuleCalendar.solarOf(context),
+                    ),
+                  ),
+                ),
                 icon: const Icon(Icons.autorenew_outlined),
                 label: Text(s(context, 'carRenewYear')),
               ),

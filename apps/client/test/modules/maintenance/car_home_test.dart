@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
+import 'package:nex_client/modules/maintenance/car_logic.dart';
 import 'package:nex_client/modules/maintenance/asset_page.dart';
 import 'package:nex_client/modules/maintenance/maintenance_screen.dart';
 import 'package:nex_client/modules/maintenance/units.dart';
@@ -13,6 +14,17 @@ import '../../support/nex_harness.dart';
 /// insurance runs out), the archived group's heading says what archiving
 /// does, and a renewal is one tap on the asset page.
 void main() {
+  test('renewal uses the selected calendar and clamps leap days', () {
+    expect(
+      CarLogic.renewalDate(nexGregorianDate(1399, 12, 30), solar: true),
+      nexGregorianDate(1400, 12, 29),
+    );
+    expect(
+      CarLogic.renewalDate(DateTime(2024, 2, 29), solar: false),
+      DateTime(2025, 2, 28),
+    );
+  });
+
   late NexTestHarness h;
   late NexModuleStore store;
 

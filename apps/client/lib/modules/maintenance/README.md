@@ -234,7 +234,7 @@ No service, SDK or dependency was added; all arithmetic is local.
 **English.** Add the car as an asset and choose that it counts kilometres.
 On its page, set the third-party insurance and technical inspection dates;
 each shows how many days are left, can remind you 14 days before (change it
-to 7, 30 or any number), and when you renew, one tap moves the date a year
+to 7, 30 or any number), and when you renew, one tap moves the date a year in your calendar
 on. Log each fill-up with its date, litres, what you paid in tomans and
 which rate it was bought at; under Fuel you see this month's litres and
 cost, what a litre cost at each fill-up, and how much of each rate's quota

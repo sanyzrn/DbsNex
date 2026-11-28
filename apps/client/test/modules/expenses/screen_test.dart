@@ -27,6 +27,7 @@ Future<void> pumpScreen(
   double textScale = 1.0,
   Size size = const Size(800, 1600),
   bool dark = false,
+  DateTime? now,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -42,7 +43,7 @@ Future<void> pumpScreen(
           textScaler: TextScaler.linear(textScale),
           platformBrightness: dark ? Brightness.dark : Brightness.light,
         ),
-        child: ExpensesScreen(store: store),
+        child: ExpensesScreen(store: store, now: now),
       ),
     ),
   );

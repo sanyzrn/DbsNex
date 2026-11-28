@@ -5,12 +5,12 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'car_logic.dart';
 import 'controller.dart';
+import 'costs.dart';
 import 'fuel_editor.dart';
 import 'fuel_rates_sheet.dart';
 import 'maintenance_widgets.dart';
 import 'models.dart';
 import 'strings.dart';
-import 'units.dart';
 
 /// The car's fuel: this month's litres and cost, the quota left at each of
 /// the person's rates, and the fill-ups themselves. The month is the
@@ -187,12 +187,16 @@ class _QuotaLine extends StatelessWidget {
                   style: theme.textTheme.bodyMedium,
                 ),
               ),
-              Text(
-                text,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: over
-                      ? theme.colorScheme.error
-                      : theme.colorScheme.onSurfaceVariant,
+              const SizedBox(width: NexSpacing.xs),
+              Flexible(
+                child: Text(
+                  text,
+                  textAlign: TextAlign.end,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: over
+                        ? theme.colorScheme.error
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
@@ -233,18 +237,15 @@ class _FuelRow extends StatelessWidget {
     final s = maintenanceStrings;
     final theme = Theme.of(context);
     final persian = NexModuleStrings.persian(context);
-    // What one litre cost in this fill-up, said by the person's own two
-    // numbers — never fetched, never guessed. Milli-tomans per litre:
-    // price in rials × 100 (milli-tomans) × 1000 (per thousandth of a
-    // litre) ÷ litres in thousandths. A price beyond any real fill-up is
-    // left unsaid rather than risked through the multiplication.
-    final perLitre =
-        entry.priceRial > 0 &&
-            entry.priceRial < 1000000000000 &&
-            entry.litres > 0
+    // Convert rials and thousandths of a litre to thousandths of a toman
+    // per litre. Use exact arithmetic for all valid stored prices.
+    final perLitre = entry.priceRial > 0 && entry.litres > 0
         ? s(context, 'fuelPerLitre', {
-            'price': formatMeterValue(
-              entry.priceRial * 100000 ~/ entry.litres,
+            'price': formatCostNumber(
+              BigInt.from(entry.priceRial) *
+                  BigInt.from(100000) ~/
+                  BigInt.from(entry.litres),
+              3,
               persian: persian,
             ),
           })
@@ -273,21 +274,26 @@ class _FuelRow extends StatelessWidget {
                 ],
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${formatToman(entry.priceRial, persian: persian)} ${s(context, 'fuelPriceUnit')}',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                if (perLitre != null)
+            const SizedBox(width: NexSpacing.xs),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
                   Text(
-                    perLitre,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    '${formatToman(entry.priceRial, persian: persian)} ${s(context, 'fuelPriceUnit')}',
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.bodyMedium,
                   ),
-              ],
+                  if (perLitre != null)
+                    Text(
+                      perLitre,
+                      textAlign: TextAlign.end,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ],
         ),

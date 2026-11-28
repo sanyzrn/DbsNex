@@ -14,6 +14,15 @@ class CarLogic {
   static int? daysLeft(DateTime? date, DateTime now) =>
       date == null ? null : daysBetween(dayOf(now), dayOf(date));
 
+  /// Keeps the month and day in the user's calendar, clamping leap days.
+  static DateTime renewalDate(DateTime date, {required bool solar}) {
+    if (!solar) return addMonths(date, 12);
+    final jalali = nexPersianDate(date);
+    final year = jalali.year + 1;
+    final days = nexPersianMonthDays(year, jalali.month);
+    return nexGregorianDate(year, jalali.month, jalali.day.clamp(1, days));
+  }
+
   /// The moment a reminder should ring: [days] before [date], in the
   /// morning. The sheet refuses a moment already in the past.
   static DateTime reminderAt(DateTime date, int days) => DateTime(

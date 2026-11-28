@@ -94,6 +94,78 @@ void main() {
     expect(await store.list('fuel_rate'), hasLength(1));
   });
 
+  test('rate updates keep unknown fields and protect other cars', () async {
+    await seedCar();
+    await store.put('fuel_rate', 'r1', {
+      'assetId': 'a1',
+      'name': 'Example',
+      'quota': 60000,
+      'example': true,
+      'extra': 'keep',
+    });
+    await store.put('fuel_rate', 'r2', {
+      'assetId': 'a2',
+      'name': 'Other',
+      'quota': 0,
+    });
+    final controller = MaintenanceController(store);
+    addTearDown(controller.dispose);
+
+    await controller.saveFuelRates('a1', [
+      const FuelRate(id: 'r1', assetId: 'a1', name: 'My rate', quota: 70000),
+    ]);
+    final saved = (await store.get('fuel_rate', 'r1'))!;
+    expect(saved['extra'], 'keep');
+    expect(saved.containsKey('example'), isFalse);
+
+    await expectLater(
+      controller.saveFuelRates('a1', [
+        const FuelRate(id: 'r2', assetId: 'a1', name: 'Invalid', quota: 0),
+      ]),
+      throwsStateError,
+    );
+    expect((await store.get('fuel_rate', 'r2'))?['name'], 'Other');
+  });
+
+  test(
+    'clearing a fill-up note preserves a newer price and extra data',
+    () async {
+      await seedCar();
+      final controller = MaintenanceController(store);
+      addTearDown(controller.dispose);
+      final original = FuelEntry(
+        id: 'f1',
+        assetId: 'a1',
+        date: DateTime.now(),
+        litres: 42500,
+        priceRial: 1275000,
+        rate: 'Quota',
+        notes: 'Old note',
+      );
+      await store.put('fuel', original.id, {
+        ...original.toBody(),
+        'priceRial': 2000000,
+        'extra': 'keep',
+      });
+      await controller.saveFuel(
+        FuelEntry(
+          id: original.id,
+          assetId: original.assetId,
+          date: original.date,
+          litres: original.litres,
+          priceRial: original.priceRial,
+          rate: original.rate,
+        ),
+        existing: original,
+        editedKeys: ['notes'],
+      );
+      final saved = (await store.get('fuel', original.id))!;
+      expect(saved.containsKey('notes'), isFalse);
+      expect(saved['priceRial'], 2000000);
+      expect(saved['extra'], 'keep');
+    },
+  );
+
   testWidgets(
     'an edited example rate loses its marker, an untouched one keeps it',
     (tester) async {
