@@ -4,6 +4,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Birthdays & occasions, kept sharper.** Find a date by name — or by the note the gift ideas live in — with search in the bar; Persian letters are folded, so the Arabic yeh finds the Persian one. Saving a name that already keeps the same day asks once before the date is kept twice. The kind's colours are deepened wherever white words sit on them, so every card, calendar band and «today» pill reads clearly in daylight; a row and the hero now each read as one line to a screen reader. Two more reminder lead times — two weeks and 30 days before — join the choices, and a reminder kept at one of them shows its choice. A remembrance's name never goes on the home tile: the next date that may be named leads it, and one neutral line when every date is a remembrance.
+
 ## v2.9.5
 
 - **Independent paragraph direction.** Persian and English paragraphs now keep their own alignment while writing or editing notes, checklists, AI chat and multiline module fields. Moving the caret or selecting across paragraphs no longer flips the entire field.

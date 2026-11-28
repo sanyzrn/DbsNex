@@ -26,6 +26,30 @@ Future<void> showOccasionSheet(
   builder: (_) => _OccasionSheet(store: store, occasion: occasion),
 );
 
+/// The name of an occasion already kept on this day of this calendar under
+/// the same name — the same birthday entered twice is easy to do and hard to
+/// notice later — or null when this one is new. Names are compared folded, so
+/// the Persian and the Arabic yeh are the same letter.
+Future<String?> duplicateOccasionName(
+  NexModuleStore store,
+  Occasion occasion,
+) async {
+  final needle = nexSearchFold(occasion.title).toLowerCase();
+  for (final record in await store.list('occasion')) {
+    if (record.id == occasion.id) continue;
+    final other = Occasion.fromRecord(record);
+    if (other.calendar != occasion.calendar ||
+        other.month != occasion.month ||
+        other.day != occasion.day) {
+      continue;
+    }
+    if (nexSearchFold(other.title).toLowerCase() == needle) {
+      return other.title.isEmpty ? null : other.title;
+    }
+  }
+  return null;
+}
+
 /// Whole digits from what was typed — Persian and Arabic-Indic digits
 /// included — or null if it is not a plain number.
 int? occasionNumber(String text) {
@@ -73,6 +97,9 @@ class _OccasionSheetState extends State<_OccasionSheet> {
   late final FormDraft _draft;
   bool _restoring = true;
   bool _saving = false;
+  bool _checkingDuplicate = false;
+
+  bool get _busy => _saving || _checkingDuplicate;
   late final String _recordId = widget.occasion?.id ?? widget.store.newId();
   String? _titleError, _dayError, _yearError;
 
@@ -83,7 +110,12 @@ class _OccasionSheetState extends State<_OccasionSheet> {
     super.initState();
     final o = widget.occasion;
     _title = TextEditingController(text: o?.title ?? '');
-    _day = TextEditingController(text: o != null && o.valid ? '${o.day}' : '');
+    // A day that was typed stays typed even when the record around it is
+    // broken — an impossible month is fixed by the month alone, not by
+    // retyping the day as well.
+    _day = TextEditingController(
+      text: o != null && o.day >= 1 && o.day <= 31 ? '${o.day}' : '',
+    );
     _year = TextEditingController(text: o?.year == null ? '' : '${o!.year}');
     _note = TextEditingController(text: o?.note ?? '');
     _kind = o?.kind ?? OccasionKind.birthday;
@@ -269,16 +301,57 @@ class _OccasionSheetState extends State<_OccasionSheet> {
     createdAt: DateTime.now(),
   );
 
+  /// One honest question before a date is kept twice: another occasion with
+  /// this name on this day of this calendar. Answered true when there is no
+  /// duplicate, or when the person says to save anyway.
+  Future<bool> _confirmDuplicate(Occasion occasion) async {
+    final existing = await duplicateOccasionName(widget.store, occasion);
+    if (existing == null || !mounted) return existing == null;
+    final save = await nexShowDialog<bool>(
+      context: context,
+      builder: (dialogContext) => NexAlertDialog(
+        title: Text(occasionsStrings(dialogContext, 'duplicateTitle')),
+        content: NexDialogBody(
+          child: Text(
+            occasionsStrings(dialogContext, 'duplicateBody', {
+              'name': existing,
+            }),
+          ),
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('occasion-duplicate-stay'),
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(AppLocalizations.of(dialogContext).cancel),
+          ),
+          TextButton(
+            key: const ValueKey('occasion-duplicate-save'),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(occasionsStrings(dialogContext, 'duplicateKeep')),
+          ),
+        ],
+      ),
+    );
+    return save ?? false;
+  }
+
   Future<void> _save() async {
-    if (_saving) return;
+    if (_busy) return;
     final occasion = _build();
     if (occasion == null) return;
-    setState(() => _saving = true);
+    setState(() => _checkingDuplicate = true);
     final messenger = NexBannerHost.of(context);
     final failedText = occasionsStrings(context, 'saveError');
     final remindFailed = occasionsStrings(context, 'remindFailed');
     final l10n = AppLocalizations.of(context);
     try {
+      final confirmed = await _confirmDuplicate(occasion);
+      if (!mounted) return;
+      setState(() {
+        _checkingDuplicate = false;
+        _saving = confirmed;
+      });
+      if (!confirmed) return;
       final prior = await widget.store.get('occasion', occasion.id);
       await widget.store.put('occasion', occasion.id, {
         ...?prior,
@@ -286,7 +359,12 @@ class _OccasionSheetState extends State<_OccasionSheet> {
       });
     } catch (_) {
       messenger?.show(kind: NexBannerKind.failed, message: failedText);
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() {
+          _checkingDuplicate = false;
+          _saving = false;
+        });
+      }
       return;
     }
     try {
@@ -325,9 +403,9 @@ class _OccasionSheetState extends State<_OccasionSheet> {
     final l10n = AppLocalizations.of(context);
     return DraftGuard(
       draft: _draft,
-      busy: () => _saving,
+      busy: () => _busy,
       child: AbsorbPointer(
-        absorbing: _restoring || _saving,
+        absorbing: _restoring || _busy,
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsetsDirectional.symmetric(
@@ -570,6 +648,8 @@ class _OccasionSheetState extends State<_OccasionSheet> {
                               (1, 'remindOneBefore'),
                               (3, 'remindThreeBefore'),
                               (7, 'remindWeekBefore'),
+                              (14, 'remindTwoBefore'),
+                              (30, 'remindMonthBefore'),
                             ])
                               ChoiceChip(
                                 key: ValueKey('occasion-remind-$days'),
@@ -610,14 +690,14 @@ class _OccasionSheetState extends State<_OccasionSheet> {
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(52),
                   ),
-                  onPressed: _saving ? null : () => unawaited(_save()),
+                  onPressed: _busy ? null : () => unawaited(_save()),
                   child: _saving
                       ? const NexInlineSpinner(size: 20)
                       : Text(l10n.save),
                 ),
                 const SizedBox(height: NexSpacing.sm),
                 TextButton(
-                  onPressed: _saving
+                  onPressed: _busy
                       ? null
                       : () async {
                           await _draft.clear();

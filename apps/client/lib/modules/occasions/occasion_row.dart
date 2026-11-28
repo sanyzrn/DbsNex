@@ -9,6 +9,8 @@ import 'occasion_visuals.dart';
 
 /// One occasion in the list (2.4.0): a calendar page with its day, who or
 /// what it is, the age it comes to, and a pill saying how far away it is.
+/// To a screen reader it is one line — who, what kind of date, when it comes
+/// and the age it comes to — not the five pieces of the page.
 class OccasionRow extends StatelessWidget {
   const OccasionRow({
     super.key,
@@ -46,67 +48,82 @@ class OccasionRow extends StatelessWidget {
     final title = occasion.title.isEmpty
         ? strings(context, 'untitled')
         : occasion.title;
+    final said = [
+      title,
+      occasionKindLabel(context, occasion.kind),
+      if (day != null) countdownText(context, days!),
+      ?years,
+      if (occasion.muted) strings(context, 'muted'),
+    ].join(', ');
     return NexGroupedRow(
       index: index,
       count: count,
-      child: InkWell(
-        key: ValueKey('occasion-${occasion.id}'),
+      child: Semantics(
+        label: said,
+        button: true,
         onTap: onOpen,
-        child: Padding(
-          padding: const EdgeInsetsDirectional.symmetric(
-            horizontal: NexSpacing.md,
-            vertical: NexSpacing.sm + 2,
-          ),
-          child: Row(
-            children: [
-              OccasionDateTile(occasion: occasion, date: day?.date),
-              const SizedBox(width: NexSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: occasion.muted
-                                  ? scheme.onSurfaceVariant
-                                  : null,
+        excludeSemantics: true,
+        child: InkWell(
+          key: ValueKey('occasion-${occasion.id}'),
+          onTap: onOpen,
+          child: Padding(
+            padding: const EdgeInsetsDirectional.symmetric(
+              horizontal: NexSpacing.md,
+              vertical: NexSpacing.sm + 2,
+            ),
+            child: Row(
+              children: [
+                OccasionDateTile(occasion: occasion, date: day?.date),
+                const SizedBox(width: NexSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: occasion.muted
+                                    ? scheme.onSurfaceVariant
+                                    : null,
+                              ),
                             ),
                           ),
-                        ),
-                        if (occasion.favorite) ...[
-                          const SizedBox(width: NexSpacing.xs),
-                          Icon(
-                            Icons.star_rounded,
-                            size: 16,
-                            color: OccasionLook.of(occasion.kind).from,
-                          ),
+                          if (occasion.favorite) ...[
+                            const SizedBox(width: NexSpacing.xs),
+                            Icon(
+                              Icons.star_rounded,
+                              size: 16,
+                              color: occasionDeepen(
+                                OccasionLook.of(occasion.kind).from,
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
-                    ),
-                    const SizedBox(height: NexSpacing.xs),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: NexSpacing.xs),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              if (days != null) ...[
-                const SizedBox(width: NexSpacing.sm),
-                OccasionCountdownPill(occasion: occasion, days: days),
+                if (days != null) ...[
+                  const SizedBox(width: NexSpacing.sm),
+                  OccasionCountdownPill(occasion: occasion, days: days),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
