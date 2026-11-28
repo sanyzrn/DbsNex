@@ -125,6 +125,8 @@ const occasionsStrings = NexModuleStrings(
     'remindOneBefore': '1 day before',
     'remindThreeBefore': '3 days before',
     'remindWeekBefore': 'A week before',
+    'remindTwoBefore': '2 weeks before',
+    'remindMonthBefore': '30 days before',
     'remindAt': 'At {time}',
     'remindNote':
         'It rings on the day too, and keeps itself up to date every year. '
@@ -199,6 +201,13 @@ const occasionsStrings = NexModuleStrings(
     'invalidTitle': 'This date is not complete',
     'glanceEmpty': 'Add a birthday or a date that matters',
     'glanceThisMonth': 'In the next 30 days',
+    'glancePrivate': 'A date you keep is coming up',
+    'search': 'Search',
+    'searchHint': 'Find a date by name',
+    'noResults': 'No dates match {query}',
+    'duplicateTitle': 'Already kept?',
+    'duplicateBody': '{name} keeps this same day.',
+    'duplicateKeep': 'Save anyway',
   },
   fa: {
     'title': 'تولدها و مناسبت‌ها',
@@ -272,6 +281,8 @@ const occasionsStrings = NexModuleStrings(
     'remindOneBefore': '۱ روز قبل',
     'remindThreeBefore': '۳ روز قبل',
     'remindWeekBefore': 'یک هفته قبل',
+    'remindTwoBefore': 'دو هفته قبل',
+    'remindMonthBefore': '۳۰ روز قبل',
     'remindAt': 'ساعت {time}',
     'remindNote':
         'در خود روز هم زنگ می‌خورد و هر سال خودش به‌روز می‌ماند. چیزی برای '
@@ -344,5 +355,12 @@ const occasionsStrings = NexModuleStrings(
     'invalidTitle': 'این تاریخ کامل نیست',
     'glanceEmpty': 'یک تولد یا تاریخ مهم اضافه کنید',
     'glanceThisMonth': 'در ۳۰ روز آینده',
+    'glancePrivate': 'تاریخی که نگه داشته‌اید نزدیک است',
+    'search': 'جست‌وجو',
+    'searchHint': 'یافتن تاریخ با نام',
+    'noResults': 'تاریخی مطابق {query} پیدا نشد',
+    'duplicateTitle': 'قبلاً ثبت شده؟',
+    'duplicateBody': '«{name}» همین روز را نگه می‌دارد.',
+    'duplicateKeep': 'به هر حال ذخیره کن',
   },
 );

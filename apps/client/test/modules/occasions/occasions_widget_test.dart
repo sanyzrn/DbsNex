@@ -490,4 +490,251 @@ void main() {
       expect(saved['favorite'], true);
     });
   });
+
+  group('searching the list', () {
+    Future<void> seed(WidgetTester tester) async {
+      final now = DateTime.now();
+      await store.put(
+        'occasion',
+        'a',
+        body(title: 'Sara', month: now.month, day: now.day),
+      );
+      final soon = now.add(const Duration(days: 2));
+      await store.put(
+        'occasion',
+        'b',
+        body(title: 'Ali', month: soon.month, day: soon.day),
+      );
+      final later = now.add(const Duration(days: 20));
+      await store.put(
+        'occasion',
+        'c',
+        body(title: 'Maya', month: later.month, day: later.day),
+      );
+      await pump(tester, OccasionsScreen(store: store));
+    }
+
+    testWidgets('narrows by name, says so when nothing matches', (
+      tester,
+    ) async {
+      await seed(tester);
+      expect(
+        find.byKey(const ValueKey('occasions-search-toggle')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('occasions-search-toggle')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('occasions-search')), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('occasions-search')),
+        'ali',
+      );
+      await settle(tester);
+      expect(find.byKey(const ValueKey('occasion-a')), findsNothing);
+      expect(find.byKey(const ValueKey('occasion-b')), findsOneWidget);
+      expect(find.byKey(const ValueKey('occasion-c')), findsNothing);
+      await tester.enterText(
+        find.byKey(const ValueKey('occasions-search')),
+        'zzz',
+      );
+      await settle(tester);
+      expect(find.textContaining('No dates match zzz'), findsOneWidget);
+      expect(find.byKey(const ValueKey('occasions-search')), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('occasions-search')),
+        'maya',
+      );
+      await settle(tester);
+      expect(find.byKey(const ValueKey('occasion-c')), findsOneWidget);
+      expect(find.byKey(const ValueKey('occasion-b')), findsNothing);
+      // Off, and the whole list is back.
+      await tester.tap(find.byKey(const ValueKey('occasions-search-toggle')));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('occasion-a')), findsOneWidget);
+      expect(find.byKey(const ValueKey('occasion-c')), findsOneWidget);
+    });
+
+    testWidgets('finds the note too, and Persian letters folded', (
+      tester,
+    ) async {
+      final now = DateTime.now();
+      await store.put(
+        'occasion',
+        'a',
+        body(title: 'Sara', month: now.month, day: now.day)
+          ..['note'] = 'a scarf, maybe',
+      );
+      await store.put(
+        'occasion',
+        'b',
+        body(title: 'ياسر', calendar: 'jalali', month: 7, day: 15),
+      );
+      await pump(
+        tester,
+        OccasionsScreen(store: store),
+        locale: const Locale('fa'),
+      );
+      await tester.tap(find.byKey(const ValueKey('occasions-search-toggle')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('occasions-search')),
+        'scarf',
+      );
+      await settle(tester);
+      expect(find.byKey(const ValueKey('occasion-a')), findsOneWidget);
+      // The Arabic yeh finds the Persian one.
+      await tester.enterText(
+        find.byKey(const ValueKey('occasions-search')),
+        'یاسر',
+      );
+      await settle(tester);
+      expect(find.byKey(const ValueKey('occasion-b')), findsOneWidget);
+      expect(find.byKey(const ValueKey('occasion-a')), findsNothing);
+    });
+  });
+
+  group('saving a date that may already be kept', () {
+    // The month of a day some ways off, chosen from the editor's dropdown.
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    Future<void> pickTheMonth(WidgetTester tester, DateTime when) async {
+      await tester.tap(find.byKey(const ValueKey('occasion-field-month')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(months[when.month - 1]).last);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the same name on the same day asks once', (tester) async {
+      final when = DateTime.now().add(const Duration(days: 10));
+      await store.put(
+        'occasion',
+        'a',
+        body(title: 'Sara', month: when.month, day: when.day),
+      );
+      await pump(tester, OccasionsScreen(store: store));
+      await tester.tap(find.byKey(const ValueKey('occasions-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('occasion-field-title')),
+        'Sara',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('occasion-field-day')),
+        '${when.day}',
+      );
+      await pickTheMonth(tester, when);
+      await tester.tap(find.byKey(const ValueKey('occasion-save')));
+      await settle(tester);
+      expect(find.text('Already kept?'), findsOneWidget);
+      expect(find.textContaining('Sara keeps this same day.'), findsOneWidget);
+      expect(await store.list('occasion'), hasLength(1));
+      // Staying keeps the sheet open, nothing saved.
+      await tester.tap(find.byKey(const ValueKey('occasion-duplicate-stay')));
+      await tester.pumpAndSettle();
+      expect(await store.list('occasion'), hasLength(1));
+      expect(find.byKey(const ValueKey('occasion-save')), findsOneWidget);
+      // Saying save anyway keeps both.
+      await tester.tap(find.byKey(const ValueKey('occasion-save')));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('occasion-duplicate-save')));
+      await settle(tester);
+      expect(await store.list('occasion'), hasLength(2));
+    });
+
+    testWidgets('a different name saves without asking', (tester) async {
+      final when = DateTime.now().add(const Duration(days: 10));
+      await store.put(
+        'occasion',
+        'a',
+        body(title: 'Sara', month: when.month, day: when.day),
+      );
+      await pump(tester, OccasionsScreen(store: store));
+      await tester.tap(find.byKey(const ValueKey('occasions-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('occasion-field-title')),
+        'Maya',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('occasion-field-day')),
+        '${when.day}',
+      );
+      await pickTheMonth(tester, when);
+      await tester.tap(find.byKey(const ValueKey('occasion-save')));
+      await settle(tester);
+      expect(find.text('Already kept?'), findsNothing);
+      expect(await store.list('occasion'), hasLength(2));
+    });
+  });
+
+  group('the reminder lead times offered', () {
+    testWidgets('a kept 14 days shows its choice, not none', (tester) async {
+      final when = DateTime.now().add(const Duration(days: 10));
+      await store.put(
+        'occasion',
+        'a',
+        body(title: 'Sara', month: when.month, day: when.day)
+          ..['remindDays'] = 14,
+      );
+      await pump(tester, OccasionDetailScreen(store: store, occasionId: 'a'));
+      await tester.tap(find.byKey(const ValueKey('occasion-edit')));
+      await tester.pumpAndSettle();
+      final chip = tester.widget<ChoiceChip>(
+        find.byKey(const ValueKey('occasion-remind-14')),
+      );
+      expect(chip.selected, isTrue);
+      expect(find.byKey(const ValueKey('occasion-remind-30')), findsOneWidget);
+    });
+  });
+
+  group('a row reads as one line to a screen reader', () {
+    testWidgets('who, what kind, when and the age it comes to', (tester) async {
+      final soon = DateTime.now().add(const Duration(days: 4));
+      await store.put(
+        'occasion',
+        'a',
+        body(
+          title: 'Sara',
+          month: soon.month,
+          day: soon.day,
+          year: soon.year - 30,
+        ),
+      );
+      final later = DateTime.now().add(const Duration(days: 40));
+      await store.put(
+        'occasion',
+        'b',
+        body(
+          title: 'Maya',
+          month: later.month,
+          day: later.day,
+          year: later.year - 10,
+        ),
+      );
+      await pump(tester, OccasionsScreen(store: store));
+      // Maya is never the hero card, so her line can only be the row's own:
+      // who, what kind of date, when it comes, the age it comes to.
+      expect(
+        find.bySemanticsLabel('Maya, Birthday, in 40 days, turns 10'),
+        findsOneWidget,
+      );
+      // Sara is the hero card and a row, and says the same thing both times.
+      expect(
+        find.bySemanticsLabel('Sara, Birthday, in 4 days, turns 30'),
+        findsNWidgets(2),
+      );
+    });
+  });
 }
