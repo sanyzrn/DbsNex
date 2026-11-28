@@ -64,6 +64,10 @@ class _EventEditorSheetState extends State<EventEditorSheet> {
   late final TextEditingController _task = TextEditingController(
     text: _seed?.task ?? '',
   );
+  // Rials are offered, but a toman is what an Iranian reads a service
+  // bill in — the way the fuel log counts — so the editor opens there;
+  // the toggle beside the field switches, and the amount moves with it.
+  late IrrUnit _irrUnit = IrrUnit.toman;
   late final _cost = NexMoneyController(
     decimalComma: true,
     text: () {
@@ -75,7 +79,14 @@ class _EventEditorSheetState extends State<EventEditorSheet> {
           costCurrencyOf(seed.currency) == null) {
         return '';
       }
-      return costMajorText(seed.cost!, costExponentOf(seed.currency));
+      // The prefill is written in the unit the toggle is on: a rial
+      // amount shown as tomans, or it would multiply by ten on save.
+      return costMajorText(
+        seed.cost!,
+        seed.currency == 'IRR' && _irrUnit == IrrUnit.toman
+            ? 3
+            : costExponentOf(seed.currency),
+      );
     }(),
   );
   late final TextEditingController _meter = TextEditingController(
@@ -94,7 +105,6 @@ class _EventEditorSheetState extends State<EventEditorSheet> {
   );
 
   late CostCurrency? _currency = _initialCurrency();
-  late IrrUnit _irrUnit = IrrUnit.rial;
 
   late final MaintenanceEditorDraft _draft;
   late MeterKind _entryKind = widget.existing == null

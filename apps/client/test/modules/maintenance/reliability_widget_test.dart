@@ -8,6 +8,7 @@ import 'package:nex_client/modules/maintenance/asset_editor.dart';
 import 'package:nex_client/modules/maintenance/event_editor.dart';
 import 'package:nex_client/modules/maintenance/rule_editor.dart';
 import 'package:nex_client/modules/maintenance/reading_editor.dart';
+
 import '../../support/nex_harness.dart';
 
 void main() {
@@ -148,6 +149,55 @@ void main() {
       '12.5',
     );
     expect(tester.takeException(), isNull);
+  });
+  testWidgets('an existing service cost stays exact across unit toggles', (
+    tester,
+  ) async {
+    final event = ServiceEvent(
+      id: 'service',
+      assetId: asset.id,
+      date: DateTime.now(),
+      task: 'Oil',
+      cost: 123456,
+      currency: 'IRR',
+    );
+    await tester.runAsync(() => controller.saveEvent(event));
+    await host(
+      tester,
+      (context) => showEventEditor(
+        context,
+        controller: controller,
+        asset: asset,
+        existing: event,
+      ),
+    );
+    final finder = find.byKey(const ValueKey('maintenance-cost'));
+    String amount() => nexUngroupMoney(
+      tester.widget<TextField>(finder).controller!.text,
+      decimalComma: true,
+    );
+    expect(amount(), '123.456');
+    await tester.ensureVisible(find.text('Rials'));
+    await tester.tap(find.text('Rials'));
+    await tester.pumpAndSettle();
+    expect(amount(), '1234.56');
+    await tester.tap(find.text('Tomans'));
+    await tester.pumpAndSettle();
+    expect(amount(), '123.456');
+    await tester.tap(find.byKey(const ValueKey('maintenance-event-save')));
+    await tester.pumpAndSettle();
+    for (
+      var i = 0;
+      i < 30 && find.byType(EventEditorSheet).evaluate().isNotEmpty;
+      i++
+    ) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pumpAndSettle();
+    }
+    expect(find.byType(EventEditorSheet), findsNothing);
+    expect((await store.get('event', event.id))?['cost'], 123456);
   });
   for (final fa in [false, true]) {
     for (final kind in ['asset', 'event', 'rule', 'reading']) {

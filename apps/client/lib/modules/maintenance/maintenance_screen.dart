@@ -5,6 +5,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'asset_editor.dart';
 import 'asset_page.dart';
+import 'car_logic.dart';
 import 'controller.dart';
 import 'logic.dart';
 import 'models.dart';
@@ -84,6 +85,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen>
     }
     final groups = <AssetGroup, List<MaintenanceAsset>>{};
     for (final asset in controller.assets) {
+      final car = carStandingOf(asset, _openedAt);
       final group = assetGroupOf(
         asset,
         standings[asset.id] ?? [],
@@ -91,6 +93,8 @@ class _MaintenanceScreenState extends State<MaintenanceScreen>
         incompleteRules: controller.invalidRules.any(
           (r) => r.body['assetId'] == asset.id,
         ),
+        carDue: car.due,
+        carComingUp: car.comingUp,
       );
       groups.putIfAbsent(group, () => []).add(asset);
     }

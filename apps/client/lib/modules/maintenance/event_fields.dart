@@ -55,7 +55,16 @@ class EventCostFields extends StatelessWidget {
           decoration: InputDecoration(
             labelText: s(context, 'costLabel'),
             hintText: s(context, 'costHint'),
-            suffixText: currency?.code,
+            // For rials the suffix says which of the two is being typed —
+            // the code below the field names the currency itself.
+            suffixText: switch (currency?.code) {
+              null => null,
+              'IRR' => s(
+                context,
+                irrUnit == IrrUnit.toman ? 'tomanUnit' : 'rialUnit',
+              ),
+              final code => code,
+            },
             errorText: error,
           ),
           onChanged: (_) => onChanged(),

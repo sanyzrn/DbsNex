@@ -229,7 +229,9 @@ void main() {
           cost: '1500',
         );
         expect(find.text('oil change'), findsAtLeast(1));
-        expect(find.text('1,500 IRR'), findsAtLeast(1));
+        // The editor opens in tomans — an Iranian reads a service bill in
+        // them — so 1,500 typed becomes 15,000 rials stored and shown.
+        expect(find.text('15,000 IRR'), findsAtLeast(1));
         // The row's subtitle joins date and reading with a middle dot.
         expect(find.textContaining('100,000 km at service'), findsOneWidget);
         expect(find.textContaining('Today'), findsOneWidget);
@@ -322,7 +324,7 @@ void main() {
       await tester.tap(find.text('My car'));
       await tester.pumpAndSettle();
       expect(find.text('oil change'), findsAtLeast(1));
-      expect(find.text('300 IRR'), findsAtLeast(1));
+      expect(find.text('3,000 IRR'), findsAtLeast(1));
     });
   });
 

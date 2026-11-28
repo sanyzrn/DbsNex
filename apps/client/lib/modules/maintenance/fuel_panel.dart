@@ -5,6 +5,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'car_logic.dart';
 import 'controller.dart';
+import 'costs.dart';
 import 'fuel_editor.dart';
 import 'fuel_rates_sheet.dart';
 import 'maintenance_widgets.dart';
@@ -149,36 +150,76 @@ class _QuotaLine extends StatelessWidget {
     final theme = Theme.of(context);
     final persian = NexModuleStrings.persian(context);
     final left = rate.quota - used;
-    final text = rate.quota == 0
-        ? s(context, 'fuelNoQuota')
-        : left >= 0
-        ? s(context, 'fuelQuotaLeft', {
-            'used': formatLitres(used, persian: persian),
-            'quota': formatLitres(rate.quota, persian: persian),
-          })
-        : s(context, 'fuelOverQuota', {
-            'n': formatLitres(-left, persian: persian),
-          });
+    final over = rate.quota > 0 && left < 0;
+    final String text;
+    if (rate.quota == 0) {
+      text = used > 0
+          ? s(context, 'fuelQuotaNoneUsed', {
+              'used': formatLitres(used, persian: persian),
+            })
+          : s(context, 'fuelNoQuota');
+    } else {
+      text = left >= 0
+          ? s(context, 'fuelQuotaLeft', {
+              'used': formatLitres(used, persian: persian),
+              'quota': formatLitres(rate.quota, persian: persian),
+            })
+          : s(context, 'fuelOverQuota', {
+              'n': formatLitres(-left, persian: persian),
+            });
+    }
     return Padding(
       padding: const EdgeInsets.only(top: NexSpacing.xs),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: Text(
-              rate.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  // An untouched example still says so, so the quota is
+                  // never mistaken for the person's own number.
+                  rate.example
+                      ? '${rate.name} · ${s(context, 'fuelExampleTag')}'
+                      : rate.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+              const SizedBox(width: NexSpacing.xs),
+              Flexible(
+                child: Text(
+                  text,
+                  textAlign: TextAlign.end,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: over
+                        ? theme.colorScheme.error
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
           ),
-          Text(
-            text,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: left < 0 && rate.quota > 0
-                  ? theme.colorScheme.error
-                  : theme.colorScheme.onSurfaceVariant,
+          if (rate.quota > 0)
+            // The same calm bar a rule's standing uses, at the quota's
+            // own pace; it turns the error colour once the month is over.
+            Padding(
+              padding: const EdgeInsets.only(top: NexSpacing.xs),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(NexRadius.xs),
+                child: LinearProgressIndicator(
+                  value: (used / rate.quota).clamp(0.0, 1.0),
+                  minHeight: 4,
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  valueColor: AlwaysStoppedAnimation(
+                    over
+                        ? theme.colorScheme.error
+                        : NexHue.amber.of(theme.brightness),
+                  ),
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -196,6 +237,19 @@ class _FuelRow extends StatelessWidget {
     final s = maintenanceStrings;
     final theme = Theme.of(context);
     final persian = NexModuleStrings.persian(context);
+    // Convert rials and thousandths of a litre to thousandths of a toman
+    // per litre. Use exact arithmetic for all valid stored prices.
+    final perLitre = entry.priceRial > 0 && entry.litres > 0
+        ? s(context, 'fuelPerLitre', {
+            'price': formatCostNumber(
+              BigInt.from(entry.priceRial) *
+                  BigInt.from(100000) ~/
+                  BigInt.from(entry.litres),
+              3,
+              persian: persian,
+            ),
+          })
+        : null;
     return InkWell(
       key: ValueKey('maintenance-fuel-${entry.id}'),
       onTap: onTap,
@@ -220,9 +274,26 @@ class _FuelRow extends StatelessWidget {
                 ],
               ),
             ),
-            Text(
-              '${formatToman(entry.priceRial, persian: persian)} ${s(context, 'fuelPriceUnit')}',
-              style: theme.textTheme.bodyMedium,
+            const SizedBox(width: NexSpacing.xs),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${formatToman(entry.priceRial, persian: persian)} ${s(context, 'fuelPriceUnit')}',
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  if (perLitre != null)
+                    Text(
+                      perLitre,
+                      textAlign: TextAlign.end,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ],
         ),

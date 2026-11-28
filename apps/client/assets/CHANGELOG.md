@@ -4,6 +4,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Maintenance.** See upcoming insurance and inspection dates at a glance, renew them in one tap, and track fuel cost per litre and monthly quota usage. Service costs open in tomans, with rials a tap away.
+
 - **Formatting follows the selection.** Bold, italic and the rest now apply to what you selected, however you selected it — a tap or a drag moves the note's caret with it instead of leaving the toolbar working on the old position.
 
 - **Persian and English stay aligned in the same field.** Each paragraph follows its own direction as you type a new note, edit it, or fill in a multiline field.

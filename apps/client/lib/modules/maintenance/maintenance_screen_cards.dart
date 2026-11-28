@@ -26,7 +26,7 @@ class _GroupHeading extends StatelessWidget {
       AssetGroup.needsInfo => s(context, 'groupNeedsInfoNote'),
       AssetGroup.scheduled => s(context, 'groupScheduledNote'),
       AssetGroup.noSchedule => s(context, 'groupNoScheduleNote'),
-      AssetGroup.archived => s(context, 'unarchive'),
+      AssetGroup.archived => s(context, 'groupArchivedNote'),
     };
     return Padding(
       padding: const EdgeInsetsDirectional.only(
@@ -71,6 +71,28 @@ String maintenanceDigits(BuildContext context, int value) {
   return persian ? persianDigits('$value') : '$value';
 }
 
+/// What the car's own dates mean on the home screen: an insurance or
+/// inspection that has passed is something to do now, one inside the
+/// coming-up window is on its way — a car without any interval rule still
+/// lands in a group that tells the truth about it.
+({bool due, bool comingUp}) carStandingOf(
+  MaintenanceAsset asset,
+  DateTime now,
+) {
+  if (asset.type != 'car') return (due: false, comingUp: false);
+  var due = false, comingUp = false;
+  for (final date in [asset.insuranceExpiresAt, asset.inspectionExpiresAt]) {
+    final days = CarLogic.daysLeft(date, now);
+    if (days == null) continue;
+    if (days <= 0) {
+      due = true;
+    } else if (days <= comingUpDays) {
+      comingUp = true;
+    }
+  }
+  return (due: due, comingUp: comingUp);
+}
+
 /// The group's name, for the heading and the card's semantics label.
 String assetGroupTitle(BuildContext context, AssetGroup group) =>
     switch (group) {
@@ -97,6 +119,64 @@ class _AssetCard extends StatelessWidget {
   final DateTime now;
   final VoidCallback onTap;
 
+  /// The most urgent fact this asset has, as its subtitle: a service due
+  /// now, then the car's own dates when they fall inside the coming-up
+  /// window (or have passed), then a rule that is waiting on information,
+  /// then the next rule to come due — never simply whichever rule the
+  /// store happened to list first.
+  String? _urgent(BuildContext context) {
+    final s = maintenanceStrings;
+    for (final rule in standing) {
+      if (rule.dueNow(now)) return rule.rule.task;
+    }
+    final expiry = _carExpiryFact(context);
+    if (expiry != null) return expiry;
+    for (final rule in standing) {
+      if (rule.unknown) {
+        return rule.rule.hours != null
+            ? s(context, 'hoursDueUnknown')
+            : s(context, 'distanceDueUnknown');
+      }
+    }
+    RuleStanding? soonest;
+    for (final rule in standing) {
+      final at = rule.timeDue;
+      if (rule.timeUnknown || at == null) continue;
+      if (soonest == null || dayOf(at).isBefore(dayOf(soonest.timeDue!))) {
+        soonest = rule;
+      }
+    }
+    return soonest?.rule.task ??
+        (standing.isEmpty ? null : standing.first.rule.task);
+  }
+
+  /// The car's most pressing expiry — insurance or technical inspection —
+  /// inside the coming-up window or past it, in the reader's own digits.
+  String? _carExpiryFact(BuildContext context) {
+    if (asset.type != 'car') return null;
+    final s = maintenanceStrings;
+    String? label;
+    int? worst;
+    for (final (item, date) in [
+      (s(context, 'insuranceLabel'), asset.insuranceExpiresAt),
+      (s(context, 'inspectionLabel'), asset.inspectionExpiresAt),
+    ]) {
+      final days = CarLogic.daysLeft(date, now);
+      if (days == null || days > comingUpDays) continue;
+      if (worst == null || days < worst) {
+        worst = days;
+        label = item;
+      }
+    }
+    if (label == null || worst == null) return null;
+    final n = maintenanceDigits(context, worst.abs());
+    return '$label · ${worst < 0
+        ? s(context, 'carDaysPast', {'n': n})
+        : worst == 0
+        ? s(context, 'carDueToday')
+        : s(context, 'carDaysLeft', {'n': n})}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -107,20 +187,7 @@ class _AssetCard extends StatelessWidget {
       context,
       'type${asset.type[0].toUpperCase()}${asset.type.substring(1)}',
     );
-    // The most urgent fact this asset has, as its subtitle.
-    String? urgent;
-    for (final rule in standing) {
-      if (rule.dueNow(now)) {
-        urgent = rule.rule.task;
-        break;
-      }
-      if (rule.unknown) {
-        urgent ??= rule.rule.hours != null
-            ? s(context, 'hoursDueUnknown')
-            : s(context, 'distanceDueUnknown');
-      }
-    }
-    urgent ??= standing.isEmpty ? null : standing.first.rule.task;
+    final urgent = _urgent(context);
     return Semantics(
       label: s(context, 'assetSemantics', {
         'name': asset.nickname,

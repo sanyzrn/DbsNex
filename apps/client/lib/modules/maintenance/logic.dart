@@ -220,20 +220,32 @@ RuleStanding _standingOf(
 
 enum AssetGroup { dueNow, comingUp, scheduled, needsInfo, noSchedule, archived }
 
+/// Where an asset sits on the home screen. The car's own dates — insurance
+/// and technical inspection — are the caller's to judge ([carDue] when one
+/// has passed, [carComingUp] when one falls inside the coming-up window):
+/// an expired insurance is something to do now, exactly like a due service.
 AssetGroup assetGroupOf(
   MaintenanceAsset asset,
   List<RuleStanding> standings,
   DateTime now, {
   bool incompleteRules = false,
+  bool carDue = false,
+  bool carComingUp = false,
 }) {
   if (asset.archived) return AssetGroup.archived;
   if (!asset.valid) return AssetGroup.needsInfo;
-  if (standings.any((s) => s.dueNow(now))) return AssetGroup.dueNow;
+  if (standings.any((s) => s.dueNow(now)) || carDue) {
+    return AssetGroup.dueNow;
+  }
   if (incompleteRules || standings.any((s) => s.unknown)) {
     return AssetGroup.needsInfo;
   }
-  if (standings.isEmpty) return AssetGroup.noSchedule;
-  if (standings.any((s) => s.comingUp(now))) return AssetGroup.comingUp;
+  if (standings.isEmpty) {
+    return carComingUp ? AssetGroup.comingUp : AssetGroup.noSchedule;
+  }
+  if (standings.any((s) => s.comingUp(now)) || carComingUp) {
+    return AssetGroup.comingUp;
+  }
   return AssetGroup.scheduled;
 }
 

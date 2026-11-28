@@ -301,4 +301,14 @@ const _maintenancefa = <String, String>{
   'glanceAllClear': 'سررسید تاریخ‌داری نیست',
   'glanceAssets': '{n} وسیله زیر نظر',
   'glanceAssetsLabel': 'وسیله‌های زیر نظر',
+
+  // این دورِ اصلاح.
+  'groupArchivedNote': 'از نمای کلی کنار، با تمام تاریخچه‌اش نگه داشته شده',
+  'fuelRateDuplicate': 'دو نرخ نمی‌توانند یک نام داشته باشند.',
+  'fuelRateNameLong': 'حداکثر ۴۰ نویسه.',
+  'fuelBadDate': 'امروز یا روزهای پیش‌تر را انتخاب کنید',
+  'carRenewYear': 'تمدید شد — یک سال اضافه کن',
+  'fuelPerLitre': '{price} تومان بر لیتر',
+  'fuelQuotaNoneUsed': '{used} لیتر · بدون سهمیه',
+  'fuelExampleTag': 'نمونه',
 };
