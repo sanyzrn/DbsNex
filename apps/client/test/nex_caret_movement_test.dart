@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/widgets/nex_text_field.dart';
+import 'package:super_editor/super_editor.dart';
 
 /// Horizontal arrows move where the eye moves, not where the string goes.
 ///
@@ -71,7 +71,10 @@ void main() {
     // movement did the opposite.
     final controller = await pump(tester, 'سلام hello');
     expect(
-      tester.widget<TextField>(find.byType(TextField)).textDirection,
+      tester
+          .widget<ParagraphComponent>(find.byType(ParagraphComponent))
+          .viewModel
+          .textDirection,
       TextDirection.rtl,
     );
 
@@ -114,7 +117,10 @@ void main() {
     // character, as it does in any right-to-left text.
     final controller = await pump(tester, 'hello سلام');
     expect(
-      tester.widget<TextField>(find.byType(TextField)).textDirection,
+      tester
+          .widget<ParagraphComponent>(find.byType(ParagraphComponent))
+          .viewModel
+          .textDirection,
       TextDirection.ltr,
     );
 
@@ -171,14 +177,18 @@ void main() {
     expect(controller.selection.baseOffset, 5);
   });
 
-  RenderEditable editor(WidgetTester tester) =>
-      tester.state<EditableTextState>(find.byType(EditableText)).renderEditable;
+  DocumentComponent editor(WidgetTester tester) {
+    final editor = tester.widget<SuperEditor>(find.byType(SuperEditor));
+    final layout = editor.documentLayoutKey!.currentState! as DocumentLayout;
+    final node = editor.editor.document.first;
+    return layout.getComponentByNodeId(node.id)!;
+  }
 
-  double caretY(RenderEditable editable, int offset) =>
-      editable.getLocalRectForCaret(TextPosition(offset: offset)).center.dy;
+  double caretY(DocumentComponent component, int offset) =>
+      component.getRectForPosition(TextNodePosition(offset: offset)).center.dy;
 
   /// The last caret offset drawn on the same visual line as [from].
-  int endOfLine(RenderEditable editable, int length, [int from = 0]) {
+  int endOfLine(DocumentComponent editable, int length, [int from = 0]) {
     final y = caretY(editable, from);
     var end = from;
     while (end < length && (caretY(editable, end + 1) - y).abs() <= 1) {
@@ -389,25 +399,23 @@ void main() {
   testWidgets('moving across paragraphs keeps the editor, focus and keyboard', (
     tester,
   ) async {
-    // The direction turns as the caret crosses into the English paragraph.
-    // That is a rebuild of the layout, never of the editor: the same element
-    // keeps the focus, the selection and the one input connection.
     final controller = await pump(tester, 'سلام\nhello');
-    final editor = find.byType(EditableText);
-    final before = tester.state<EditableTextState>(editor);
+    final editor = find.byType(SuperEditor);
+    final before = tester.state(editor);
     final log = tester.testTextInput.log;
     log.clear();
 
     await place(tester, controller, 4);
     await press(tester, LogicalKeyboardKey.arrowDown);
 
-    expect(tester.state<EditableTextState>(editor), same(before));
-    expect(before.widget.focusNode.hasFocus, isTrue);
-    expect(controller.selection.isValid, isTrue);
+    expect(tester.state(editor), same(before));
+    expect(tester.widget<SuperEditor>(editor).focusNode!.hasFocus, isTrue);
+    expect(controller.selection.baseOffset, greaterThanOrEqualTo(5));
     expect(
-      tester.widget<TextField>(find.byType(TextField)).textDirection,
-      TextDirection.ltr,
-      reason: 'the caret crossed into the English paragraph',
+      tester
+          .widgetList<ParagraphComponent>(find.byType(ParagraphComponent))
+          .map((paragraph) => paragraph.viewModel.textDirection),
+      [TextDirection.rtl, TextDirection.ltr],
     );
     expect(
       log.map((call) => call.method),

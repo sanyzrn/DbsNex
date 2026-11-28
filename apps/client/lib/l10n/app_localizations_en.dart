@@ -7144,4 +7144,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editCode => 'Edit code';
+
+  @override
+  String get formatMenu => 'Formatting';
 }

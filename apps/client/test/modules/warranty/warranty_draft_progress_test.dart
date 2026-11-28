@@ -4,7 +4,9 @@ import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/warranty/warranty_editor.dart';
 import 'package:nex_client/modules/warranty/warranty_widgets.dart';
 import 'package:nex_client/modules/warranty/local_writes.dart';
+
 import '../../support/nex_harness.dart';
+import '../../support/text_input.dart';
 
 void main() {
   late NexTestHarness h;
@@ -55,7 +57,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.enterText(
+      await enterNexText(
+        tester,
         find.byKey(const ValueKey('warranty-field-product')),
         'Typed correction',
       );
@@ -94,7 +97,8 @@ void main() {
         host(WarrantyClaimSheet(store: store, parentId: parent, kind: 'claim')),
       );
       await tester.pumpAndSettle();
-      await tester.enterText(
+      await enterNexText(
+        tester,
         find.byKey(const ValueKey('warranty-claim-field')),
         'Draft $parent',
       );

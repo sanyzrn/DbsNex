@@ -8,6 +8,7 @@ import 'package:nex_client/modules/security_tools/security_home.dart';
 import 'package:nex_client/modules/security_tools/secret_screen.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/text_input.dart';
 
 class SecurityFaultStore extends NexModuleStore {
   SecurityFaultStore(NexTestHarness h) : super(h.services, 'security_tools');
@@ -95,7 +96,8 @@ void main() {
       expect(find.text('0 actions confirmed'), findsOneWidget);
       await t.tap(find.byKey(const ValueKey('security-add')));
       await settleSecurity(t);
-      await t.enterText(
+      await enterNexText(
+        t,
         find.byKey(const ValueKey('security-label')),
         'Personal email',
       );
@@ -149,7 +151,11 @@ void main() {
     await home(t);
     await t.tap(find.byKey(const ValueKey('security-add')));
     await settleSecurity(t);
-    await t.enterText(find.byKey(const ValueKey('security-label')), 'Email');
+    await enterNexText(
+      t,
+      find.byKey(const ValueKey('security-label')),
+      'Email',
+    );
     await choose(t, 'unique', 'Done');
     store.badWrite = true;
     await save(t);
@@ -323,7 +329,8 @@ void main() {
       await settleSecurity(t);
       final field = find.byKey(const ValueKey('security-url'));
       await revealSecurity(t, field);
-      await t.enterText(
+      await enterNexText(
+        t,
         field,
         'https://name:unused@evil.test/path?token=fixture',
       );
@@ -339,7 +346,7 @@ void main() {
         'evil.test',
       );
       await revealSecurity(t, field);
-      await t.enterText(field, 'https://example.org');
+      await enterNexText(t, field, 'https://example.org');
       await t.pumpAndSettle();
       expect(find.byKey(const ValueKey('security-host')), findsNothing);
       t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);

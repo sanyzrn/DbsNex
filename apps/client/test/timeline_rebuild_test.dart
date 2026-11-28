@@ -32,6 +32,7 @@ import 'package:nex_client/widgets/note_grid_card.dart';
 import 'package:nex_client/widgets/first_run_tour.dart';
 
 import 'support/in_process_db.dart';
+import 'support/text_input.dart';
 
 /// What the timeline promises after the rebuild: it never lies about being
 /// empty, it confirms a capture landed, it finds things without leaving, and
@@ -334,10 +335,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final fields = find.byType(TextField);
+    final fields = nexInputs();
     expect(fields, findsNWidgets(2));
-    await tester.enterText(fields.first, 'Sany');
-    await tester.enterText(fields.last, 'I write music and collect ideas.');
+    await enterNexText(tester, fields.first, 'Sany');
+    await enterNexText(tester, fields.last, 'I write music and collect ideas.');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
@@ -914,7 +915,7 @@ void main() {
       reason: 'the results run under the bar the field is in',
     );
 
-    await tester.enterText(field, 'rockets');
+    await enterNexText(tester, field, 'rockets');
     await tester.pumpAndSettle();
     expect(find.text('a note about rockets'), findsOneWidget);
     expect(find.text('a note about bread'), findsNothing);
@@ -1218,7 +1219,7 @@ void main() {
 
     await tester.tap(find.byType(TextField));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'platypus');
+    await enterNexText(tester, nexInputs(), 'platypus');
     await tester.pumpAndSettle(const Duration(milliseconds: 200));
 
     expect(find.text('a rare word: platypus'), findsOneWidget);
@@ -1248,7 +1249,7 @@ void main() {
 
     await tester.tap(find.byType(TextField));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'platypus');
+    await enterNexText(tester, nexInputs(), 'platypus');
     await tester.pumpAndSettle(const Duration(milliseconds: 200));
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.focusNode!.hasFocus, isTrue);

@@ -8,6 +8,7 @@ import 'package:nex_client/platform/nex_services.dart';
 import '../../support/add_button.dart';
 import '../../support/more_details.dart';
 import '../../support/nex_harness.dart';
+import '../../support/text_input.dart';
 
 part 'medicine_more_cases.dart';
 part 'medicine_test_helpers.dart';

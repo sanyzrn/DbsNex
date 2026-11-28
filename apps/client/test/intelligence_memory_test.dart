@@ -17,6 +17,7 @@ import 'package:nex_client/widgets/nex_text_field.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
 Widget app(Widget body, {String locale = 'en', bool dark = false}) =>
     MaterialApp(
@@ -96,13 +97,10 @@ void main() {
         await tester.pumpAndSettle();
         final field = find.descendant(
           of: find.byKey(const ValueKey('memory-introduction')),
-          matching: find.byType(TextField),
+          matching: nexInputs(),
         );
-        expect(
-          tester.widget<TextField>(field).controller!.text,
-          'Existing introduction',
-        );
-        await tester.enterText(field, 'Updated introduction');
+        expect(nexInputController(tester, field).text, 'Existing introduction');
+        await enterNexText(tester, field, 'Updated introduction');
         await tester.pumpAndSettle();
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
@@ -113,10 +111,7 @@ void main() {
         await tester.tap(toggle);
         await tester.pumpAndSettle();
         expect(find.text(l10n.memoryConsentBody), findsNothing);
-        expect(
-          tester.widget<TextField>(field).controller!.text,
-          'Updated introduction',
-        );
+        expect(nexInputController(tester, field).text, 'Updated introduction');
         await h.preferences.setAiEnabled(false);
         await tester.pumpAndSettle();
         expect(tester.widget<NexSwitchTile>(toggle).onChanged, isNull);
@@ -267,11 +262,15 @@ void main() {
     await tester.pumpAndSettle();
     final field = find.descendant(
       of: find.byType(AiChatSheet),
-      matching: find.byType(TextField),
+      matching: nexInputs(),
     );
     for (final on in [false, true, false]) {
       await h.preferences.setAiMemoryEnabled(on);
-      await tester.enterText(field, on ? 'With context' : 'Without context');
+      await enterNexText(
+        tester,
+        field,
+        on ? 'With context' : 'Without context',
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();

@@ -6,14 +6,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/widgets/keyboard_dismisser.dart';
 import 'package:nex_client/widgets/nex_text_field.dart';
+import 'package:nex_client/widgets/nex_paragraph_editor.dart';
+import 'package:super_editor/src/test/ime.dart';
+import 'package:super_editor/super_editor.dart';
 
-/// The one editor (ADR-037), the framework's own. No platform view is
-/// created on any platform, so no field-to-field transition ever passes
-/// through the engine's input-client switch — the thing that closed and
-/// reopened the keyboard between fields through 2.9.1–2.9.3. These tests
-/// hold that line: typing, the direction of the paragraph being written,
-/// and the keyboard's continuity between fields, all through the
-/// framework's own `TextField`.
+import 'support/text_input.dart';
+
+List<TextDirection> _directions(WidgetTester tester) => [
+  for (final element in find.byType(ParagraphComponent).evaluate())
+    (element.widget as ParagraphComponent).viewModel.textDirection,
+];
+
 void main() {
   Future<void> pump(WidgetTester tester, Widget field) async {
     await tester.pumpWidget(
@@ -49,12 +52,9 @@ void main() {
         final controller = TextEditingController(text: 'سلام');
         addTearDown(controller.dispose);
         await pump(tester, NexTextField(controller: controller, maxLines: 5));
-        await tester.enterText(
-          find.byType(EditableText),
-          'typing in ${platform.name}',
-        );
+        await enterNexText(tester, nexInputs(), 'typing in ${platform.name}');
         expect(creates, 0, reason: 'the editor embedded a view on $platform');
-        expect(find.byType(TextField), findsOneWidget);
+        expect(find.byType(NexParagraphEditor), findsOneWidget);
       }
     } finally {
       debugDefaultTargetPlatformOverride = null;
@@ -107,7 +107,7 @@ void main() {
     expect(title.hasFocus, isTrue);
     tester.testTextInput.log.clear();
     await tester.tap(find.byKey(const ValueKey('body')));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(body.hasFocus, isTrue);
     expect(
       tester.testTextInput.log.map((call) => call.method),
@@ -162,7 +162,7 @@ void main() {
     expect(note.hasFocus, isTrue);
     tester.testTextInput.log.clear();
     await tester.tap(find.byKey(const ValueKey('name')));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(name.hasFocus, isTrue);
     expect(
       tester.testTextInput.log.map((call) => call.method),
@@ -170,73 +170,34 @@ void main() {
     );
   });
 
-  testWidgets('the field follows the paragraph the caret is in', (
+  testWidgets('moving or reversing a selection keeps each paragraph in place', (
     tester,
   ) async {
-    // ADR-037's rule, moved to where it is felt: the paragraph being
-    // written owns the field's direction, so a two-language note is laid
-    // out around whichever paragraph the caret is in — and only that one.
     final controller = TextEditingController(text: 'سلام\nhello\nدوباره');
     addTearDown(controller.dispose);
     await pump(
       tester,
       NexTextField(controller: controller, maxLines: 5, autofocus: true),
     );
-    TextField field() => tester.widget<TextField>(find.byType(TextField));
-    controller.selection = const TextSelection.collapsed(offset: 2);
-    await tester.pump();
-    expect(field().textDirection, TextDirection.rtl);
-    controller.selection = const TextSelection.collapsed(offset: 7);
-    await tester.pump();
-    expect(field().textDirection, TextDirection.ltr);
-    controller.selection = const TextSelection.collapsed(offset: 4);
-    await tester.pump();
-    expect(field().textDirection, TextDirection.rtl);
-  });
-
-  testWidgets('the field turns in place: same editor, same focus', (
-    tester,
-  ) async {
-    // The direction moves with the caret, which changes the layout, and
-    // only the layout: a field rebuilt from scratch when it turned would
-    // lose the very focus and selection the turn is happening to.
-    final controller = TextEditingController(text: 'سلام\nhello');
-    addTearDown(controller.dispose);
-    await pump(
-      tester,
-      NexTextField(controller: controller, maxLines: 5, autofocus: true),
-    );
-    final editor = find.byType(EditableText);
-    final before = tester.state<EditableTextState>(editor);
-    expect(before.widget.focusNode.hasFocus, isTrue);
-    controller.selection = const TextSelection.collapsed(offset: 7);
-    await tester.pump();
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).textDirection,
-      TextDirection.ltr,
-    );
-    expect(tester.state<EditableTextState>(editor), same(before));
-    expect(before.widget.focusNode.hasFocus, isTrue);
-    expect(controller.selection.isValid, isTrue);
-  });
-
-  testWidgets("a selection being dragged keeps the anchor's side", (
-    tester,
-  ) async {
-    // The anchor is the end a selection is *from* — the one that stays
-    // put while the other is dragged. A field that followed the dragged
-    // end would relayout under the finger as it crossed into a paragraph
-    // written in the other language.
-    final controller = TextEditingController(text: 'سلام\nhello');
-    addTearDown(controller.dispose);
-    await pump(tester, NexTextField(controller: controller, maxLines: 5));
-    controller.selection = const TextSelection(baseOffset: 2, extentOffset: 7);
-    await tester.pump();
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).textDirection,
+    final editor = find.byType(SuperEditor);
+    final state = tester.state(editor);
+    const directions = [
       TextDirection.rtl,
-      reason: 'the anchor is in the Persian paragraph',
-    );
+      TextDirection.ltr,
+      TextDirection.rtl,
+    ];
+    expect(_directions(tester), directions);
+    for (final selection in [
+      const TextSelection.collapsed(offset: 7),
+      const TextSelection(baseOffset: 9, extentOffset: 2),
+      const TextSelection.collapsed(offset: 2),
+    ]) {
+      controller.selection = selection;
+      await tester.pump();
+      expect(_directions(tester), directions);
+      expect(tester.state(editor), same(state));
+      expect(tester.widget<SuperEditor>(editor).focusNode!.hasFocus, isTrue);
+    }
   });
 
   testWidgets('a fixed direction is kept, whatever is typed', (tester) async {
@@ -289,10 +250,8 @@ void main() {
     expect(code.smartDashesType, SmartDashesType.disabled);
     expect(code.smartQuotesType, SmartQuotesType.disabled);
     await pump(tester, NexTextField(controller: controller, maxLines: 3));
-    final prose = tester.widget<TextField>(find.byType(TextField));
-    expect(prose.enableSuggestions, isTrue);
-    expect(prose.smartDashesType, SmartDashesType.enabled);
-    expect(prose.smartQuotesType, SmartQuotesType.enabled);
+    final prose = tester.widget<SuperEditor>(find.byType(SuperEditor));
+    expect(prose.imeConfiguration!.enableSuggestions, isTrue);
   });
 
   testWidgets('typing reaches the controller the same frame', (tester) async {
@@ -311,7 +270,7 @@ void main() {
         },
       ),
     );
-    await tester.enterText(find.byType(EditableText), 'typed by nobody');
+    await enterNexText(tester, nexInputs(), 'typed by nobody');
     expect(controller.text, 'typed by nobody');
     expect(changed, 'typed by nobody');
   });
@@ -325,7 +284,7 @@ void main() {
     await pump(tester, NexTextField(controller: controller, maxLines: 3));
     controller.text = 'changed from Dart';
     await tester.pump();
-    expect(find.text('changed from Dart'), findsOneWidget);
+    expect(find.text('changed from Dart', findRichText: true), findsOneWidget);
   });
 
   testWidgets('typing and parent rebuilds keep the editor element', (
@@ -355,15 +314,17 @@ void main() {
       ),
     );
     await tester.pump();
-    final before = tester.state<EditableTextState>(find.byType(EditableText));
-    await tester.enterText(find.byType(EditableText), 'typing');
+    final before = tester.state(find.byType(SuperEditor));
+    await enterNexText(tester, nexInputs(), 'typing');
     await tester.pump();
     expect(builds, greaterThan(1));
+    expect(tester.state(find.byType(SuperEditor)), same(before));
     expect(
-      tester.state<EditableTextState>(find.byType(EditableText)),
-      same(before),
+      tester
+          .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+          .maxLength,
+      10,
     );
-    expect(tester.widget<TextField>(find.byType(TextField)).maxLength, 10);
   });
 
   testWidgets('Enter sends where the field sends', (tester) async {
@@ -378,7 +339,7 @@ void main() {
         onSubmitted: (value) => submitted = value,
       ),
     );
-    await tester.enterText(find.byType(EditableText), 'the text');
+    await enterNexText(tester, nexInputs(), 'the text');
     await tester.testTextInput.receiveAction(TextInputAction.send);
     expect(submitted, 'the text');
   });
@@ -390,7 +351,7 @@ void main() {
       tester,
       NexTextField(controller: controller, maxLength: 5, maxLines: 3),
     );
-    await tester.enterText(find.byType(EditableText), 'abcdefgh');
+    await enterNexText(tester, nexInputs(), 'abcdefgh');
     expect(controller.text, 'abcde');
   });
 
@@ -406,7 +367,7 @@ void main() {
         inputFormatters: [FilteringTextInputFormatter.deny(RegExp('x'))],
       ),
     );
-    await tester.enterText(find.byType(EditableText), 'axbxc');
+    await enterNexText(tester, nexInputs(), 'axbxc');
     expect(controller.text, 'abc');
   });
 
@@ -501,73 +462,48 @@ void main() {
     expect(controller.text, 'hello world');
   });
 
-  testWidgets('the handles and lens are the framework\'s, and on', (
-    tester,
-  ) async {
-    // 2.9.4 removed the custom magnifier bridge the native editor needed. The
-    // framework's lens is the one that remains, and it is on by default — but
-    // a later edit that passed `TextMagnifierConfiguration.disabled` would be
-    // invisible in review, so it is stated and held here. The direction above
-    // the field is what puts the handles on the ends the paragraph is drawn
-    // between; `nex_text_direction_test.dart` holds that separately.
-    final controller = TextEditingController(text: 'متن فارسی');
-    addTearDown(controller.dispose);
-    await pump(tester, NexTextField(controller: controller, maxLines: 3));
-    final field = tester.widget<TextField>(find.byType(TextField));
-    expect(
-      field.magnifierConfiguration,
-      TextMagnifier.adaptiveMagnifierConfiguration,
-      reason: 'the selection lens was disabled',
-    );
-    expect(
-      Directionality.of(tester.element(find.byType(TextField))),
-      TextDirection.rtl,
-      reason: 'the handles resolve against this direction',
-    );
-  });
-
   testWidgets('a composing paragraph keeps its text, composition and focus', (
     tester,
   ) async {
-    // The IME owns the composing region until it commits. The direction turn
-    // from an empty field to a right-to-left paragraph rebuilds the layout;
-    // it must not rebuild the editor, drop the focus, or clear the region.
     final controller = TextEditingController();
     addTearDown(controller.dispose);
     await pump(
       tester,
       NexTextField(controller: controller, maxLines: 5, autofocus: true),
     );
-    await tester.showKeyboard(find.byType(EditableText));
-    tester.testTextInput.updateEditingValue(
-      const TextEditingValue(
-        text: 'سلام',
-        selection: TextSelection.collapsed(offset: 4),
-        composing: TextRange(start: 0, end: 4),
+    await showNexKeyboard(tester, nexInputs());
+    final editor = find.byType(SuperEditor);
+    final state = tester.state(editor);
+    final client = imeClientGetter();
+    final before = client.currentTextEditingValue!;
+    final at = before.selection.extentOffset;
+    client.updateEditingValueWithDeltas([
+      TextEditingDeltaInsertion(
+        oldText: before.text,
+        textInserted: 'سلام',
+        insertionOffset: at,
+        selection: TextSelection.collapsed(offset: at + 4),
+        composing: TextRange(start: at, end: at + 4),
       ),
-    );
+    ]);
     await tester.pump();
     expect(controller.value.composing, const TextRange(start: 0, end: 4));
     expect(controller.text, 'سلام');
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).textDirection,
-      TextDirection.rtl,
-    );
-    final editor = find.byType(EditableText);
-    final state = tester.state<EditableTextState>(editor);
-    expect(state.widget.focusNode.hasFocus, isTrue);
+    expect(_directions(tester), [TextDirection.rtl]);
 
-    tester.testTextInput.updateEditingValue(
-      const TextEditingValue(
-        text: 'سلام',
-        selection: TextSelection.collapsed(offset: 4),
+    final composed = client.currentTextEditingValue!;
+    client.updateEditingValueWithDeltas([
+      TextEditingDeltaNonTextUpdate(
+        oldText: composed.text,
+        selection: composed.selection,
+        composing: TextRange.empty,
       ),
-    );
+    ]);
     await tester.pump();
     expect(controller.value.composing, TextRange.empty);
     expect(controller.text, 'سلام');
-    expect(tester.state<EditableTextState>(editor), same(state));
-    expect(state.widget.focusNode.hasFocus, isTrue);
+    expect(tester.state(editor), same(state));
+    expect(tester.widget<SuperEditor>(editor).focusNode!.hasFocus, isTrue);
   });
 
   testWidgets('the decoration is the one it was given', (tester) async {
@@ -584,7 +520,10 @@ void main() {
       ),
     );
     expect(
-      tester.widget<TextField>(find.byType(TextField)).decoration!.hintText,
+      tester
+          .widget<InputDecorator>(find.byType(InputDecorator))
+          .decoration
+          .hintText,
       'Write a note',
     );
     expect(find.text('Write a note'), findsOneWidget);

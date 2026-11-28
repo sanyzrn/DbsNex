@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/widgets/persian_date_picker.dart';
+import 'package:nex_client/widgets/nex_paragraph_editor.dart';
 import 'package:nex_client/widgets/note_editor_sheet.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/display_date.dart';
@@ -92,12 +93,23 @@ void main() {
         ),
       );
       await tester.pumpWidget(editor());
-      await tester.enterText(find.byType(TextField), 'Unfinished فارسی');
+      const unfinished = 'Unfinished فارسی';
+      tester
+          .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+          .controller
+          .value = const TextEditingValue(
+        text: unfinished,
+        selection: TextSelection.collapsed(offset: unfinished.length),
+      );
+      await tester.pumpAndSettle();
       await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(editor());
       await tester.pumpAndSettle();
       expect(
-        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        tester
+            .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+            .controller
+            .text,
         'Unfinished فارسی',
       );
       expect(tester.takeException(), isNull);

@@ -6,6 +6,7 @@ import 'package:nex_client/modules/words/words_screen.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/text_input.dart';
 
 /// The review session on screen: due and new cards in one queue, tap to
 /// reveal, answer and move on, the double-tap guard, the day's
@@ -307,7 +308,8 @@ void main() {
       );
       expect(find.byKey(const ValueKey('words-batch-add')), findsNothing);
 
-      await tester.enterText(
+      await enterNexText(
+        tester,
         find.byKey(const ValueKey('words-batch-text')),
         'zephyr\n  harbor  \n\nlantern\nzephyr',
       );

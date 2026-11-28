@@ -13,6 +13,7 @@ import 'package:nex_client/modules/smoke_free/sos_sheet.dart';
 import '../../support/nex_harness.dart';
 import 'quit_details.dart';
 import 'reliability_test.dart' show FaultStore;
+import '../../support/text_input.dart';
 
 class DraftFault extends FaultStore {
   DraftFault(super.inner) {
@@ -186,7 +187,8 @@ void main() {
       await revealQuit(t, find.byKey(const ValueKey('quit-plan-edit')));
       await t.tap(find.byKey(const ValueKey('quit-plan-edit')));
       await settle(t);
-      await t.enterText(
+      await enterNexText(
+        t,
         find.byKey(const ValueKey('quit-plan-field')),
         'After tea, I will walk.',
       );
@@ -237,7 +239,8 @@ void main() {
     await t.tap(find.text('Coffee'));
     await settle(t);
     await revealQuit(t, find.byKey(const ValueKey('craving-field-note')));
-    await t.enterText(
+    await enterNexText(
+      t,
       find.byKey(const ValueKey('craving-field-note')),
       'Only caffeine',
     );
@@ -342,7 +345,8 @@ void main() {
       await t.tap(find.byKey(const ValueKey('smoke-edit-baseline')));
       await settle(t);
       await revealQuit(t, find.byKey(const ValueKey('quit-field-name')));
-      await t.enterText(
+      await enterNexText(
+        t,
         find.byKey(const ValueKey('quit-field-name')),
         'My new label',
       );

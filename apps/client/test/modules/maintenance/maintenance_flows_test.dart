@@ -1,3 +1,4 @@
+import 'package:nex_client/widgets/nex_paragraph_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
@@ -11,6 +12,7 @@ import 'package:nex_client/modules/maintenance/units.dart';
 
 import '../../support/nex_harness.dart';
 import '../../support/more_details.dart';
+import '../../support/text_input.dart';
 
 /// The pieces this upgrade added or fixed, end to end over a real
 /// store: the shared multiline note fields, the delete notice that
@@ -121,10 +123,10 @@ void main() {
       // The key sits on the shared wrapper; the editor itself is below it.
       final editor = find.descendant(
         of: field,
-        matching: find.byType(TextField),
+        matching: find.byType(NexParagraphEditor),
       );
       expect(editor, findsOneWidget);
-      final widget = tester.widget<TextField>(editor);
+      final widget = tester.widget<NexParagraphEditor>(editor);
       expect(widget.maxLines, 4);
       expect(widget.minLines, 2);
 
@@ -132,7 +134,7 @@ void main() {
         find.byKey(const ValueKey('maintenance-task')),
         'Oil',
       );
-      await tester.enterText(field, 'first line\nsecond line');
+      await enterNexText(tester, field, 'first line\nsecond line');
       // The focused field schedules its own scroll-into-view; let it
       // settle before reaching for the save button.
       await tester.pumpAndSettle();
@@ -166,10 +168,10 @@ void main() {
       await openMoreDetails(tester, 'maintenance-more-toggle');
       final editor = find.descendant(
         of: find.byKey(const ValueKey('maintenance-notes')),
-        matching: find.byType(TextField),
+        matching: find.byType(NexParagraphEditor),
       );
       expect(editor, findsOneWidget);
-      expect(tester.widget<TextField>(editor).maxLines, 4);
+      expect(tester.widget<NexParagraphEditor>(editor).maxLines, 4);
       expect(tester.takeException(), isNull);
     });
   });

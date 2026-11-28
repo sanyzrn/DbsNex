@@ -183,6 +183,9 @@ void _flows() {
   });
 
   testWidgets('nothing is offered before its day', (tester) async {
+    // Pinned, not "today": the template falls due on the 28th, and a suite run
+    // on the 28th would otherwise see it offered and call that a bug.
+    final now = DateTime(2026, 3, 10, 9);
     await store.put('tpl', 'tpl-late', {
       'label': 'Internet',
       'type': 'expense',
@@ -190,7 +193,7 @@ void _flows() {
       'day': 28,
       'calendar': 'gregorian',
     });
-    await pumpScreen(tester);
+    await pumpScreen(tester, now: now);
     expect(find.byKey(const ValueKey('expenses-log-tpl-late')), findsNothing);
     expect(find.text('Recurring this month'), findsNothing);
   });

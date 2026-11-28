@@ -8,6 +8,7 @@ import 'package:nex_client/modules/security_tools/codec_screen.dart';
 
 import '../../support/nex_harness.dart';
 import 'security_widget_test.dart' show settleSecurity, revealSecurity;
+import '../../support/text_input.dart';
 
 void main() {
   test('published base64 vectors and multilingual exact round trips', () {
@@ -139,7 +140,7 @@ void main() {
       await settleSecurity(t);
       final input = find.byKey(const ValueKey('security-codec-input'));
       final run = find.byKey(const ValueKey('security-codec-run'));
-      await t.enterText(input, 'سلام');
+      await enterNexText(t, input, 'سلام');
       await revealSecurity(t, run);
       await t.tap(run);
       await t.pumpAndSettle();
@@ -163,7 +164,7 @@ void main() {
         findsOneWidget,
       );
       await revealSecurity(t, input);
-      await t.enterText(input, '!!!');
+      await enterNexText(t, input, '!!!');
       await t.pump();
       expect(find.byKey(const ValueKey('security-codec-output')), findsNothing);
       await revealSecurity(t, run);

@@ -12,6 +12,7 @@ import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
 
 import 'support/in_process_db.dart';
+import 'support/text_input.dart';
 
 /// NEX-UI-02: the capture sheet rebuilt its whole chrome — the kind bar, the
 /// composer box's AnimatedContainer → AnimatedSize → AnimatedSwitcher chain,
@@ -98,20 +99,20 @@ void main() {
   ) async {
     await boot();
     await showSheet(tester);
-    final field = find.byType(TextField);
+    final field = nexInputs();
     expect(field, findsOneWidget);
 
     watchChrome();
-    await tester.enterText(field, 'a');
+    await enterNexText(tester, field, 'a');
     await tester.pump();
     final afterFirst = chromeRebuilds;
     expect(afterFirst, greaterThan(0), reason: 'empty → typed must rebuild');
 
-    await tester.enterText(field, 'ab');
+    await enterNexText(tester, field, 'ab');
     await tester.pump();
-    await tester.enterText(field, 'abc');
+    await enterNexText(tester, field, 'abc');
     await tester.pump();
-    await tester.enterText(field, 'abcd');
+    await enterNexText(tester, field, 'abcd');
     await tester.pump();
     expect(
       chromeRebuilds,
@@ -119,12 +120,12 @@ void main() {
       reason: 'more typing changes nothing the sheet builds',
     );
 
-    await tester.enterText(field, '');
+    await enterNexText(tester, field, '');
     await tester.pump();
     final afterClear = chromeRebuilds;
     expect(afterClear, greaterThan(afterFirst), reason: 'typed → empty flips');
 
-    await tester.enterText(field, '');
+    await enterNexText(tester, field, '');
     await tester.pump();
     expect(
       chromeRebuilds,
@@ -143,20 +144,17 @@ void main() {
   ) async {
     await boot();
     await showSheet(tester);
-    final field = find.byType(TextField);
+    final field = nexInputs();
 
-    await tester.enterText(field, 'a note taking shape');
+    await enterNexText(tester, field, 'a note taking shape');
     await tester.pump();
     expect(find.byType(CaptureSheet), findsOneWidget);
-    expect(
-      tester.widget<TextField>(field).controller?.text,
-      'a note taking shape',
-    );
+    expect(nexInputController(tester, field).text, 'a note taking shape');
 
-    await tester.enterText(field, '');
+    await enterNexText(tester, field, '');
     await tester.pump();
     expect(find.byType(CaptureSheet), findsOneWidget);
-    expect(find.byType(TextField), findsOneWidget);
+    expect(nexInputs(), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 31));

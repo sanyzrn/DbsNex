@@ -18,6 +18,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/in_process_db.dart';
+import 'support/text_input.dart';
 
 class _DelayedReads extends InProcessDb {
   _DelayedReads({required super.dbPath}) : super(deviceId: 'test');
@@ -117,7 +118,7 @@ void main() {
   }
 
   Future<void> send(WidgetTester tester) async {
-    await tester.enterText(find.byType(TextField), 'Please read my tags');
+    await enterNexText(tester, nexInputs(), 'Please read my tags');
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('send')));
     for (var i = 0; i < 15; i++) {

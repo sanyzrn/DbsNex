@@ -9,6 +9,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/text_input.dart';
 
 /// The Expenses screen end to end over a real store: a payment in seconds,
 /// Persian digits, the month the person reads, income and what is left,
@@ -27,6 +28,7 @@ Future<void> pumpScreen(
   double textScale = 1.0,
   Size size = const Size(800, 1600),
   bool dark = false,
+  DateTime? now,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -42,7 +44,7 @@ Future<void> pumpScreen(
           textScaler: TextScaler.linear(textScale),
           platformBrightness: dark ? Brightness.dark : Brightness.light,
         ),
-        child: ExpensesScreen(store: store),
+        child: ExpensesScreen(store: store, now: now),
       ),
     ),
   );
@@ -76,7 +78,11 @@ Future<void> addPayment(
   if (note != null) {
     await tester.tap(find.byKey(const ValueKey('expenses-more')));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('expenses-note')), note);
+    await enterNexText(
+      tester,
+      find.byKey(const ValueKey('expenses-note')),
+      note,
+    );
     await tester.pumpAndSettle();
   }
   if (day != null) {

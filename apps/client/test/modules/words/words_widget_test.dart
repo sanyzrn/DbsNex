@@ -6,6 +6,7 @@ import 'package:nex_client/platform/nex_services.dart';
 
 import '../../support/add_button.dart';
 import '../../support/nex_harness.dart';
+import '../../support/text_input.dart';
 
 part 'words_browse_cases.dart';
 
@@ -56,7 +57,7 @@ void main() {
       scrollable: scrollable(),
     );
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(key), text);
+    await enterNexText(tester, find.byKey(key), text);
   }
 
   /// Dismiss the top capsule before the next action.

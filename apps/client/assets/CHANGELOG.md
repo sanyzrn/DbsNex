@@ -4,6 +4,14 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Formatting follows the selection.** Bold, italic and the rest now apply to what you selected, however you selected it — a tap or a drag moves the note's caret with it instead of leaving the toolbar working on the old position.
+
+- **Persian and English stay aligned in the same field.** Each paragraph follows its own direction as you type a new note, edit it, or fill in a multiline field.
+
+- **The page stops turning as you edit.** Moving the cursor, selecting across paragraphs or dragging a selection handle no longer changes the direction or alignment of the rest of the note, and the text no longer jumps under your finger.
+
+- **Formatting stays one tap away.** Bold, italic, monospace, strikethrough, quote, link and clearing formatting are in the editor's toolbar, on every platform.
+
 ## v2.9.4
 
 - **Unified editor for smoother keyboard switching.** Rebuilt text input around one Flutter-based editor across the app to avoid keyboard closure and reopening when moving between fields, including Prompt Studio, Family Fund and Habits.

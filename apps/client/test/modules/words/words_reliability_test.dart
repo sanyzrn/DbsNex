@@ -12,6 +12,7 @@ import 'package:nex_client/modules/words/words_review_page.dart';
 
 import '../../support/nex_harness.dart';
 import '../../support/add_button.dart';
+import '../../support/text_input.dart';
 
 class FaultStore implements NexModuleStore {
   FaultStore(this.inner);
@@ -212,7 +213,8 @@ void main() {
     );
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
-    await tester.enterText(
+    await enterNexText(
+      tester,
       find.byKey(const ValueKey('words-batch-text')),
       'alpha\tMeaning A\nbeta\tMeaning B\ngamma\tMeaning C',
     );

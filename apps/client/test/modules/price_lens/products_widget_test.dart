@@ -16,6 +16,7 @@ import 'lens_test_store.dart';
 import 'products_test.dart' show observation;
 import 'screen_test.dart' as flows;
 import '../../support/nex_harness.dart';
+import '../../support/text_input.dart';
 
 class _DraftFaultStore extends LensFaultStore {
   _DraftFaultStore(super.services);
@@ -125,10 +126,10 @@ void main() {
       await flows.openDetails(tester);
       final shop = find.descendant(
         of: find.byKey(const ValueKey('lens-shop')),
-        matching: find.byType(TextField),
+        matching: nexInputs(),
       );
-      expect(tester.widget<TextField>(shop).controller!.text, '');
-      await tester.enterText(shop, 'My new shop');
+      expect(nexInputController(tester, shop).text, '');
+      await enterNexText(tester, shop, 'My new shop');
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('lens-save')));
       await tester.pumpAndSettle();

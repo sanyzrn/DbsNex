@@ -8,6 +8,7 @@ import 'package:nex_client/modules/smoke_free/smoke_free_screen.dart';
 import '../../support/nex_harness.dart';
 import 'quit_completion_widget_test.dart' show DraftFault;
 import 'quit_details.dart';
+import '../../support/text_input.dart';
 
 void main() {
   late NexTestHarness h;
@@ -71,7 +72,7 @@ void main() {
       for (final key in ['why', 'goal', 'minutes']) {
         final field = find.byKey(ValueKey('quit-field-$key'));
         await revealQuit(t, field);
-        await t.enterText(field, '');
+        await enterNexText(t, field, '');
       }
       await save(t);
       final raw = (await store.get('quit', 'q'))!;
@@ -110,7 +111,7 @@ void main() {
     await t.tap(find.text('Try again'));
     await settle(t);
     await revealQuit(t, find.byKey(const ValueKey('quit-field-why')));
-    expect(find.text('Old reason'), findsOneWidget);
+    expect(find.text('Old reason', findRichText: true), findsOneWidget);
   });
 
   testWidgets(

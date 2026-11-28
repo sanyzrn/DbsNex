@@ -3756,5 +3756,6 @@
   "codeLanguageCss": "CSS",
   "codeLanguagePhp": "PHP",
   "copyCode": "Copy code",
-  "editCode": "Edit code"
+  "editCode": "Edit code",
+  "formatMenu": "Formatting"
 }

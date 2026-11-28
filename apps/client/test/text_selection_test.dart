@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
+import 'package:nex_client/widgets/nex_paragraph_editor.dart';
 import 'package:nex_client/widgets/note_editor_sheet.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:super_editor/super_editor.dart';
 
-/// Why selecting text used to fight back.
+/// Selection in the note editor.
 ///
-/// Two separate mistakes, both about what a rebuild is allowed to do to a
-/// gesture already in progress, and the editor carries both shapes — so it is
-/// where they are held.
+/// The editor is one document with one paragraph per line, and its selection
+/// is the document's: a range with a paragraph and an offset at each end. The
+/// editor exposes that selection as the absolute offsets the rest of the app
+/// speaks, and nothing about it depends on the caret or on a paragraph's
+/// direction — so moving the caret cannot relayout the note under a finger.
 void main() {
   late NexPreferences preferences;
 
@@ -50,78 +54,80 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  TextField field(WidgetTester tester) =>
-      tester.widget<TextField>(find.byType(TextField));
+  NexParagraphEditor editor(WidgetTester tester) =>
+      tester.widget<NexParagraphEditor>(find.byType(NexParagraphEditor));
 
-  testWidgets('the formatting menu survives a rebuild', (tester) async {
-    // `EditableText` compares this builder by identity, and a fresh closure
-    // per build reads as a changed menu — which it answers by disposing the
-    // selection overlay and making a new one after the next frame. The
-    // handles and their recognizers live in that overlay, so a rebuild in the
-    // middle of a handle drag cancelled the drag and nothing resumed.
-    await open(tester, initial: 'the boiler is making a noise');
-    final before = field(tester);
+  Editor engine(WidgetTester tester) =>
+      tester.widget<SuperEditor>(find.byType(SuperEditor)).editor;
 
-    await tester.enterText(find.byType(TextField), 'the boiler is quiet now');
-    await tester.pump();
-    final after = field(tester);
+  testWidgets('a selection through several paragraphs survives a rebuild', (
+    tester,
+  ) async {
+    const text = 'یادداشت فارسی\nEnglish 123\nخط سوم';
+    await open(tester, initial: text);
+    final controller = editor(tester).controller;
+    const selection = TextSelection(baseOffset: 2, extentOffset: 24);
+    controller.value = const TextEditingValue(text: text, selection: selection);
+    await tester.pumpAndSettle();
 
+    expect(editor(tester).controller, same(controller));
+    expect(controller.selection, selection);
+    expect(selection.textInside(controller.text), text.substring(2, 24));
+
+    // And the document holds the same range: start in the first paragraph,
+    // end in the second — a selection that spans paragraphs, not a caret.
+    final documentSelection = engine(tester).context.composer.selection!;
+    expect(documentSelection.isCollapsed, isFalse);
     expect(
-      identical(before, after),
-      isFalse,
-      reason: 'the rebuild this is about has to actually happen',
-    );
-    expect(
-      identical(before.contextMenuBuilder, after.contextMenuBuilder),
-      isTrue,
-      reason: 'the menu builder changed identity across a rebuild',
+      documentSelection.base.nodeId,
+      isNot(documentSelection.extent.nodeId),
     );
   });
 
-  testWidgets('moving the caret rebuilds nothing', (tester) async {
-    // A `TextEditingController` notifies when the selection moves as well as
-    // when the text does, and dragging a handle is a stream of selection
-    // changes. A listener that rebuilds on every notification rebuilds the
-    // field underneath the drag, frame after frame.
+  testWidgets('moving the caret changes nothing but the selection', (
+    tester,
+  ) async {
     await open(tester, initial: 'the boiler is making a noise');
-    final before = field(tester);
+    final before = editor(tester);
+    final controller = before.controller;
+    final text = controller.text;
 
-    before.controller!.selection = const TextSelection(
-      baseOffset: 4,
-      extentOffset: 10,
-    );
+    controller.selection = const TextSelection(baseOffset: 4, extentOffset: 10);
     await tester.pump();
 
-    expect(
-      identical(before, field(tester)),
-      isTrue,
-      reason: 'a selection change rebuilt the field',
-    );
+    // No rebuild, and the text is untouched: a caret move is a caret move.
+    expect(identical(before, editor(tester)), isTrue);
+    expect(controller.text, text);
   });
 
-  testWidgets(
-    'Persian multiline selection and composing ranges survive rebuilds',
-    (tester) async {
-      const text = 'یادداشت فارسی\nEnglish 123\nخط سوم';
-      await open(tester, initial: text);
-      final before = field(tester);
-      final controller = before.controller!;
-      const selection = TextSelection(baseOffset: 2, extentOffset: 24);
-      controller.value = const TextEditingValue(
-        text: text,
-        selection: selection,
-        composing: TextRange(start: 0, end: 7),
-      );
-      await tester.pump();
-      expect(field(tester).controller, same(controller));
-      expect(controller.selection, selection);
-      expect(controller.value.composing, const TextRange(start: 0, end: 7));
-      expect(selection.textInside(controller.text), text.substring(2, 24));
-      expect(field(tester).contextMenuBuilder, same(before.contextMenuBuilder));
-      expect(
-        Directionality.of(tester.element(find.byType(EditableText))),
-        TextDirection.rtl,
-      );
-    },
-  );
+  testWidgets('each paragraph keeps its own direction through a selection', (
+    tester,
+  ) async {
+    const text = 'خط فارسی\nEnglish line\nخط سوم';
+    await open(tester, initial: text);
+
+    final directions = [
+      for (final element in find.byType(ParagraphComponent).evaluate())
+        (element.widget as ParagraphComponent).viewModel.textDirection,
+    ];
+    expect(directions, [
+      TextDirection.rtl,
+      TextDirection.ltr,
+      TextDirection.rtl,
+    ]);
+
+    // Selecting across all three changes none of them: direction is a property
+    // of each paragraph's own text, not of the selection.
+    final controller = editor(tester).controller;
+    controller.value = const TextEditingValue(
+      text: text,
+      selection: TextSelection(baseOffset: 1, extentOffset: 30),
+    );
+    await tester.pumpAndSettle();
+    final after = [
+      for (final element in find.byType(ParagraphComponent).evaluate())
+        (element.widget as ParagraphComponent).viewModel.textDirection,
+    ];
+    expect(after, directions);
+  });
 }

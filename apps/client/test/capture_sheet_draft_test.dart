@@ -13,6 +13,7 @@ import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/widgets/reminder_wheel.dart';
 
 import 'support/in_process_db.dart';
+import 'support/text_input.dart';
 
 /// There is no Save button (ADR-002), so the first keystroke writes the note.
 /// That write crosses the isolate boundary, and what happens to the keystrokes
@@ -86,9 +87,9 @@ void main() {
     await boot();
     var launched = 0;
     await showSheet(tester, onFile: () => launched++);
-    await tester.enterText(find.byType(TextField), 'saved');
+    await enterNexText(tester, nexInputs(), 'saved');
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'saved and newer words');
+    await enterNexText(tester, nexInputs(), 'saved and newer words');
     db.failUpdates = 10;
     await tester.tap(find.byIcon(Icons.insert_drive_file_outlined));
     await tester.pumpAndSettle();
@@ -107,11 +108,8 @@ void main() {
   ) async {
     await boot(captureDelay: const Duration(milliseconds: 600));
     await showSheet(tester);
-    await tester.enterText(find.byType(TextField), 'f');
-    await tester.enterText(
-      find.byType(TextField),
-      'full sentence before closing',
-    );
+    await enterNexText(tester, nexInputs(), 'f');
+    await enterNexText(tester, nexInputs(), 'full sentence before closing');
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
     expect(
@@ -131,12 +129,12 @@ void main() {
       initialKind: CaptureKind.code,
       onFile: () => launched++,
     );
-    final field = find.byType(TextField);
-    await tester.enterText(field, 'void main() {}');
+    final field = nexInputs();
+    await enterNexText(tester, field, 'void main() {}');
     await tester.pumpAndSettle();
     expect(await db.timeline(), hasLength(1));
 
-    await tester.enterText(field, '  \n  ');
+    await enterNexText(tester, field, '  \n  ');
     await tester.tap(find.byIcon(Icons.insert_drive_file_outlined));
     await tester.pumpAndSettle();
     expect(await db.timeline(), isEmpty);
@@ -219,10 +217,10 @@ void main() {
     await showSheet(tester);
     final reads = db.timelineReads;
 
-    final field = find.byType(TextField);
-    await tester.enterText(field, 'first');
+    final field = nexInputs();
+    await enterNexText(tester, field, 'first');
     await tester.pumpAndSettle(const Duration(milliseconds: 700));
-    await tester.enterText(field, 'first, and more');
+    await enterNexText(tester, field, 'first, and more');
     await tester.pumpAndSettle(const Duration(milliseconds: 700));
 
     expect(db.timelineReads, reads);
@@ -234,8 +232,8 @@ void main() {
     (tester) async {
       await boot(captureDelay: const Duration(milliseconds: 600));
       await showSheet(tester);
-      await tester.enterText(find.byType(TextField), 'draft');
-      await tester.enterText(find.byType(TextField), '');
+      await enterNexText(tester, nexInputs(), 'draft');
+      await enterNexText(tester, nexInputs(), '');
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 1));
       expect(await db.timeline(), isEmpty);
@@ -252,14 +250,14 @@ void main() {
     await boot(captureDelay: const Duration(milliseconds: 400));
     await showSheet(tester);
 
-    final field = find.byType(TextField);
+    final field = nexInputs();
     // `enterText` pumps a zero-duration frame, which does not advance the
     // gate — so these three all reach `changed()` with no id yet, which is
     // exactly the race. Before the fix each one started its own capture and
     // the library ended up with "h", "he" and the full line.
-    await tester.enterText(field, 'h');
-    await tester.enterText(field, 'he');
-    await tester.enterText(field, 'hello from the race');
+    await enterNexText(tester, field, 'h');
+    await enterNexText(tester, field, 'he');
+    await enterNexText(tester, field, 'hello from the race');
 
     await tester.pumpAndSettle(const Duration(seconds: 1));
 
@@ -284,16 +282,16 @@ void main() {
     await boot();
     await showSheet(tester);
 
-    final field = find.byType(TextField);
-    await tester.enterText(field, 'first');
+    final field = nexInputs();
+    await enterNexText(tester, field, 'first');
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
     expect(await db.timeline(limit: 50), hasLength(1));
 
-    await tester.enterText(field, '');
+    await enterNexText(tester, field, '');
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
     expect(await db.timeline(limit: 50), isEmpty, reason: 'emptied, so gone');
 
-    await tester.enterText(field, 'second');
+    await enterNexText(tester, field, 'second');
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
 
     final notes = await db.timeline(limit: 50);
@@ -311,9 +309,9 @@ void main() {
     await boot(captureDelay: const Duration(milliseconds: 600));
     await showSheet(tester);
 
-    final field = find.byType(TextField);
-    await tester.enterText(field, 'o');
-    await tester.enterText(field, 'once upon a time');
+    final field = nexInputs();
+    await enterNexText(tester, field, 'o');
+    await enterNexText(tester, field, 'once upon a time');
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     final notes = await db.timeline(limit: 50);
@@ -328,8 +326,8 @@ void main() {
       // sheet over a note still saved in the old language.
       await boot();
       await showSheet(tester, initialKind: CaptureKind.code);
-      final field = find.byType(TextField);
-      await tester.enterText(field, 'void main() {}');
+      final field = nexInputs();
+      await enterNexText(tester, field, 'void main() {}');
       await tester.pumpAndSettle(const Duration(milliseconds: 500));
       const detected = '```dart\nvoid main() {}\n```';
       const changed = '```python\nvoid main() {}\n```';
@@ -371,8 +369,8 @@ void main() {
       // notification kept the words from before the last edit.
       await boot();
       await showSheet(tester);
-      final field = find.byType(TextField);
-      await tester.enterText(field, 'pick up the ring');
+      final field = nexInputs();
+      await enterNexText(tester, field, 'pick up the ring');
       await tester.pumpAndSettle(const Duration(milliseconds: 500));
 
       final note = (await db.timeline()).single;
@@ -397,7 +395,7 @@ void main() {
 
       db.failUpdates = 1;
       final reads = db.noteReads;
-      await tester.enterText(field, 'pick up the ring today');
+      await enterNexText(tester, field, 'pick up the ring today');
       await tester.pumpAndSettle(const Duration(milliseconds: 500));
       expect((await db.timeline()).single.content, 'pick up the ring');
 
@@ -430,12 +428,12 @@ void main() {
     await boot();
     await showSheet(tester);
 
-    final field = find.byType(TextField);
-    await tester.enterText(field, 'first');
+    final field = nexInputs();
+    await enterNexText(tester, field, 'first');
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
 
     db.failUpdates = 1;
-    await tester.enterText(field, 'first, then more');
+    await enterNexText(tester, field, 'first, then more');
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
     expect(
       (await db.timeline(limit: 50)).single.content,
