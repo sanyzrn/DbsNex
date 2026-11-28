@@ -126,11 +126,17 @@ class _FuelEditorSheetState extends State<FuelEditorSheet> {
   }
 
   Future<void> _pickDate() async {
+    // A fill-up is a log: the picker offers today and the past, and never
+    // opens beyond its last day even when a restored draft holds a later
+    // one (which saving then refuses with words, below).
+    final today = dayOf(DateTime.now());
     final picked = await nexPickModuleDate(
       context,
-      initial: _date,
-      first: DateTime(_date.year - 10),
-      last: DateTime.now(),
+      initial: _date.isBefore(today) ? _date : today,
+      first: DateTime(
+        _date.year < today.year - 10 ? _date.year : today.year - 10,
+      ),
+      last: today,
     );
     if (picked == null || !mounted) return;
     setState(() => _date = dayOf(picked));
@@ -147,7 +153,8 @@ class _FuelEditorSheetState extends State<FuelEditorSheet> {
         litres > FuelEntry.maxLitres ||
         price == null ||
         rate == null ||
-        rate.isEmpty) {
+        rate.isEmpty ||
+        dayOf(_date).isAfter(dayOf(DateTime.now()))) {
       setState(() => _errors = true);
       return;
     }
@@ -259,6 +266,22 @@ class _FuelEditorSheetState extends State<FuelEditorSheet> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       EventDateRow(date: _date, onTap: _pickDate),
+                      if (_errors &&
+                          dayOf(_date).isAfter(dayOf(DateTime.now())))
+                        Padding(
+                          padding: const EdgeInsetsDirectional.only(
+                            top: NexSpacing.xs,
+                          ),
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: Text(
+                              s(context, 'fuelBadDate'),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
+                          ),
+                        ),
                       const SizedBox(height: NexSpacing.md),
                       TextField(
                         key: const ValueKey('maintenance-fuel-litres'),

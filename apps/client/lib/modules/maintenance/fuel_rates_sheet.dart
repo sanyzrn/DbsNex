@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'controller.dart';
+import 'maintenance_common.dart';
 import 'models.dart';
 import 'strings.dart';
 import 'units.dart';
@@ -70,19 +71,30 @@ class _FuelRatesSheetState extends State<FuelRatesSheet> {
         example: rate.example,
       ),
   ];
+
+  /// Rows the person removed: their controllers are disposed only when the
+  /// sheet closes, because the fields are still mounted until the rebuild
+  /// after the removal — disposing at the tap could hand a disposed
+  /// controller to a frame that has not rebuilt yet.
+  final _retired = <_RateRow>[];
   bool _busy = false;
+  bool _dirty = false;
   String? _error;
 
   @override
   void dispose() {
-    for (final row in _rows) {
+    for (final row in [..._rows, ..._retired]) {
       row.dispose();
     }
+    _rows.clear();
+    _retired.clear();
     super.dispose();
   }
 
   void _addExample() {
     setState(() {
+      _dirty = true;
+      _error = null;
       if (_rows.isEmpty) {
         _rows.addAll([
           _RateRow(
@@ -107,13 +119,36 @@ class _FuelRatesSheetState extends State<FuelRatesSheet> {
     });
   }
 
+  void _removeAt(int index) {
+    setState(() {
+      _retired.add(_rows.removeAt(index));
+      _dirty = true;
+      _error = null;
+    });
+  }
+
   Future<void> _save() async {
     if (_busy) return;
     final rates = <FuelRate>[];
+    final names = <String>{};
     for (final row in _rows) {
       final name = row.name.text.trim();
       if (name.isEmpty) {
         setState(() => _error = maintenanceStrings(context, 'fuelRateBadName'));
+        return;
+      }
+      if (name.length > 40) {
+        setState(
+          () => _error = maintenanceStrings(context, 'fuelRateNameLong'),
+        );
+        return;
+      }
+      // The quota view is by name: two rows with one name would count one
+      // row's litres against the other's quota, so it is refused here.
+      if (!names.add(name)) {
+        setState(
+          () => _error = maintenanceStrings(context, 'fuelRateDuplicate'),
+        );
         return;
       }
       final raw = row.quota.text.trim();
@@ -140,7 +175,10 @@ class _FuelRatesSheetState extends State<FuelRatesSheet> {
     });
     try {
       await widget.controller.saveFuelRates(widget.asset.id, rates);
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        setState(() => _dirty = false);
+        Navigator.pop(context);
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -156,9 +194,13 @@ class _FuelRatesSheetState extends State<FuelRatesSheet> {
     final s = maintenanceStrings;
     final theme = Theme.of(context);
     return PopScope(
-      canPop: !_busy,
+      // Rows the person touched are unsaved work: leaving asks, the way
+      // every other editor in the module does, instead of losing them.
+      canPop: !_busy && !_dirty,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop || _busy) return;
+        if (!didPop && !_busy) {
+          unawaited(confirmMaintenanceDiscard(context));
+        }
       },
       child: AbsorbPointer(
         absorbing: _busy,
@@ -205,13 +247,17 @@ class _FuelRatesSheetState extends State<FuelRatesSheet> {
                         ),
                       for (var i = 0; i < _rows.length; i++)
                         _RateFields(
-                          key: ValueKey('maintenance-rate-row-$i'),
+                          key: ObjectKey(_rows[i]),
                           index: i,
                           row: _rows[i],
-                          onRemove: () => setState(() {
-                            _rows.removeAt(i).dispose();
+                          onRemove: () => _removeAt(i),
+                          onChanged: () => setState(() {
+                            _error = null;
+                            _dirty = true;
+                            // "Example — check yours" is over once the person
+                            // takes the row in hand: the values are theirs.
+                            _rows[i].example = false;
                           }),
-                          onChanged: () => setState(() => _error = null),
                         ),
                       const SizedBox(height: NexSpacing.sm),
                       Wrap(
@@ -304,6 +350,8 @@ class _RateFields extends StatelessWidget {
               IconButton(
                 key: ValueKey('maintenance-rate-remove-$index'),
                 tooltip: s(context, 'fuelRateRemove'),
+                // What destroys is red, as in every menu in the app.
+                color: theme.colorScheme.error,
                 icon: const Icon(Icons.delete_outline),
                 onPressed: onRemove,
               ),

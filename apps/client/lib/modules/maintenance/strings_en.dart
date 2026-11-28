@@ -309,4 +309,14 @@ const _maintenanceen = <String, String>{
   'glanceAllClear': 'Nothing due by date',
   'glanceAssets': '{n} things looked after',
   'glanceAssetsLabel': 'Things looked after',
+
+  // This polish pass.
+  'groupArchivedNote': 'Out of the overview, kept with all its history',
+  'fuelRateDuplicate': 'Two rates cannot share one name.',
+  'fuelRateNameLong': 'At most 40 letters.',
+  'fuelBadDate': 'Pick today or an earlier day',
+  'carRenewYear': 'Renewed — add a year',
+  'fuelPerLitre': '{price} tomans per litre',
+  'fuelQuotaNoneUsed': '{used} L · no quota',
+  'fuelExampleTag': 'Example',
 };

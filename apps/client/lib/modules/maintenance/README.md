@@ -1,5 +1,32 @@
 # Maintenance — `maintenance`
 
+## Audit (polish pass)
+
+A second read of the whole module, code and screens, against `main` at
+`04af9fc5`. The module was sound; the pass closed the gaps the earlier ones
+left — most of them on the car side, where the Iranian case is the fullest.
+
+What was found and fixed:
+
+| Where | Before | Now |
+| --- | --- | --- |
+| Fuel rates | Two rates could share one name; the quota view is by name, so both rows showed the same used litres against different quotas | Refused with words, at the sheet **and** the controller (trimmed: a space does not make two names distinct) |
+| Fuel rates | "Example — check yours" stayed on a row for ever, even after the person made it theirs | Any edit to a row's name or quota takes the marker off; an untouched row keeps it, on the page too |
+| Fuel rates | A swipe or a tap on the dimmed area lost the rows the person had just typed, with no question | The sheet guards its unsaved work the way every other editor here does |
+| Fuel rates | Removing a row disposed its text controllers while the fields could still be mounted for a frame | Removed rows retire to a list the sheet disposes only when it closes |
+| Fuel fill-up | A draft from a phone whose clock was behind could restore a day still ahead, and saving wrote it — and the date picker opened beyond its own last day | Saving refuses a future day with words; the picker never opens past today |
+| Car panel | Renewing insurance meant retyping the date | **Renewed — add a year** moves the typed date a year on (the documented month-end convention), and a set reminder follows it |
+| Home | A car with no interval rule sat under "No schedule" while its insurance ran out; the card's second line was whichever rule the store listed first | The car's own dates decide the group and the line: an expired date is due now, one inside 30 days is coming up — before any rule does |
+| Home | The archived heading's note was the word "Unarchive" | A note that says what archiving does |
+| Fuel panel | A rate with no quota hid how much was bought at it; the quota had no shape | A no-quota rate shows its litres; a quota draws the same calm bar a rule does, red once the month is over |
+| Fuel panel | Every fill-up showed only the total paid | It also says what a litre cost, from the person's own two numbers — never fetched |
+| Service costs | The editor opened in rials; an Iranian reads a service bill in tomans, and the fuel log already counts in tomans | The editor opens in tomans (the toggle beside the field switches, the amount moves with it); the prefill matches the unit so re-saving never multiplies by ten; the field's suffix says which of the two is being typed |
+| History text | A rate with no quota printed a division by zero ("Free: 30 / 0") | It shows what was bought at it, and nothing for the quota it does not have |
+
+Nothing in storage changed: the same record kinds, the same fields, the same
+meanings. `assetGroupOf` gained two optional flags the home screen passes
+about the car's own dates; the grouping of assets without them is unchanged.
+
 ## Audit (upgrade pass)
 
 Maintenance is a **Soon** module; people do not have it yet, so fields may be
@@ -152,6 +179,13 @@ are only written for `type: car`, and an old car without them simply shows
   shown as needing information, and archive/delete with guarded Undo.
 - **Deleting a car deletes its fuel and rates too**, in the same journaled
   group, so Undo brings the whole car back.
+- **A rate's name is its identity.** Two rates may not share one — the
+  quota view is by name — and a rename does not rewrite old fill-ups:
+  the name on a fill-up is the historical label it was bought under.
+- **Service costs open in tomans** (2.9.5): an Iranian reads a service
+  bill in tomans, and the fuel log already counts in them. Rials stay
+  one toggle away, the amount moves with the toggle, and the stored
+  record is the same whole minor units either way.
 
 ## Research
 
@@ -199,38 +233,58 @@ No service, SDK or dependency was added; all arithmetic is local.
 
 **English.** Add the car as an asset and choose that it counts kilometres.
 On its page, set the third-party insurance and technical inspection dates;
-each shows how many days are left and can remind you 14 days before (change
-it to 7, 30 or any number). Log each fill-up with its date, litres, what you
-paid in tomans and which rate it was bought at; under Fuel you see this
-month's litres and cost and how much of each rate's quota is left. Set your
-rates and monthly quotas once in **Rates and quotas** — the examples are
-marked until you check them. Services and intervals work as before, and the
-menu's share/copy history now also carries the two dates and the month's
-fuel.
+each shows how many days are left, can remind you 14 days before (change it
+to 7, 30 or any number), and when you renew, one tap moves the date a year
+on. Log each fill-up with its date, litres, what you paid in tomans and
+which rate it was bought at; under Fuel you see this month's litres and
+cost, what a litre cost at each fill-up, and how much of each rate's quota
+is left. Set your rates and monthly quotas once in **Rates and quotas** —
+the examples are marked until you check them, and the marker leaves a row
+as soon as you edit it. A service's cost is typed in tomans; rials are one
+toggle away. Services and intervals work as before, and the menu's
+share/copy history now also carries the two dates and the month's fuel.
 
 **فارسی.** خودرو را به‌عنوان یک دستگاه اضافه کنید و بگویید با کیلومتر
 شمرده می‌شود. در صفحهٔ آن، تاریخ بیمهٔ شخص ثالث و معاینهٔ فنی را بگذارید؛
-هر کدام روزهای مانده را نشان می‌دهد و می‌تواند ۱۴ روز قبل یادآوری کند
-(۷، ۳۰ یا هر تعداد روز دیگر). هر سوخت‌گیری را با تاریخ، لیتر، مبلغ
-پرداختی به تومان و نرخش ثبت کنید؛ زیر «سوخت» لیتر و هزینهٔ این ماه و
-ماندهٔ سهمیهٔ هر نرخ را می‌بینید. نرخ‌ها و سهمیه‌های ماهانه را یک بار در
-«نرخ‌ها و سهمیه‌ها» بگذارید — مقدارهای نمونه تا وقتی خودتان بررسی نکنید
-همان‌طور علامت‌خورده می‌مانند. سرویس‌ها و بازه‌ها مثل قبل کار می‌کنند و
-«اشتراک تاریخچه» حالا این دو تاریخ و سوخت این ماه را هم دارد.
+هر کدام روزهای مانده را نشان می‌دهد، می‌تواند ۱۴ روز قبل یادآوری کند
+(۷، ۳۰ یا هر تعداد روز دیگر) و با تمدید، یک لمس تاریخ را یک سال جلو
+می‌برد. هر سوخت‌گیری را با تاریخ، لیتر، مبلغ پرداختی به تومان و نرخش
+ثبت کنید؛ زیر «سوخت» لیتر و هزینهٔ این ماه، قیمت هر لیتر در هر
+سوخت‌گیری و ماندهٔ سهمیهٔ هر نرخ را می‌بینید. نرخ‌ها و سهمیه‌های ماهانه
+را یک بار در «نرخ‌ها و سهمیه‌ها» بگذارید — مقدارهای نمونه تا وقتی ویرایش
+شان نکنید همان‌طور علامت‌خورده می‌مانند. هزینهٔ سرویس با تومان نوشته
+می‌شود؛ ریال یک سوئیچ دورتر است. سرویس‌ها و بازه‌ها مثل قبل کار می‌کنند
+و «اشتراک تاریخچه» حالا این دو تاریخ و سوخت این ماه را هم دارد.
 
 ## Changelog
 
-EN: The car is now a full case in Maintenance: third-party insurance and
-technical inspection dates with a countdown and a 14-day (editable) reminder,
-a fuel log with litres, price and rate, and monthly litres/cost against your
-own quotas — with example rates marked until you check them. The service
-history text you hand over now includes both dates and the month's fuel.
+EN: The fuel side grew up: rate names must be one's own, an example loses
+its marker once you edit it, the rates sheet asks before losing your
+rows, and a fill-up can no longer be logged in the future. Each fill-up
+now says what a litre cost, and a rate with no quota shows its litres.
+Service costs open in tomans; renewing insurance or inspection is one
+tap. On the home screen the car's own dates now say which group it sits
+in and what its card's second line is.
 
-FA: خودرو حالا در «نگهداری» یک بخش کامل است: تاریخ بیمهٔ شخص ثالث و
-معاینهٔ فنی با شمارش روزها و یادآوری ۱۴ روزهٔ قابل تغییر، دفتر سوخت با
-لیتر، مبلغ و نرخ، و لیتر/هزینهٔ ماه در برابر سهمیه‌های خودتان — با
+FA: بخش سوخت کامل‌تر شد: نام هر نرخ باید مختص خودش باشد، نشان «نمونه» با
+ویرایش برداشته می‌شود، برگهٔ نرخ‌ها پیش از از دست رفتن ردیف‌ها می‌پرسد و
+سوخت‌گیری در آینده ثبت نمی‌شود. هر سوخت‌گیری قیمت هر لیتر را هم می‌گوید و
+نرخ بدون سهمیه، لیتر مصرفش را نشان می‌دهد. هزینهٔ سرویس با تومان باز
+می‌شود؛ تمدید بیمه و معاینه یک لمس است. در صفحهٔ خانه، تاریخ‌های خودِ
+خودرو تعیین می‌کنند در کدام گروه بنشیند و خط دوم کارتش چه بگوید.
+
+EN (2.8.4, kept): The car is now a full case in Maintenance: third-party
+insurance and technical inspection dates with a countdown and a 14-day
+(editable) reminder, a fuel log with litres, price and rate, and monthly
+litres/cost against your own quotas — with example rates marked until
+you check them. The service history text you hand over now includes both
+dates and the month's fuel.
+
+FA (2.8.4, kept): خودرو حالا در «نگهداری» یک بخش کامل است: تاریخ بیمهٔ شخص
+ثالث و معاینهٔ فنی با شمارش روزها و یادآوری ۱۴ روزهٔ قابل تغییر، دفتر سوخت
+با لیتر، مبلغ و نرخ، و لیتر/هزینهٔ ماه در برابر سهمیه‌های خودتان — با
 نرخ‌های نمونه که تا بررسی نکنید علامت‌خورده می‌مانند. متن تاریخچهٔ سرویس
-حالا این دو تاریخ و سوخت ماه را هم دارد.
+الان این دو تاریخ و سوخت ماه را هم دارد.
 
 ## Platform requests
 
@@ -294,7 +348,8 @@ false, `private: false`. The lead times are `insuranceLeadDays` /
 
 ## Checks
 
-Upgraded against `main` at `e3edff3f`. Run from `apps/client`:
+Polished against `main` at `04af9fc5`, with Flutter 3.47.9 (`.fvmrc`). Run
+from `apps/client`:
 
 ```text
 dart format lib/modules/maintenance test/modules/maintenance
@@ -303,13 +358,17 @@ flutter test test/module_kit_test.dart test/modules/maintenance
 flutter test
 ```
 
-Results: analyzer clean; the kit/shared/module gate **216 passed** (module
-tests **118**: 101 inherited, all still green, plus 17 for the car — model
-round trips, malformed refusals, solar/civil month keys, quota maths, exact
-tomans↔rials, the car panel, lead-time saving, fill-up flow, example rates
-and the history text); no file over 400 lines. Edits confined to `lib/modules/maintenance` and
+Results: analyzer clean; the kit/shared/module gate **196 passed**
+(module tests **135**: 125 inherited, all still green, plus 10 for this
+pass — the duplicate-name refusal, the example marker, the discard guard,
+the future-day fill-up, the per-litre line, the no-quota line, the home
+group and card line, the archived note and the one-tap renewal); no file
+over 400 lines. Edits confined to `lib/modules/maintenance` and
 `test/modules/maintenance`; `module_rollout.dart` untouched, so the module
 stays **Soon**.
+
+Earlier passes' checks are superseded: upgraded against `main` at
+`e3edff3f` (216 passed then), and the maintainer review of 2.8.4.
 
 Screens in `review/`: home and the car page with details/fuel in Persian
 dark and English light, plus the fill-up sheet. Widget renders with

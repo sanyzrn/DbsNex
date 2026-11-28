@@ -58,8 +58,12 @@ String serviceHistoryText(
     for (final rate in rates) {
       final used = summary.litresByRate[rate.name] ?? 0;
       if (used == 0) continue;
+      // A rate with no quota shows what was bought at it, never a
+      // meaningless division by zero.
       lines.add(
-        '  ${rate.name}: ${formatLitres(used, persian: persian)} / ${formatLitres(rate.quota, persian: persian)}',
+        rate.quota > 0
+            ? '  ${rate.name}: ${formatLitres(used, persian: persian)} / ${formatLitres(rate.quota, persian: persian)}'
+            : '  ${rate.name}: ${formatLitres(used, persian: persian)}',
       );
     }
   }

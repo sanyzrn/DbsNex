@@ -233,6 +233,18 @@ class CarExpiryRow extends StatelessWidget {
                 ),
               ),
             ),
+            // Renewal day: one tap moves the date a year on, with the
+            // documented month-end convention; a reminder follows it. The
+            // month-end rule means 29 February lands on 28 February in a
+            // non-leap year — the same convention the intervals keep.
+            if (date != null)
+              TextButton.icon(
+                key: ValueKey('maintenance-car-renew-$itemKey'),
+                onPressed: () =>
+                    unawaited(_write(context, date: addMonths(date!, 12))),
+                icon: const Icon(Icons.autorenew_outlined),
+                label: Text(s(context, 'carRenewYear')),
+              ),
           ],
         ),
       ],

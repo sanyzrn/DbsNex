@@ -193,10 +193,10 @@ class _CarReminderSheetState extends State<CarReminderSheet> {
                 for (final choice in const [7, 14, 30])
                   ChoiceChip(
                     key: ValueKey('maintenance-car-days-$choice'),
+                    // The unit word travels with the number, so a chip
+                    // reads «۷ روز» the way the line above it promises.
                     label: Text(
-                      NexModuleStrings.persian(context)
-                          ? persianDigits('$choice')
-                          : '$choice',
+                      '${NexModuleStrings.persian(context) ? persianDigits('$choice') : '$choice'} ${s(context, 'daysUnit')}',
                     ),
                     selected: _days.text.trim() == '$choice',
                     onSelected: (_) => setState(() {

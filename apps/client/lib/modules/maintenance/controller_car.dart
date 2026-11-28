@@ -27,7 +27,9 @@ extension MaintenanceCarRecords on MaintenanceController {
   /// Replaces one asset's rate list in one recoverable group: rows the
   /// person removed go, the rest are written with their quotas. A rate's
   /// name is its identity inside the log, so renames keep their fuel rows
-  /// readable but do not rewrite history.
+  /// readable but do not rewrite history. Two rates may not share a name —
+  /// the quota view is by name, and a shared name would count one row's
+  /// litres against another's quota.
   Future<void> saveFuelRates(String assetId, List<FuelRate> rates) => _mutate(
     () => LocalWrites.serial(store, () async {
       await _parent(assetId);
@@ -38,10 +40,14 @@ extension MaintenanceCarRecords on MaintenanceController {
           changes.add((kind: 'fuel_rate', id: row.id, body: null));
         }
       }
+      final names = <String>{};
       for (final rate in rates) {
         final proposed = rate.toBody();
         if (FuelRate.fromBody(rate.id, proposed) == null) {
           throw StateError('Invalid fuel rate');
+        }
+        if (!names.add(rate.name.trim())) {
+          throw StateError('Duplicate rate name');
         }
         changes.add((kind: 'fuel_rate', id: rate.id, body: proposed));
       }
