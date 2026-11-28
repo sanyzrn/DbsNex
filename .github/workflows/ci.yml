@@ -21,6 +21,9 @@ on:
   # With merges going in one at a time that window is small, and the failure
   # surfaces before anything ships rather than after.
   pull_request:
+    # Reopening a closed PR and pushing to it both need a fresh run; marking
+    # one ready is when its first real review starts.
+    types: [opened, synchronize, reopened, ready_for_review]
   # Callable from release.yml so a tag cannot ship unverified code.
   workflow_call:
 
@@ -42,34 +45,47 @@ jobs:
   #
   # A Flutter-only change was paying for the backend suite, the PostgreSQL sync
   # matrix and a Windows runner, none of which could possibly be affected. On
-  # anything that is not a pull request — a push to main, or the release
-  # workflow calling in — every flag is true, because there is no base to
-  # compare against and a release must verify everything.
+  # anything that is not a pull request — the release workflow calling in —
+  # every flag is true, because there is no base to compare against and a
+  # release must verify everything.
   #
   # Deliberately plain git rather than a paths-filter action: this gates the
   # only required check, so it should be readable without trusting a third
-  # party, and `git diff --name-only` is the whole implementation.
+  # party, and `git diff --name-only` is the whole implementation. The diff is
+  # the branch's own changes against the merge base intersected with the files
+  # that differ from the base tip, which is what keeps a squashed-in `main` or
+  # a branch that is behind it from looking like this pull request's work.
+  #
+  # tools/ci_paths.py selects focused checks for established inputs. Prose
+  # and repository metadata need only the gate, while changelogs, guide pages
+  # and a verified version bump run three content tests. Unrecognized paths
+  # and pipeline changes select the full suite.
   changes:
     name: Which areas changed
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
+      # Any Dart or Flutter source at all.
+      dart: ${{ steps.filter.outputs.dart }}
+      # The client suite: apps/client, packages, specs and contracts.
+      client: ${{ steps.filter.outputs.client }}
+      # Changelog/guide/version content, checked by three short test files.
+      content: ${{ steps.filter.outputs.content }}
+      # The architecture guards below.
+      guards: ${{ steps.filter.outputs.guards }}
+      # Whether a formatter check has a PR base to work from.
+      format: ${{ steps.filter.outputs.format }}
+      backend: ${{ steps.filter.outputs.backend }}
+      desktop: ${{ steps.filter.outputs.desktop }}
+      # Production Dart, bundled assets, dependency manifests and native
+      # inputs can all affect the standard APK or the AI release bundle.
+      android: ${{ steps.filter.outputs.android }}
       retrieval: ${{ steps.filter.outputs.retrieval }}
       sync: ${{ steps.filter.outputs.sync }}
       ai_delete: ${{ steps.filter.outputs.ai_delete }}
-      module_dirs: ${{ steps.filter.outputs.module_dirs }}
-      dart: ${{ steps.filter.outputs.dart }}
-      backend: ${{ steps.filter.outputs.backend }}
-      desktop: ${{ steps.filter.outputs.desktop }}
-      # Narrower than `dart`: whether the Gradle build itself could have
-      # changed. A pure Dart edit cannot break the APK build in a way
-      # `flutter analyze` does not already catch, and that build is four of
-      # the nine minutes client-android costs.
-      android: ${{ steps.filter.outputs.android }}
       # Whether the add-on modules' own suite (apps/client/test/modules, about
-      # half of the client's test time) could be affected. Pull requests only:
-      # a release always runs it, via workflow_call.
-      modules: ${{ steps.filter.outputs.modules }}
+      # half of the client's test time) could be affected.
+      module_dirs: ${{ steps.filter.outputs.module_dirs }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -81,6 +97,86 @@ jobs:
           CI_EVENT: ${{ github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: python3 tools/ci_paths.py
+
+  # The boundary and layout proofs used to be three separate jobs: three
+  # runner allocations, three checkouts and three queue slots to run about
+  # twenty seconds of grep between them. They are one job now, and it is
+  # skipped entirely by a change that cannot reach the code they assert.
+  guard:
+    name: Architecture guards (boundaries, AI imports, widget layouts)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: changes
+    if: needs.changes.outputs.guards == 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # Every pattern below is anchored to a real declaration. The previous
+      # version grepped for a bare substring, so it matched the doc comment in
+      # nex_core.dart that *quotes* the removed export, and the comment in
+      # core/pubspec.yaml that records why nex_data was dropped — the job failed
+      # on its own documentation.
+      - name: Assert nex_core does not re-export nex_data
+        run: |
+          if grep -rnE "^[[:space:]]*export[[:space:]]+'package:nex_data" \
+               --include='*.dart' packages/core/lib; then
+            echo "::error::packages/core must not re-export packages/data (06-development.md dependency rule)"
+            exit 1
+          fi
+      # The import guard is the one that actually holds the layering: an export
+      # can only leak what an import already pulled in.
+      - name: Assert nex_core does not import nex_data
+        run: |
+          if grep -rnE "^[[:space:]]*import[[:space:]]+'package:nex_data" \
+               --include='*.dart' packages/core/lib; then
+            echo "::error::packages/core must not import packages/data — the arrow is data -> core"
+            exit 1
+          fi
+      - name: Assert nex_core does not depend on nex_data
+        run: |
+          if grep -qE "^[[:space:]]+nex_data[[:space:]]*:" packages/core/pubspec.yaml; then
+            echo "::error::packages/core must not declare nex_data as a dependency"
+            exit 1
+          fi
+      - name: Assert core, data and ui never import nex_ai
+        run: |
+          if git grep -n 'package:nex_ai/' -- ':(glob)packages/core/**/*.dart' \
+               ':(glob)packages/data/**/*.dart' ':(glob)packages/ui/**/*.dart'; then
+            echo "::error::packages/core, packages/data and packages/ui must not import package:nex_ai (09-ai.md, ADR-035)"
+            exit 1
+          fi
+      - name: Assert the on-device runtime is only imported by the ai-flavor entry point
+        run: |
+          if git grep -n -e 'package:nex_ai/nex_ai.dart' -e 'package:nex_ai/src/' \
+               -e 'package:flutter_litert_lm/' -- ':(glob)apps/client/**/*.dart' \
+               ':(exclude)apps/client/lib/main_ai.dart'; then
+            echo "::error::only apps/client/lib/main_ai.dart may import the on-device AI runtime (ADR-031, ADR-035)"
+            exit 1
+          fi
+      # The removal step in ai-deletion-proof strips the plugin with sed —
+      # checked here so a repin or reformatting fails loudly instead of leaving
+      # that sed a silent no-op.
+      - name: Assert the on-device plugin is still one pubspec line
+        run: |
+          if [ "$(grep -c '^  flutter_litert_lm: ' packages/ai/pubspec.yaml)" != 1 ]; then
+            echo "::error::packages/ai must list flutter_litert_lm as exactly one '  flutter_litert_lm: <version>' line (ADR-035)"
+            exit 1
+          fi
+      # The Timeline widget shipped in v1.5.5 and never rendered once. Its
+      # layout used <Space> to push the capture button to the far end, which
+      # compiles, lints, links and installs — and which RemoteViews refuses
+      # to inflate, because it admits only classes carrying the framework's
+      # @RemoteView annotation. Every check in this file passed while the
+      # widget showed "Problem loading widget" on the home screen.
+      #
+      # No SDK, no emulator: the failure is decidable from the layout text
+      # against a list taken from AOSP, so it costs five seconds and catches
+      # the whole class.
+      - name: Assert widget layouts only name @RemoteView classes
+        run: python3 tools/check_widget_layouts.py
+      # The guard's own tests, including the layout exactly as it shipped
+      # broken — a checker that quietly stops checking is worse than none.
+      - name: Check the checker
+        run: python3 tools/check_widget_layouts_test.py
 
   dart-packages:
     name: Pure Dart packages (analyze + test, no Flutter SDK)
@@ -100,13 +196,18 @@ jobs:
       - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
         with:
           sdk: "3.13.7"
-      # sqlite3 Dart FFI needs the system library (packages/data uses package:sqlite3).
-      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+      # sqlite3 Dart FFI needs the system library (packages/data uses
+      # package:sqlite3). core does not — it owns no database — so the core
+      # leg skips the install.
+      - if: matrix.package == 'data'
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+      # Give each dependency graph its own key so a smaller job cannot save
+      # an incomplete cache under the key used by a different graph.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-${{ runner.os }}-${{ matrix.package }}-${{ hashFiles(format('packages/{0}/pubspec.lock', matrix.package), '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-${{ matrix.package }}-
       # Proves packages/core and packages/data carry zero Flutter dependency:
       # this job never installs Flutter.
       #
@@ -141,8 +242,8 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-${{ runner.os }}-data-${{ hashFiles('packages/data/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-data-
       - run: dart pub get
       - run: dart test --tags budget --run-skipped test/retrieval_budget_test.dart
 
@@ -153,12 +254,15 @@ jobs:
   # ordinary suite does not pay for seeding. The two files run one after the
   # other, not together: each seeds its own library and each is timed, and
   # two timed tests sharing a runner only measure each other.
+  #
+  # It follows the client suite rather than every Dart change: a backend or
+  # spec edit cannot move a Flutter frame.
   timeline-budget:
     name: apps/client timeline budget (5,000 notes)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: changes
-    if: needs.changes.outputs.dart == 'true'
+    if: needs.changes.outputs.client == 'true'
     defaults:
       run:
         working-directory: apps/client
@@ -169,67 +273,16 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-client-${{ hashFiles('apps/client/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-client-
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
       - run: flutter pub get
       - run: flutter test --tags budget --run-skipped test/performance/timeline_budget_test.dart
       - run: flutter test --tags budget --run-skipped test/performance/content_budget_test.dart
-
-  core-boundary:
-    name: packages/core must not re-export the storage layer
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      # Every pattern below is anchored to a real declaration. The previous
-      # version grepped for a bare substring, so it matched the doc comment in
-      # nex_core.dart that *quotes* the removed export, and the comment in
-      # core/pubspec.yaml that records why nex_data was dropped — the job failed
-      # on its own documentation.
-      - name: Assert nex_core does not re-export nex_data
-        run: |
-          if grep -rnE "^[[:space:]]*export[[:space:]]+'package:nex_data" \
-               --include='*.dart' packages/core/lib; then
-            echo "::error::packages/core must not re-export packages/data (06-development.md dependency rule)"
-            exit 1
-          fi
-      # The import guard is the one that actually holds the layering: an export
-      # can only leak what an import already pulled in.
-      - name: Assert nex_core does not import nex_data
-        run: |
-          if grep -rnE "^[[:space:]]*import[[:space:]]+'package:nex_data" \
-               --include='*.dart' packages/core/lib; then
-            echo "::error::packages/core must not import packages/data — the arrow is data -> core"
-            exit 1
-          fi
-      - name: Assert nex_core does not depend on nex_data
-        run: |
-          if grep -qE "^[[:space:]]+nex_data[[:space:]]*:" packages/core/pubspec.yaml; then
-            echo "::error::packages/core must not declare nex_data as a dependency"
-            exit 1
-          fi
-
-  widget-layouts:
-    name: Widget layouts must be inflatable by RemoteViews
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      # The Timeline widget shipped in v1.5.5 and never rendered once. Its
-      # layout used <Space> to push the capture button to the far end, which
-      # compiles, lints, links and installs — and which RemoteViews refuses
-      # to inflate, because it admits only classes carrying the framework's
-      # @RemoteView annotation. Every check in this file passed while the
-      # widget showed "Problem loading widget" on the home screen.
-      #
-      # No SDK, no emulator: the failure is decidable from the layout text
-      # against a list taken from AOSP, so it costs five seconds and catches
-      # the whole class.
-      - name: Assert widget layouts only name @RemoteView classes
-        run: python3 tools/check_widget_layouts.py
-      # The guard's own tests, including the layout exactly as it shipped
-      # broken — a checker that quietly stops checking is worse than none.
-      - name: Check the checker
-        run: python3 tools/check_widget_layouts_test.py
 
   flutter-ai-package:
     name: packages/ai (analyze + test)
@@ -247,6 +300,12 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-ai-${{ hashFiles('packages/ai/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-ai-
       # nex_data is a dev dependency here (enrichment_test drives a real
       # repository), and it reaches package:sqlite3 through FFI.
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
@@ -270,6 +329,12 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-ui-${{ hashFiles('packages/ui/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-ui-
       - run: flutter pub get
       # A design system must not carry native FFI, archive or HTTP transitively.
       - name: Assert the design system has no storage dependency
@@ -282,12 +347,91 @@ jobs:
       - run: flutter analyze --fatal-infos
       - run: flutter test
 
-  client-android:
-    name: apps/client (analyze + test + Android build)
+  # Analyze and test, on a runner that never touches Gradle.
+  #
+  # This used to be the first half of a single 45-minute job that also built
+  # the debug APK, the release bundle and the store build. The builds do not
+  # read anything the tests produce, so running them in one job only made a
+  # test failure wait for four Gradle invocations. Split, the two halves run
+  # at the same time; the extra runner and one repeated `flutter pub get` are
+  # cheaper than the serial minutes they replace.
+  #
+  # A content change (changelog, guide, version) still lands here rather than
+  # its own job: the same checkout and SDK, three test files instead of the
+  # suite, about a minute instead of nine.
+  client-tests:
+    name: apps/client (analyze + test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: changes
+    if: needs.changes.outputs.client == 'true' || needs.changes.outputs.content == 'true'
+    defaults:
+      run:
+        working-directory: apps/client
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+          pub-cache: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-client-${{ hashFiles('apps/client/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-client-
+      - run: flutter pub get
+      - name: Generated localizations match the pinned SDK
+        if: needs.changes.outputs.client == 'true'
+        run: git diff --exit-code -- lib/l10n
+      - name: Preserve pinned localization output for drift review
+        if: failure() && needs.changes.outputs.client == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: generated-localizations
+          path: apps/client/lib/l10n/app_localizations*.dart
+          retention-days: 3
+      - run: flutter analyze --fatal-infos
+        if: needs.changes.outputs.client == 'true'
+      - name: Use system SQLite for Linux-only widget tests
+        if: needs.changes.outputs.client == 'true'
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+      - name: flutter test (active and affected modules)
+        if: needs.changes.outputs.client == 'true'
+        env:
+          MODULE_DIRS: ${{ needs.changes.outputs.module_dirs }}
+        run: |
+          if [ "$MODULE_DIRS" = all ]; then
+            flutter test
+          else
+            mapfile -t tests < <(find test -name '*_test.dart' -not -path 'test/modules/*' | sort)
+            for module in $MODULE_DIRS; do
+              test ! -d "test/modules/$module" || tests+=("test/modules/$module")
+            done
+            flutter test "${tests[@]}"
+          fi
+      # The three files that read the changelogs, the guide and the version.
+      # Everything else in this suite compiles code, and no changelog line has
+      # ever broken a compiler.
+      - name: Changelog, guide and version checks
+        if: needs.changes.outputs.client != 'true'
+        run: flutter test test/version_test.dart test/whats_new_test.dart test/app_guide_test.dart
+      - name: Upload golden mismatch images for visual review
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: client-golden-failures
+          path: apps/client/test/goldens/failures/
+          if-no-files-found: ignore
+          retention-days: 3
+
+  client-android-build:
+    name: apps/client (Android builds)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: changes
-    if: needs.changes.outputs.dart == 'true'
+    if: needs.changes.outputs.android == 'true'
     defaults:
       run:
         working-directory: apps/client
@@ -319,74 +463,41 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
-      - run: flutter pub get
-      - name: Generated localizations match the pinned SDK
-        run: git diff --exit-code -- lib/l10n
-      - name: Preserve pinned localization output for drift review
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          name: generated-localizations
-          path: apps/client/lib/l10n/app_localizations*.dart
-          retention-days: 3
-      - run: flutter analyze --fatal-infos
-      - name: Use system SQLite for Linux-only widget tests
-        run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-client-${{ hashFiles('apps/client/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-client-
+      - run: flutter pub get
+      # The JVM policy for Daily Nudge. It compiles two Java files with javac,
+      # so it needs a JDK and nothing from Gradle — it lives here because it
+      # changes when android/ changes.
       - name: Daily Nudge JVM policy
         run: python3 ../../tools/daily_nudge_native_test.py
-      - name: flutter test (active and affected modules)
-        env:
-          MODULE_DIRS: ${{ needs.changes.outputs.module_dirs }}
-        run: |
-          if [ "$MODULE_DIRS" = all ]; then
-            flutter test
-          else
-            mapfile -t tests < <(find test -name '*_test.dart' -not -path 'test/modules/*' | sort)
-            for module in $MODULE_DIRS; do
-              test ! -d "test/modules/$module" || tests+=("test/modules/$module")
-            done
-            flutter test "${tests[@]}"
-          fi
-      - name: Upload golden mismatch images for visual review
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: client-golden-failures
-          path: apps/client/test/goldens/failures/
-          if-no-files-found: ignore
-          retention-days: 3
       # --flavor is required once flavorDimensions is defined (ADR-031);
       # "standard" is the AI-free default, matching what this job always
       # built before flavors existed.
       #
-      # Only when the Gradle build could actually have changed — see the
-      # `android` output on the changes job. analyze and test above already
-      # cover a pure Dart edit; what this step catches is the manifest, the
-      # Gradle config and native plugin wiring, none of which a Dart-only
-      # change touches. Always true for a release (workflow_call), where the
-      # real signed build has to be preceded by a full check.
       # The NDK pinned in android/app/build.gradle.kts is not on the runner
       # image. Gradle installed it itself, mid-build and once only, and a
       # truncated download ("Archive is not a ZIP archive") failed 2.1.6 ten
       # minutes in. Installed here first, a bad download is retried.
       - name: Install the pinned Android NDK and SDK platform
-        if: needs.changes.outputs.android == 'true'
         run: bash ../../tools/install_android_ndk.sh
       - run: flutter build apk --debug --flavor standard
-        if: needs.changes.outputs.android == 'true'
       - name: Bundled SQLite covers every APK ABI
-        if: needs.changes.outputs.android == 'true'
         run: python3 ../../tools/check_sqlite_assets.py build/app/outputs/flutter-apk/app-standard-debug.apk
       # The artifact that actually ships — the ai flavor, release mode, as an
       # App Bundle — used to be assembled for the first time inside a release,
       # minutes into it (REL-10). A plugin whose AAR or native library breaks
       # only there now fails the pull request that brought it in. Pull
       # requests only: a release (workflow_call) builds the signed artifact
-      # itself right after this suite, so building it here too would be the
-      # same minutes spent twice. Debug-signed and discarded.
+      # itself in release.yml right after this suite, so building it here too
+      # would be the same minutes spent twice. Debug-signed and discarded.
       - name: Build the shipping artifact (ai flavor, release App Bundle)
-        if: needs.changes.outputs.android == 'true' && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         env:
           NEX_CI_VERIFY_RELEASE_BUILD: "true"
         run: |
@@ -395,7 +506,7 @@ jobs:
       # Android 15 devices may run with 16 KB memory pages, where a native
       # library aligned to 4 KB does not load (REL-05). A warning, not a gate.
       - name: Native libraries are 16 KB aligned (report)
-        if: needs.changes.outputs.android == 'true' && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         run: bash ../../tools/check_16kb_alignment.sh --warn build/app/outputs/bundle/aiRelease/app-ai-release.aab
       # The store build (2.3.5) for Cafe Bazaar and Myket: the same app without
       # the installer permission, which both stores refuse in an app that
@@ -406,7 +517,7 @@ jobs:
       # build here pushed the job past its limit; the release workflow checks
       # the real store files.
       - name: Store build drops the installer permission
-        if: needs.changes.outputs.android == 'true' && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         run: |
           flutter build apk --debug --flavor standard \
             --dart-define=NEX_STORE_BUILD=true
@@ -427,8 +538,7 @@ jobs:
     #
     # What this costs while paused: nothing verifies the Windows build or the
     # Windows-only platform tests, so desktop regressions land unnoticed.
-    # To re-enable, restore the previous condition in place of `false` on the
-    # `if:` below — "CI green" already accepts a skipped job:
+    # To re-enable, restore the previous condition and update the CI gate:
     #   if: needs.changes.outputs.desktop == 'true'
     #
     # Keep the reviewed Windows image pinned while desktop remains paused.
@@ -477,7 +587,7 @@ jobs:
     # are exactly what this job existed to keep honest. Expect to fix some
     # accumulated drift whenever iOS comes back.
     #
-    # To re-enable, restore the previous condition in place of `false`:
+    # To re-enable, set the new condition and update the CI gate:
     #   if: github.event_name == 'push' || github.event_name == 'workflow_call'
     if: false
     defaults:
@@ -626,9 +736,7 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
@@ -640,6 +748,11 @@ jobs:
         with:
           sdk: "3.13.7"
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-data-${{ hashFiles('packages/data/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-data-
 
       - name: Install backend deps
         working-directory: apps/backend
@@ -751,42 +864,13 @@ jobs:
   # on-device runtime (package:nex_ai/nex_ai.dart, LiteRT) is the removable
   # half, confined to the "ai" flavor's entry point. This job removes it and
   # proves everything else still builds.
-  ai-boundary:
-    name: AI import boundaries
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - name: Assert core, data and ui never import nex_ai
-        run: |
-          if grep -Rn --include='*.dart' "package:nex_ai/" packages/core packages/data packages/ui | grep -q .; then
-            echo "::error::packages/core, packages/data and packages/ui must not import package:nex_ai (09-ai.md, ADR-035)"
-            exit 1
-          fi
-
-      - name: Assert the on-device runtime is only imported by the ai-flavor entry point
-        run: |
-          if grep -Rn --include='*.dart' -e "package:nex_ai/nex_ai.dart" -e "package:nex_ai/src/" apps/client \
-              | grep -v '^apps/client/lib/main_ai\.dart:' | grep -q .; then
-            echo "::error::only apps/client/lib/main_ai.dart may import package:nex_ai/nex_ai.dart; the client uses package:nex_ai/cloud.dart (ADR-031, ADR-035)"
-            exit 1
-          fi
-
-      # The removal step below strips the plugin with sed — checked here so a
-      # repin or reformatting fails loudly instead of leaving that sed a
-      # silent no-op.
-      - name: Assert the on-device plugin is still one pubspec line
-        run: |
-          if [ "$(grep -c '^  flutter_litert_lm: ' packages/ai/pubspec.yaml)" != 1 ]; then
-            echo "::error::packages/ai must list flutter_litert_lm as exactly one '  flutter_litert_lm: <version>' line (ADR-035)"
-            exit 1
-          fi
-
   ai-deletion-proof:
     name: packages/ai on-device runtime deletion proof (the rest still builds)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: changes
+    # Rerun removal and analysis when the AI package, its binding or its
+    # dependency resolution changes. The cheap guards check other imports.
     if: needs.changes.outputs.ai_delete == 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -795,6 +879,12 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-ai-deletion-${{ hashFiles('**/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-ai-deletion-
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
 
       - name: Remove the on-device runtime and the ai-flavor entry point
@@ -805,7 +895,7 @@ jobs:
                 apps/client/lib/main_ai.dart
           grep -Rl "package:nex_ai/nex_ai.dart" packages/ai/test | xargs -r rm
           sed -i '/^  flutter_litert_lm: /d' packages/ai/pubspec.yaml
-          if grep -Rn "package:flutter_litert_lm/" packages/ai/lib apps/client/lib | grep -q .; then
+          if git grep -n 'package:flutter_litert_lm/' -- packages/ai/lib apps/client/lib; then
             echo "::error::something outside the removed files still reaches flutter_litert_lm"
             exit 1
           fi
@@ -826,7 +916,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: changes
-    if: needs.changes.outputs.dart == 'true'
+    # `format` is false on a workflow_call: there is no pull-request base to
+    # diff, and the previous HEAD^ fallback only ever checked the last commit
+    # of a release — a check that looked like a gate and was not one. A release
+    # is gated on analyze, tests and the signed build; formatting stays where
+    # it is enforceable.
+    if: needs.changes.outputs.format == 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -847,7 +942,9 @@ jobs:
   # exactly one entry: "CI green".
   #
   # `always()` matters: without it this job is skipped when a dependency fails,
-  # and a skipped required check reads as success.
+  # and a skipped required check reads as success. Missing, failed and
+  # cancelled dependencies all fail; only the skips this workflow selected are
+  # accepted, which tools/check_ci_results.py re-derives from `changes`.
   ci-green:
     name: CI green
     runs-on: ubuntu-latest
@@ -855,21 +952,20 @@ jobs:
     if: always()
     needs:
       - changes
+      - guard
       - dart-packages
       - retrieval-budget
       - timeline-budget
-      - core-boundary
-      - widget-layouts
       - flutter-ai-package
       - flutter-ui-package
-      - client-android
+      - client-tests
+      - client-android-build
       - client-windows
       - client-ios
       - backend
       - feedback-worker
       - sync-integration
       - ai-deletion-proof
-      - ai-boundary
       - changed-format
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
