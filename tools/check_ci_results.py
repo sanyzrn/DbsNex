@@ -5,25 +5,34 @@ import json
 import os
 import sys
 
+SELECTION = ('dart', 'client', 'content', 'guards', 'format', 'android',
+             'backend', 'retrieval', 'sync', 'ai_delete')
+
 
 def failures(needs: dict) -> list[str]:
     outputs = needs.get("changes", {}).get("outputs", {})
-    if any(outputs.get(key) not in ("true", "false") for key in ("dart", "backend", "retrieval", "sync", "ai_delete")):
-        return ["changes must supply valid selection flags"]
-    dart = outputs["dart"] == "true"
-    backend = outputs["backend"] == "true"
+    errors = [f"changes must supply a valid {key} flag"
+              for key in SELECTION if outputs.get(key) not in ("true", "false")]
+    selected = {key: outputs.get(key) == "true" for key in SELECTION}
     required = {
-        "changes": True, "core-boundary": True, "widget-layouts": True,
-        "ai-boundary": True, "changed-format": dart,
-        "dart-packages": dart, "retrieval-budget": outputs["retrieval"] == "true", "timeline-budget": dart,
-        "flutter-ai-package": dart, "flutter-ui-package": dart,
-        "client-android": dart, "ai-deletion-proof": outputs["ai_delete"] == "true",
-        "backend": backend, "feedback-worker": backend,
-        "sync-integration": outputs["sync"] == "true",
+        "changes": True,
+        "guard": selected["guards"],
+        "changed-format": selected["format"],
+        "dart-packages": selected["dart"],
+        "retrieval-budget": selected["retrieval"],
+        "timeline-budget": selected["client"],
+        "flutter-ai-package": selected["dart"],
+        "flutter-ui-package": selected["dart"],
+        "client-tests": selected["client"] or selected["content"],
+        "client-android-build": selected["android"],
+        "backend": selected["backend"],
+        "feedback-worker": selected["backend"],
+        "sync-integration": selected["sync"],
+        "ai-deletion-proof": selected["ai_delete"],
         # Explicitly paused in ci.yml. Failures/cancellations still fail.
         "client-windows": False, "client-ios": False,
     }
-    errors = [f"missing required dependency: {name}" for name in required if name not in needs]
+    errors += [f"missing required dependency: {name}" for name in required if name not in needs]
     for name, job in needs.items():
         result = job.get("result")
         allowed = ("success",) if required.get(name, True) else ("success", "skipped")
