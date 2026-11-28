@@ -4,15 +4,19 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
-- **Maintenance.** See upcoming insurance and inspection dates at a glance, renew them in one tap, and track fuel cost per litre and monthly quota usage. Service costs open in tomans, with rials a tap away.
+## v2.9.5
 
-- **Formatting follows the selection.** Bold, italic and the rest now apply to what you selected, however you selected it — a tap or a drag moves the note's caret with it instead of leaving the toolbar working on the old position.
+- **Independent paragraph direction.** Persian and English paragraphs now keep their own alignment while writing or editing notes, checklists, AI chat and multiline module fields. Moving the caret or selecting across paragraphs no longer flips the entire field.
 
-- **Persian and English stay aligned in the same field.** Each paragraph follows its own direction as you type a new note, edit it, or fill in a multiline field.
+- **More reliable text editing.** Improved selection and caret tracking, formatting of selected text, undo/redo, paragraph splitting and joining, and pasted multiline text. The formatting toolbar supports bold, italic, monospace, strikethrough, quotes, links and clearing formatting.
 
-- **The page stops turning as you edit.** Moving the cursor, selecting across paragraphs or dragging a selection handle no longer changes the direction or alignment of the rest of the note, and the text no longer jumps under your finger.
+- **Unified multiline input.** Fields retain their labels, hints, validation and character limits. Switching capture types preserves text; code capture retains syntax highlighting, indentation and bracket pairing. Private vault clipboard and keyboard privacy policies remain in place.
 
-- **Formatting stays one tap away.** Bold, italic, monospace, strikethrough, quote, link and clearing formatting are in the editor's toolbar, on every platform.
+- **Vehicle maintenance: insurance and inspections.** Upcoming and overdue dates appear in the overview, even without service rules. Renew dates by one year with one tap; existing reminders follow the new date.
+
+- **Vehicle maintenance: fuel and service costs.** See monthly fuel use, quota progress and cost per litre, including rates without quotas. Duplicate rate names and future fuel entries are rejected, edited example rates lose their marker, and unsaved rate changes are protected. Service costs default to tomans, with exact rial/toman switching.
+
+- **Reliability and compatibility.** Fixed a date-dependent Expenses regression test, expanded editor and maintenance test coverage, and resolved Android release-build SDK and JVM compatibility issues.
 
 ## v2.9.4
 
