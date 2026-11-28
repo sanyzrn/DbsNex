@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 
 allprojects {
@@ -59,9 +60,11 @@ subprojects {
     plugins.withId("com.android.library") {
         plugins.apply("org.jetbrains.kotlin.android")
         if (name == "super_keyboard") {
-            // This plugin explicitly sets Java 8. Align it with the Kotlin
-            // target below after its own build script has configured the DSL.
+            // The plugin pins SDK 34 and Java 8. It needs the app's compile
+            // SDK for release dependencies and Java 17 to match Kotlin.
+            val appAndroid = project(":app").extensions.getByType<ApplicationExtension>()
             extensions.getByType<LibraryAndroidComponentsExtension>().finalizeDsl { android ->
+                android.compileSdk = appAndroid.compileSdk
                 android.compileOptions.sourceCompatibility = JavaVersion.VERSION_17
                 android.compileOptions.targetCompatibility = JavaVersion.VERSION_17
             }
