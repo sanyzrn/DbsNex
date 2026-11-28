@@ -35,8 +35,10 @@ DOCUMENTATION = (
     r'^\.gitattributes$',
     r'^\.gitignore$',
     # CODEOWNERS, SECURITY.md, the issue and PR templates, dependabot.yml: a
-    # workflow that reads them is not a workflow whose result changes.
-    r'^\.github/(?!workflows/)',
+    # workflow that reads them is not a workflow whose result changes. A
+    # custom action under .github/actions/ *is* code a workflow runs, so it is
+    # excluded here and handled with the workflows themselves.
+    r'^\.github/(?!workflows/|actions/)',
 )
 
 # The version, stated twice on purpose — `version_test.dart` holds the two
@@ -49,14 +51,48 @@ VERSION_FILES = (
 VERSION_LINE = re.compile(r'^[+-](version:|const nexAppVersion = )')
 
 # Changes that can move an Android artifact: the build config, every pubspec
-# (plugins are resolved through them), the pinned SDK, and the guard scripts
-# that read the built APK. A change to, say, tools/generate_app_icons.py is
-# not one of them.
+# (plugins are resolved through them), the pinned SDK, the assets and entry
+# points that are packaged, any plugin's own platform folder, and every tool
+# the Android job runs — a script that only runs there must be able to fail
+# there. A change to, say, tools/generate_brand_assets.py is not one of them.
 ANDROID = (
     r'^apps/client/android/',
+    # Packaged into the APK: icons, fonts, splash assets, shaders. The
+    # changelog and guide under the same tree are content and are removed
+    # before this list is consulted.
+    r'^apps/client/assets/',
+    # The ai flavor's entry point: the shipping App Bundle is built from it.
+    r'^apps/client/lib/main_ai\.dart$',
+    # A plugin's native half ships inside the app; its Dart half does not.
+    r'^packages/[^/]+/(android|ios|linux|macos|windows)/',
     r'(^|/)pubspec\.(yaml|lock)$',
     r'^\.fvmrc$',
-    r'^tools/(install_android_ndk|check_sqlite_assets|check_store_permissions|check_16kb_alignment)',
+    r'^tools/(install_android_ndk|check_sqlite_assets|check_store_permissions|check_16kb_alignment|daily_nudge_native_test)',
+)
+
+# Every path this repository can contain. Anything else — a second app, a new
+# top-level directory, a script outside tools/ — is unknown, and an unknown
+# path runs everything: the one answer that cannot skip a check it needed.
+# `apps/` is deliberately not a prefix here, so a new app is unknown rather
+# than silently selecting nothing.
+KNOWN = (
+    r'^apps/(client|backend|feedback-worker)/',
+    r'^packages/',
+    r'^spec/',
+    r'^contracts/',
+    r'^tools/',
+    r'^docs/',
+    # Scope notes for the add-on programme; tracked prose, never code.
+    r'^addons/',
+    r'^\.github/',
+    r'^CHANGELOG(\.fa)?\.md$',
+    r'^README\.md$',
+    r'^LICENSE$',
+    r'^CLAUDE\.md$',
+    r'^Makefile$',
+    r'^\.fvmrc$',
+    r'^\.gitattributes$',
+    r'^\.gitignore$',
 )
 
 
@@ -72,8 +108,15 @@ def select(files, event='pull_request', active=(), version_only=False):
         return dict.fromkeys(FLAGS, True) | {'module_dirs': 'all', 'format': False}
     if not files:
         return dict.fromkeys(FLAGS, True) | {'module_dirs': 'all'}
-    # A workflow edit changes what every job does, so it pays for everything.
-    if any(path.startswith('.github/workflows/') for path in files):
+    # A workflow edit — or a custom action one of them calls — changes what
+    # every job does, so it pays for everything.
+    if any(path.startswith(('.github/workflows/', '.github/actions/')) for path in files):
+        return dict.fromkeys(FLAGS, True) | {'module_dirs': 'all'}
+    # A path this file has never seen cannot be proved harmless: a new app, a
+    # script some job runs outside tools/, a root config the build reads.
+    # Unknown runs everything, which is what this module promises and what the
+    # empty and non-pull-request cases already do.
+    if any(not _matches(KNOWN, path) for path in files):
         return dict.fromkeys(FLAGS, True) | {'module_dirs': 'all'}
 
     content = any(_matches(CONTENT, path) for path in files)
@@ -86,7 +129,12 @@ def select(files, event='pull_request', active=(), version_only=False):
         code = []
     if not code:
         flags = dict.fromkeys(FLAGS, False)
-        flags['content'] = content
+        # A release-prep commit still pays for the three content tests. The
+        # version is stated twice on purpose and `version_test` is the only
+        # thing that holds the two together — a bump with no changelog edit
+        # used to select nothing at all, which is exactly the change most
+        # likely to leave them disagreeing.
+        flags['content'] = content or version_only
         flags['module_dirs'] = ''
         return flags
 
@@ -182,8 +230,12 @@ def version_only_change(base, files):
     if not touched:
         return False
     try:
+        # Three dots: the branch's own lines, not main's since the branch
+        # point. A branch behind main would otherwise show main's dependency
+        # line as a removal of this branch's and run the whole matrix for a
+        # version bump.
         diff = subprocess.check_output(
-            ['git', 'diff', '-U0', base, 'HEAD', '--', *touched],
+            ['git', 'diff', '-U0', f'{base}...HEAD', '--', *touched],
             text=True, stderr=subprocess.DEVNULL,
         )
     except subprocess.CalledProcessError:

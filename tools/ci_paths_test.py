@@ -77,6 +77,29 @@ class PathsTest(unittest.TestCase):
             # not set it, or the changelog is back to a nine-minute run.
             self.assertFalse(any(value[k] for k in FLAGS if k != 'content'), path)
 
+    def test_a_version_bump_without_a_changelog_still_runs_the_version_tests(self):
+        # `version_test` is the only thing holding the two statements of the
+        # version together. Selecting nothing for the bump left them free to
+        # disagree until a release.
+        files = ['apps/client/pubspec.yaml', 'apps/client/lib/app_version.dart']
+        value = select(files, active=ACTIVE, version_only=True)
+        self.assertEqual([k for k in FLAGS if value[k]], ['content'])
+
+    def test_an_unrecognised_path_runs_everything(self):
+        # A second app, a script outside tools/, a root config: nothing here can
+        # be proved harmless, so nothing may be skipped for it.
+        for path in ('apps/desktop/linux/main.cc', 'scripts/deploy.sh',
+                     'analysis_options.yaml', 'melos.yaml', 'apps/store/README.md'):
+            value = select([path], active=ACTIVE)
+            self.assertTrue(all(value[k] for k in FLAGS), path)
+            self.assertEqual(value['module_dirs'], 'all', path)
+
+    def test_a_custom_action_is_code_not_prose(self):
+        # .github/actions/* is executed by a workflow; the rest of .github is
+        # templates and metadata that cannot change a result.
+        value = select(['.github/actions/setup/action.yml'], active=ACTIVE)
+        self.assertTrue(all(value[k] for k in FLAGS))
+
     def test_release_prep_commit_is_content_not_code(self):
         files = ['CHANGELOG.md', 'CHANGELOG.fa.md', 'apps/client/pubspec.yaml',
                  'apps/client/lib/app_version.dart']
@@ -94,9 +117,19 @@ class PathsTest(unittest.TestCase):
 
     def test_android_build_follows_android_inputs_only(self):
         for path in ('apps/client/android/app/build.gradle.kts', 'apps/client/pubspec.lock',
-                     'packages/ui/pubspec.yaml', 'tools/install_android_ndk.sh'):
+                     'packages/ui/pubspec.yaml', 'tools/install_android_ndk.sh',
+                     # Packaged into the APK.
+                     'apps/client/assets/fonts/Vazirmatn.ttf',
+                     # A plugin's native half ships inside the app.
+                     'packages/ui/android/src/main/kotlin/Plugin.kt',
+                     # The JVM policy runs inside the Android job.
+                     'tools/daily_nudge_native_test.py',
+                     # The ai flavor's entry point builds the shipping bundle.
+                     'apps/client/lib/main_ai.dart'):
             self.assertTrue(select([path])['android'], path)
-        for path in ('apps/client/lib/main.dart', 'tools/generate_app_icons.py'):
+        for path in ('apps/client/lib/main.dart', 'tools/generate_app_icons.py',
+                     # Content, not an APK input.
+                     'apps/client/assets/CHANGELOG.md'):
             self.assertFalse(select([path])['android'], path)
 
 
@@ -167,6 +200,39 @@ class ChangedFilesTest(unittest.TestCase):
                 # deletion in a plain two-dot diff, and a docs-only change
                 # would select the backend suite.
                 self.assertEqual(changed_files(base), ['notes.md'])
+            finally:
+                os.chdir(old)
+
+    def test_a_branch_behind_main_is_still_only_a_version_bump(self):
+        # main moved after the branch point. A two-dot diff against main's tip
+        # reports main's new line as this branch's deletion, so the careful
+        # version bump paid for the whole matrix.
+        old = os.getcwd()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            os.chdir(root)
+            try:
+                self.git('init', '-q', cwd=root)
+                client = root / 'apps/client'
+                (client / 'lib').mkdir(parents=True)
+                (client / 'pubspec.yaml').write_text('name: nex\nversion: 2.9.5\n')
+                (client / 'lib/app_version.dart').write_text("const nexAppVersion = '2.9.5';\n")
+                self.git('add', '.', cwd=root)
+                self.git('commit', '-qm', 'base', cwd=root)
+                self.git('checkout', '-qb', 'bump', cwd=root)
+                (client / 'pubspec.yaml').write_text('name: nex\nversion: 2.9.6\n')
+                (client / 'lib/app_version.dart').write_text("const nexAppVersion = '2.9.6';\n")
+                self.git('commit', '-qam', 'bump', cwd=root)
+                self.git('checkout', '-q', 'main', cwd=root)
+                (client / 'pubspec.yaml').write_text('name: nex\nversion: 2.9.5\ndeps: 1\n')
+                self.git('commit', '-qam', 'main moved', cwd=root)
+                base = self.git('rev-parse', 'HEAD', cwd=root)
+                self.git('checkout', '-q', 'bump', cwd=root)
+
+                files = changed_files(base)
+                self.assertEqual(sorted(files), ['apps/client/lib/app_version.dart',
+                                                 'apps/client/pubspec.yaml'])
+                self.assertTrue(version_only_change(base, files))
             finally:
                 os.chdir(old)
 

@@ -64,7 +64,13 @@ jobs:
   #   * The changelogs, the guide and the version numbers select `content`
   #     only: the three test files that read them, not the Flutter suite and
   #     not an Android build. `version` is a release-preparation edit and is
-  #     detected by reading the diff of the two files that state it.
+  #     detected by reading the diff of the two files that state it — and it
+  #     selects those three tests even when no changelog moved, because
+  #     `version_test` is the only thing keeping the two statements equal.
+  #
+  #   * A path the classifier has never seen selects everything. A second app,
+  #     a script outside tools/, a root configuration file: an unknown file is
+  #     not evidence that nothing important changed.
   changes:
     name: Which areas changed
     runs-on: ubuntu-latest
@@ -82,9 +88,11 @@ jobs:
       format: ${{ steps.filter.outputs.format }}
       backend: ${{ steps.filter.outputs.backend }}
       desktop: ${{ steps.filter.outputs.desktop }}
-      # Narrower than `dart`: whether the Gradle build itself could have
-      # changed. A pure Dart edit cannot break the APK build in a way
-      # `flutter analyze` does not already catch.
+      # Narrower than `dart`: whether anything the APK packages, or a tool
+      # this job runs, could have changed — android/, a pubspec or the pinned
+      # SDK, a packaged asset, a plugin's native folder, the ai flavor's entry
+      # point, the APK-reading scripts. A pure Dart edit cannot break the
+      # build in a way analyze and the tests do not already catch.
       android: ${{ steps.filter.outputs.android }}
       retrieval: ${{ steps.filter.outputs.retrieval }}
       sync: ${{ steps.filter.outputs.sync }}
