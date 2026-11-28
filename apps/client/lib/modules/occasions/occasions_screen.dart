@@ -32,6 +32,8 @@ class _OccasionsScreenState extends State<OccasionsScreen>
   bool _failed = false;
   bool _showArchived = false;
   bool _renewed = false;
+  bool _searching = false;
+  final _search = TextEditingController();
   int _token = 0;
   StreamSubscription<void>? _changes;
 
@@ -40,6 +42,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _changes = widget.store.changes.listen((_) => unawaited(_load()));
+    _search.addListener(_onSearch);
     unawaited(_load());
   }
 
@@ -48,10 +51,16 @@ class _OccasionsScreenState extends State<OccasionsScreen>
     if (state == AppLifecycleState.resumed) unawaited(_load());
   }
 
+  void _onSearch() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_changes?.cancel());
+    _search.removeListener(_onSearch);
+    _search.dispose();
     super.dispose();
   }
 
@@ -149,6 +158,29 @@ class _OccasionsScreenState extends State<OccasionsScreen>
       ],
     );
 
+    // What was typed, folded the way the app's search folds Persian — the
+    // Arabic yeh finds the Persian one, a ZWNJ finds nothing — against the
+    // name and the note, whose gift ideas are often what is being looked for.
+    final query = _searching ? _search.text.trim() : '';
+    final searching = query.isNotEmpty;
+    final found = <(Occasion, OccasionDay?)>[];
+    if (searching) {
+      final needle = nexSearchFold(query).toLowerCase().trim();
+      bool hits(Occasion o) =>
+          needle.isNotEmpty &&
+          (nexSearchFold(o.title).toLowerCase().contains(needle) ||
+              nexSearchFold(o.note).toLowerCase().contains(needle));
+      for (final (occasion, next) in dated) {
+        if (hits(occasion)) found.add((occasion, next));
+      }
+      for (final occasion in undated) {
+        if (hits(occasion)) found.add((occasion, null));
+      }
+    }
+
+    // The search itself is offered only once there is something to search.
+    final searchable = !(_loading || _failed || _items.isEmpty);
+
     final body = _loading
         ? const Center(child: NexInlineSpinner())
         : _failed
@@ -178,6 +210,34 @@ class _OccasionsScreenState extends State<OccasionsScreen>
               ),
             ),
           )
+        : searching
+        ? ListView(
+            padding: EdgeInsetsDirectional.fromSTEB(
+              NexSpacing.md,
+              NexSpacing.sm,
+              NexSpacing.md,
+              NexSpacing.xl * 3 + nexBottomInset(context),
+            ),
+            children: [
+              Padding(
+                padding: const EdgeInsetsDirectional.only(
+                  bottom: NexSpacing.sm,
+                ),
+                child: NexSearchField(
+                  fieldKey: const ValueKey('occasions-search'),
+                  controller: _search,
+                  hintText: strings(context, 'searchHint'),
+                ),
+              ),
+              if (found.isEmpty)
+                NexEmptyState(
+                  icon: Icons.search_off_outlined,
+                  message: strings(context, 'noResults', {'query': query}),
+                )
+              else
+                list(found),
+            ],
+          )
         : ListView(
             padding: EdgeInsetsDirectional.fromSTEB(
               NexSpacing.md,
@@ -186,6 +246,17 @@ class _OccasionsScreenState extends State<OccasionsScreen>
               NexSpacing.xl * 3 + nexBottomInset(context),
             ),
             children: [
+              if (_searching)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    bottom: NexSpacing.sm,
+                  ),
+                  child: NexSearchField(
+                    fieldKey: const ValueKey('occasions-search'),
+                    controller: _search,
+                    hintText: strings(context, 'searchHint'),
+                  ),
+                ),
               if (dated.isNotEmpty)
                 OccasionHeroCard(
                   key: const ValueKey('occasions-hero'),
@@ -279,7 +350,23 @@ class _OccasionsScreenState extends State<OccasionsScreen>
           );
 
     return Scaffold(
-      appBar: NexAppBar(title: Text(strings(context, 'title'))),
+      appBar: NexAppBar(
+        title: Text(strings(context, 'title')),
+        actions: [
+          if (searchable)
+            IconButton(
+              key: const ValueKey('occasions-search-toggle'),
+              tooltip: strings(context, 'search'),
+              icon: Icon(_searching ? Icons.close : Icons.search),
+              onPressed: () {
+                setState(() {
+                  _searching = !_searching;
+                  if (!_searching) _search.clear();
+                });
+              },
+            ),
+        ],
+      ),
       // One primary action per page: with nothing yet, it is the button in
       // the empty state, not a second one floating beside it.
       floatingActionButton: _items.isEmpty || _loading || _failed

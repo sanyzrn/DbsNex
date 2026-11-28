@@ -44,6 +44,13 @@ jobs:
         with:
           sdk: "3.13.7"
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+      # Same key as ci.yml: a nightly job should spend its time running the
+      # suite fifty times, not resolving the same lockfile every night.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-data-${{ hashFiles('packages/data/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-data-
       - run: dart pub get
       # Two connections and an isolate contending for the write lock.
       - name: Write contention, ${{ env.RUNS }} times
@@ -67,6 +74,12 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-client-${{ hashFiles('apps/client/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-client-
       - run: flutter pub get
       # Each of these guards a race that shipped once: the database isolate
       # starting, a capture never waiting on it, the widget snapshot against a

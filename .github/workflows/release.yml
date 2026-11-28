@@ -27,12 +27,11 @@ on:
         type: boolean
         default: false
 
+# Least privilege at the workflow level: verifying and building read this
+# repository and nothing more. Only publish-release writes, and it asks for
+# exactly what it needs on the job itself.
 permissions:
-  contents: write
-  # Lets publish-release delete this run's own hand-off artifacts once the
-  # Release exists — see the cleanup step at the end of that job. Deleting an
-  # artifact is an Actions write, not a contents write.
-  actions: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -179,8 +178,17 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
 
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+
+      # Same pub-cache key as ci.yml: the resolution is identical, so a release
+      # build should not pay for it again from an empty cache.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-client-${{ hashFiles('apps/client/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-client-
 
       # Before Gradle needs it, with retries: see the same step in ci.yml.
       - name: Install the pinned Android NDK and SDK platform
@@ -520,6 +528,12 @@ jobs:
     needs: [version, build-android]
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # The one job that writes: the Release and its assets (contents) and the
+    # deletion of this run's own hand-off artifacts (an Actions write, not a
+    # contents write). Nothing upstream of it needs a write token.
+    permissions:
+      contents: write
+      actions: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 

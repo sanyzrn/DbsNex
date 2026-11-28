@@ -16,6 +16,12 @@ on:
 permissions:
   contents: read
 
+# A second dispatch should replace the first, not compete with it for 45
+# minutes of a runner and an artifact name.
+concurrency:
+  group: ai-testbuild-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: ai flavor APK (arm64)
