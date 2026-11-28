@@ -9,6 +9,7 @@ import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/platform/editor_drafts.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
+import 'package:nex_client/widgets/nex_paragraph_editor.dart';
 import 'package:nex_client/widgets/note_editor_sheet.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +24,20 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     preferences = await NexPreferences.load();
   });
+
+  /// The editor's controller — the sheet's own source of truth.
+  TextEditingController controllerOf(WidgetTester tester) => tester
+      .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+      .controller;
+
+  /// Replaces the whole note the way an AI rewrite does.
+  Future<void> replaceNote(WidgetTester tester, String text) async {
+    controllerOf(tester).value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+    await tester.pumpAndSettle();
+  }
 
   /// A provider that answers every request with the same text.
   http.Client replying(String content) => MockClient(
@@ -119,7 +134,10 @@ void main() {
     await tester.tap(undo);
     await tester.pumpAndSettle();
     expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      tester
+          .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+          .controller
+          .text,
       'teh draft',
     );
     expect(tester.takeException(), isNull);
@@ -130,7 +148,10 @@ void main() {
 
     expect(find.text('Edit note'), findsOneWidget);
     expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      tester
+          .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+          .controller
+          .text,
       'the boiler is making a noise',
     );
   });
@@ -139,9 +160,7 @@ void main() {
     tester,
   ) async {
     await open(tester, initial: 'the boiler is making a noise');
-    final controller = tester
-        .widget<TextField>(find.byType(TextField))
-        .controller!;
+    final controller = controllerOf(tester);
     expect(controller.selection.isCollapsed, isTrue);
     expect(controller.selection.baseOffset, controller.text.length);
   });
@@ -150,9 +169,7 @@ void main() {
     tester,
   ) async {
     await open(tester, initial: 'call the landlord', initialSelection: 5);
-    final controller = tester
-        .widget<TextField>(find.byType(TextField))
-        .controller!;
+    final controller = controllerOf(tester);
     expect(controller.selection.baseOffset, 5);
   });
 
@@ -183,9 +200,7 @@ void main() {
       ),
     );
     await tester.pump();
-    final controller = tester
-        .widget<TextField>(find.byType(TextField))
-        .controller!;
+    final controller = controllerOf(tester);
     expect(controller.text, 'half-finished thou');
     // Composition half-finished: the caret waits after the last word typed.
     expect(controller.selection.baseOffset, 'half-finished thou'.length);
@@ -224,8 +239,10 @@ void main() {
     await tester.tap(find.text('Auto style'));
     await tester.pumpAndSettle();
 
-    String text() =>
-        tester.widget<TextField>(find.byType(TextField)).controller!.text;
+    String text() => tester
+        .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+        .controller
+        .text;
     expect(text(), '## Boiler\n\n**Call the landlord.**');
 
     // The way back. Nothing is saved yet, so an edit that made the note worse
@@ -259,7 +276,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(calls, 0);
     expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      tester
+          .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+          .controller
+          .text,
       before,
     );
     expect(find.textContaining('too long to edit'), findsOneWidget);
@@ -282,7 +302,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      tester
+          .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+          .controller
+          .text,
       'a note worth keeping',
     );
     expect(find.text('Edited by AI'), findsNothing);
@@ -292,7 +315,7 @@ void main() {
     tester,
   ) async {
     final result = await open(tester, initial: 'first');
-    await tester.enterText(find.byType(TextField), 'second');
+    await replaceNote(tester, 'second');
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Cancel'));
@@ -314,7 +337,10 @@ void main() {
     await tester.tap(find.text('Keep editing'));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      tester
+          .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+          .controller
+          .text,
       'second',
     );
     await tester.tap(find.byTooltip('Cancel'));
@@ -327,7 +353,7 @@ void main() {
 
   testWidgets('Save hands back what is in the field', (tester) async {
     final result = await open(tester, initial: 'first');
-    await tester.enterText(find.byType(TextField), 'second');
+    await replaceNote(tester, 'second');
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Save'));
@@ -340,7 +366,7 @@ void main() {
     // Emptying the field is not an edit — it is a note being deleted through
     // a route that does not delete notes.
     await open(tester, initial: 'something');
-    await tester.enterText(find.byType(TextField), '   ');
+    await replaceNote(tester, '   ');
     await tester.pumpAndSettle();
 
     expect(
@@ -362,20 +388,23 @@ void main() {
     await enableAi();
     await open(tester, initial: 'a long note');
 
-    final small = tester.getSize(find.byType(TextField)).height;
+    final small = tester.getSize(find.byType(NexParagraphEditor)).height;
     await tester.tap(find.byTooltip('Full screen'));
     await tester.pumpAndSettle();
 
     expect(
-      tester.getSize(find.byType(TextField)).height,
+      tester.getSize(find.byType(NexParagraphEditor)).height,
       greaterThan(small),
       reason: 'the point of the button',
     );
     // Still one editor, and still holding the same text: expanding is a size,
     // not a second screen with a second copy of the note in it.
-    expect(find.byType(TextField), findsOneWidget);
+    expect(find.byType(NexParagraphEditor), findsOneWidget);
     expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      tester
+          .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+          .controller
+          .text,
       'a long note',
     );
     expect(find.byTooltip('Smaller'), findsOneWidget);
@@ -393,10 +422,10 @@ void main() {
     addTearDown(tester.view.resetViewInsets);
     await tester.pumpAndSettle();
 
-    final small = tester.getSize(find.byType(TextField)).height;
+    final small = tester.getSize(find.byType(NexParagraphEditor)).height;
     await tester.tap(find.byTooltip('Full screen'));
     await tester.pumpAndSettle();
-    final full = tester.getSize(find.byType(TextField)).height;
+    final full = tester.getSize(find.byType(NexParagraphEditor)).height;
 
     expect(full, greaterThan(small * 2));
     // The chrome is icons, not a second copy of the sheet's.
@@ -422,7 +451,10 @@ void main() {
     await tester.tap(find.text('Fix writing'));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      tester
+          .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+          .controller
+          .text,
       'the draft',
     );
 
@@ -431,7 +463,10 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      tester
+          .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
+          .controller
+          .text,
       'teh draft',
     );
 
@@ -451,11 +486,11 @@ void main() {
     await open(tester, initial: long);
 
     expect(find.byTooltip('Smaller'), findsOneWidget);
-    final field = tester.getSize(find.byType(TextField)).height;
+    final field = tester.getSize(find.byType(NexParagraphEditor)).height;
 
     await tester.tap(find.byTooltip('Smaller'));
     await tester.pumpAndSettle();
-    final small = tester.getSize(find.byType(TextField)).height;
+    final small = tester.getSize(find.byType(NexParagraphEditor)).height;
     expect(field, greaterThan(small * 2));
   });
 

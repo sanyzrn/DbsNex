@@ -4,6 +4,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+- **Each paragraph keeps its own direction.** A note now lays out every paragraph in the language it is written in — Persian on the right, English on the left — at the same time, so a mixed note is read and typed correctly.
+
+- **The page stops turning as you edit.** Moving the cursor, selecting across paragraphs or dragging a selection handle no longer changes the direction or alignment of the rest of the note, and the text no longer jumps under your finger.
+
+- **Formatting stays one tap away.** Bold, italic, monospace, strikethrough, quote, link and clearing formatting are in the editor's toolbar, on every platform.
+
 ## v2.9.4
 
 - **Unified editor for smoother keyboard switching.** Rebuilt text input around one Flutter-based editor across the app to avoid keyboard closure and reopening when moving between fields, including Prompt Studio, Family Fund and Habits.

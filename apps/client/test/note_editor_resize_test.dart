@@ -4,10 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
-import 'package:nex_client/widgets/nex_text_field.dart';
+import 'package:nex_client/widgets/nex_paragraph_editor.dart';
 import 'package:nex_client/widgets/note_editor_sheet.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:super_editor/super_editor.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -91,30 +92,43 @@ void main() {
               await tester.tap(find.text('open'));
               await tester.pumpAndSettle();
               expect(creates, 0, reason: 'the editor is the framework\'s own');
-              final field = find.byType(NexTextField);
+              final field = find.byType(NexParagraphEditor);
               final state = tester.state(field);
-              final controller = tester.widget<NexTextField>(field).controller;
+              final controller = tester
+                  .widget<NexParagraphEditor>(field)
+                  .controller;
               final editor = find.descendant(
                 of: field,
-                matching: find.byType(EditableText),
+                matching: find.byType(SuperEditor),
               );
               const edited =
                   '  متن ویرایش‌شده\nEnglish text stays visible.\nآخر متن  ';
               await tester.tap(editor);
               await tester.pump();
-              await tester.enterText(editor, edited);
-              controller.selection = const TextSelection(
-                baseOffset: 3,
-                extentOffset: 8,
+              controller.value = const TextEditingValue(
+                text: edited,
+                selection: TextSelection(baseOffset: 3, extentOffset: 8),
               );
               await tester.pumpAndSettle();
               tester.view.viewInsets = const FakeViewPadding(bottom: 300);
               await tester.pumpAndSettle();
+              void press(String tooltip) {
+                final button = tester.widget<IconButton>(
+                  find
+                      .ancestor(
+                        of: find.byTooltip(tooltip),
+                        matching: find.byType(IconButton),
+                      )
+                      .first,
+                );
+                button.onPressed!();
+              }
+
               for (var i = 0; i < 4; i++) {
-                await tester.tap(find.byTooltip(l10n.editorFullScreen));
+                press(l10n.editorFullScreen);
                 await tester.pumpAndSettle();
                 expect(tester.state(field), same(state));
-                await tester.tap(find.byTooltip(l10n.editorSmaller));
+                press(l10n.editorSmaller);
                 await tester.pumpAndSettle();
                 expect(tester.state(field), same(state));
                 expect(controller.text, edited);

@@ -81,7 +81,7 @@ EditableTextContextMenuBuilder nexFormatContextMenuBuilder(BuildContext host) {
             final value = state.textEditingValue;
             final where = value.selection;
             state.hideToolbar();
-            final url = await _askForUrl(host);
+            final url = await nexAskForLinkUrl(host);
             if (!state.mounted ||
                 !host.mounted ||
                 ModalRoute.of(host)?.isCurrent == false) {
@@ -117,7 +117,10 @@ String _labelFor(AppLocalizations l10n, NexInlineFormat format) =>
     };
 
 /// Asks where a link should point. Null when the question was dismissed.
-Future<String?> _askForUrl(BuildContext context) async {
+///
+/// Shared by the selection menu and the editor's formatting menu: both put a
+/// link on a selection, and there is one question to ask.
+Future<String?> nexAskForLinkUrl(BuildContext context) async {
   ModalRoute<Object?>? route;
   final answer = await nexShowDialog<String>(
     context: context,
