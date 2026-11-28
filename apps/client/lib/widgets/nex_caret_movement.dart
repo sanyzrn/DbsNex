@@ -196,7 +196,23 @@ TextPosition? nexVisualCaretTarget(
   TextPosition from, {
   required bool forward,
 }) {
-  final current = editable.getLocalRectForCaret(from);
+  return nexVisualCaretInLayout(
+    from,
+    forward: forward,
+    rectForCaret: editable.getLocalRectForCaret,
+    positionAt: (point) =>
+        editable.getPositionForPoint(editable.localToGlobal(point)),
+  );
+}
+
+/// Steps to the next laid-out caret in either input engine.
+TextPosition? nexVisualCaretInLayout(
+  TextPosition from, {
+  required bool forward,
+  required Rect Function(TextPosition) rectForCaret,
+  required TextPosition? Function(Offset) positionAt,
+}) {
+  final current = rectForCaret(from);
   final y = current.center.dy;
   final originX = current.left;
   final direction = forward ? 1.0 : -1.0;
@@ -204,13 +220,10 @@ TextPosition? nexVisualCaretTarget(
   // only stops a search that found nothing from walking the whole line.
   final limit = math.max(48.0, current.height * 2);
   for (var distance = 1.0; distance <= limit; distance += 1.0) {
-    final probe = editable.localToGlobal(
-      Offset(originX + direction * distance, y),
-    );
-    final found = editable.getPositionForPoint(probe);
-    if (found.offset == from.offset) continue;
+    final found = positionAt(Offset(originX + direction * distance, y));
+    if (found == null || found.offset == from.offset) continue;
     final target = _nearestCaret(
-      editable,
+      rectForCaret,
       found.offset,
       originX: originX,
       line: current,
@@ -230,16 +243,14 @@ TextPosition? nexVisualCaretTarget(
 /// the person means the one the move is heading toward, on the line they are
 /// already on.
 TextPosition? _nearestCaret(
-  RenderEditable editable,
+  Rect Function(TextPosition) rectForCaret,
   int offset, {
   required double originX,
   required Rect line,
   required bool forward,
 }) {
-  final downstream = editable.getLocalRectForCaret(
-    TextPosition(offset: offset),
-  );
-  final upstream = editable.getLocalRectForCaret(
+  final downstream = rectForCaret(TextPosition(offset: offset));
+  final upstream = rectForCaret(
     TextPosition(offset: offset, affinity: TextAffinity.upstream),
   );
   bool onTheWay(double x) =>
@@ -277,11 +288,22 @@ TextPosition? _visualSelectionEdge(
   TextSelection selection, {
   required bool forward,
 }) {
+  return nexVisualSelectionInLayout(
+    selection,
+    forward: forward,
+    rectForCaret: editable.getLocalRectForCaret,
+  );
+}
+
+/// Resolves the visual edge of a selection in either input engine.
+TextPosition? nexVisualSelectionInLayout(
+  TextSelection selection, {
+  required bool forward,
+  required Rect Function(TextPosition) rectForCaret,
+}) {
   ({double x, Rect rect, TextPosition position}) edge(int offset) {
-    final downstream = editable.getLocalRectForCaret(
-      TextPosition(offset: offset),
-    );
-    final upstream = editable.getLocalRectForCaret(
+    final downstream = rectForCaret(TextPosition(offset: offset));
+    final upstream = rectForCaret(
       TextPosition(offset: offset, affinity: TextAffinity.upstream),
     );
     final downstreamWins = forward

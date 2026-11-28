@@ -11,6 +11,7 @@ import 'package:nex_client/widgets/ai_chat_sheet.dart';
 import 'package:nex_core/nex_core.dart';
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
 http.Response _reply(String content) => http.Response(
   jsonEncode({
@@ -61,9 +62,9 @@ void main() {
   Future<void> send(WidgetTester tester, String text) async {
     final field = find.descendant(
       of: find.byType(AiChatSheet),
-      matching: find.byType(TextField),
+      matching: nexInputs(),
     );
-    await tester.enterText(field, text);
+    await enterNexText(tester, field, text);
     // Let the mic→send switch finish before the tap: mid-transition the
     // exiting mic still covers the spot, and the tap lands on it instead.
     await tester.pumpAndSettle();

@@ -3,6 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/widgets/nex_field_chrome.dart';
 import 'package:nex_client/widgets/nex_paragraph_editor.dart';
+import 'package:nex_client/widgets/nex_text_field.dart';
+import 'package:super_editor/super_editor.dart';
+
+import 'support/text_input.dart';
 
 Widget _host(Widget child) => MaterialApp(
   localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -41,7 +45,10 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('یادداشت'), findsNothing);
+    expect(
+      tester.widget<InputDecorator>(find.byType(InputDecorator)).isEmpty,
+      isFalse,
+    );
   });
 
   testWidgets('the box grows with the lines and stops at maxLines', (
@@ -108,14 +115,97 @@ void main() {
 
     await tester.tap(find.byType(NexParagraphEditor));
     await tester.pumpAndSettle();
+    final editor = find.byType(SuperEditor);
+    final state = tester.state(editor);
+    tester.testTextInput.log.clear();
     controller.selection = const TextSelection(baseOffset: 0, extentOffset: 4);
     await tester.pumpAndSettle();
     expect(find.byType(NexSelectionFormatBar), findsOneWidget);
+    expect(tester.state(editor), same(state));
+    expect(
+      tester.testTextInput.log.map((call) => call.method),
+      isNot(contains('TextInput.hide')),
+    );
 
     await tester.tap(find.text('Bold'));
     await tester.pumpAndSettle();
     expect(controller.text, '**سلام** دنیا');
     // The menu closes after a command, the way a platform menu does.
     expect(find.byType(NexSelectionFormatBar), findsNothing);
+  });
+
+  testWidgets(
+    'multiline fields scroll inside a form and measure wrapped text',
+    (tester) async {
+      final controller = TextEditingController();
+      addTearDown(controller.dispose);
+      final field = nexInputs(hintText: 'Body');
+      await tester.pumpWidget(
+        _host(
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 35),
+                NexTextField(
+                  controller: controller,
+                  maxLines: 4,
+                  maxLength: 180,
+                  decoration: const InputDecoration(
+                    hintText: 'Body',
+                    labelText: 'Label',
+                    helperText: 'Helper',
+                    prefixIcon: Icon(Icons.edit),
+                  ),
+                ),
+                const SizedBox(height: 400),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final height = tester.getSize(field).height;
+      final text = 'سلام دنیا!\n${List.filled(14, 'English').join(' ')}';
+      await enterNexText(tester, field, text);
+      await tester.pumpAndSettle();
+      expect(controller.text, text);
+      expect(tester.getSize(field).height, greaterThan(height * 1.3));
+      expect(find.text('Label'), findsOneWidget);
+      expect(find.text('Helper'), findsOneWidget);
+      expect(find.text('${text.length}/180'), findsOneWidget);
+      expect(find.byIcon(Icons.edit), findsOneWidget);
+      final paragraphs = find.byType(ParagraphComponent).evaluate();
+      expect(
+        [
+          for (final paragraph in paragraphs)
+            (paragraph.widget as ParagraphComponent).viewModel.textDirection,
+        ],
+        [TextDirection.rtl, TextDirection.ltr],
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('character limits count graphemes on the IME path', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    final field = nexInputs(hintText: 'Body');
+    await tester.pumpWidget(
+      _host(
+        NexTextField(
+          controller: controller,
+          maxLines: 3,
+          maxLength: 3,
+          decoration: const InputDecoration(hintText: 'Body'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await enterNexText(tester, field, 'آ👩‍💻بج');
+    await tester.pumpAndSettle();
+    expect(controller.text, 'آ👩‍💻ب');
+    expect(find.text('3/3'), findsOneWidget);
   });
 }

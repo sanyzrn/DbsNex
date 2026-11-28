@@ -18,6 +18,9 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
+
+import 'package:super_editor/super_editor.dart';
 
 const _code =
     '\tif (ok) {\n\n  print("two  spaces");   \n}\n\n```inner\nx\n```\n';
@@ -104,7 +107,7 @@ void main() {
     tester,
   ) async {
     await openComposer(tester);
-    await tester.enterText(_field, _code);
+    await enterNexText(tester, _field, _code);
     await tester.pumpAndSettle();
     final l10n = AppLocalizations.of(tester.element(find.byType(CaptureSheet)));
     await chooseLanguage(tester, l10n.codeLanguageDart);
@@ -130,7 +133,7 @@ void main() {
     tester,
   ) async {
     await openComposer(tester);
-    await tester.enterText(_field, '   سلام');
+    await enterNexText(tester, _field, '   سلام');
     await tester.pumpAndSettle();
     final l10n = AppLocalizations.of(tester.element(find.byType(CaptureSheet)));
     final editable = find.descendant(
@@ -145,23 +148,35 @@ void main() {
       TextInputAction.newline,
     );
 
+    final focus = editor.widget.focusNode;
+    final controller = editor.widget.controller;
+    final selection = controller.selection;
+    tester.testTextInput.log.clear();
     await tester.tap(find.text(l10n.captureKindNote));
     await tester.pumpAndSettle();
-    expect(tester.state<EditableTextState>(editable), same(editor));
-    expect(editor.widget.focusNode.hasFocus, isTrue);
-    expect(editor.widget.textDirection, TextDirection.rtl);
-    expect(editor.widget.controller.text, '   سلام');
+    final paragraph = tester.widget<ParagraphComponent>(
+      find.byType(ParagraphComponent),
+    );
+    expect(paragraph.viewModel.textDirection, TextDirection.rtl);
+    expect(focus.hasFocus, isTrue);
+    expect(controller.text, '   سلام');
+    expect(controller.selection, selection);
 
     await tester.tap(find.text(l10n.code));
     await tester.pumpAndSettle();
-    expect(tester.state<EditableTextState>(editable), same(editor));
-    expect(editor.widget.focusNode.hasFocus, isTrue);
-    expect(editor.widget.textDirection, TextDirection.ltr);
+    final code = tester.state<EditableTextState>(editable).widget;
+    expect(code.focusNode, same(focus));
+    expect(code.focusNode.hasFocus, isTrue);
+    expect(code.textDirection, TextDirection.ltr);
+    expect(
+      tester.testTextInput.log.map((call) => call.method),
+      isNot(contains('TextInput.hide')),
+    );
   });
 
   testWidgets('the language button changes what is saved', (tester) async {
     await openComposer(tester);
-    await tester.enterText(_field, 'println("hi")');
+    await enterNexText(tester, _field, 'println("hi")');
     final l10n = AppLocalizations.of(tester.element(find.byType(CaptureSheet)));
     await chooseLanguage(tester, l10n.codeLanguagePython);
     // Changing the language is itself a note change: it must reach the note
@@ -181,7 +196,7 @@ void main() {
     await preferences.setLocale('en');
     await openComposer(tester);
     const source = 'def draw():\n  return 1\n';
-    await tester.enterText(_field, source);
+    await enterNexText(tester, _field, source);
     await tester.pumpAndSettle();
     final l10n = AppLocalizations.of(tester.element(_field));
     final modeCenters =
@@ -221,7 +236,7 @@ void main() {
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await openComposer(tester);
       tester.view.viewInsets = const FakeViewPadding(bottom: 300);
-      await tester.enterText(_field, 'a + b');
+      await enterNexText(tester, _field, 'a + b');
       final input = tester.widget<TextField>(_field).controller!;
       input.selection = const TextSelection.collapsed(offset: 2);
       await tester.pumpAndSettle();
@@ -247,7 +262,7 @@ void main() {
   ) async {
     await openComposer(tester);
     const code = r'<?php echo $name;';
-    await tester.enterText(_field, code);
+    await enterNexText(tester, _field, code);
     await tester.tap(find.byKey(const ValueKey('capture-code-language')));
     await tester.pumpAndSettle();
     expect(find.text('HTML'), findsOneWidget);
@@ -342,7 +357,7 @@ void main() {
     expect(controller.selection.extentOffset, _code.length);
 
     const edited = '\tprint("سلام");   \n\n';
-    await tester.enterText(editor, edited);
+    await enterNexText(tester, editor, edited);
     await chooseLanguage(
       tester,
       l10n.codeLanguagePython,
@@ -359,7 +374,7 @@ void main() {
 
     await tester.tap(find.byTooltip(l10n.codeFind));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'سلام');
+    await enterNexText(tester, nexInputs(), 'سلام');
     await tester.pumpAndSettle();
     expect(find.textContaining('print("سلام")'), findsWidgets);
     expect(tester.takeException(), isNull);
@@ -702,15 +717,15 @@ void main() {
           of: needle,
           matching: find.byType(ListTile),
         );
-        await tester.enterText(search, 'needle');
+        await enterNexText(tester, search, 'needle');
         await tester.pump(const Duration(milliseconds: 140));
         await tester.pumpAndSettle();
         expect(result, findsOneWidget);
-        await tester.enterText(search, 'absent');
+        await enterNexText(tester, search, 'absent');
         await tester.pump(const Duration(milliseconds: 100));
         expect(result, findsNothing);
         expect(find.text(l10n.codeNoMatches), findsNothing);
-        await tester.enterText(search, 'needle');
+        await enterNexText(tester, search, 'needle');
         await tester.pump(const Duration(milliseconds: 140));
         await tester.pumpAndSettle();
         // Choosing the excerpt itself must work, not just the gutter.

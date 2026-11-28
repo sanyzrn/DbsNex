@@ -229,49 +229,32 @@ date-dependent test, not an editor bug: it failed on the 28th of any month. It
 now pins the screen's clock through `ExpensesScreen(now:)` instead of reading
 the wall clock, so it answers the same on every day.
 
-## The field prerequisites, and the wall behind them
+## Integration across the app
 
-The three things a prose field needs before it can leave `NexTextField` are now
-in `NexParagraphEditor` itself, so a field of the new engine is a drop-in
-widget rather than a special case:
+`NexTextField` now uses the document editor for multiline prose. This includes
+new notes and checklists, AI chat and module forms. The note sheet and these
+fields share paragraph direction, selection mapping and IME handling. The
+stored value is still plain text joined with newlines.
 
-* **a frame** — `decoration`, with the hint, the fill, the outline and the
-  content padding drawn by `_NexFieldFrame`;
-* **a line box** — `minLines`/`maxLines`, with the height taken from the text
-  (one line per `\n`), clamped to the box, and the engine scrolling inside it.
-  A caller that gives neither keeps the old behaviour exactly: fill the space
-  you are given (the note sheet's `Expanded`);
-* **a formatting bar** — `formatting: true` shows the same seven commands the
-  capture composer's selection menu offers (bold, italic, monospace,
-  strikethrough, quote, link, clear), anchored above the selection and acting
-  through `NexTextFormatting` on the controller, so the note stays one plain
-  Markdown string.
+Super Editor 0.3.0-dev.52 treats a vertical ancestor scrollable as a document
+sliver viewport. Ordinary forms contain box children, which caused the
+`_RenderSliverHybridStack` type mismatch. A bounded field gives the engine its
+own vertical viewport. Inside a vertical form, a non-scrolling horizontal
+scope establishes that viewport boundary through the package's supported
+horizontal-ancestor behavior. The field's standard Flutter `InputDecorator`
+supplies the theme, labels, hints, borders, helper text and counters. Height
+uses wrapped text at the available width and text scale.
 
-`InputDecorator` cannot be used for the frame: it is a slotted render object,
-and Super Editor's viewport and Android selection overlay are slotted too, so a
-slotted child inside a slotted parent throws
-(`RenderConstrainedBox expected a child of type RenderBox but received a child
-of type _RenderSliverHybridStack`). `_NexFieldFrame` draws what matters without
-it; fields that need a label, an error line, a counter or an icon keep the
-platform field.
+The editor preserves embedded newlines from typed, pasted and accessibility
+input as paragraph boundaries. The plain-text reaction also applies the
+grapheme-based character limit before changes reach app code. Hardware arrows
+use the same caret geometry as the native Flutter fields. When a capture
+switches to Code, its FocusNode and controller travel with it and the new
+client attaches during the same frame. The code field retains syntax
+highlighting, smart indentation and bracket pairing. The private vault keeps
+its dedicated clipboard and IME-learning policies.
 
-### Why the module fields are still on `TextField`
-
-Routing every prose `NexTextField` to the engine was implemented and measured,
-then reverted, because the editor cannot yet be mounted inside a scrolling
-form. `SuperEditor` (0.3.0-dev.52) builds its viewport from slotted render
-objects and throws the same sliver error as above when it is placed inside a
-`SingleChildScrollView` — with an explicit `SizedBox` height, with
-`shrinkWrap: true`, and with no frame at all. Most module forms (feedback,
-expenses, journal, settings) are exactly that shape, so the conversion turned
-132 tests in the first shard red at the *build* stage, not at an assertion.
-
-Doing it properly needs one of:
-
-1. an upstream fix (or a newer pinned Super Editor) that lets
-   `DocumentScaffold` render as a box inside an unbounded scrollable, or
-2. a per-field decision made by the form (bounded parent → engine), which is
-   the "two parallel paths" this ADR exists to avoid.
-
-Until one lands, `NexTextField` stays the field, the note sheet stays on the
-engine, and the prerequisites above are ready for the switch.
+The bounded viewport and stable stylesheet remove repeated layout setup.
+Super Editor still mounts one text component per paragraph on open, so opening
+extremely long documents remains more expensive than a single native Flutter
+field. The host tests cover 500, 2,000 and 5,000 lines.

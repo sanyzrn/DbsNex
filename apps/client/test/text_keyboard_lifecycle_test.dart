@@ -6,10 +6,11 @@ import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/widgets/nex_dialog.dart';
 import 'package:nex_client/widgets/nex_paragraph_editor.dart';
 import 'package:nex_client/widgets/note_editor_sheet.dart';
-import 'package:nex_client/widgets/text_format_menu.dart';
+import 'package:nex_client/widgets/nex_field_chrome.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
 void main() {
   late NexTestHarness harness;
@@ -75,7 +76,7 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     if (capture) {
-      await tester.enterText(find.byType(TextField), 'one two three');
+      await enterNexText(tester, nexInputs(), 'one two three');
       await tester.pumpAndSettle();
     }
   }
@@ -101,20 +102,13 @@ void main() {
       await tester.pumpAndSettle();
       return;
     }
-    final state = tester.state<EditableTextState>(find.byType(EditableText));
-    state.userUpdateTextEditingValue(
-      state.textEditingValue.copyWith(
-        selection: const TextSelection(baseOffset: 4, extentOffset: 7),
-      ),
-      SelectionChangedCause.tap,
-    );
+    final controller = nexInputController(tester, nexInputs());
+    controller.selection = const TextSelection(baseOffset: 4, extentOffset: 7);
     await tester.pump();
-    final context = tester.element(find.byType(TextField));
-    final menu = nexFormatContextMenuBuilder(context)(
-      context,
-      state,
-    ) as AdaptiveTextSelectionToolbar;
-    menu.buttonItems!.firstWhere((item) => item.label == label).onPressed!();
+    final bar = find.byType(NexSelectionFormatBar);
+    final command = find.descendant(of: bar, matching: find.text(label));
+    await tester.ensureVisible(command);
+    await tester.tap(command);
     await tester.pumpAndSettle();
   }
 
@@ -164,24 +158,14 @@ void main() {
             );
             await tester.pumpAndSettle();
             expect(find.bySubtype<AlertDialog>(), findsNothing);
-            if (capture) {
-              final state = tester.state<EditableTextState>(
-                find.byType(EditableText),
-              );
-              expect(state.widget.focusNode.hasFocus, isTrue);
-              expect(
-                state.textEditingValue.text,
-                'one [two](https://example.com) three',
-              );
-            } else {
-              expect(
-                tester
-                    .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
-                    .controller
-                    .text,
-                'one [two](https://example.com) three',
-              );
-            }
+            final editor = tester.widget<NexParagraphEditor>(
+              find.byType(NexParagraphEditor),
+            );
+            expect(editor.focusNode!.hasFocus, isTrue);
+            expect(
+              editor.controller.text,
+              'one [two](https://example.com) three',
+            );
           }
           expect(tester.testTextInput.isVisible, isTrue);
           await finish(tester, capture: capture);
@@ -207,18 +191,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(
-          capture
-              ? tester
-                    .widget<TextField>(find.byType(TextField))
-                    .controller!
-                    .text
-              : tester
-                    .widget<NexParagraphEditor>(find.byType(NexParagraphEditor))
-                    .controller
-                    .text,
-          'one two three',
-        );
+        expect(nexInputController(tester, nexInputs()).text, 'one two three');
         expect(tester.testTextInput.isVisible, isTrue);
         await finish(tester, capture: capture);
       },

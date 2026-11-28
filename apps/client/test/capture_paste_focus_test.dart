@@ -6,6 +6,7 @@ import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/widgets/nex_text_field.dart';
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
 void main() {
   for (final kind in [
@@ -54,7 +55,7 @@ void main() {
       await tester.pumpAndSettle();
       final editor = find.descendant(
         of: find.byType(NexTextField),
-        matching: find.byType(EditableText),
+        matching: nexInputs(),
       );
       expect(editor, findsOneWidget);
       await tester.tap(editor);
@@ -68,7 +69,10 @@ void main() {
         'https://example.com',
       );
       expect(
-        tester.state<EditableTextState>(editor).widget.focusNode.hasFocus,
+        tester
+            .widget<NexTextField>(find.byType(NexTextField))
+            .focusNode!
+            .hasFocus,
         isTrue,
         reason: 'the paste must not leave the editor without its focus',
       );

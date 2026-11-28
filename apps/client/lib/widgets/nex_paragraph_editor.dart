@@ -1,13 +1,17 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:super_editor/super_editor.dart';
 
 import '../l10n/app_localizations.dart';
+import 'nex_caret_movement.dart';
 import 'nex_field_chrome.dart';
 import 'text_format_menu.dart';
+
+part 'nex_paragraph_editor_view.dart';
 
 /// Resolves every paragraph's direction once, from the paragraphs' own text,
 /// and hands it to each paragraph component as it is laid out.
@@ -94,97 +98,12 @@ class _NexDirectionResolver {
       node is TextNode ? nexDirectionOf(node.text.toPlainText()) : null;
 }
 
-/// The app's prose editor: one editable document whose every paragraph is laid
-/// out in its own direction, against its own side, at the same time.
+/// Edits a plain string as one document with an independent bidi layout for
+/// every paragraph. The document has one IME connection and stores line
+/// breaks as newlines in [controller].
 ///
-/// ## Why this is not a `TextField`
-///
-/// Flutter's text engine builds one `ui.Paragraph` for a whole field, and a
-/// paragraph has exactly one base direction. So a field can be right-to-left
-/// *or* left-to-right, never both: an English line inside a Persian note has
-/// its full stop resolved against the Persian base and lands on the wrong end,
-/// and every line is aligned to the same side. Two earlier answers were tried
-/// and each failed for its own reason:
-///
-/// * Android's own `EditText` (ADR-037, 1.91–2.9.3) gave every paragraph its
-///   own direction natively, and its keyboard handoffs between the embedded
-///   view and Flutter's fields closed and reopened the keyboard on the owner's
-///   devices. The engine's input-client switch is below anything Dart can fix,
-///   so 2.9.4 removed the native editor.
-/// * 2.9.4's replacement was one Flutter field laid out around the paragraph
-///   the caret is in. It kept the keyboard, and it made the *active* paragraph
-///   right — but at the cost of turning the whole document with the caret:
-///   paragraphs in the other direction sat on the caret paragraph's side,
-///   crossed to the other side as the caret moved, and the selection handles
-///   travelled with that relayout. That is the report this file answers.
-///
-/// The model that works is the one every document editor uses: **one text
-/// component per paragraph**, each laid out by the framework with its own
-/// base direction, over **one IME connection for the whole document**. This
-/// widget is that model, from Super Editor's document engine (MIT), wired to
-/// the plain string Nex already stores.
-///
-/// ## What Super Editor brings, and what it is trusted for
-///
-/// A `ParagraphComponent` resolves its direction from its own text
-/// (`getParagraphDirection`, the same first-strong rule as [nexDirectionOf])
-/// and aligns to that direction's start. That is per-paragraph direction and
-/// alignment, simultaneously, with no caret involvement at all: moving the
-/// caret or dragging a selection cannot change any paragraph's layout, because
-/// no paragraph's layout depends on the selection.
-///
-/// The document-level input client is the other half. A `deleteSurroundingText`
-/// at the start of one paragraph reaches the document, not a field that has
-/// nothing before its offset zero, so Backspace joins paragraphs instead of
-/// being swallowed; Enter splits them; a selection that spans paragraphs is one
-/// selection in one model, with the handles, magnifier and toolbar drawn from
-/// the components it covers. Undo, redo, copy, cut, paste and the platform
-/// keyboard shortcuts are the engine's.
-///
-/// ## The data is still a plain string
-///
-/// Nex stores a note as plain text, and this keeps that promise. The document
-/// is built from the string — one paragraph per line, empty lines included —
-/// and written back by joining the paragraphs with `\n`. Nothing is written
-/// into the stored text to make the layout work: no marks, no isolates, no
-/// escape characters. A note saved by this editor is byte-identical to one
-/// saved by the field it replaced, so old notes open unchanged and new notes
-/// open in every older version of the app.
-///
-/// The [controller] remains the source of truth in both directions. Typing
-/// writes the joined text into it the frame it happens; an AI rewrite, a draft
-/// recovery or the editor's own undo writing into it rebuilds the document.
-///
-/// ## The cost of a keystroke
-///
-/// A note is a string, and a string is what the controller and every reader of
-/// it expect, so a keystroke does have to produce the whole note once. That is
-/// what this state does and all it does: join the paragraphs, write the
-/// controller, refresh the direction map. An earlier version also kept a
-/// paragraph cache and a binary-search offset table; measured against this
-/// shape on 500, 2000 and 5000-line notes it bought nothing — the cost is the
-/// join, the IME serialisation upstream and the layout — so it was removed
-/// rather than maintained. See
-/// `docs/development/nex-2.9.5-per-paragraph-editing.md`.
-///
-/// ## Read-only means no input, not a blocked finger
-///
-/// [readOnly] is not `IgnorePointer`. A widget under an ignored pointer still
-/// holds the platform input connection, so a hardware keyboard or an IME can
-/// keep editing a document that is only being shown — which during an AI
-/// rewrite would edit the text that is about to be replaced. Read-only renders
-/// the same document through `SuperReader`, which has no input connection at
-/// all, so nothing can arrive.
-///
-/// ## A drop-in field
-///
-/// Two things a `TextField` gives for free are given here too, so a field can
-/// move to this engine without losing anything: [decoration] (hint included)
-/// around the text, and the line box [minLines]/[maxLines] describe — growing
-/// with the text up to the maximum, then scrolling. [formatting] adds the same
-/// seven commands the capture sheet's selection menu offers, in a small bar
-/// above the selection, because Super Editor draws its own selection UI and
-/// the platform's context menu is not part of it.
+/// Fields use [InputDecorator] and grow to their wrapped text within their
+/// line and parent constraints. The note sheet uses a fill-height viewport.
 class NexParagraphEditor extends StatefulWidget {
   const NexParagraphEditor({
     super.key,
@@ -195,10 +114,20 @@ class NexParagraphEditor extends StatefulWidget {
     this.enabled = true,
     this.style,
     this.decoration = const InputDecoration(),
+    this.asField = false,
+    this.expands = false,
     this.minLines,
     this.maxLines,
     this.formatting = false,
     this.onChanged,
+    this.onSubmitted,
+    this.keyboardType = TextInputType.multiline,
+    this.textInputAction = TextInputAction.newline,
+    this.textCapitalization = TextCapitalization.sentences,
+    this.autocorrect = true,
+    this.enableSuggestions = true,
+    this.enableIMEPersonalizedLearning = true,
+    this.maxLength,
   });
 
   /// The plain text being edited, and where the caret is in it.
@@ -230,6 +159,8 @@ class NexParagraphEditor extends StatefulWidget {
 
   /// The line box: at least [minLines] tall, and with [maxLines] set, no
   /// taller — the text scrolls inside after that.
+  final bool asField;
+  final bool expands;
   final int? minLines;
   final int? maxLines;
 
@@ -239,6 +170,14 @@ class NexParagraphEditor extends StatefulWidget {
 
   /// Called with the joined text whenever the document changes.
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
+  final TextInputType keyboardType;
+  final TextInputAction textInputAction;
+  final TextCapitalization textCapitalization;
+  final bool autocorrect;
+  final bool enableSuggestions;
+  final bool enableIMEPersonalizedLearning;
+  final int? maxLength;
 
   @override
   State<NexParagraphEditor> createState() => _NexParagraphEditorState();
@@ -249,7 +188,19 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
   late MutableDocumentComposer _composer;
   late Editor _editor;
 
+  static int _nextInputId = 0;
+  final _inputRole = 'nex-prose-${_nextInputId++}';
   final _resolver = _NexDirectionResolver();
+  late final _builders = [_NexParagraphComponentBuilder(_resolver)];
+  late final _ime = _NexImeActions(_submit);
+  final _localFocus = FocusNode(debugLabel: 'Nex prose editor');
+  FocusNode get _focus => widget.focusNode ?? _localFocus;
+
+  TextStyle? _lastStyle;
+  Stylesheet? _stylesheet;
+
+  bool get _isField =>
+      widget.asField || widget.minLines != null || widget.maxLines != null;
 
   /// The document's scroll position, kept so the format bar can be placed in
   /// the viewport rather than in the document.
@@ -266,7 +217,7 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
   /// one, and leaves them down for the other, exactly as a `TextField` does.
   /// An AI rewrite, a recovered draft and the sheet restoring its caret are
   /// the other.
-  static const Object _controllerSelection = 'nexControllerSelection';
+  static const String _controllerSelection = 'nexControllerSelection';
 
   /// The text the document currently stands for. Compared against the
   /// controller's text to tell an external write from the echo of our own.
@@ -304,6 +255,7 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(_onControllerChanged);
       widget.controller.addListener(_onControllerChanged);
+      _tearDown(replacing: true);
       _build(widget.controller.text, widget.controller.selection);
     }
   }
@@ -315,6 +267,7 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
       ..removeListener(_onScrolled)
       ..dispose();
     _tearDown();
+    _localFocus.dispose();
     super.dispose();
   }
 
@@ -322,11 +275,25 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     if (widget.formatting) setState(() {});
   }
 
-  void _tearDown() {
-    _document.removeListener(_onDocumentChanged);
-    _composer.selectionNotifier.removeListener(_onComposerChanged);
-    _document.dispose();
-    _editor.dispose();
+  void _tearDown({bool replacing = false}) {
+    final document = _document;
+    final composer = _composer;
+    final editor = _editor;
+    document.removeListener(_onDocumentChanged);
+    composer.selectionNotifier.removeListener(_onComposerChanged);
+    composer.composingRegion.removeListener(_onCompositionChanged);
+    void disposeEditor() {
+      editor.dispose();
+      document.dispose();
+      composer.dispose();
+    }
+
+    if (replacing) {
+      // The previous view and IME detach their listeners during this frame.
+      WidgetsBinding.instance.addPostFrameCallback((_) => disposeEditor());
+    } else {
+      disposeEditor();
+    }
   }
 
   /// Builds a fresh document and editor for [text], with the caret at
@@ -349,6 +316,10 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
       composer: _composer,
       isHistoryEnabled: true,
     );
+    // All paragraphs remain plain source, including Markdown, URLs and dashes.
+    _editor.reactionPipeline
+      ..clear()
+      ..add(FunctionalEditReaction(modifyContent: _normalizeEdit));
     _knownText = text;
     _resolver.directions = const {};
     _document.addListener(_onDocumentChanged);
@@ -358,6 +329,7 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     // while a finger moved the editor's — and the formatting bar reads that
     // caret.
     _composer.selectionNotifier.addListener(_onComposerChanged);
+    _composer.composingRegion.addListener(_onCompositionChanged);
     final caret = selection != null && selection.isValid
         ? selection
         : TextSelection.collapsed(offset: text.length);
@@ -371,7 +343,10 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     _composer.setSelectionWithReason(
       DocumentSelection(
         base: _positionAt(selection.baseOffset),
-        extent: _positionAt(selection.extentOffset),
+        extent: _positionAt(
+          selection.extentOffset,
+          affinity: selection.affinity,
+        ),
       ),
       _controllerSelection,
     );
@@ -394,10 +369,9 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
       return;
     }
     setState(() {
-      _tearDown();
+      _tearDown(replacing: true);
       _build(text, widget.controller.selection);
     });
-    if (widget.autofocus) widget.focusNode?.requestFocus();
   }
 
   void _onControllerChanged() {
@@ -413,7 +387,7 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     _formatBarDismissed = false;
     _writeController(text);
     widget.onChanged?.call(text);
-    if (widget.minLines != null) setState(() {});
+    if (_isField) setState(() {});
   }
 
   /// One pass over the paragraphs: each direction is its own, else the nearest
@@ -423,74 +397,80 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
   /// out, so a selection drag — which relayouts the components — does not walk
   /// the document again.
   Map<String, TextDirection> _resolveDirections() {
-    final ids = <String>[];
-    final own = <TextDirection?>[];
+    final result = <String, TextDirection>{};
+    final leadingNeutralNodes = <String>[];
+    TextDirection? previous;
+    TextDirection? first;
     for (final node in _document) {
-      ids.add(node.id);
-      own.add(
-        node is TextNode ? nexDirectionOf(node.text.toPlainText()) : null,
-      );
+      previous = _NexDirectionResolver._strongDirection(node) ?? previous;
+      final direction = previous;
+      if (direction == null) {
+        leadingNeutralNodes.add(node.id);
+      } else {
+        first ??= direction;
+        result[node.id] = direction;
+      }
     }
-    final count = ids.length;
-    final before = List<TextDirection?>.filled(count, null);
-    TextDirection? carry;
-    for (var i = 0; i < count; i++) {
-      before[i] = carry;
-      carry = own[i] ?? carry;
+    final leadingDirection = first ?? _resolver.fallback;
+    for (final id in leadingNeutralNodes) {
+      result[id] = leadingDirection;
     }
-    final after = List<TextDirection?>.filled(count, null);
-    carry = null;
-    for (var i = count - 1; i >= 0; i--) {
-      after[i] = carry;
-      carry = own[i] ?? carry;
-    }
-    final fallback = _resolver.fallback;
-    return {
-      for (var i = 0; i < count; i++)
-        ids[i]: own[i] ?? before[i] ?? after[i] ?? fallback,
-    };
+    return result;
   }
 
   void _onComposerChanged() {
     if (_rebuilding) return;
-    // The bar follows the selection, so a selection is a rebuild.
-    if (widget.formatting) setState(() {});
-    final selection = _composer.selection;
-    if (selection == null) return;
     _formatBarDismissed = false;
-    final start = _offsetOf(selection.base);
-    final end = _offsetOf(selection.extent);
-    if (start == null || end == null) return;
-    final current = widget.controller.selection;
-    // Compared field by field, not start/end: an anchor dragged upwards has
-    // base > extent, and normalising it here would turn the selection around
-    // and send the next Shift+arrow to the wrong end.
-    if (current.isValid &&
-        current.baseOffset == start &&
-        current.extentOffset == end) {
+    if (widget.formatting) setState(() {});
+    final selection = _absoluteSelection();
+    if (selection == null ||
+        selection.end > widget.controller.text.length ||
+        selection == widget.controller.selection) {
       return;
     }
-    _writeSelection(TextSelection(baseOffset: start, extentOffset: end));
+    _syncController(widget.controller.value.copyWith(selection: selection));
+  }
+
+  void _onCompositionChanged() {
+    if (_rebuilding) return;
+    final current = widget.controller.value;
+    final composing = _absoluteComposing();
+    if (composing != current.composing &&
+        composing.end <= current.text.length) {
+      _syncController(current.copyWith(composing: composing));
+    }
   }
 
   void _writeController(String text) {
     final selection =
         _absoluteSelection() ?? TextSelection.collapsed(offset: text.length);
-    _writingController = true;
-    widget.controller.value = TextEditingValue(
-      text: text,
-      selection: selection,
+    final composing = _absoluteComposing();
+    _syncController(
+      TextEditingValue(
+        text: text,
+        selection: selection,
+        composing: composing.end <= text.length ? composing : TextRange.empty,
+      ),
     );
-    _writingController = false;
   }
 
-  void _writeSelection(TextSelection selection) {
+  void _syncController(TextEditingValue value) {
     _writingController = true;
-    widget.controller.value = widget.controller.value.copyWith(
-      selection: selection,
-      composing: TextRange.empty,
-    );
-    _writingController = false;
+    try {
+      widget.controller.value = value;
+    } finally {
+      _writingController = false;
+    }
+  }
+
+  TextRange _absoluteComposing() {
+    final range = _composer.composingRegion.value;
+    if (range == null) return TextRange.empty;
+    final start = _offsetOf(range.start);
+    final end = _offsetOf(range.end);
+    return start == null || end == null
+        ? TextRange.empty
+        : TextRange(start: math.min(start, end), end: math.max(start, end));
   }
 
   TextSelection? _absoluteSelection() {
@@ -499,7 +479,14 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     final start = _offsetOf(selection.base);
     final end = _offsetOf(selection.extent);
     if (start == null || end == null) return null;
-    return TextSelection(baseOffset: start, extentOffset: end);
+    final extent = selection.extent.nodePosition;
+    return TextSelection(
+      baseOffset: start,
+      extentOffset: end,
+      affinity: extent is TextNodePosition
+          ? extent.affinity
+          : TextAffinity.downstream,
+    );
   }
 
   static String _join(Document document) => document
@@ -508,14 +495,17 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
 
   /// Where [offset] sits in the document: the paragraph it is in, and how far
   /// into that paragraph.
-  DocumentPosition _positionAt(int offset) {
-    var remaining = offset.clamp(0, _knownText.length);
+  DocumentPosition _positionAt(
+    int offset, {
+    TextAffinity affinity = TextAffinity.downstream,
+  }) {
+    var remaining = math.max(0, offset);
     for (final node in _document) {
       final length = node is TextNode ? node.text.length : 0;
       if (remaining <= length) {
         return DocumentPosition(
           nodeId: node.id,
-          nodePosition: TextNodePosition(offset: remaining),
+          nodePosition: TextNodePosition(offset: remaining, affinity: affinity),
         );
       }
       remaining -= length + 1;
@@ -545,10 +535,139 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
     return null;
   }
 
-  /// Applies a formatting command to the controller's selection and writes the
-  /// result back, which is the same door the AI rewrite comes through: the
-  /// document is rebuilt from the new string, so the note keeps being one
-  /// plain string with Markdown in it.
+  void _normalizeEdit(
+    EditContext context,
+    RequestDispatcher dispatcher,
+    List<EditEvent> changes,
+  ) {
+    // A multiline IME replacement or a soft newline can put a literal
+    // newline inside a Super Editor node. Split it before layout or IME
+    // serialization so all insertion paths have the same paragraph model.
+    final changedIds = changes
+        .whereType<DocumentEdit>()
+        .map((event) => event.change)
+        .whereType<NodeDocumentChange>()
+        .map((change) => change.nodeId)
+        .toSet();
+    final selection = _absoluteSelection();
+    var split = false;
+    for (final id in changedIds) {
+      final node = _document.getNodeById(id);
+      if (node is! ParagraphNode) continue;
+      final text = node.text.toPlainText();
+      for (
+        var offset = text.lastIndexOf('\n');
+        offset >= 0;
+        offset = offset == 0 ? -1 : text.lastIndexOf('\n', offset - 1)
+      ) {
+        final newId = Editor.createNodeId();
+        dispatcher.execute([
+          SplitParagraphRequest(
+            nodeId: id,
+            splitPosition: TextPosition(offset: offset),
+            newNodeId: newId,
+            replicateExistingMetadata: false,
+          ),
+          DeleteContentRequest(
+            documentRange: DocumentRange(
+              start: DocumentPosition(
+                nodeId: newId,
+                nodePosition: const TextNodePosition(offset: 0),
+              ),
+              end: DocumentPosition(
+                nodeId: newId,
+                nodePosition: const TextNodePosition(offset: 1),
+              ),
+            ),
+          ),
+        ]);
+        split = true;
+      }
+    }
+    if (split && selection != null) {
+      _moveSelection(dispatcher, selection);
+    }
+    if (changedIds.isNotEmpty) _enforceLength(dispatcher);
+  }
+
+  void _enforceLength(RequestDispatcher dispatcher) {
+    final limit = widget.maxLength;
+    if (limit == null || limit == TextField.noMaxLength) return;
+    final text = _join(_document);
+    if (text == _knownText || text.characters.length <= limit) return;
+    final selection =
+        _absoluteSelection() ?? TextSelection.collapsed(offset: text.length);
+    final next =
+        LengthLimitingTextInputFormatter(
+          limit,
+          maxLengthEnforcement: MaxLengthEnforcement.enforced,
+        ).formatEditUpdate(
+          widget.controller.value.copyWith(text: _knownText),
+          TextEditingValue(text: text, selection: selection),
+        );
+    if (next.text != text) _replaceText(dispatcher, text, next);
+  }
+
+  void _replaceText(
+    RequestDispatcher dispatcher,
+    String before,
+    TextEditingValue after,
+  ) {
+    // Match whole graphemes so a shared surrogate or combining mark cannot
+    // leave an invalid boundary when the replacement changes an emoji.
+    final previous = before.characters.toList();
+    final updated = after.text.characters.toList();
+    var prefix = 0;
+    var start = 0;
+    while (prefix < math.min(previous.length, updated.length) &&
+        previous[prefix] == updated[prefix]) {
+      start += previous[prefix++].length;
+    }
+    var oldTail = previous.length;
+    var newTail = updated.length;
+    var oldEnd = before.length;
+    var newEnd = after.text.length;
+    while (oldTail > prefix &&
+        newTail > prefix &&
+        previous[oldTail - 1] == updated[newTail - 1]) {
+      oldEnd -= previous[--oldTail].length;
+      newEnd -= updated[--newTail].length;
+    }
+    final at = _positionAt(start);
+    dispatcher.execute([
+      if (oldEnd > start)
+        DeleteContentRequest(
+          documentRange: DocumentRange(start: at, end: _positionAt(oldEnd)),
+        ),
+      if (newEnd > start)
+        PasteEditorRequest(
+          content: after.text.substring(start, newEnd),
+          pastePosition: at,
+        ),
+    ]);
+    final selection = after.selection.isValid
+        ? after.selection
+        : TextSelection.collapsed(offset: after.text.length);
+    _moveSelection(dispatcher, selection);
+  }
+
+  void _moveSelection(RequestDispatcher dispatcher, TextSelection selection) {
+    dispatcher.execute([
+      ChangeSelectionRequest(
+        DocumentSelection(
+          base: _positionAt(selection.baseOffset),
+          extent: _positionAt(
+            selection.extentOffset,
+            affinity: selection.affinity,
+          ),
+        ),
+        SelectionChangeType.placeCaret,
+        _controllerSelection,
+      ),
+    ]);
+  }
+
+  /// Applies Markdown source edits inside the document's undo history.
   Future<void> _format(NexFormatCommand command) async {
     final value = widget.controller.value;
     final selection = value.selection;
@@ -589,189 +708,39 @@ class _NexParagraphEditorState extends State<NexParagraphEditor> {
         result = NexTextFormatting.toggleQuote(value.text, start, end);
       case NexFormatCommand.link:
         final url = await nexAskForLinkUrl(context);
-        if (!mounted || url == null || url.isEmpty) return;
+        if (!mounted ||
+            url == null ||
+            url.isEmpty ||
+            widget.controller.text != value.text ||
+            widget.readOnly) {
+          return;
+        }
         result = NexTextFormatting.link(value.text, start, end, url);
       case NexFormatCommand.clear:
         result = NexTextFormatting.clear(value.text, start, end);
     }
-    if (!mounted) return;
+    if (result.text == value.text) return;
+    final selectionAfter = TextSelection(
+      baseOffset: selection.baseOffset > selection.extentOffset
+          ? result.end
+          : result.start,
+      extentOffset: selection.baseOffset > selection.extentOffset
+          ? result.start
+          : result.end,
+    );
+    _editor.startTransaction();
+    try {
+      _replaceText(
+        _editor,
+        value.text,
+        TextEditingValue(text: result.text, selection: selectionAfter),
+      );
+    } finally {
+      _editor.endTransaction();
+    }
     setState(() => _formatBarDismissed = true);
-    widget.controller.value = TextEditingValue(
-      text: result.text,
-      selection: TextSelection(
-        baseOffset: result.start,
-        extentOffset: result.end,
-      ),
-    );
-  }
-
-  /// The line height the style draws with, text scale included.
-  double _lineHeight(BuildContext context) {
-    final style =
-        widget.style ??
-        DefaultTextStyle.of(context).style
-            .copyWith(color: Theme.of(context).colorScheme.onSurface);
-    final fontSize = style.fontSize ?? 16;
-    final factor = style.height ?? 1.5;
-    return MediaQuery.textScalerOf(context).scale(fontSize) * factor;
-  }
-
-  /// The height the field wants: its text's lines, inside the box its
-  /// [NexParagraphEditor.minLines]/[NexParagraphEditor.maxLines] describe.
-  double _fieldHeight(BuildContext context) {
-    final lines = '\n'.allMatches(widget.controller.text).length + 1;
-    final minLines = widget.minLines ?? 1;
-    final maxLines = widget.maxLines;
-    final visible = maxLines == null
-        ? math.max(lines, minLines)
-        : lines.clamp(minLines, maxLines);
-    return visible * _lineHeight(context);
-  }
-
-  /// Where the format bar goes: just above the selection, in viewport
-  /// coordinates, and never off the top.
-  Rect? _selectionRect() {
-    final selection = _composer.selection;
-    if (selection == null || selection.isCollapsed) return null;
-    final state = _layoutKey.currentState;
-    if (state == null) return null;
-    final layout = state as DocumentLayout;
-    final rect = layout.getRectForSelection(selection.base, selection.extent);
-    if (rect == null) return null;
-    final offset = _scroll.hasClients ? _scroll.offset : 0.0;
-    return rect.shift(Offset(0, -offset));
-  }
-
-  Widget _formatBar(BuildContext context, Rect anchor) {
-    final l10n = AppLocalizations.of(context);
-    return Positioned(
-      left: 0,
-      right: 0,
-      top: math.max(0, anchor.top - 44),
-      child: Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: NexSelectionFormatBar(
-          labels: {
-            NexFormatCommand.bold: l10n.formatBold,
-            NexFormatCommand.italic: l10n.formatItalic,
-            NexFormatCommand.mono: l10n.formatMono,
-            NexFormatCommand.strikethrough: l10n.formatStrikethrough,
-            NexFormatCommand.quote: l10n.formatQuote,
-            NexFormatCommand.link: l10n.formatLink,
-            NexFormatCommand.clear: l10n.formatClear,
-          },
-          onSelected: _format,
-        ),
-      ),
-    );
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final body = widget.style ?? theme.textTheme.bodyLarge;
-    final style = body?.copyWith(
-      color: widget.enabled ? theme.colorScheme.onSurface : theme.disabledColor,
-      // The engine draws each paragraph flush to its own side rather than
-      // centring it, so the leading has to come from the style, not from a
-      // padding that would shift one side only.
-      height: body.height ?? 1.5,
-    );
-    final direction = Directionality.of(context);
-    if (_resolver.fallback != direction || _resolver.directions.isEmpty) {
-      _resolver.fallback = direction;
-      _resolver.directions = _resolveDirections();
-    }
-    final stylesheet = defaultStylesheet.copyWith(
-      addRulesAfter: [
-        StyleRule(BlockSelector.all, (document, node) {
-          final rules = <String, Object>{
-            Styles.padding: const CascadingPadding.symmetric(
-              horizontal: 0,
-              vertical: 0,
-            ),
-          };
-          final textStyle = style;
-          if (textStyle != null) rules[Styles.textStyle] = textStyle;
-          return rules;
-        }),
-      ],
-    );
-    final builders = [_NexParagraphComponentBuilder(_resolver)];
-    final selectionStyle = SelectionStyles(
-      selectionColor: theme.colorScheme.primary.withValues(alpha: 0.22),
-    );
-    final Widget content;
-    if (widget.readOnly || !widget.enabled) {
-      // No IME connection at all: a key pressed while the document is only
-      // being shown has nowhere to arrive, so it cannot edit the text that is
-      // about to be replaced.
-      content = SuperReader(
-        editor: _editor,
-        stylesheet: stylesheet,
-        componentBuilders: builders,
-        selectionStyle: selectionStyle,
-      );
-    } else {
-      content = SuperEditor(
-        editor: _editor,
-        focusNode: widget.focusNode,
-        autofocus: widget.autofocus,
-        scrollController: _scroll,
-        documentLayoutKey: _layoutKey,
-        // The field decides its own height from its lines and may sit inside a
-        // sheet that already scrolls; the editor then shrinks to that height
-        // instead of demanding a viewport of its own.
-        shrinkWrap: true,
-        // The note is prose, and a note keeps its own formatting as Markdown in
-        // its text. Turning markdown into blocks here would change what the
-        // note is, so the editor shows the same plain source the field showed,
-        // with only the paragraph component.
-        componentBuilders: builders,
-        stylesheet: stylesheet,
-        selectionStyle: selectionStyle,
-      );
-    }
-    final showFormatBar =
-        widget.formatting &&
-        !widget.readOnly &&
-        widget.enabled &&
-        !_formatBarDismissed &&
-        (_composer.selection?.isCollapsed ?? true) == false;
-    // A selection the layout cannot place yet (the frame right after a
-    // programmatic selection) still gets the bar, at the top of the field.
-    final anchor = showFormatBar ? (_selectionRect() ?? Rect.zero) : null;
-    // A caller that says nothing about lines wants the whole space it is
-    // given — the note sheet gives the editor an `Expanded` and lets it fill
-    // the page and scroll. Only a caller that describes a field gets a field:
-    // the box its lines ask for, and the frame around it.
-    if (widget.minLines == null && widget.maxLines == null) return content;
-    // No `LayoutBuilder` here: the engine mounts slotted render objects
-    // (its viewport and its selection overlay), and a subtree mounted during
-    // someone else's layout pass attaches those slots to the wrong parent.
-    // The height comes from the text, and a parent that is shorter simply
-    // clips it and lets the engine scroll.
-    final desired = _fieldHeight(context);
-    final box = math.max(desired, _lineHeight(context));
-    final fieldBody = SizedBox(
-      height: box,
-      child: anchor == null
-          ? content
-          : ClipRect(
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned.fill(child: content),
-                  _formatBar(context, anchor),
-                ],
-              ),
-            ),
-    );
-    return NexFieldFrame(
-      decoration: widget.decoration,
-      isEmpty: widget.controller.text.isEmpty,
-      isEnabled: widget.enabled,
-      child: fieldBody,
-    );
-  }
+  Widget build(BuildContext context) => _buildEditor(context);
 }

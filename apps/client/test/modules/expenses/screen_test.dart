@@ -9,6 +9,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/text_input.dart';
 
 /// The Expenses screen end to end over a real store: a payment in seconds,
 /// Persian digits, the month the person reads, income and what is left,
@@ -77,7 +78,11 @@ Future<void> addPayment(
   if (note != null) {
     await tester.tap(find.byKey(const ValueKey('expenses-more')));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('expenses-note')), note);
+    await enterNexText(
+      tester,
+      find.byKey(const ValueKey('expenses-note')),
+      note,
+    );
     await tester.pumpAndSettle();
   }
   if (day != null) {

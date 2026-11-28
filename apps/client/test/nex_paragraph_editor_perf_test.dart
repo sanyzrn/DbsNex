@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/widgets/nex_paragraph_editor.dart';
-import 'package:nex_client/widgets/nex_text_field.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:super_editor/src/test/ime.dart';
 import 'package:super_editor/super_editor.dart';
@@ -106,10 +105,15 @@ void main() {
         home: Scaffold(
           body: SizedBox(
             height: 600,
-            child: NexTextField(
+            child: NexAutoDirection(
               controller: controller,
-              autofocus: true,
-              minLines: 3,
+              builder: (context, direction) => TextField(
+                controller: controller,
+                autofocus: true,
+                minLines: 3,
+                maxLines: null,
+                textDirection: direction,
+              ),
             ),
           ),
         ),
@@ -122,7 +126,7 @@ void main() {
     final typing = Stopwatch()..start();
     for (var i = 0; i < keystrokes; i++) {
       final next = '${controller.text}x';
-      await tester.enterText(find.byType(NexTextField), next);
+      await tester.enterText(find.byType(TextField), next);
       await tester.pump();
     }
     typing.stop();

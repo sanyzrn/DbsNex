@@ -15,6 +15,7 @@ import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/about_screen.dart';
 
 import 'support/in_process_db.dart';
+import 'support/text_input.dart';
 
 /// flutter_test registers no plugin for `getApplicationSupportDirectory`,
 /// which NexCrashLog.open() calls — without this, tapping "Share
@@ -130,10 +131,7 @@ void main() {
       await tester.tap(find.text('Send feedback'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.byType(TextField).first,
-        'the timeline is great',
-      );
+      await enterNexText(tester, nexInputs().first, 'the timeline is great');
       await tester.tap(find.text('Send'));
       await tester.pumpAndSettle();
 
@@ -146,7 +144,10 @@ void main() {
         find.text("Feedback isn't available in this build yet"),
         findsOneWidget,
       );
-      expect(find.text('the timeline is great'), findsOneWidget);
+      expect(
+        nexInputController(tester, nexInputs().first).text,
+        'the timeline is great',
+      );
 
       await tester.tap(find.textContaining('Copy your message'));
       await tester.pumpAndSettle();

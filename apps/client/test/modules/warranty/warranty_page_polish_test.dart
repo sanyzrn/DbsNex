@@ -6,6 +6,7 @@ import 'package:nex_client/modules/warranty/warranty_detail.dart';
 import 'package:nex_client/modules/warranty/warranty_service_file.dart';
 
 import 'warranty_widget_test.dart' show pumpWarranty, scrollWarrantyTo;
+import '../../support/text_input.dart';
 
 /// The purchase page as it is used at a service desk: the brand, model and
 /// category the person typed are on it, the serial, the card number and the
@@ -172,7 +173,8 @@ void main() {
     await tester.pump();
     expect(find.text('Write what the note should say.'), findsOneWidget);
 
-    await tester.enterText(
+    await enterNexText(
+      tester,
       find.byKey(const ValueKey('warranty-claim-field')),
       'Called the shop; part ordered.',
     );

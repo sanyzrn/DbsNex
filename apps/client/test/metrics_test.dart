@@ -18,6 +18,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
 /// W3.4: what Nex measures about itself — only when asked, only on the phone,
 /// never the person's words.
@@ -135,12 +136,12 @@ void main() {
       );
       unawaited(state.openCapture());
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).last, 'timed');
+      await enterNexText(tester, nexInputs().last, 'timed');
       await tester.pumpAndSettle();
 
       expect(NexMetrics.shared.stats(NexMetric.capture)?.count, 1);
       expect(NexMetrics.shared.sessions.withCapture, 1);
-      Navigator.of(tester.element(find.byType(TextField).last)).pop();
+      Navigator.of(tester.element(nexInputs().last)).pop();
       await tester.pumpAndSettle();
       NexMetrics.shared.flush();
     });
@@ -157,7 +158,7 @@ void main() {
       );
       unawaited(state.revealSearch());
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).first, 'heating');
+      await enterNexText(tester, nexInputs().first, 'heating');
       await tester.pumpAndSettle();
       await tester.tap(find.byType(NoteCard).first);
       for (var i = 0; i < 30; i++) {
@@ -252,7 +253,7 @@ void main() {
       Future<void> send(String text, {required bool attach}) async {
         await tester.tap(find.text('open'));
         await tester.pumpAndSettle();
-        await tester.enterText(find.byType(TextField).first, text);
+        await enterNexText(tester, nexInputs().first, text);
         if (attach) {
           await tester.tap(find.byType(Checkbox));
           await tester.pump();

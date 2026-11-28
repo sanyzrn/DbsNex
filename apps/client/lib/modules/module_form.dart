@@ -44,48 +44,52 @@ class NexMoreDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return AnimatedSize(
-      duration: NexMotion.of(context, NexMotion.standard),
-      curve: NexMotion.curve,
-      alignment: AlignmentDirectional.topStart,
-      child: open
-          ? child
-          : Material(
-              color: scheme.surfaceContainerHighest,
+    final duration = NexMotion.of(context, NexMotion.standard);
+    final content = open
+        ? child
+        : Material(
+            color: scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(NexRadius.lg),
+            child: InkWell(
+              key: toggleKey,
               borderRadius: BorderRadius.circular(NexRadius.lg),
-              child: InkWell(
-                key: toggleKey,
-                borderRadius: BorderRadius.circular(NexRadius.lg),
-                onTap: () => onChanged(true),
-                child: Padding(
-                  padding: const EdgeInsets.all(NexSpacing.md),
-                  child: Row(
-                    children: [
-                      Icon(icon, color: scheme.primary),
-                      const SizedBox(width: NexSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(title, style: theme.textTheme.titleSmall),
-                            if (hint case final hint?) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                hint,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                ),
+              onTap: () => onChanged(true),
+              child: Padding(
+                padding: const EdgeInsets.all(NexSpacing.md),
+                child: Row(
+                  children: [
+                    Icon(icon, color: scheme.primary),
+                    const SizedBox(width: NexSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title, style: theme.textTheme.titleSmall),
+                          if (hint case final hint?) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              hint,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
                               ),
-                            ],
+                            ),
                           ],
-                        ),
+                        ],
                       ),
-                      Icon(Icons.expand_more, color: scheme.onSurfaceVariant),
-                    ],
-                  ),
+                    ),
+                    Icon(Icons.expand_more, color: scheme.onSurfaceVariant),
+                  ],
                 ),
               ),
             ),
-    );
+          );
+    return duration == Duration.zero
+        ? content
+        : AnimatedSize(
+            duration: duration,
+            curve: NexMotion.curve,
+            alignment: AlignmentDirectional.topStart,
+            child: content,
+          );
   }
 }

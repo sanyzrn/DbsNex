@@ -16,6 +16,20 @@ Hello world
 نکس Nex را باز کن
 ```
 
+## Forms and creation
+
+- Write and paste the example in a new note and in a multiline module field.
+  Tap between the Persian and English paragraphs and check that neither moves.
+- In Prompt Studio, Family Fund and Habits, switch from a name to a multiline
+  field and back with the keyboard open. Scroll the form after focusing the
+  text. A wrapped field should grow until the limit and then scroll inside.
+- In the capture sheet, switch between Note, Checklist, Link and Code. Verify
+  the text, caret and keyboard survive. In Code, verify highlighting,
+  indentation and paired brackets. With Enter-to-send enabled, verify Enter
+  submits a note and Shift+Enter adds a paragraph.
+- In the private vault, verify copy remains subject to its sensitive clipboard
+  handling and the keyboard's personalised learning stays disabled.
+
 ## Android
 
 1. **Open.** Open a long note (100+ lines, half of each script). It should

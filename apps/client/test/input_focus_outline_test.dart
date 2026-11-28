@@ -6,6 +6,7 @@ import 'package:nex_client/widgets/ai_chat_sheet.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
 void main() {
   for (final dark in [false, true]) {
@@ -47,10 +48,7 @@ void main() {
                 assistant ? 'chat-composer-surface' : 'settings-search-surface',
               ),
             );
-            final input = find.descendant(
-              of: surface,
-              matching: find.byType(TextField),
-            );
+            final input = find.descendant(of: surface, matching: nexInputs());
             await tester.tap(input);
             await tester.pumpAndSettle();
             final decorator = tester.widget<InputDecorator>(

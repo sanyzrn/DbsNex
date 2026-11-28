@@ -10,6 +10,7 @@ import 'package:nex_client/modules/cheques/model.dart';
 import '../../support/nex_harness.dart';
 import 'repository_test.dart' show ChequeFaultStore;
 import 'fixtures.dart';
+import '../../support/text_input.dart';
 
 Future<void> settleCheque(WidgetTester t) async {
   await t.pumpAndSettle();
@@ -57,7 +58,11 @@ void main() {
     await home(t);
     await t.tap(find.byKey(const ValueKey('cheque-add')));
     await settleCheque(t);
-    await t.enterText(find.byKey(const ValueKey('cheque-party')), 'Customer');
+    await enterNexText(
+      t,
+      find.byKey(const ValueKey('cheque-party')),
+      'Customer',
+    );
     await t.enterText(find.byKey(const ValueKey('cheque-amount')), '۲٬۵۰۰');
     final date = find.byKey(const ValueKey('cheque-date'));
     await reachCheque(t, date);
@@ -179,7 +184,8 @@ void main() {
       await home(t);
       await t.tap(find.byKey(const ValueKey('cheque-add')));
       await settleCheque(t);
-      await t.enterText(
+      await enterNexText(
+        t,
         find.byKey(const ValueKey('cheque-party')),
         'Draft party',
       );
@@ -261,7 +267,11 @@ void main() {
       final c = (await t.runAsync(() => repo.save('a', null, chequeRaw())))!;
       await t.pumpWidget(app(ChequeEditor(repo: repo, cheque: c)));
       await settleCheque(t);
-      await t.enterText(find.byKey(const ValueKey('cheque-party')), 'My edit');
+      await enterNexText(
+        t,
+        find.byKey(const ValueKey('cheque-party')),
+        'My edit',
+      );
       await t.runAsync(
         () => store.put('cheque', 'a', {...c.raw, 'party': 'External edit'}),
       );

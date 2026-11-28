@@ -8,6 +8,7 @@ import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
 /// 2.9.0, step 6: Paste lives in the primary button, and only when it can do
 /// something. The field keeps its whole width; an empty box with a clipboard
@@ -88,14 +89,10 @@ void main() {
   final pasteIcon = find.byKey(const ValueKey('paste'));
   final sendIcon = find.byKey(const ValueKey('up'));
   final sendButton = find.byKey(const ValueKey('capture-send'));
-  TextEditingController field(WidgetTester tester) => tester
-      .widget<TextField>(
-        find.descendant(
-          of: find.byType(CaptureSheet),
-          matching: find.byType(TextField),
-        ),
-      )
-      .controller!;
+  TextEditingController field(WidgetTester tester) => nexInputController(
+    tester,
+    find.descendant(of: find.byType(CaptureSheet), matching: nexInputs()),
+  );
 
   testWidgets('an empty box offers Paste, and pasting saves nothing', (
     tester,
@@ -136,16 +133,16 @@ void main() {
     await open(tester);
     final fieldFinder = find.descendant(
       of: find.byType(CaptureSheet),
-      matching: find.byType(TextField),
+      matching: nexInputs(),
     );
     final before = asks;
 
-    await tester.enterText(fieldFinder, 'typed');
+    await enterNexText(tester, fieldFinder, 'typed');
     await tester.pumpAndSettle();
     expect(pasteIcon, findsNothing);
     expect(sendIcon, findsOneWidget);
 
-    await tester.enterText(fieldFinder, '');
+    await enterNexText(tester, fieldFinder, '');
     await tester.pumpAndSettle();
     expect(pasteIcon, findsOneWidget);
     expect(

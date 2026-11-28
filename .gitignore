@@ -58,3 +58,6 @@ Thumbs.db
 *.keystore
 *.jks
 key.properties
+
+# Local SDK and system-library shims.
+/.toolchain/

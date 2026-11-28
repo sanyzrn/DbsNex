@@ -7,6 +7,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
 /// An address pasted into an empty note is a link someone is saving: the box
 /// becomes a link box, so it is kept as a link note with the page's title,
@@ -58,14 +59,10 @@ void main() {
     return h;
   }
 
-  TextEditingController field(WidgetTester tester) => tester
-      .widget<TextField>(
-        find.descendant(
-          of: find.byType(CaptureSheet),
-          matching: find.byType(TextField),
-        ),
-      )
-      .controller!;
+  TextEditingController field(WidgetTester tester) => nexInputController(
+    tester,
+    find.descendant(of: find.byType(CaptureSheet), matching: nexInputs()),
+  );
 
   // The send button's glyph says where the words are going: an address is
   // sent as a link (arrow), words that are not one are kept as their note.

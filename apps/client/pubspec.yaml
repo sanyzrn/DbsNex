@@ -45,7 +45,7 @@ dependencies:
   http: ^1.2.2
   # The note editor's engine: one document IME over per-paragraph text
   # components, each laid out in its own text direction and against its own
-  # side (see docs/development/nex-2.9.5-bidi-editor.md). MIT licensed. Pinned
+  # side (see docs/development/nex-2.9.5-per-paragraph-editing.md). MIT licensed. Pinned
   # to the dev release because 0.2.x predates the document-IME rewrite that
   # this integration depends on.
   super_editor: 0.3.0-dev.52

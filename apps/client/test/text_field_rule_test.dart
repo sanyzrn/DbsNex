@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// ADR-037, enforced: how a field that takes a person's own words is built.
 ///
-/// 1. More than one line of it is a `NexTextField` — the framework's editor,
-///    laid out around the paragraph the caret is in, with horizontal arrows
-///    that move by what is on screen. A bare `TextField` gives the whole
+/// 1. More than one line of it uses `NexTextField`, which gives multiline
+///    prose independent paragraph direction and keeps code and private
+///    clipboard policies explicit. A bare `TextField` gives the whole
 ///    text one direction, which is what put a Persian sentence's `!` on the
 ///    wrong end and turned the selection handles around while editing.
 /// 2. A single line states its direction: it is built inside

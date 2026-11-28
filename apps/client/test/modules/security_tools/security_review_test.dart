@@ -18,6 +18,7 @@ import 'package:nex_client/modules/security_tools/security_home.dart';
 
 import '../../support/nex_harness.dart';
 import 'security_widget_test.dart' show settleSecurity, revealSecurity;
+import '../../support/text_input.dart';
 
 void main() {
   for (final fa in [true, false]) {
@@ -101,7 +102,7 @@ void main() {
             if (scene == 'codec') {
               final field = find.byKey(const ValueKey('security-codec-input'));
               await revealSecurity(t, field);
-              await t.enterText(field, fa ? 'سلام 👋' : 'Hello 👋');
+              await enterNexText(t, field, fa ? 'سلام 👋' : 'Hello 👋');
               final run = find.byKey(const ValueKey('security-codec-run'));
               await revealSecurity(t, run);
               await t.tap(run);
@@ -127,13 +128,14 @@ void main() {
             } else if (scene == 'link') {
               final field = find.byKey(const ValueKey('security-url'));
               await revealSecurity(t, field);
-              await t.enterText(
+              await enterNexText(
+                t,
                 field,
                 'https://accounts.example.org@review.example.test/login?next=%2Fhome',
               );
               final expected = find.byKey(const ValueKey('security-expected'));
               await revealSecurity(t, expected);
-              await t.enterText(expected, 'example.org');
+              await enterNexText(t, expected, 'example.org');
               final inspect = find.byKey(const ValueKey('security-inspect'));
               await revealSecurity(t, inspect);
               await t.tap(inspect);

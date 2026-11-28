@@ -15,6 +15,7 @@ import 'package:nex_client/modules/family_fund/screen.dart';
 
 import '../../support/nex_harness.dart';
 import 'model_test.dart' show example;
+import '../../support/text_input.dart';
 
 void main() {
   late NexTestHarness h;
@@ -95,12 +96,12 @@ void main() {
     (t) async {
       await show(t, FamilyFundsScreen(store: store));
       await tap(t, find.text('New fund'));
-      await t.enterText(find.byType(TextField).first, 'Friday fund');
+      await enterNexText(t, find.byType(TextField).first, 'Friday fund');
       await t.state<NavigatorState>(find.byType(Navigator).first).maybePop();
       await t.pumpAndSettle();
       await tap(t, find.text('New fund'));
       expect(find.text('Friday fund'), findsOneWidget);
-      await t.enterText(find.byType(TextField).at(1), '۵۰۰۰۰');
+      await enterNexText(t, find.byType(TextField).at(1), '۵۰۰۰۰');
       await t.pumpAndSettle();
       await tap(t, find.text('Save'));
       final row = (await store.list('fund')).single;
@@ -135,10 +136,7 @@ void main() {
       );
       await tap(t, find.byKey(const ValueKey('draw-confirm')));
       expect(find.text('Write a reason for drawing again.'), findsOneWidget);
-      await t.enterText(
-        find.byType(TextField).last,
-        'Mistake in the first pool',
-      );
+      await enterNexText(t, nexInputs().last, 'Mistake in the first pool');
       await tap(t, find.byKey(const ValueKey('draw-confirm')));
       expect(find.text('The winner is'), findsOneWidget);
       final saved = Fund('x', (await store.get('fund', f.id))!);
@@ -167,8 +165,8 @@ void main() {
     await store.put('fund', f.id, f.body);
     await show(t, FundDetail(store: store, initial: f));
     await tap(t, find.text('Record loan payout'));
-    await t.enterText(find.byType(TextField).first, '300');
-    await t.enterText(find.byType(TextField).at(1), '3');
+    await enterNexText(t, find.byType(TextField).first, '300');
+    await enterNexText(t, find.byType(TextField).at(1), '3');
     await tap(t, find.text('Save'));
     Future<Fund> read() async => Fund(f.id, (await store.get('fund', f.id))!);
     expect((await read()).balanceAt(when), 2000);
@@ -215,7 +213,7 @@ void main() {
     await show(t, FundDetail(store: store, initial: f));
     await tap(t, find.byIcon(Icons.more_vert));
     await tap(t, find.text('Edit fund'));
-    await t.enterText(find.byType(TextField).first, 'Family fund 2');
+    await enterNexText(t, find.byType(TextField).first, 'Family fund 2');
     await tap(t, find.text('Save'));
     expect((await store.get('fund', f.id))!['name'], 'Family fund 2');
     expect(find.text('Family fund 2'), findsOneWidget);
@@ -229,7 +227,7 @@ void main() {
     await show(t, FundDetail(store: store, initial: f));
     await tap(t, find.text('Members').first);
     await tap(t, find.text('Change share'));
-    await t.enterText(find.byType(TextField).first, '700');
+    await enterNexText(t, find.byType(TextField).first, '700');
     await tap(t, find.text('Save'));
     final saved = Fund('x', (await store.get('fund', f.id))!);
     expect(saved.shareChanges, hasLength(1));

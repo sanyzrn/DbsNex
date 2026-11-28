@@ -35,38 +35,14 @@
   "layoutShowSection": "روی صفحه‌ی اصلی",
   "layoutLookSection": "نما",
   "chatAboutGroup": "دربارهٔ {label} · {count} یادداشت",
-  "@chatAboutGroup": {
-    "placeholders": {
-      "label": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@chatAboutGroup": {"placeholders": {"label": {"type": "String"}, "count": {"type": "int", "format": "decimalPattern"}}},
   "groupActions": "عملیات گروه",
   "groupAsk": "دربارهٔ این‌ها بپرس",
   "groupDelete": "حذف این گروه",
   "groupDeleteBody": "{count} یادداشت به زباله‌دان می‌رود. از کتابخانه ← زباله‌دان می‌توانید برشان گردانید.",
-  "@groupDeleteBody": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@groupDeleteBody": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "groupDeleted": "{count} یادداشت حذف شد",
-  "@groupDeleted": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@groupDeleted": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "assistantVoiceGroup": "چطور حرف بزند",
   "assistantReachGroup": "چه چیزی را می‌بیند",
   "assistantAboutYouNote": "این نام همراه درخواست‌های دستیار ارسال می‌شود تا شما را با آن صدا کند. نام جداگانهٔ پروفایل روی همین دستگاه می‌ماند. معرفی کوتاه را می‌توانید جداگانه در هوش مصنوعی ← حافظه فعال کنید.",
@@ -169,13 +145,9 @@
   "securityLockManual": "فقط وقتی خودم بخواهم",
   "securityLockManualHint": "نکس باز می‌ماند تا وقتی قفل را بزنی",
   "securityStateOn": "نکس پیش از باز شدن می‌پرسد",
-  "@securityStateOn": {
-    "description": "Heading on the Security page when the app lock is on"
-  },
+  "@securityStateOn": {"description": "Heading on the Security page when the app lock is on"},
   "securityStateOff": "نکس بی‌پرسش باز می‌شود",
-  "@securityStateOff": {
-    "description": "Heading on the Security page when the app lock is off"
-  },
+  "@securityStateOff": {"description": "Heading on the Security page when the app lock is off"},
   "securityLockSeconds": "{count} ثانیه",
   "securityLockMinutes": "{count} دقیقه",
   "securityLockHours": "{count} ساعت",
@@ -209,16 +181,7 @@
   "remindRepeatDaily": "هر روز",
   "remindRepeatWeekly": "هر هفته",
   "remindRepeatingAt": "{when} · {repeat}",
-  "@remindRepeatingAt": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      },
-      "repeat": {
-        "type": "String"
-      }
-    }
-  },
+  "@remindRepeatingAt": {"placeholders": {"when": {"type": "String"}, "repeat": {"type": "String"}}},
   "nudgeNotScheduled": "یادآوری روزانه روشن شد، ولی این گوشی آلارمش را قبول نکرد.",
   "search": "جست‌وجو",
   "searchHint": "جست‌وجو در یادداشت‌ها…",
@@ -259,35 +222,20 @@
   "mergeTagBody": "{count} یادداشتِ دارای «{source}» به «{target}» منتقل می‌شوند.",
   "@mergeTagBody": {
     "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "source": {
-        "type": "String"
-      },
-      "target": {
-        "type": "String"
-      }
+      "count": {"type": "int", "format": "decimalPattern"},
+      "source": {"type": "String"},
+      "target": {"type": "String"}
     }
   },
   "mergeTagDone": "با «{target}» ادغام شد",
   "@mergeTagDone": {
     "description": "Said after a merge completed; the target keeps the notes",
-    "placeholders": {
-      "target": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"target": {"type": "String"}}
   },
   "tagRemoved": "برچسب «{tag}» برداشته شد",
   "@tagRemoved": {
     "description": "Said after the ✕ on a note's tag chip; Undo re-adds it",
-    "placeholders": {
-      "tag": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"tag": {"type": "String"}}
   },
   "timelineGroupPinned": "سنجاق‌شده",
   "timelineGroupToday": "امروز",
@@ -400,14 +348,7 @@
   "whatsNewSearchHint": "جست‌وجو در همهٔ تغییرات",
   "whatsNewNoMatch": "هیچ تغییری این را نمی‌گوید",
   "whatsNewChanges": "{count, plural, =1{۱ تغییر} other{{count} تغییر}}",
-  "@whatsNewChanges": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@whatsNewChanges": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "whatsNewTitle": "تازه‌ها",
   "whatsNewSubtitle": "نکس {version} رسید. این‌ها عوض شده‌اند.",
   "@recapRefreshFailed": {
@@ -487,105 +428,53 @@
     "description": "Button shown when a media note already has a caption"
   },
   "attachmentsTitle": "پیوست‌ها",
-  "@attachmentsTitle": {
-    "description": "Heading of the attachments strip in a note"
-  },
+  "@attachmentsTitle": {"description": "Heading of the attachments strip in a note"},
   "attach": "پیوست",
-  "@attach": {
-    "description": "The chip beside Tag on a note with no attachments yet; opens the camera, photos or file choice."
-  },
+  "@attach": {"description": "The chip beside Tag on a note with no attachments yet; opens the camera, photos or file choice."},
   "attachAdd": "پیوست عکس یا فایل",
-  "@attachAdd": {
-    "description": "Tooltip and label of the add-attachment tile"
-  },
+  "@attachAdd": {"description": "Tooltip and label of the add-attachment tile"},
   "mediaSkippedOne": "«{name}» عکس یا ویدئو نیست و افزوده نشد. برای افزودن آن از «فایل» استفاده کنید.",
   "@mediaSkippedOne": {
     "description": "Banner when one picked item is neither a photo nor a video; File is the separate capture action for any file",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"name": {"type": "String"}}
   },
   "mediaSkippedMany": "{count} فایل انتخاب‌شده عکس یا ویدئو نبودند و افزوده نشدند. برای افزودن آن‌ها از «فایل» استفاده کنید.",
   "@mediaSkippedMany": {
     "description": "Banner when several picked items are neither photos nor videos",
-    "placeholders": {
-      "count": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"count": {"type": "String"}}
   },
   "attachTakePhoto": "دوربین",
-  "@attachTakePhoto": {
-    "description": "Attach sheet option"
-  },
+  "@attachTakePhoto": {"description": "Attach sheet option"},
   "attachRecordVoice": "ضبط صدا",
-  "@attachRecordVoice": {
-    "description": "Attach menu: record a short voice clip onto the note"
-  },
+  "@attachRecordVoice": {"description": "Attach menu: record a short voice clip onto the note"},
   "attachChooseMedia": "انتخاب عکس و ویدئو",
-  "@attachChooseMedia": {
-    "description": "Attach sheet option: the system photo picker, for several photos and videos at once"
-  },
+  "@attachChooseMedia": {"description": "Attach sheet option: the system photo picker, for several photos and videos at once"},
   "attachChooseFile": "انتخاب فایل",
-  "@attachChooseFile": {
-    "description": "Attach sheet option"
-  },
+  "@attachChooseFile": {"description": "Attach sheet option"},
   "attachRemove": "برداشتن از این یادداشت",
-  "@attachRemove": {
-    "description": "Attachment menu: remove"
-  },
+  "@attachRemove": {"description": "Attachment menu: remove"},
   "attachMakeMain": "عکس اصلی یادداشت شود",
-  "@attachMakeMain": {
-    "description": "Attachment menu: swap this photo with the photo note's own"
-  },
+  "@attachMakeMain": {"description": "Attachment menu: swap this photo with the photo note's own"},
   "attachMadeMain": "حالا عکس اصلی یادداشت است",
-  "@attachMadeMain": {
-    "description": "Banner after making an attached photo the note's own"
-  },
+  "@attachMadeMain": {"description": "Banner after making an attached photo the note's own"},
   "attachDetach": "یادداشت جداگانه شود",
-  "@attachDetach": {
-    "description": "Attachment menu: take the file out as a separate note"
-  },
+  "@attachDetach": {"description": "Attachment menu: take the file out as a separate note"},
   "attachDetached": "حالا یادداشت جداگانه‌ای است",
-  "@attachDetached": {
-    "description": "Banner after taking an attachment out as its own note"
-  },
+  "@attachDetached": {"description": "Banner after taking an attachment out as its own note"},
   "attachVoice": "صدای ضبط‌شده",
-  "@attachVoice": {
-    "description": "An attached voice recording, read by screen readers and in the add menu"
-  },
+  "@attachVoice": {"description": "An attached voice recording, read by screen readers and in the add menu"},
   "attachMoveEarlier": "جابه‌جایی به قبل",
-  "@attachMoveEarlier": {
-    "description": "Attachment menu: move this file one place earlier"
-  },
+  "@attachMoveEarlier": {"description": "Attachment menu: move this file one place earlier"},
   "attachMoveLater": "جابه‌جایی به بعد",
-  "@attachMoveLater": {
-    "description": "Attachment menu: move this file one place later"
-  },
+  "@attachMoveLater": {"description": "Attachment menu: move this file one place later"},
   "attachRemoved": "پیوست برداشته شد",
-  "@attachRemoved": {
-    "description": "Banner after removing an attachment"
-  },
+  "@attachRemoved": {"description": "Banner after removing an attachment"},
   "attachOpen": "باز کردن",
-  "@attachOpen": {
-    "description": "Attachment menu: open"
-  },
+  "@attachOpen": {"description": "Attachment menu: open"},
   "attachFailed": "این فایل پیوست نشد",
-  "@attachFailed": {
-    "description": "Banner when attaching fails"
-  },
+  "@attachFailed": {"description": "Banner when attaching fails"},
   "attachedMore": "{count} فایل دیگر",
-  "@attachedMore": {
-    "description": "Screen reader: how many files a note carries after its own",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@attachedMore": {"description": "Screen reader: how many files a note carries after its own", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "noCaption": "بدون توضیح",
   "@noCaption": {
     "description": "Placeholder text where a caption would appear"
@@ -643,99 +532,35 @@
     "description": "Opens the note's metadata panel"
   },
   "detailsAgo": "{span} پیش",
-  "@detailsAgo": {
-    "description": "A span of time in the past, under a date in Details",
-    "placeholders": {
-      "span": {
-        "type": "String"
-      }
-    }
-  },
+  "@detailsAgo": {"description": "A span of time in the past, under a date in Details", "placeholders": {"span": {"type": "String"}}},
   "detailsNotEdited": "بدون تغییر از همان موقع",
-  "@detailsNotEdited": {
-    "description": "Details: the note was never edited after it was made"
-  },
+  "@detailsNotEdited": {"description": "Details: the note was never edited after it was made"},
   "detailsEdited": "آخرین تغییر",
-  "@detailsEdited": {
-    "description": "Details: label for the last edit"
-  },
+  "@detailsEdited": {"description": "Details: label for the last edit"},
   "detailsWords": "{words} واژه · {chars} نویسه",
-  "@detailsWords": {
-    "description": "Details: how long a written note is",
-    "placeholders": {
-      "words": {
-        "type": "String"
-      },
-      "chars": {
-        "type": "String"
-      }
-    }
-  },
+  "@detailsWords": {"description": "Details: how long a written note is", "placeholders": {"words": {"type": "String"}, "chars": {"type": "String"}}},
   "detailsReading": "حدود {minutes} دقیقه خواندن",
-  "@detailsReading": {
-    "description": "Details: reading time of a long note",
-    "placeholders": {
-      "minutes": {
-        "type": "String"
-      }
-    }
-  },
+  "@detailsReading": {"description": "Details: reading time of a long note", "placeholders": {"minutes": {"type": "String"}}},
   "detailsLength": "اندازهٔ متن",
-  "@detailsLength": {
-    "description": "Details: label for words and characters"
-  },
+  "@detailsLength": {"description": "Details: label for words and characters"},
   "detailsChecklist": "{done} از {total} تیک خورده",
-  "@detailsChecklist": {
-    "description": "Details: checklist progress",
-    "placeholders": {
-      "done": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
-  },
+  "@detailsChecklist": {"description": "Details: checklist progress", "placeholders": {"done": {"type": "String"}, "total": {"type": "String"}}},
   "detailsProgress": "پیشرفت",
-  "@detailsProgress": {
-    "description": "Details: label for checklist progress"
-  },
+  "@detailsProgress": {"description": "Details: label for checklist progress"},
   "detailsDuration": "مدت",
-  "@detailsDuration": {
-    "description": "Details: label for a recording length"
-  },
+  "@detailsDuration": {"description": "Details: label for a recording length"},
   "detailsFile": "فایل",
-  "@detailsFile": {
-    "description": "Details: label for the file name"
-  },
+  "@detailsFile": {"description": "Details: label for the file name"},
   "detailsAddress": "نشانی",
-  "@detailsAddress": {
-    "description": "Details: label for a link's site"
-  },
+  "@detailsAddress": {"description": "Details: label for a link's site"},
   "detailsOnPhone": "روی این گوشی",
-  "@detailsOnPhone": {
-    "description": "Details: label for the storage the note takes"
-  },
+  "@detailsOnPhone": {"description": "Details: label for the storage the note takes"},
   "detailsWithAttached": "{size}، همراه {count} پیوست",
-  "@detailsWithAttached": {
-    "description": "Details: storage including attachments",
-    "placeholders": {
-      "size": {
-        "type": "String"
-      },
-      "count": {
-        "type": "String"
-      }
-    }
-  },
+  "@detailsWithAttached": {"description": "Details: storage including attachments", "placeholders": {"size": {"type": "String"}, "count": {"type": "String"}}},
   "detailsPinned": "سنجاق‌شده",
-  "@detailsPinned": {
-    "description": "Details: label for when the note was pinned"
-  },
+  "@detailsPinned": {"description": "Details: label for when the note was pinned"},
   "detailsReminder": "یادآور",
-  "@detailsReminder": {
-    "description": "Details: label for the note's reminder"
-  },
+  "@detailsReminder": {"description": "Details: label for the note's reminder"},
   "created": "ساخته شده",
   "@created": {
     "description": "Metadata row label"
@@ -771,11 +596,7 @@
   },
   "libraryOpenDetail": "مشکل: {error}",
   "@libraryOpenDetail": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    },
+    "placeholders": { "error": { "type": "String" } },
     "description": "Detail line under the startup failure message"
   },
   "restoreBackupHint": "اگر فایل پشتیبان دارید، بازگردانی آن در اینجا می‌تواند کتابخانه را بازیابی کند.",
@@ -784,11 +605,7 @@
   },
   "restoreFailed": "بازگردانی ناموفق بود: {error}",
   "@restoreFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    },
+    "placeholders": { "error": { "type": "String" } },
     "description": "Shown when restoring a local backup does not complete"
   },
   "updateAvailableBadge": "به‌روزرسانی در دسترس است",
@@ -805,11 +622,7 @@
   },
   "deletedWhen": "حذف‌شده {when}",
   "@deletedWhen": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    },
+    "placeholders": { "when": { "type": "String" } },
     "description": "Trash row subtitle: when the note was deleted"
   },
   "filteredEmpty": "یادداشت‌ها پشت پالایه‌ها پنهان شده‌اند.",
@@ -826,12 +639,7 @@
   },
   "searchFiltersClear": "پاک کردن همه ({count})",
   "@searchFiltersClear": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    },
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } },
     "description": "Drops every active search filter"
   },
   "searchFilterTags": "برچسب‌ها",
@@ -868,12 +676,7 @@
   },
   "searchFiltersActive": "{count} مورد فعال",
   "@searchFiltersActive": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    },
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } },
     "description": "Count of active filters, shown in the filter sheet"
   },
   "showFilters": "نمایش پالایه‌ها",
@@ -913,8 +716,7 @@
     "description": "Confirmation body for emptying the trash",
     "placeholders": {
       "count": {
-        "type": "int",
-        "format": "decimalPattern"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -1175,23 +977,23 @@
   },
   "checklist": "چک‌لیست",
   "@checklist": {
-    "description": "Capture type: a list of tickable items"
+      "description": "Capture type: a list of tickable items"
   },
   "link": "لینک",
   "@link": {
-    "description": "Capture type: a saved web address"
+      "description": "Capture type: a saved web address"
   },
   "checklistHint": "هر خط یک مورد",
   "@checklistHint": {
-    "description": "Placeholder in the checklist capture field"
+      "description": "Placeholder in the checklist capture field"
   },
   "linkHint": "لینک را بچسبانید؛ یک خط توضیح هم می‌شود",
   "@linkHint": {
-    "description": "Placeholder in the link capture field"
+      "description": "Placeholder in the link capture field"
   },
   "linkNotValid": "این شبیه لینک نیست.",
   "@linkNotValid": {
-    "description": "Shown when pasted text cannot be read as a URL"
+      "description": "Shown when pasted text cannot be read as a URL"
   },
   "captureKindNote": "یادداشت",
   "captureKinds": "نوع چیزی که ثبت می‌کنید",
@@ -1205,22 +1007,20 @@
   "openLink": "باز کردن لینک",
   "copyLink": "کپی لینک",
   "@openLink": {
-    "description": "Action that opens a link note in the browser"
+      "description": "Action that opens a link note in the browser"
   },
   "checklistProgress": "{done} از {total}",
   "checklistAllDone": "همه انجام شد",
   "@checklistProgress": {
-    "description": "How many checklist items are ticked",
-    "placeholders": {
-      "done": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "total": {
-        "type": "int",
-        "format": "decimalPattern"
+      "description": "How many checklist items are ticked",
+      "placeholders": {
+          "done": {
+              "type": "int", "format": "decimalPattern"
+          },
+          "total": {
+              "type": "int", "format": "decimalPattern"
+          }
       }
-    }
   },
   "chatGreeting": "از یادداشت‌هایتان بپرسید",
   "@chatGreeting": {
@@ -1235,12 +1035,7 @@
   "foreignImportWorking": "دارم فایلت را می‌خوانم…",
   "foreignImportDone": "{count, plural, =0{در آن فایل یادداشتی پیدا نشد.} =1{یک یادداشت وارد شد.} other{‏{count} یادداشت وارد شد.}}",
   "@foreignImportDone": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}
   },
   "foreignImportUnreadable": "آن فایل خوانده نشد. همان ‏.zip دانلودشده، یا یک فایل ‏.json و ‏.md و ‏.txt را انتخاب کنید.",
   "localModelPause": "توقف موقت",
@@ -1261,25 +1056,12 @@
   "localModelDeviceCaveat": "روی پردازندهٔ همین گوشی اجرا می‌شود، پس کیفیت کارش به خود گوشی بستگی دارد. روی دستگاه قدیمی‌تر یا کندتر جواب‌ها دیر می‌آیند، و اگر حافظه کم بیاید ممکن است مدل اصلاً بالا نیاید.",
   "localModelDownload": "دانلود · ‏{size} گیگابایت",
   "@localModelDownload": {
-    "placeholders": {
-      "size": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"size": {"type": "String"}}
   },
   "localModelDownloading": "در حال دانلود…",
   "localModelDownloadingPart": "دانلود تکهٔ ‏{index} از ‏{count}",
   "@localModelDownloadingPart": {
-    "placeholders": {
-      "index": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": {"index": {"type": "int", "format": "decimalPattern"}, "count": {"type": "int", "format": "decimalPattern"}}
   },
   "localModelJoining": "در حال چسباندن تکه‌ها و بررسی‌شان…",
   "localModelKeepOpen": "می‌توانید از این صفحه بیرون بروید — دانلود ادامه پیدا می‌کند. بستن برنامه متوقفش می‌کند و دفعهٔ بعد از همان‌جا ادامه می‌دهد.",
@@ -1287,11 +1069,7 @@
   "localModelFailed": "دانلود تمام نشد. دوباره بزنید — از همان‌جایی که ماند ادامه می‌دهد.",
   "localModelInstalled": "نصب‌شده · ‏{size} گیگابایت روی این گوشی",
   "@localModelInstalled": {
-    "placeholders": {
-      "size": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"size": {"type": "String"}}
   },
   "localModelDelete": "حذف مدل",
   "localModelDeleteTitle": "مدل حذف شود؟",
@@ -1304,11 +1082,7 @@
   "localModelBlockedArchitecture": "پردازندهٔ این گوشی از آن‌هایی نیست که مدل رویش اجرا می‌شود. به یک دستگاه ARM شصت‌وچهار بیتی نیاز دارد.",
   "localModelBlockedStorage": "فضای کافی نیست. دانلود موقع نصب حدود ‏{size} گیگابایت فضای خالی لازم دارد.",
   "@localModelBlockedStorage": {
-    "placeholders": {
-      "size": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"size": {"type": "String"}}
   },
   "localModelBlockedUnpublished": "هنوز مدلی برای دانلود در این نسخه موجود نیست.",
   "tourNext": "بعدی",
@@ -1389,8 +1163,7 @@
   "@assistantContextCount": {
     "placeholders": {
       "count": {
-        "type": "int",
-        "format": "decimalPattern"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -1483,15 +1256,15 @@
   "spanHours": "{count, plural, other{{count} ساعت}}",
   "spanDays": "{count, plural, other{{count} روز}}",
   "assistantConfirmSetting": "این تنظیم را عوض کنم؟",
-  "assistantConfirmRemind": "این یادآور را بگذارم؟",
-  "assistantConfirmRemindClear": "یادآور این یادداشت را بردارم؟",
-  "assistantConfirmPin": "این یادداشت را بالا سنجاق کنم؟",
-  "assistantConfirmUnpin": "سنجاق این یادداشت را بردارم؟",
-  "assistantConfirmTitle": "برای این یادداشت عنوان بگذارم؟",
-  "assistantConfirmTitleClear": "عنوان این یادداشت را بردارم؟",
-  "assistantConfirmRestore": "این یادداشت را از حذف‌شده‌ها برگردانم؟",
-  "assistantConfirmRenameTag": "نام این تگ را همه‌جا عوض کنم؟",
-  "assistantConfirmTagColor": "رنگ این تگ را عوض کنم؟",
+  "assistantConfirmRemind": "\u0627\u06cc\u0646 \u06cc\u0627\u062f\u0622\u0648\u0631 \u0631\u0627 \u0628\u06af\u0630\u0627\u0631\u0645\u061f",
+  "assistantConfirmRemindClear": "\u06cc\u0627\u062f\u0622\u0648\u0631 \u0627\u06cc\u0646 \u06cc\u0627\u062f\u062f\u0627\u0634\u062a \u0631\u0627 \u0628\u0631\u062f\u0627\u0631\u0645\u061f",
+  "assistantConfirmPin": "\u0627\u06cc\u0646 \u06cc\u0627\u062f\u062f\u0627\u0634\u062a \u0631\u0627 \u0628\u0627\u0644\u0627 \u0633\u0646\u062c\u0627\u0642 \u06a9\u0646\u0645\u061f",
+  "assistantConfirmUnpin": "\u0633\u0646\u062c\u0627\u0642 \u0627\u06cc\u0646 \u06cc\u0627\u062f\u062f\u0627\u0634\u062a \u0631\u0627 \u0628\u0631\u062f\u0627\u0631\u0645\u061f",
+  "assistantConfirmTitle": "\u0628\u0631\u0627\u06cc \u0627\u06cc\u0646 \u06cc\u0627\u062f\u062f\u0627\u0634\u062a \u0639\u0646\u0648\u0627\u0646 \u0628\u06af\u0630\u0627\u0631\u0645\u061f",
+  "assistantConfirmTitleClear": "\u0639\u0646\u0648\u0627\u0646 \u0627\u06cc\u0646 \u06cc\u0627\u062f\u062f\u0627\u0634\u062a \u0631\u0627 \u0628\u0631\u062f\u0627\u0631\u0645\u061f",
+  "assistantConfirmRestore": "\u0627\u06cc\u0646 \u06cc\u0627\u062f\u062f\u0627\u0634\u062a \u0631\u0627 \u0627\u0632 \u062d\u0630\u0641\u200c\u0634\u062f\u0647\u200c\u0647\u0627 \u0628\u0631\u06af\u0631\u062f\u0627\u0646\u0645\u061f",
+  "assistantConfirmRenameTag": "\u0646\u0627\u0645 \u0627\u06cc\u0646 \u062a\u06af \u0631\u0627 \u0647\u0645\u0647\u200c\u062c\u0627 \u0639\u0648\u0636 \u06a9\u0646\u0645\u061f",
+  "assistantConfirmTagColor": "\u0631\u0646\u06af \u0627\u06cc\u0646 \u062a\u06af \u0631\u0627 \u0639\u0648\u0636 \u06a9\u0646\u0645\u061f",
   "remind": "یادآوری",
   "remindLater": "یک ساعت دیگر",
   "remindEvening": "امشب",
@@ -1509,23 +1282,9 @@
   "scheduleFailed": "این یادداشت زمان‌بندی نشد",
   "scheduleHint": "برای فرستادن در زمانی دیگر، ↑ را نگه دارید",
   "scheduledInDays": "{count, plural, =1{فردا} other{{count} روز دیگر}}",
-  "@scheduledInDays": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@scheduledInDays": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "libraryScheduledCount": "{count, plural, =0{یادداشت‌های در راه} =1{یک یادداشت در راه} other{{count} یادداشت در راه}}",
-  "@libraryScheduledCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@libraryScheduledCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "scheduledTitle": "زمان‌بندی‌شده‌ها",
   "scheduledSubtitle": "یادداشت‌هایی که در راه‌اند",
   "scheduledEmpty": "چیزی زمان‌بندی نشده است. هنگام نوشتن یادداشت، دکمهٔ ارسال را نگه دارید تا بعداً برسد.",
@@ -1814,310 +1573,149 @@
   "onboardingGuideBody": "راهنما همه‌چیز را قدم‌به‌قدم می‌گوید، و همیشه در تنظیمات هست.",
   "onboardingGuideOpen": "راهنما را بخوان",
   "onboardingFindTitle": "دوباره پیدایش کنید",
-  "@onboardingFindTitle": {
-    "description": "Onboarding page heading about search"
-  },
+  "@onboardingFindTitle": {"description": "Onboarding page heading about search"},
   "onboardingFindBody": "جست‌وجو فارسی را همان‌طور که نوشته می‌شود می‌خواند — ی یا ي، نیم‌فاصله، عدد فارسی یا لاتین — و وقتی چیزی دقیقاً پیدا نشود، نزدیک‌ترین یادداشت را پیشنهاد می‌دهد. برچسب، رشته و سنجاق هم برای بعد هست، اگر خواستید.",
-  "@onboardingFindBody": {
-    "description": "Onboarding page body about search"
-  },
+  "@onboardingFindBody": {"description": "Onboarding page body about search"},
   "onboardingFindQuery": "كتاب",
-  "@onboardingFindQuery": {
-    "description": "What the search field types in the onboarding illustration. Persian uses the Arabic spelling on purpose, to show it still matches."
-  },
+  "@onboardingFindQuery": {"description": "What the search field types in the onboarding illustration. Persian uses the Arabic spelling on purpose, to show it still matches."},
   "onboardingFindMatch": "کتاب",
-  "@onboardingFindMatch": {
-    "description": "The word highlighted in the onboarding illustration results; must appear in both results."
-  },
+  "@onboardingFindMatch": {"description": "The word highlighted in the onboarding illustration results; must appear in both results."},
   "onboardingFindResultA": "کتاب «صد سال تنهایی» را از کتابخانه بگیرم",
-  "@onboardingFindResultA": {
-    "description": "First search result in the onboarding illustration"
-  },
+  "@onboardingFindResultA": {"description": "First search result in the onboarding illustration"},
   "onboardingFindResultB": "فهرست کتاب‌های امسال",
-  "@onboardingFindResultB": {
-    "description": "Second search result in the onboarding illustration"
-  },
+  "@onboardingFindResultB": {"description": "Second search result in the onboarding illustration"},
   "onboardingFindAi": "هوش مصنوعی اختیاری و خاموش است",
-  "@onboardingFindAi": {
-    "description": "Chip under the search illustration in onboarding"
-  },
+  "@onboardingFindAi": {"description": "Chip under the search illustration in onboarding"},
   "onboardingYoursOffline": "بی‌اینترنت",
-  "@onboardingYoursOffline": {
-    "description": "Point on the onboarding privacy page"
-  },
+  "@onboardingYoursOffline": {"description": "Point on the onboarding privacy page"},
   "onboardingYoursLock": "قفل اثر انگشت",
-  "@onboardingYoursLock": {
-    "description": "Point on the onboarding privacy page"
-  },
+  "@onboardingYoursLock": {"description": "Point on the onboarding privacy page"},
   "onboardingYoursVault": "خزانهٔ خصوصی",
-  "@onboardingYoursVault": {
-    "description": "Point on the onboarding privacy page"
-  },
+  "@onboardingYoursVault": {"description": "Point on the onboarding privacy page"},
   "onboardingYoursBackup": "پشتیبان شخصی",
-  "@onboardingYoursBackup": {
-    "description": "Point on the onboarding privacy page"
-  },
+  "@onboardingYoursBackup": {"description": "Point on the onboarding privacy page"},
   "onboardingSetupPreview": "نکس این‌طور به شما سلام می‌کند",
-  "@onboardingSetupPreview": {
-    "description": "Caption over the live greeting preview on the last onboarding step"
-  },
+  "@onboardingSetupPreview": {"description": "Caption over the live greeting preview on the last onboarding step"},
   "onboardingStep": "قدم {step} از {total}",
   "modulesSearchHint": "جست‌وجوی ماژول‌ها…",
   "modulesSearchEmpty": "ماژولی پیدا نشد. نام یا واژهٔ دیگری را جست‌وجو کنید.",
   "modulesTitle": "ماژول‌ها",
-  "@modulesTitle": {
-    "description": "Tools → Modules page title, and the Modules shelf heading in Tools"
-  },
+  "@modulesTitle": {"description": "Tools → Modules page title, and the Modules shelf heading in Tools"},
   "modulesIntro": "برای جزئیات، کارت ماژول را لمس کنید. فقط آنچه نیاز دارید اضافه کنید.",
-  "@modulesIntro": {
-    "description": "Intro on the Modules page"
-  },
+  "@modulesIntro": {"description": "Intro on the Modules page"},
   "modulesAdded": "اضافه‌شده",
-  "@modulesAdded": {
-    "description": "Section of modules that are on"
-  },
+  "@modulesAdded": {"description": "Section of modules that are on"},
   "modulesAvailable": "قابل افزودن",
-  "@modulesAvailable": {
-    "description": "Section of modules that can be added"
-  },
+  "@modulesAvailable": {"description": "Section of modules that can be added"},
   "moduleAdd": "افزودن",
-  "@moduleAdd": {
-    "description": "Button that adds a module"
-  },
+  "@moduleAdd": {"description": "Button that adds a module"},
   "moduleOpen": "باز کردن",
-  "@moduleOpen": {
-    "description": "Button that opens a module"
-  },
+  "@moduleOpen": {"description": "Button that opens a module"},
   "moduleRemove": "حذف",
-  "@moduleRemove": {
-    "description": "Button that removes a module"
-  },
+  "@moduleRemove": {"description": "Button that removes a module"},
   "modulesManage": "افزودن ماژول",
-  "@modulesManage": {
-    "description": "Tools tile that opens the Modules page"
-  },
+  "@modulesManage": {"description": "Tools tile that opens the Modules page"},
   "modulesManageHint": "امکانات اضافه، فقط اگر بخواهید",
-  "@modulesManageHint": {
-    "description": "Subtitle of the Tools tile that opens the Modules page"
-  },
+  "@modulesManageHint": {"description": "Subtitle of the Tools tile that opens the Modules page"},
   "modulesMore": "هر کدام تا وقتی اضافه‌اش نکنید بیرون از اپ می‌ماند و با حذفش می‌رود.",
-  "@modulesMore": {
-    "description": "Footnote on the Modules page"
-  },
+  "@modulesMore": {"description": "Footnote on the Modules page"},
   "modulesEmpty": "هنوز چیزی اضافه نشده",
-  "@modulesEmpty": {
-    "description": "Shown under Added when no module is on"
-  },
+  "@modulesEmpty": {"description": "Shown under Added when no module is on"},
   "moduleCyclePointPredict": "پیش‌بینی پریود بعدی",
-  "@moduleCyclePointPredict": {
-    "description": "Chip on the Cycle module card"
-  },
+  "@moduleCyclePointPredict": {"description": "Chip on the Cycle module card"},
   "moduleCyclePointLog": "ثبت روزانه و الگوها",
-  "@moduleCyclePointLog": {
-    "description": "Chip on the Cycle module card"
-  },
+  "@moduleCyclePointLog": {"description": "Chip on the Cycle module card"},
   "moduleCyclePointModes": "بارداری و حالت‌های دیگر",
-  "@moduleCyclePointModes": {
-    "description": "Chip on the Cycle module card"
-  },
+  "@moduleCyclePointModes": {"description": "Chip on the Cycle module card"},
   "moduleCyclePointPrivate": "فقط روی همین گوشی",
-  "@moduleCyclePointPrivate": {
-    "description": "Chip on the Cycle module card"
-  },
+  "@moduleCyclePointPrivate": {"description": "Chip on the Cycle module card"},
   "cycleInModules": "در ابزارها ← ماژول‌ها",
-  "@cycleInModules": {
-    "description": "Settings search result for Cycle, saying where it lives"
-  },
+  "@cycleInModules": {"description": "Settings search result for Cycle, saying where it lives"},
   "moduleRemoveTitle": "{name} حذف شود؟",
-  "@moduleRemoveTitle": {
-    "description": "Title of the remove-module question",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@moduleRemoveTitle": {"description": "Title of the remove-module question", "placeholders": {"name": {"type": "String"}}},
   "moduleRemoveBody": "داده‌هایش می‌تواند روی همین گوشی بماند تا اگر دوباره اضافه‌اش کردید سر جایش باشد، یا همین حالا پاک شود.",
-  "@moduleRemoveBody": {
-    "description": "Body of the remove-module question"
-  },
+  "@moduleRemoveBody": {"description": "Body of the remove-module question"},
   "moduleRemoveKeep": "حذف، داده بماند",
-  "@moduleRemoveKeep": {
-    "description": "Remove a module but keep its data"
-  },
+  "@moduleRemoveKeep": {"description": "Remove a module but keep its data"},
   "moduleRemoveDelete": "حذف و پاک کردن",
-  "@moduleRemoveDelete": {
-    "description": "Remove a module and delete its data"
-  },
+  "@moduleRemoveDelete": {"description": "Remove a module and delete its data"},
   "moduleStepPrepare": "آماده‌سازی",
-  "@moduleStepPrepare": {
-    "description": "Install step"
-  },
+  "@moduleStepPrepare": {"description": "Install step"},
   "moduleStepSetUp": "راه‌اندازی",
-  "@moduleStepSetUp": {
-    "description": "Install step"
-  },
+  "@moduleStepSetUp": {"description": "Install step"},
   "moduleStepAddToTools": "افزودن به ابزارها",
-  "@moduleStepAddToTools": {
-    "description": "Install step"
-  },
+  "@moduleStepAddToTools": {"description": "Install step"},
   "moduleStepRemoveFromTools": "برداشتن از ابزارها",
-  "@moduleStepRemoveFromTools": {
-    "description": "Remove step"
-  },
+  "@moduleStepRemoveFromTools": {"description": "Remove step"},
   "moduleStepTidy": "جمع‌وجور کردن",
-  "@moduleStepTidy": {
-    "description": "Remove step"
-  },
+  "@moduleStepTidy": {"description": "Remove step"},
   "moduleAddedBanner": "{name} حالا در ابزارهاست",
-  "@moduleAddedBanner": {
-    "description": "Banner after a module is added",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@moduleAddedBanner": {"description": "Banner after a module is added", "placeholders": {"name": {"type": "String"}}},
   "moduleNotificationUnavailable": "این ماژول در حال حاضر غیرفعال یا در دسترس نیست.",
   "moduleNotificationItemMissing": "این آیتم حذف یا بایگانی شده؛ صفحهٔ ماژول باز می‌شود.",
   "moduleRemovedBanner": "{name} حذف شد",
-  "@moduleRemovedBanner": {
-    "description": "Banner after a module is removed",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@moduleRemovedBanner": {"description": "Banner after a module is removed", "placeholders": {"name": {"type": "String"}}},
   "modulesComing": "در راه",
-  "@modulesComing": {
-    "description": "Heading of the coming-soon modules on the Modules page"
-  },
+  "@modulesComing": {"description": "Heading of the coming-soon modules on the Modules page"},
   "moduleStageSoon": "به‌زودی",
-  "@moduleStageSoon": {
-    "description": "Badge: a module coming soon"
-  },
+  "@moduleStageSoon": {"description": "Badge: a module coming soon"},
   "moduleStagePlanned": "در برنامه",
-  "@moduleStagePlanned": {
-    "description": "Badge: a module that is planned"
-  },
+  "@moduleStagePlanned": {"description": "Badge: a module that is planned"},
   "modulesSuggest": "ایده‌ای برای یک ماژول دارید؟ به ما بگویید",
-  "@modulesSuggest": {
-    "description": "Row at the foot of the Modules page that opens feedback"
-  },
+  "@modulesSuggest": {"description": "Row at the foot of the Modules page that opens feedback"},
   "moduleIdeaTitle": "ایده‌ای برای یک ماژول",
-  "@moduleIdeaTitle": {
-    "description": "Title of the module-idea sheet opened from the Modules page"
-  },
+  "@moduleIdeaTitle": {"description": "Title of the module-idea sheet opened from the Modules page"},
   "moduleIdeaLead": "دوست دارید چه چیزی به Nex اضافه شود؟ یکی دو جمله کافی است: به چه کاری می‌آید و به چه کسی کمک می‌کند.",
-  "@moduleIdeaLead": {
-    "description": "Lead under the module-idea title"
-  },
+  "@moduleIdeaLead": {"description": "Lead under the module-idea title"},
   "moduleIdeaHint": "مثلاً: قفسه‌ای برای کارت‌های گارانتی، با یادآوری یک ماه پیش از تمام شدن هر کدام",
-  "@moduleIdeaHint": {
-    "description": "Hint in the module-idea text box"
-  },
+  "@moduleIdeaHint": {"description": "Hint in the module-idea text box"},
   "moduleIdeaSend": "فرستادن ایده",
-  "@moduleIdeaSend": {
-    "description": "Send button of the module-idea sheet"
-  },
+  "@moduleIdeaSend": {"description": "Send button of the module-idea sheet"},
   "planSmokeFreeTitle": "بدون سیگار",
-  "@planSmokeFreeTitle": {
-    "description": "Planned module title: quitting smoking"
-  },
+  "@planSmokeFreeTitle": {"description": "Planned module title: quitting smoking"},
   "planSmokeFreeAbout": "روزها، سیگارهایی که نکشیدید و پولی که ماند را می‌شمارد. هوس را با یک لمس ثبت کنید و ببینید چه چیزی آن را راه می‌اندازد، و بدنتان در این مسیر چه چیزهایی را پس می‌گیرد.",
-  "@planSmokeFreeAbout": {
-    "description": "Planned module: quitting smoking"
-  },
+  "@planSmokeFreeAbout": {"description": "Planned module: quitting smoking"},
   "planGoldTitle": "طلاسنج",
-  "@planGoldTitle": {
-    "description": "Planned module title: gold buying helper"
-  },
+  "@planGoldTitle": {"description": "Planned module title: gold buying helper"},
   "planGoldAbout": "پیش از پرداخت، قیمت درست تکه را ببینید: وزن، عیار و نرخ روز، با اجرت، سود فروشنده و مالیات، همان‌طور که باید در فاکتور بیاید. رسید هر تکه هم برای روز فروش نگه داشته می‌شود.",
-  "@planGoldAbout": {
-    "description": "Planned module: gold buying helper"
-  },
+  "@planGoldAbout": {"description": "Planned module: gold buying helper"},
   "planParkingTitle": "جای پارک",
-  "@planParkingTitle": {
-    "description": "Planned module title: parking spot"
-  },
+  "@planParkingTitle": {"description": "Planned module title: parking spot"},
   "planParkingAbout": "با یک لمس جای ماشین ذخیره می‌شود: نقطه روی نقشه، طبقه و ستون، یک عکس و یک توضیح. پیش از تمام شدن زمان پارک هم یادآوری می‌کند.",
-  "@planParkingAbout": {
-    "description": "Planned module: parking spot"
-  },
+  "@planParkingAbout": {"description": "Planned module: parking spot"},
   "planTelegramTitle": "پل تلگرام",
-  "@planTelegramTitle": {
-    "description": "Planned module title: Telegram connection"
-  },
+  "@planTelegramTitle": {"description": "Planned module title: Telegram connection"},
   "planTelegramAbout": "پیامی را به ربات تلگرام خودتان بفرستید تا به‌صورت یادداشت در Nex بنشیند. ربات و توکن مال خودتان است و مستقیم از همین گوشی خوانده می‌شود، بدون هیچ سروری از ما در میان.",
-  "@planTelegramAbout": {
-    "description": "Planned module: Telegram connection"
-  },
+  "@planTelegramAbout": {"description": "Planned module: Telegram connection"},
   "planChequeManagerTitle": "مدیریت چک",
   "planChequeManagerAbout": "ثبت و پیگیری چک‌های دریافتی و پرداختی، سررسیدها و وضعیت وصول، با تاریخ شمسی و یادآوری؛ متناسب با نیاز بازار ایران.",
   "planLanguageLearningTitle": "آموزش زبان",
   "planLanguageLearningAbout": "یادگیری و مرور زبان با درس‌ها و تمرین‌های کوتاه، کارت آموزشی در صفحهٔ اصلی و یادآوری‌های تعاملی در اعلان‌ها.",
   "planPromptStudioTitle": "کارگاه پرامپت",
-  "@planPromptStudioTitle": {
-    "description": "Planned module title: turns a plain request into a well-made AI prompt"
-  },
+  "@planPromptStudioTitle": {"description": "Planned module title: turns a plain request into a well-made AI prompt"},
   "planPromptStudioAbout": "آنچه می‌خواهید را ساده بنویسید تا نکس با هوش مصنوعی آن را به پرامپتی روشن و کامل برای هر هوش مصنوعی تبدیل کند: نقش، زمینه، مراحل و شکل پاسخ. پرامپت‌هایی که جواب می‌دهند را به‌صورت یادداشت نگه دارید. با ارائه‌دهندهٔ هوش مصنوعی خودتان کار می‌کند.",
-  "@planPromptStudioAbout": {
-    "description": "Planned module: turns a plain request into a well-made AI prompt"
-  },
+  "@planPromptStudioAbout": {"description": "Planned module: turns a plain request into a well-made AI prompt"},
   "planWordsTitle": "واژه به واژه",
-  "@planWordsTitle": {
-    "description": "Planned module title: language learning"
-  },
+  "@planWordsTitle": {"description": "Planned module title: language learning"},
   "planWordsAbout": "واژه‌ها و عبارت‌ها را از هر چه می‌خوانید ذخیره کنید و هر بار چندتایی را مرور کنید، با فاصله‌هایی که در ذهن بمانند. یادداشت‌های خودتان درس می‌شوند.",
-  "@planWordsAbout": {
-    "description": "Planned module: language learning"
-  },
+  "@planWordsAbout": {"description": "Planned module: language learning"},
   "planMedicineTitle": "جعبه دارو",
-  "@planMedicineTitle": {
-    "description": "Planned module title: medicines"
-  },
+  "@planMedicineTitle": {"description": "Planned module title: medicines"},
   "planMedicineAbout": "چه دارویی و کِی، یادآوری آرام برای هر نوبت، و جعبه‌های توی کابینت با تاریخ انقضایشان.",
-  "@planMedicineAbout": {
-    "description": "Planned module: medicines"
-  },
+  "@planMedicineAbout": {"description": "Planned module: medicines"},
   "planWarrantyTitle": "ضمانت‌نامه‌ها",
-  "@planWarrantyTitle": {
-    "description": "Planned module title: warranties and receipts"
-  },
+  "@planWarrantyTitle": {"description": "Planned module title: warranties and receipts"},
   "planWarrantyAbout": "رسید و کارت گارانتی هر چه می‌خرید، در یک عکس، و یادآوری پیش از تمام شدن گارانتی، وقتی هنوز تماس گرفتن هزینه‌ای ندارد.",
-  "@planWarrantyAbout": {
-    "description": "Planned module: warranties"
-  },
+  "@planWarrantyAbout": {"description": "Planned module: warranties"},
   "planLentTitle": "قرض و طلب",
-  "@planLentTitle": {
-    "description": "Planned module title: lending"
-  },
+  "@planLentTitle": {"description": "Planned module title: lending"},
   "planLentAbout": "چه کسی از شما طلب دارد و شما به چه کسی بدهکارید، پول یا وسیله، با یادآوری آرام در روزی که باید برگردد.",
-  "@planLentAbout": {
-    "description": "Planned module: lending"
-  },
+  "@planLentAbout": {"description": "Planned module: lending"},
   "planHabitsTitle": "عادت‌ها",
-  "@planHabitsTitle": {
-    "description": "Planned module title: habits"
-  },
+  "@planHabitsTitle": {"description": "Planned module title: habits"},
   "planHabitsAbout": "کارهای کوچکی که می‌خواهید ادامه بدهید، با یک لمس تیک بخورند، با زنجیره‌هایی که یک روز جاافتاده را می‌بخشند.",
-  "@planHabitsAbout": {
-    "description": "Planned module: habits"
-  },
-  "@onboardingStep": {
-    "description": "Screen-reader label for the onboarding progress bar",
-    "placeholders": {
-      "step": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "total": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@planHabitsAbout": {"description": "Planned module: habits"},
+  "@onboardingStep": {"description": "Screen-reader label for the onboarding progress bar", "placeholders": {"step": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
   "addLink": "افزودن پیوند",
   "linkAddress": "نشانی",
   "remindSetIn": "یادآور تنظیم شد — {when} دیگر",
@@ -2221,48 +1819,21 @@
   "threadDeleteBody": "رشته حذف می‌شود؛ یادداشت‌هایش همان‌جا که هستند می‌مانند.",
   "threadRemoveNote": "برداشتن از رشته",
   "threadNoteCount": "{count} یادداشت",
-  "@threadNoteCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@threadNoteCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "threadEmpty": "دیگر یادداشتی در این رشته نیست.",
   "threadSuggestJoin": "ادامهٔ «{name}»؟",
-  "@threadSuggestJoin": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@threadSuggestJoin": {"placeholders": {"name": {"type": "String"}}},
   "threadSuggestStart": "رشتهٔ «{name}» شروع شود؟",
-  "@threadSuggestStart": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@threadSuggestStart": {"placeholders": {"name": {"type": "String"}}},
   "threadSuggestAdd": "افزودن",
   "threadSuggestStartAction": "شروع",
   "threadAdded": "به «{name}» اضافه شد",
-  "@threadAdded": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@threadAdded": {"placeholders": {"name": {"type": "String"}}},
   "threadSuggestions": "پیشنهاد رشته پس از ثبت",
   "threadSuggestionsSubtitle": "فقط وقتی یادداشت تازه آشکارا ادامهٔ یادداشت قبلی باشد. بدون لمس شما چیزی اضافه نمی‌شود.",
   "searchByMeaning": "یافته بر اساس معنا",
   "splashTagline": "یک ذهن. هزار اتصال.",
-  "@splashTagline": {
-    "description": "The line under the Nex wordmark on the opening screen: the octopus mark, one mind with many arms, joining the pieces of a life."
-  },
+  "@splashTagline": {"description": "The line under the Nex wordmark on the opening screen: the octopus mark, one mind with many arms, joining the pieces of a life."},
   "cameraClose": "بستن دوربین",
   "cameraShutter": "گرفتن عکس",
   "cameraOptions": "گزینه‌های دوربین",
@@ -2288,23 +1859,9 @@
   "disclosuresClear": "پاک کردن فهرست",
   "disclosuresClearBody": "این فهرست پاک شود؟ آنچه قبلاً فرستاده شده تغییری نمی‌کند.",
   "disclosuresFromNotes": "{count, plural, =1{از ۱ یادداشت} other{از {count} یادداشت}}",
-  "@disclosuresFromNotes": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@disclosuresFromNotes": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "disclosuresNotesGone": "{count, plural, =1{۱ یادداشت از آن زمان حذف شده است.} other{{count} یادداشت از آن زمان حذف شده‌اند.}}",
-  "@disclosuresNotesGone": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@disclosuresNotesGone": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "disclosureChat": "پرسش از دستیار",
   "disclosureTags": "پیشنهاد برچسب",
   "disclosureSummary": "خلاصهٔ یادداشت",
@@ -2326,24 +1883,9 @@
   "backupFolderChoose": "انتخاب پوشه",
   "backupFolderKeyHint": "همهٔ کپی‌های خودکار با این کد بازیابی قفل می‌شوند. آن را جایی غیر از همین گوشی نگه دارید: بدون آن، تنظیمات و کلیدهای داخل کپی قابل بازیابی نیستند.",
   "backupFolderStatus": "{folder} · آخرین کپی {when}",
-  "@backupFolderStatus": {
-    "placeholders": {
-      "folder": {
-        "type": "String"
-      },
-      "when": {
-        "type": "String"
-      }
-    }
-  },
+  "@backupFolderStatus": {"placeholders": {"folder": {"type": "String"}, "when": {"type": "String"}}},
   "backupFolderNever": "{folder} · هنوز کپی‌ای نشده",
-  "@backupFolderNever": {
-    "placeholders": {
-      "folder": {
-        "type": "String"
-      }
-    }
-  },
+  "@backupFolderNever": {"placeholders": {"folder": {"type": "String"}}},
   "backupFolderFailed": "آخرین کپی به پوشه نرسید. بررسی کنید پوشه هنوز در دسترس است، یا دوباره انتخابش کنید.",
   "backupFolderCopyNow": "کپی الان",
   "backupFolderShowKey": "کد بازیابی",
@@ -2363,75 +1905,26 @@
   "metricsCapture": "ثبت، از باز کردن تا ذخیره",
   "metricsSearch": "جست‌وجو تا باز کردن یادداشت",
   "metricsValue": "معمولاً {median} · کندترین {slow}",
-  "@metricsValue": {
-    "placeholders": {
-      "median": {
-        "type": "String"
-      },
-      "slow": {
-        "type": "String"
-      }
-    }
-  },
+  "@metricsValue": {"placeholders": {"median": {"type": "String"}, "slow": {"type": "String"}}},
   "metricsCount": "{count, plural, =1{۱ بار} other{{count} بار}}",
-  "@metricsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@metricsCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "metricsNoData": "هنوز اندازه‌گیری نشده",
   "metricsSessions": "ثبت‌های بدون خطا",
   "metricsSessionsValue": "{clean} از {total} نوبتِ همراه با ثبت",
-  "@metricsSessionsValue": {
-    "placeholders": {
-      "clean": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
-  },
+  "@metricsSessionsValue": {"placeholders": {"clean": {"type": "String"}, "total": {"type": "String"}}},
   "metricsMs": "{value} میلی‌ثانیه",
-  "@metricsMs": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
+  "@metricsMs": {"placeholders": {"value": {"type": "String"}}},
   "metricsSeconds": "{value} ثانیه",
-  "@metricsSeconds": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
+  "@metricsSeconds": {"placeholders": {"value": {"type": "String"}}},
   "metricsFootnote": "از لحظهٔ شروع کد خود Nex و فقط در شروع سرد اندازه‌گیری می‌شود. «کندترین» یعنی کندترین از هر ده بار.",
   "feedbackAttachMetrics": "پیوست اندازه‌گیری‌های سرعت",
   "feedbackAttachMetricsHint": "فقط زمان‌ها و شمارش‌ها، بدون هیچ چیزی از یادداشت‌ها. پیش از ارسال در زیر نمایش داده می‌شود.",
   "backupFolderFailedCode": "کد بازیابی این پوشه پیدا نشد. برای ساخت کد تازه، پوشه را دوباره انتخاب کنید.",
   "backupFolderFailedAccess": "نکس دیگر به این پوشه دسترسی ندارد. آن را دوباره انتخاب کنید.",
   "backupFolderFailedBackup": "پشتیبان ساخته نشد ({detail}).",
-  "@backupFolderFailedBackup": {
-    "placeholders": {
-      "detail": {
-        "type": "String"
-      }
-    }
-  },
+  "@backupFolderFailedBackup": {"placeholders": {"detail": {"type": "String"}}},
   "backupFolderFailedWrite": "برنامهٔ این پوشه فایل را نپذیرفت ({detail}). دوباره امتحان کنید یا پوشه‌ای روی همین گوشی انتخاب کنید.",
-  "@backupFolderFailedWrite": {
-    "placeholders": {
-      "detail": {
-        "type": "String"
-      }
-    }
-  },
+  "@backupFolderFailedWrite": {"placeholders": {"detail": {"type": "String"}}},
   "cardDensity": "اندازهٔ کارت‌ها",
   "timelineView": "نمایش",
   "timelineViewList": "فهرستی",
@@ -2441,51 +1934,16 @@
   "cardDensityReadable": "خواناتر",
   "selectNotes": "انتخاب",
   "selectionCount": "{count} انتخاب‌شده",
-  "@selectionCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@selectionCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "selectionClose": "بستن انتخاب",
   "selectionCopied": "{count} یادداشت کپی شد",
-  "@selectionCopied": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@selectionCopied": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "selectionTagged": "برچسب به {count} یادداشت اضافه شد",
-  "@selectionTagged": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@selectionTagged": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "selectionPinned": "{count} یادداشت پین شد",
-  "@selectionPinned": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@selectionPinned": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "selectionUnpinned": "پین {count} یادداشت برداشته شد",
-  "@selectionUnpinned": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@selectionUnpinned": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "recoveryCodeCopy": "کپی کد بازیابی",
   "assistantSettingPalette": "پالت رنگ",
   "assistantValueOn": "روشن",
@@ -2623,22 +2081,10 @@
   "aiProviderNoneLabel": "فقط روی دستگاه",
   "aiProviderCustomLabel": "سفارشی (سازگار با OpenAI)",
   "aiModelDefault": "اگر خالی بماند، {model} به کار می‌رود.",
-  "@aiModelDefault": {
-    "placeholders": {
-      "model": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiModelDefault": {"placeholders": {"model": {"type": "String"}}},
   "aiModelBrowse": "انتخاب از فهرست سرویس",
   "aiModelBrowseTitle": "مدل‌های {provider}",
-  "@aiModelBrowseTitle": {
-    "placeholders": {
-      "provider": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiModelBrowseTitle": {"placeholders": {"provider": {"type": "String"}}},
   "aiModelBrowseSearch": "جستجوی مدل",
   "aiModelBrowseEmpty": "مدلی با این نام نیست.",
   "aiModelBrowseNeedsKey": "اول کلید API را وارد کنید.",
@@ -2647,13 +2093,7 @@
   "aiCanDoTitle": "این مدل چه کارهایی می‌کند",
   "aiCanDoChecking": "در حال بررسی با چند درخواست آزمایشی کوچک…",
   "aiCanDoCheckedAt": "بررسی‌شده در {date}",
-  "@aiCanDoCheckedAt": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiCanDoCheckedAt": {"placeholders": {"date": {"type": "String"}}},
   "aiCanDoUnchecked": "هنوز بررسی نشده. «تست اتصال» توانایی‌های مدل را هم پیدا می‌کند.",
   "aiCanDoStale": "از بررسی قبلی، فیلدها تغییر کرده‌اند. برای بررسی همین مدل دوباره تست کنید.",
   "aiCanDoPrivacy": "بررسی فقط نمونه‌های آزمایشیِ خود Nex را می‌فرستد — تصویر یک عدد، یک ثانیه صدای بوق، یک جمله و یک ویدئوی عمومی یوتیوب — و هیچ‌وقت یادداشت‌های شما را نه.",
@@ -2669,51 +2109,21 @@
   "aiCanVideoUse": "محتوای ویدئوی ذخیره‌شده در چند خط",
   "aiCanWorks": "کار می‌کند",
   "aiCanWorksWith": "کار می‌کند · {model}",
-  "@aiCanWorksWith": {
-    "placeholders": {
-      "model": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiCanWorksWith": {"placeholders": {"model": {"type": "String"}}},
   "aiCanChecking": "در حال بررسی…",
   "aiCanExpected": "احتمالاً کار می‌کند · هنوز بررسی نشده",
   "aiCanUncheckedOff": "تا بررسی پیدایش نکند خاموش است",
   "aiCanRefusedImages": "این مدل تصویر آزمایشی را نخواند",
   "aiCanRefusedAudio": "مدل گفتار {model} پذیرفته نشد",
-  "@aiCanRefusedAudio": {
-    "placeholders": {
-      "model": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiCanRefusedAudio": {"placeholders": {"model": {"type": "String"}}},
   "aiCanRefusedSearch": "مدل بردارسازی {model} پذیرفته نشد",
-  "@aiCanRefusedSearch": {
-    "placeholders": {
-      "model": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiCanRefusedSearch": {"placeholders": {"model": {"type": "String"}}},
   "aiCanRefusedVideo": "این مدل ویدئو نمی‌بیند",
   "aiCanFailedBefore": "در بررسی قبلی رد شد",
   "aiCanAbsentAudio": "{provider} سرویس تبدیل گفتار به متن ندارد",
-  "@aiCanAbsentAudio": {
-    "placeholders": {
-      "provider": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiCanAbsentAudio": {"placeholders": {"provider": {"type": "String"}}},
   "aiCanAbsentSearch": "{provider} سرویس بردارسازی برای جستجو ندارد",
-  "@aiCanAbsentSearch": {
-    "placeholders": {
-      "provider": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiCanAbsentSearch": {"placeholders": {"provider": {"type": "String"}}},
   "aiCanAbsentAddress": "آدرسش را در «مدل‌های گفتار و جستجو» وارد کنید",
   "aiCanAbsentVideo": "فقط Google Gemini ویدئوی یوتیوب را می‌بیند",
   "aiCanUnknown": "الان بررسی نشد — بعداً دوباره امتحان کنید",
@@ -2726,16 +2136,7 @@
   "aiVideoFailedLimit": "به سقف مصرف Gemini رسیدید. در پلن رایگان معمولاً یعنی ویدئو طولانی است — یک دقیقه صبر کنید و دوباره امتحان کنید، یا ویدئوی کوتاه‌تری را امتحان کنید.",
   "aiVideoFailedSlow": "دیدن این ویدئو بیش از حد طول کشید. دوباره امتحان کنید یا ویدئوی کوتاه‌تری را امتحان کنید.",
   "aiVideoFailedRefused": "Gemini این ویدئو را ندید ({code}): {reason}",
-  "@aiVideoFailedRefused": {
-    "placeholders": {
-      "code": {
-        "type": "String"
-      },
-      "reason": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiVideoFailedRefused": {"placeholders": {"code": {"type": "String"}, "reason": {"type": "String"}}},
   "aiVideoRefusedReason": "ممکن است خصوصی، دارای محدودیت سنی یا برای این مدل خیلی طولانی باشد",
   "aiVideoFailedSilent": "Gemini چیزی دربارهٔ ویدئو نگفت. دوباره امتحان کنید.",
   "aiVideoFailedChanged": "یادداشت هنگام دیدن ویدئو حذف شد یا لینکش عوض شد و چیزی نگه داشته نشد.",
@@ -2771,23 +2172,9 @@
   "archiveUnarchived": "به صفحهٔ اصلی برگشت",
   "archiveDeleteAll": "حذف همه",
   "archiveDeleteAllBody": "{count, plural, =1{یک یادداشت بایگانی‌شده به سطل زباله می‌رود و ۳۰ روز آنجا می‌ماند.} other{{count} یادداشت بایگانی‌شده به سطل زباله می‌روند و ۳۰ روز آنجا می‌مانند.}}",
-  "@archiveDeleteAllBody": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@archiveDeleteAllBody": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "archiveBringBackAllBody": "{count, plural, =1{یک یادداشت به صفحهٔ اصلی برمی‌گردد.} other{{count} یادداشت به صفحهٔ اصلی برمی‌گردند.}}",
-  "@archiveBringBackAllBody": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@archiveBringBackAllBody": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "archiveBringBackAll": "خروج همه از بایگانی",
   "archivedAgo": "بایگانی‌شده {when}",
   "trashGoneIn": "{count, plural, =0{امروز برای همیشه پاک می‌شود} =1{فردا برای همیشه پاک می‌شود} other{{count} روز دیگر برای همیشه پاک می‌شود}}",
@@ -2805,16 +2192,7 @@
   "translationLongWarning": "این متن خیلی طولانیه! ترجمه کاملش ممکنه زمان‌بر باشه و نکس بهترین گزینه برای چنین حجم بزرگی نباشه. بااین‌حال، اگر مایل باشی می‌تونیم ادامه بدیم.",
   "translationTooLarge": "این متن از محدودیت فعلی نکس، یعنی ۱۰۰٬۰۰۰ کاراکتر، بزرگ‌تر است. برای ترجمه کامل، آن را به چند یادداشت کوچک‌تر تقسیم کنید.",
   "translationProgress": "{done} بخش از {total} بخش ترجمه شده است. بخش‌های تکمیل‌شده در همین نشست حفظ می‌شوند.",
-  "@translationProgress": {
-    "placeholders": {
-      "done": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
-  },
+  "@translationProgress": {"placeholders": {"done": {"type": "String"}, "total": {"type": "String"}}},
   "aiFailureNetwork": "ارتباط با سرویس هوش مصنوعی برقرار نشد. اتصال را بررسی و دوباره تلاش کنید.",
   "aiFailureTimeout": "پردازش سرویس هوش مصنوعی در زمان مجاز تمام نشد. دوباره تلاش کنید؛ بخش‌های ترجمه‌شده حفظ شده‌اند.",
   "aiFailureRateLimit": "محدودیت استفاده سرویس هوش مصنوعی رسیده است. کمی بعد تلاش کنید یا سهمیه سرویس را بررسی کنید.",
@@ -2828,120 +2206,33 @@
   "translationSuggestedLanguage": "چون متن به زبان مقصد پیش‌فرض بود، زبان متفاوتی پیشنهاد شد.",
   "aiEditTooLong": "این متن برای ویرایش کامل در یک درخواست طولانی است. متن کوتاه‌تری را امتحان کنید؛ متن اصلی شما حفظ شده است.",
   "briefUpdatedMinutes": "{count} دقیقه قبل",
-  "@briefUpdatedMinutes": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@briefUpdatedMinutes": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "briefUpdatedHours": "{count} ساعت قبل",
-  "@briefUpdatedHours": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@briefUpdatedHours": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "briefUpdatedHoursMinutes": "{hours} ساعت و {minutes} دقیقه قبل",
-  "@briefUpdatedHoursMinutes": {
-    "placeholders": {
-      "hours": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "minutes": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@briefUpdatedHoursMinutes": {"placeholders": {"hours": {"type": "int", "format": "decimalPattern"}, "minutes": {"type": "int", "format": "decimalPattern"}}},
   "briefUpdatedDaysHours": "{days} روز و {hours} ساعت قبل",
-  "@briefUpdatedDaysHours": {
-    "placeholders": {
-      "days": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "hours": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@briefUpdatedDaysHours": {"placeholders": {"days": {"type": "int", "format": "decimalPattern"}, "hours": {"type": "int", "format": "decimalPattern"}}},
   "briefLastUpdated": "آخرین به‌روزرسانی: {when}",
-  "@briefLastUpdated": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    }
-  },
+  "@briefLastUpdated": {"placeholders": {"when": {"type": "String"}}},
   "pinModuleLoading": "در حال خواندن…",
   "pinModuleUnavailable": "برای مشاهده باز کنید",
   "pinHabitsProgress": "{done} از {total} انجام شد",
-  "@pinHabitsProgress": {
-    "placeholders": {
-      "done": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "total": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@pinHabitsProgress": {"placeholders": {"done": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
   "pinHabitsLeft": "{count} عادت مانده",
-  "@pinHabitsLeft": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@pinHabitsLeft": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "pinHabitsRest": "امروز عادتی نمانده",
   "pinHabitsEmpty": "اولین عادت را اضافه کنید",
   "pinWordsDue": "{count} واژه برای مرور",
-  "@pinWordsDue": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@pinWordsDue": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "pinWordsNew": "{count} واژهٔ جدید امروز",
-  "@pinWordsNew": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@pinWordsNew": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "pinWordsEmpty": "اولین واژه را اضافه کنید",
   "pinOccasionsEmpty": "یک مناسبت اضافه کنید",
   "pinOccasionInDays": "{count} روز دیگر",
-  "@pinOccasionInDays": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@pinOccasionInDays": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "pinPauseDuration": "{time} تنفس",
-  "@pinPauseDuration": {
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
+  "@pinPauseDuration": {"placeholders": {"time": {"type": "String"}}},
   "pinCycleSetup": "چرخه را تنظیم کنید",
   "pinCycleLog": "حال امروزتان را ثبت کنید",
   "filterUntagged": "بدون تگ",

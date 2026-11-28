@@ -5,52 +5,16 @@
   "libraryTagsHint": "Colour and name what you file",
   "libraryTrashHint": "Kept for 30 days",
   "libraryTagCount": "{count, plural, =0{No tags yet} =1{1 tag} other{{count} tags}}",
-  "@libraryTagCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@libraryTagCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "libraryThreadCount": "{count, plural, =0{No threads yet} =1{1 thread} other{{count} threads}}",
-  "@libraryThreadCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@libraryThreadCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "libraryTrashCount": "{count, plural, =0{Empty} =1{1 note · kept 30 days} other{{count} notes · kept 30 days}}",
-  "@libraryTrashCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@libraryTrashCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "toolsSectionPrivate": "Private",
   "intelligenceStateOn": "On · {provider}",
-  "@intelligenceStateOn": {
-    "placeholders": {
-      "provider": {
-        "type": "String"
-      }
-    }
-  },
+  "@intelligenceStateOn": {"placeholders": {"provider": {"type": "String"}}},
   "intelligenceAbilitiesOn": "{count} of {total} abilities working",
-  "@intelligenceAbilitiesOn": {
-    "placeholders": {
-      "count": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
-  },
+  "@intelligenceAbilitiesOn": {"placeholders": {"count": {"type": "String"}, "total": {"type": "String"}}},
   "intelligenceStateOffShort": "Nothing leaves this phone",
   "languagePreviewTitle": "How it will look",
   "languagePreviewNote": "Call the landlord about the heating before Friday",
@@ -76,38 +40,14 @@
   "layoutShowSection": "On the home screen",
   "layoutLookSection": "Look",
   "chatAboutGroup": "About {label} · {count} notes",
-  "@chatAboutGroup": {
-    "placeholders": {
-      "label": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@chatAboutGroup": {"placeholders": {"label": {"type": "String"}, "count": {"type": "int", "format": "decimalPattern"}}},
   "groupActions": "Group actions",
   "groupAsk": "Ask about these",
   "groupDelete": "Delete this group",
   "groupDeleteBody": "{count} notes move to Trash. You can put them back from Library → Trash.",
-  "@groupDeleteBody": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@groupDeleteBody": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "groupDeleted": "{count} notes deleted",
-  "@groupDeleted": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@groupDeleted": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "assistantVoiceGroup": "How it talks",
   "assistantReachGroup": "What it can see",
   "assistantAboutYouNote": "This name is sent with assistant requests so it can address you. Your separate profile name stays on this device. A short introduction can be enabled separately in Intelligence → Memory.",
@@ -128,30 +68,12 @@
   "assistantStyleRomantic": "Romantic",
   "assistantStyleCustom": "Custom",
   "portraitTitle": "Your writing portrait",
-  "@portraitTitle": {
-    "description": "Heading of the portrait section in the profile."
-  },
+  "@portraitTitle": {"description": "Heading of the portrait section in the profile."},
   "portraitSubtitle": "Read from how and what you write.",
   "portraitLocked": "{count, plural, =1{1 more note to unlock your portrait} other{{count} more notes to unlock your portrait}}",
-  "@portraitLocked": {
-    "description": "Locked portrait: notes still needed.",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@portraitLocked": {"description": "Locked portrait: notes still needed.", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "portraitLockedDays": "{count, plural, =1{…and notes on 1 more day.} other{…and notes on {count} more days.}}",
-  "@portraitLockedDays": {
-    "description": "Locked portrait: different days with a note still needed.",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@portraitLockedDays": {"description": "Locked portrait: different days with a note still needed.", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "portraitRhythm": "When you write",
   "portraitMorning": "Morning",
   "portraitAfternoon": "Afternoon",
@@ -167,54 +89,25 @@
   "portraitTopics": "Tags",
   "portraitKinds": "What you keep",
   "portraitWrite": "Write my portrait",
-  "@portraitWrite": {
-    "description": "Button that asks the AI to write the portrait."
-  },
+  "@portraitWrite": {"description": "Button that asks the AI to write the portrait."},
   "portraitRewrite": "Write again",
   "portraitPrivacy": "Writing it sends a sample of up to {count} of your notes to your AI provider, once.",
-  "@portraitPrivacy": {
-    "description": "Under the portrait button.",
-    "placeholders": {
-      "count": {
-        "type": "String"
-      }
-    }
-  },
+  "@portraitPrivacy": {"description": "Under the portrait button.", "placeholders": {"count": {"type": "String"}}},
   "portraitNeedsAi": "Choose an AI provider in Settings › Intelligence for a written portrait.",
   "portraitWriting": "Reading your notes…",
   "portraitFailed": "The portrait couldn't be written. Try again in a while.",
   "portraitStrengths": "Strengths",
   "portraitInvitation": "One thing to try",
   "portraitWritten": "Written {date} from {count} notes",
-  "@portraitWritten": {
-    "description": "Footer of a written portrait.",
-    "placeholders": {
-      "date": {
-        "type": "String"
-      },
-      "count": {
-        "type": "String"
-      }
-    }
-  },
+  "@portraitWritten": {"description": "Footer of a written portrait.", "placeholders": {"date": {"type": "String"}, "count": {"type": "String"}}},
   "portraitDisclaimer": "A reflection of your notes, not a test or a diagnosis.",
   "portraitStreak": "Day streak",
   "portraitLast30": "The last 30 days",
   "portraitShape": "Your shape",
   "portraitBestStreak": "{count, plural, =1{Your longest run: 1 day} other{Your longest run: {count} days}}",
-  "@portraitBestStreak": {
-    "description": "Profile portrait: the longest run of days in a row with a note.",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@portraitBestStreak": {"description": "Profile portrait: the longest run of days in a row with a note.", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "disclosurePortrait": "Writing portrait",
-  "@disclosurePortrait": {
-    "description": "Disclosure log purpose for the profile portrait."
-  },
+  "@disclosurePortrait": {"description": "Disclosure log purpose for the profile portrait."},
   "profileTitle": "Profile",
   "profileOpenHint": "Photo, name, birthday, and bio",
   "profileChangePhoto": "Change profile photo",
@@ -228,23 +121,11 @@
   "profilePhotoGallery": "Choose from gallery",
   "profilePhotoCamera": "Take a photo",
   "profileAge": "{age} years old",
-  "@profileAge": {
-    "placeholders": {
-      "age": {
-        "type": "String"
-      }
-    }
-  },
+  "@profileAge": {"placeholders": {"age": {"type": "String"}}},
   "profileBirthdayToday": "Happy birthday!",
   "profileBirthdayTomorrow": "Birthday tomorrow",
   "profileBirthdayIn": "Birthday in {days} days",
-  "@profileBirthdayIn": {
-    "placeholders": {
-      "days": {
-        "type": "String"
-      }
-    }
-  },
+  "@profileBirthdayIn": {"placeholders": {"days": {"type": "String"}}},
   "securityTitle": "Security",
   "securityAppLock": "App lock",
   "securityOff": "Off",
@@ -256,154 +137,147 @@
   "securityScreenshotBlocked": "While the lock is on, the recent-apps screen shows Nex blank, and nothing can be captured while it is locked. Open and in front of you, it is your own screen to capture.",
   "sponsorLabel": "SPONSORED",
   "@sponsorLabel": {
-    "description": "Small label at the top of the sponsor card, saying what it is"
+      "description": "Small label at the top of the sponsor card, saying what it is"
   },
   "sponsorDismiss": "Hide this",
   "@sponsorDismiss": {
-    "description": "Tooltip of the sponsor card's dismiss button"
+      "description": "Tooltip of the sponsor card's dismiss button"
   },
   "notificationSoundReminders": "Reminder sound",
   "@notificationSoundReminders": {
-    "description": "Settings row that opens the OS notification-channel screen for reminders"
+      "description": "Settings row that opens the OS notification-channel screen for reminders"
   },
   "notificationSoundDaily": "Daily nudge sound",
   "@notificationSoundDaily": {
-    "description": "Settings row that opens the OS notification-channel screen for the daily digest"
+      "description": "Settings row that opens the OS notification-channel screen for the daily digest"
   },
   "notificationSoundSubtitle": "Sound, vibration and importance, in Android settings",
   "@notificationSoundSubtitle": {
-    "description": "Explains that the sound choice lives in the OS settings"
+      "description": "Explains that the sound choice lives in the OS settings"
   },
   "notificationSoundUnavailable": "This phone has no screen for that.",
   "@notificationSoundUnavailable": {
-    "description": "Shown when the OS notification settings could not be opened"
+      "description": "Shown when the OS notification settings could not be opened"
   },
   "widgetSettingsTitle": "Home screen widget",
   "@widgetSettingsTitle": {
-    "description": "Title of the widget settings screen and its row in Settings"
+      "description": "Title of the widget settings screen and its row in Settings"
   },
   "widgetSettingsIntro": "By default the widget shows the top of your timeline. These narrow it down.",
   "@widgetSettingsIntro": {
-    "description": "Explains what the widget settings do"
+      "description": "Explains what the widget settings do"
   },
   "widgetSettingsKinds": "Kinds of note",
   "@widgetSettingsKinds": {
-    "description": "Heading above the note-type filter chips"
+      "description": "Heading above the note-type filter chips"
   },
   "widgetSettingsEverything": "Everything",
   "@widgetSettingsEverything": {
-    "description": "Chip that clears the note-type filter"
+      "description": "Chip that clears the note-type filter"
   },
   "widgetSettingsTag": "Tag",
   "@widgetSettingsTag": {
-    "description": "Heading above the tag filter chips"
+      "description": "Heading above the tag filter chips"
   },
   "widgetSettingsAnyTag": "Any tag",
   "@widgetSettingsAnyTag": {
-    "description": "Chip that clears the tag filter"
+      "description": "Chip that clears the tag filter"
   },
   "widgetSettingsNoTags": "No tags yet.",
   "@widgetSettingsNoTags": {
-    "description": "Shown in place of the tag chips when the library has no tags"
+      "description": "Shown in place of the tag chips when the library has no tags"
   },
   "widgetSettingsScanNote": "With a filter on, the widget shows matches from your most recent notes rather than searching the whole library.",
   "widgetSettingsPinnedFirst": "Pinned notes first",
   "@widgetSettingsPinnedFirst": {
-    "description": "Switch that floats pinned notes to the top of the widget"
+      "description": "Switch that floats pinned notes to the top of the widget"
   },
   "widgetSettingsPinnedFirstHint": "On, pinned notes sit at the top the way they do in Nex. Off, they stay wherever their own date puts them, as though they were not pinned.",
   "@widgetSettingsPinnedFirstHint": {
-    "description": "Explains both sides of the pinned-first switch"
+      "description": "Explains both sides of the pinned-first switch"
   },
   "widgetSettingsWhenLocked": "Show notes while Nex is locked",
   "@widgetSettingsWhenLocked": {
-    "description": "Switch that lets the widget keep showing notes while the app lock is closed"
+      "description": "Switch that lets the widget keep showing notes while the app lock is closed"
   },
   "widgetSettingsWhenLockedHint": "Off, the widget empties itself whenever the lock closes. On, your notes stay on the home screen, where anyone holding the phone can read them.",
   "@widgetSettingsWhenLockedHint": {
-    "description": "Explains both sides of the show-while-locked switch"
+      "description": "Explains both sides of the show-while-locked switch"
   },
   "@widgetSettingsScanNote": {
-    "description": "Explains the bounded scan the filtered widget does"
+      "description": "Explains the bounded scan the filtered widget does"
   },
   "securityLockNow": "Lock now",
   "@securityLockNow": {
-    "description": "Tooltip of the lock button on the timeline"
+      "description": "Tooltip of the lock button on the timeline"
   },
   "securityLockWhen": "Lock when",
   "@securityLockWhen": {
-    "description": "Security row that chooses when the app lock re-arms"
+      "description": "Security row that chooses when the app lock re-arms"
   },
   "securityLockImmediately": "As soon as I leave",
   "@securityLockImmediately": {
-    "description": "App lock re-arms the moment the app is backgrounded"
+      "description": "App lock re-arms the moment the app is backgrounded"
   },
   "securityLockImmediatelyHint": "Every time Nex goes to the background",
   "@securityLockImmediatelyHint": {
-    "description": "Explains the immediate lock timing"
+      "description": "Explains the immediate lock timing"
   },
   "securityLockAfterTitle": "After a while",
   "@securityLockAfterTitle": {
-    "description": "App lock re-arms only after a delay"
+      "description": "App lock re-arms only after a delay"
   },
   "securityLockAfter": "After {delay}",
   "@securityLockAfter": {
-    "description": "Summary of the delayed lock timing on the security row",
-    "placeholders": {
-      "delay": {
-        "type": "String"
+      "description": "Summary of the delayed lock timing on the security row",
+      "placeholders": {
+          "delay": {
+              "type": "String"
+          }
       }
-    }
   },
   "securityLockAfterHint": "A quick trip to another app will not ask again",
   "@securityLockAfterHint": {
-    "description": "Explains the delayed lock timing"
+      "description": "Explains the delayed lock timing"
   },
   "securityLockManual": "Only when I ask",
   "@securityLockManual": {
-    "description": "App lock re-arms only on the explicit lock button"
+      "description": "App lock re-arms only on the explicit lock button"
   },
   "securityLockManualHint": "Nex stays open until you tap the lock",
   "@securityLockManualHint": {
-    "description": "Explains the manual lock timing"
+      "description": "Explains the manual lock timing"
   },
   "securityStateOn": "Nex asks before it opens",
-  "@securityStateOn": {
-    "description": "Heading on the Security page when the app lock is on"
-  },
+  "@securityStateOn": {"description": "Heading on the Security page when the app lock is on"},
   "securityStateOff": "Nex opens without asking",
-  "@securityStateOff": {
-    "description": "Heading on the Security page when the app lock is off"
-  },
+  "@securityStateOff": {"description": "Heading on the Security page when the app lock is off"},
   "securityLockSeconds": "{count} seconds",
   "@securityLockSeconds": {
-    "description": "A lock delay under a minute",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
+      "description": "A lock delay under a minute",
+      "placeholders": {
+          "count": {
+              "type": "int", "format": "decimalPattern"
+          }
       }
-    }
   },
   "securityLockMinutes": "{count} minutes",
   "@securityLockMinutes": {
-    "description": "A lock delay in minutes",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
+      "description": "A lock delay in minutes",
+      "placeholders": {
+          "count": {
+              "type": "int", "format": "decimalPattern"
+          }
       }
-    }
   },
   "securityLockHours": "{count} hour",
   "@securityLockHours": {
-    "description": "A lock delay in hours",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
+      "description": "A lock delay in hours",
+      "placeholders": {
+          "count": {
+              "type": "int", "format": "decimalPattern"
+          }
       }
-    }
   },
   "securityPasscodeUnavailable": "Set up a device passcode, PIN, or pattern first.",
   "securityBiometricUnavailable": "No enrolled fingerprint or other biometric was found.",
@@ -444,16 +318,7 @@
   "remindRepeatDaily": "Every day",
   "remindRepeatWeekly": "Every week",
   "remindRepeatingAt": "{when} · {repeat}",
-  "@remindRepeatingAt": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      },
-      "repeat": {
-        "type": "String"
-      }
-    }
-  },
+  "@remindRepeatingAt": {"placeholders": {"when": {"type": "String"}, "repeat": {"type": "String"}}},
   "nudgeNotScheduled": "The daily nudge was turned on, but this phone would not take the alarm.",
   "search": "Search",
   "searchHint": "Search notes…",
@@ -472,8 +337,7 @@
   "@resultCount": {
     "placeholders": {
       "count": {
-        "type": "int",
-        "format": "decimalPattern"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -509,69 +373,37 @@
   "mergeTagBody": "{count, plural, =1{1 note carrying {source} moves to {target}.} other{{count} notes carrying {source} move to {target}.}}",
   "@mergeTagBody": {
     "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "source": {
-        "type": "String"
-      },
-      "target": {
-        "type": "String"
-      }
+      "count": {"type": "int", "format": "decimalPattern"},
+      "source": {"type": "String"},
+      "target": {"type": "String"}
     }
   },
   "mergeTagDone": "Merged into {target}",
   "@mergeTagDone": {
     "description": "Said after a merge completed; the target keeps the notes",
-    "placeholders": {
-      "target": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"target": {"type": "String"}}
   },
   "tagRemoved": "Removed tag {tag}",
   "@tagRemoved": {
     "description": "Said after the ✕ on a note's tag chip; Undo re-adds it",
-    "placeholders": {
-      "tag": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"tag": {"type": "String"}}
   },
   "timelineGroupPinned": "Pinned",
-  "@timelineGroupPinned": {
-    "description": "Timeline section for the pinned note"
-  },
+  "@timelineGroupPinned": {"description": "Timeline section for the pinned note"},
   "timelineGroupToday": "Today",
-  "@timelineGroupToday": {
-    "description": "Timeline section for today"
-  },
+  "@timelineGroupToday": {"description": "Timeline section for today"},
   "timelineGroupYesterday": "Yesterday",
-  "@timelineGroupYesterday": {
-    "description": "Timeline section for yesterday"
-  },
+  "@timelineGroupYesterday": {"description": "Timeline section for yesterday"},
   "timelineGroupWeek": "Last week",
-  "@timelineGroupWeek": {
-    "description": "Timeline section for the past seven days"
-  },
+  "@timelineGroupWeek": {"description": "Timeline section for the past seven days"},
   "timelineGroupMonth": "Last month",
-  "@timelineGroupMonth": {
-    "description": "Timeline section for the past month"
-  },
+  "@timelineGroupMonth": {"description": "Timeline section for the past month"},
   "timelineGroupOlder": "Older",
-  "@timelineGroupOlder": {
-    "description": "Timeline section for everything before that"
-  },
+  "@timelineGroupOlder": {"description": "Timeline section for everything before that"},
   "timelineGroupCount": "{count, plural, =1{1 note} other{{count} notes}}",
   "@timelineGroupCount": {
     "description": "How many notes a collapsed section holds",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "tags": "Tags",
   "tagActions": "Tag actions",
@@ -579,8 +411,7 @@
   "@noteCount": {
     "placeholders": {
       "count": {
-        "type": "int",
-        "format": "decimalPattern"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -694,8 +525,7 @@
   "@backupCount": {
     "placeholders": {
       "count": {
-        "type": "int",
-        "format": "decimalPattern"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -723,28 +553,15 @@
   "whatsNewSearchHint": "Search every change",
   "whatsNewNoMatch": "No change mentions that",
   "whatsNewChanges": "{count, plural, =1{1 change} other{{count} changes}}",
-  "@whatsNewChanges": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@whatsNewChanges": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "whatsNewTitle": "What’s new",
   "whatsNewSubtitle": "Nex {version} is here. This is what changed.",
-  "@whatsNewSubtitle": {
-    "placeholders": {
-      "version": {
-        "type": "String"
-      }
-    }
-  },
+  "@whatsNewSubtitle": {"placeholders": {"version": {"type": "String"}}},
   "@recapRefreshFailed": {
     "description": "Banner when re-generating the daily recap fails; the old text stays on screen"
   },
   "shareSaved": "Saved to Nex.",
-  "shareTooLarge": "Nex keeps notes, not large files. “{name}” is {size}, and attachments are limited to {limit}.",
+  "shareTooLarge": "Nex keeps notes, not large files. \u201c{name}\u201d is {size}, and attachments are limited to {limit}.",
   "@shareTooLarge": {
     "description": "Shown when a shared or picked file is over the attachment size limit",
     "placeholders": {
@@ -805,55 +622,55 @@
   "editNote": "Edit note",
   "editorFullScreen": "Full screen",
   "@editorFullScreen": {
-    "description": "Tooltip of the editor button that grows the sheet to fill the screen"
+      "description": "Tooltip of the editor button that grows the sheet to fill the screen"
   },
   "editorSmaller": "Smaller",
   "@editorSmaller": {
-    "description": "Tooltip of the editor button that shrinks the full-screen editor back to a sheet"
+      "description": "Tooltip of the editor button that shrinks the full-screen editor back to a sheet"
   },
   "aiEditTools": "Edit with AI",
   "@aiEditTools": {
-    "description": "Heading above the row of AI editing actions"
+      "description": "Heading above the row of AI editing actions"
   },
   "aiEditAutoStyle": "Auto style",
   "@aiEditAutoStyle": {
-    "description": "AI action that adds headings and bold without changing the words"
+      "description": "AI action that adds headings and bold without changing the words"
   },
   "aiEditFix": "Fix writing",
   "@aiEditFix": {
-    "description": "AI action that corrects spelling, grammar and punctuation only"
+      "description": "AI action that corrects spelling, grammar and punctuation only"
   },
   "aiEditFormal": "Formal",
   "@aiEditFormal": {
-    "description": "AI action that rewrites the note formally"
+      "description": "AI action that rewrites the note formally"
   },
   "aiEditFriendly": "Friendly",
   "@aiEditFriendly": {
-    "description": "AI action that rewrites the note warmly and plainly"
+      "description": "AI action that rewrites the note warmly and plainly"
   },
   "aiEditConcise": "Shorter",
   "@aiEditConcise": {
-    "description": "AI action that rewrites the note in fewer words"
+      "description": "AI action that rewrites the note in fewer words"
   },
   "aiEditSimple": "Plain",
   "@aiEditSimple": {
-    "description": "AI action that rewrites the note in plain language"
+      "description": "AI action that rewrites the note in plain language"
   },
   "aiEditApplied": "Edited by AI",
   "@aiEditApplied": {
-    "description": "Label of the bar offering to undo an AI edit"
+      "description": "Label of the bar offering to undo an AI edit"
   },
   "aiEditUndo": "Undo",
   "@aiEditUndo": {
-    "description": "Button that puts the text back the way it was before the AI edit"
+      "description": "Button that puts the text back the way it was before the AI edit"
   },
   "aiEditFailed": "That edit did not come back. Your text is unchanged.",
   "@aiEditFailed": {
-    "description": "Banner shown when an AI edit fails"
+      "description": "Banner shown when an AI edit fails"
   },
   "aiEditUnchanged": "Nothing to change — it already reads well.",
   "@aiEditUnchanged": {
-    "description": "Banner shown when an AI edit returns the same text"
+      "description": "Banner shown when an AI edit returns the same text"
   },
   "@editNote": {
     "description": "Title of the edit-note dialog"
@@ -871,105 +688,53 @@
     "description": "Button shown when a media note already has a caption"
   },
   "attachmentsTitle": "Attached",
-  "@attachmentsTitle": {
-    "description": "Heading of the attachments strip in a note"
-  },
+  "@attachmentsTitle": {"description": "Heading of the attachments strip in a note"},
   "attach": "Attach",
-  "@attach": {
-    "description": "The chip beside Tag on a note with no attachments yet; opens the camera, photos or file choice."
-  },
+  "@attach": {"description": "The chip beside Tag on a note with no attachments yet; opens the camera, photos or file choice."},
   "attachAdd": "Attach a photo or file",
   "mediaSkippedOne": "“{name}” is not a photo or video, so it was not added. Use File for it.",
   "@mediaSkippedOne": {
     "description": "Banner when one picked item is neither a photo nor a video; File is the separate capture action for any file",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"name": {"type": "String"}}
   },
   "mediaSkippedMany": "{count} picked files were not photos or videos, so they were not added. Use File for them.",
   "@mediaSkippedMany": {
     "description": "Banner when several picked items are neither photos nor videos",
-    "placeholders": {
-      "count": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"count": {"type": "String"}}
   },
-  "@attachAdd": {
-    "description": "Tooltip and label of the add-attachment tile"
-  },
+  "@attachAdd": {"description": "Tooltip and label of the add-attachment tile"},
   "attachTakePhoto": "Camera",
-  "@attachTakePhoto": {
-    "description": "Attach sheet option"
-  },
+  "@attachTakePhoto": {"description": "Attach sheet option"},
   "attachRecordVoice": "Record a voice clip",
-  "@attachRecordVoice": {
-    "description": "Attach menu: record a short voice clip onto the note"
-  },
+  "@attachRecordVoice": {"description": "Attach menu: record a short voice clip onto the note"},
   "attachChooseMedia": "Choose photos and videos",
-  "@attachChooseMedia": {
-    "description": "Attach sheet option: the system photo picker, for several photos and videos at once"
-  },
+  "@attachChooseMedia": {"description": "Attach sheet option: the system photo picker, for several photos and videos at once"},
   "attachChooseFile": "Choose a file",
-  "@attachChooseFile": {
-    "description": "Attach sheet option"
-  },
+  "@attachChooseFile": {"description": "Attach sheet option"},
   "attachRemove": "Remove from this note",
-  "@attachRemove": {
-    "description": "Attachment menu: remove"
-  },
+  "@attachRemove": {"description": "Attachment menu: remove"},
   "attachMakeMain": "Make it the note's photo",
-  "@attachMakeMain": {
-    "description": "Attachment menu: swap this photo with the photo note's own"
-  },
+  "@attachMakeMain": {"description": "Attachment menu: swap this photo with the photo note's own"},
   "attachMadeMain": "It is now the note's photo",
-  "@attachMadeMain": {
-    "description": "Banner after making an attached photo the note's own"
-  },
+  "@attachMadeMain": {"description": "Banner after making an attached photo the note's own"},
   "attachDetach": "Make it a note of its own",
-  "@attachDetach": {
-    "description": "Attachment menu: take the file out as a separate note"
-  },
+  "@attachDetach": {"description": "Attachment menu: take the file out as a separate note"},
   "attachDetached": "Now a note of its own",
-  "@attachDetached": {
-    "description": "Banner after taking an attachment out as its own note"
-  },
+  "@attachDetached": {"description": "Banner after taking an attachment out as its own note"},
   "attachVoice": "Voice clip",
-  "@attachVoice": {
-    "description": "An attached voice recording, read by screen readers and in the add menu"
-  },
+  "@attachVoice": {"description": "An attached voice recording, read by screen readers and in the add menu"},
   "attachMoveEarlier": "Move earlier",
-  "@attachMoveEarlier": {
-    "description": "Attachment menu: move this file one place earlier"
-  },
+  "@attachMoveEarlier": {"description": "Attachment menu: move this file one place earlier"},
   "attachMoveLater": "Move later",
-  "@attachMoveLater": {
-    "description": "Attachment menu: move this file one place later"
-  },
+  "@attachMoveLater": {"description": "Attachment menu: move this file one place later"},
   "attachRemoved": "Attachment removed",
-  "@attachRemoved": {
-    "description": "Banner after removing an attachment"
-  },
+  "@attachRemoved": {"description": "Banner after removing an attachment"},
   "attachOpen": "Open",
-  "@attachOpen": {
-    "description": "Attachment menu: open"
-  },
+  "@attachOpen": {"description": "Attachment menu: open"},
   "attachFailed": "Could not attach that file",
-  "@attachFailed": {
-    "description": "Banner when attaching fails"
-  },
+  "@attachFailed": {"description": "Banner when attaching fails"},
   "attachedMore": "{count, plural, =1{1 more file} other{{count} more files}}",
-  "@attachedMore": {
-    "description": "Screen reader: how many files a note carries after its own",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@attachedMore": {"description": "Screen reader: how many files a note carries after its own", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "noCaption": "No caption",
   "@noCaption": {
     "description": "Placeholder text where a caption would appear"
@@ -1027,99 +792,35 @@
     "description": "Opens the note's metadata panel"
   },
   "detailsAgo": "{span} ago",
-  "@detailsAgo": {
-    "description": "A span of time in the past, under a date in Details",
-    "placeholders": {
-      "span": {
-        "type": "String"
-      }
-    }
-  },
+  "@detailsAgo": {"description": "A span of time in the past, under a date in Details", "placeholders": {"span": {"type": "String"}}},
   "detailsNotEdited": "Not changed since",
-  "@detailsNotEdited": {
-    "description": "Details: the note was never edited after it was made"
-  },
+  "@detailsNotEdited": {"description": "Details: the note was never edited after it was made"},
   "detailsEdited": "Last changed",
-  "@detailsEdited": {
-    "description": "Details: label for the last edit"
-  },
+  "@detailsEdited": {"description": "Details: label for the last edit"},
   "detailsWords": "{words} words · {chars} characters",
-  "@detailsWords": {
-    "description": "Details: how long a written note is",
-    "placeholders": {
-      "words": {
-        "type": "String"
-      },
-      "chars": {
-        "type": "String"
-      }
-    }
-  },
+  "@detailsWords": {"description": "Details: how long a written note is", "placeholders": {"words": {"type": "String"}, "chars": {"type": "String"}}},
   "detailsReading": "About {minutes} min to read",
-  "@detailsReading": {
-    "description": "Details: reading time of a long note",
-    "placeholders": {
-      "minutes": {
-        "type": "String"
-      }
-    }
-  },
+  "@detailsReading": {"description": "Details: reading time of a long note", "placeholders": {"minutes": {"type": "String"}}},
   "detailsLength": "Length",
-  "@detailsLength": {
-    "description": "Details: label for words and characters"
-  },
+  "@detailsLength": {"description": "Details: label for words and characters"},
   "detailsChecklist": "{done} of {total} ticked",
-  "@detailsChecklist": {
-    "description": "Details: checklist progress",
-    "placeholders": {
-      "done": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
-  },
+  "@detailsChecklist": {"description": "Details: checklist progress", "placeholders": {"done": {"type": "String"}, "total": {"type": "String"}}},
   "detailsProgress": "Progress",
-  "@detailsProgress": {
-    "description": "Details: label for checklist progress"
-  },
+  "@detailsProgress": {"description": "Details: label for checklist progress"},
   "detailsDuration": "Duration",
-  "@detailsDuration": {
-    "description": "Details: label for a recording length"
-  },
+  "@detailsDuration": {"description": "Details: label for a recording length"},
   "detailsFile": "File",
-  "@detailsFile": {
-    "description": "Details: label for the file name"
-  },
+  "@detailsFile": {"description": "Details: label for the file name"},
   "detailsAddress": "Address",
-  "@detailsAddress": {
-    "description": "Details: label for a link's site"
-  },
+  "@detailsAddress": {"description": "Details: label for a link's site"},
   "detailsOnPhone": "On this phone",
-  "@detailsOnPhone": {
-    "description": "Details: label for the storage the note takes"
-  },
+  "@detailsOnPhone": {"description": "Details: label for the storage the note takes"},
   "detailsWithAttached": "{size}, with {count} attached",
-  "@detailsWithAttached": {
-    "description": "Details: storage including attachments",
-    "placeholders": {
-      "size": {
-        "type": "String"
-      },
-      "count": {
-        "type": "String"
-      }
-    }
-  },
+  "@detailsWithAttached": {"description": "Details: storage including attachments", "placeholders": {"size": {"type": "String"}, "count": {"type": "String"}}},
   "detailsPinned": "Pinned",
-  "@detailsPinned": {
-    "description": "Details: label for when the note was pinned"
-  },
+  "@detailsPinned": {"description": "Details: label for when the note was pinned"},
   "detailsReminder": "Reminder",
-  "@detailsReminder": {
-    "description": "Details: label for the note's reminder"
-  },
+  "@detailsReminder": {"description": "Details: label for the note's reminder"},
   "created": "Created",
   "@created": {
     "description": "Metadata row label"
@@ -1158,11 +859,7 @@
   },
   "libraryOpenDetail": "What went wrong: {error}",
   "@libraryOpenDetail": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    },
+    "placeholders": { "error": { "type": "String" } },
     "description": "Detail line under the startup failure message"
   },
   "restoreBackupHint": "If you have a backup file, restoring it here may recover your library.",
@@ -1171,11 +868,7 @@
   },
   "restoreFailed": "Restore failed: {error}",
   "@restoreFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    },
+    "placeholders": { "error": { "type": "String" } },
     "description": "Shown when restoring a local backup does not complete"
   },
   "updateAvailableBadge": "Update available",
@@ -1192,11 +885,7 @@
   },
   "deletedWhen": "Deleted {when}",
   "@deletedWhen": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    },
+    "placeholders": { "when": { "type": "String" } },
     "description": "Trash row subtitle: when the note was deleted"
   },
   "filteredEmpty": "Notes are hiding behind your filters.",
@@ -1213,12 +902,7 @@
   },
   "searchFiltersClear": "Clear all ({count})",
   "@searchFiltersClear": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    },
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } },
     "description": "Drops every active search filter"
   },
   "searchFilterTags": "Tags",
@@ -1255,12 +939,7 @@
   },
   "searchFiltersActive": "{count} active",
   "@searchFiltersActive": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    },
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } },
     "description": "Count of active filters, shown in the filter sheet"
   },
   "showFilters": "Show filters",
@@ -1360,8 +1039,7 @@
     "description": "Confirmation body for emptying the trash",
     "placeholders": {
       "count": {
-        "type": "int",
-        "format": "decimalPattern"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -1370,14 +1048,10 @@
     "description": "Settings row and update sheet title"
   },
   "updatesFromBazaar": "Nex was installed from Cafe Bazaar, so its updates come from Cafe Bazaar too.",
-  "@updatesFromBazaar": {
-    "description": "Update screen when the app was installed by Cafe Bazaar"
-  },
+  "@updatesFromBazaar": {"description": "Update screen when the app was installed by Cafe Bazaar"},
   "updatesFromStore": "This copy of Nex is updated by the store you installed it from.",
   "updatesFromMyket": "Nex was installed from Myket, so its updates come from Myket too.",
-  "@updatesFromMyket": {
-    "description": "Update screen when the app was installed by Myket"
-  },
+  "@updatesFromMyket": {"description": "Update screen when the app was installed by Myket"},
   "checkingForUpdate": "Looking for a newer release…",
   "@checkingForUpdate": {
     "description": "Update sheet, while the check runs"
@@ -1463,38 +1137,22 @@
   "greetingMorning": "Good morning, {name}",
   "@greetingMorning": {
     "description": "Timeline title before noon",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "greetingAfternoon": "Good afternoon, {name}",
   "@greetingAfternoon": {
     "description": "Timeline title in the afternoon",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "greetingEvening": "Good evening, {name}",
   "@greetingEvening": {
     "description": "Timeline title in the evening",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "greetingNight": "Still up, {name}?",
   "@greetingNight": {
     "description": "Timeline title late at night",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "updateDownloadedToast": "Update downloaded — ready to install",
   "@updateDownloadedToast": {
@@ -1503,108 +1161,56 @@
   "greetingMorningB": "Rise and shine, {name}",
   "@greetingMorningB": {
     "description": "Second morning greeting variant",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "greetingMorningC": "A brand-new day, {name}",
   "@greetingMorningC": {
     "description": "Third morning greeting variant",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "greetingAfternoonB": "How's your day going, {name}?",
   "@greetingAfternoonB": {
     "description": "Second afternoon greeting variant",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "greetingAfternoonC": "Halfway through the day, {name}",
   "@greetingAfternoonC": {
     "description": "Third afternoon greeting variant",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "greetingEveningB": "How was your day, {name}?",
   "@greetingEveningB": {
     "description": "Second evening greeting variant",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "greetingEveningC": "Time to slow down, {name}",
   "@greetingEveningC": {
     "description": "Third evening greeting variant",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "greetingNightB": "Hello, night owl {name}",
   "@greetingNightB": {
     "description": "Second late-night greeting variant",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "greetingNightC": "Get some rest soon, {name}",
   "@greetingNightC": {
     "description": "Third late-night greeting variant",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "backupStatusNone": "No backup yet",
   "backupStatusLast": "Last backup {when}",
-  "@backupStatusLast": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    }
-  },
+  "@backupStatusLast": {"placeholders": {"when": {"type": "String"}}},
   "backupAutoGroup": "Automatic",
   "backupOnPhone": "On this phone",
   "backupOnPhoneSub": "Every 12 hours while you use Nex · the last {count} are kept",
-  "@backupOnPhoneSub": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@backupOnPhoneSub": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "backupFolderOff": "Off · a copy that survives losing the phone",
   "backupFolderChange": "Change folder",
   "backupPointsGroup": "Restore points on this phone",
   "backupBeforeRestore": "Saved just before a restore",
   "backupShowAll": "Show all ({count})",
-  "@backupShowAll": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@backupShowAll": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "backupManualGroup": "Keep a copy or move to a new phone",
   "fullBackupSub": "One file for a new phone: your notes, with settings and keys encrypted",
   "exportNotes": "Export notes",
@@ -1619,14 +1225,8 @@
   "@importDone": {
     "description": "Result of an import",
     "placeholders": {
-      "added": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "skipped": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
+      "added": { "type": "int", "format": "decimalPattern" },
+      "skipped": { "type": "int", "format": "decimalPattern" }
     }
   },
   "importFailed": "That file could not be read as a Nex export. Your notes were not changed.",
@@ -1668,30 +1268,17 @@
   "catchUpDone": "{count, plural, =0{No notes indexed in this pass} =1{1 note indexed} other{{count} notes indexed}}",
   "@catchUpDone": {
     "description": "Result of a backfill pass",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "noteOfType": "{type} note",
   "@noteOfType": {
     "description": "Screen-reader label naming a note's type",
-    "placeholders": {
-      "type": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "type": { "type": "String" } }
   },
   "tagListLabel": "Tags: {tags}",
   "@tagListLabel": {
     "description": "Screen-reader label listing a note's tags",
-    "placeholders": {
-      "tags": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "tags": { "type": "String" } }
   },
   "accentColorLabel": "Accent color",
   "@accentColorLabel": {
@@ -1704,62 +1291,32 @@
   "timeMinutesAgo": "{count}m",
   "@timeMinutesAgo": {
     "description": "Card timestamp: updated N minutes ago",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeHoursAgo": "{count}h",
   "@timeHoursAgo": {
     "description": "Card timestamp: updated N hours ago",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeDaysAgo": "{count}d",
   "@timeDaysAgo": {
     "description": "Card timestamp: updated N days ago",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeWeeksAgo": "{count}w",
   "@timeWeeksAgo": {
     "description": "Card timestamp: updated N weeks ago",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeMonthsAgo": "{count}mo",
   "@timeMonthsAgo": {
     "description": "Card timestamp: updated N months ago",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeYearsAgo": "{count}y",
   "@timeYearsAgo": {
     "description": "Card timestamp: updated N years ago",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "captureFailedPermission": "Nex was not allowed to use the camera or your photos. You can grant it in your device settings.",
   "@captureFailedPermission": {
@@ -1907,9 +1464,7 @@
     "description": "Field label"
   },
   "modelChoiceHint": "How good the assistant, the summary and everything else are depends entirely on the model you choose. Larger models are more accurate; small or free ones are cheaper and faster, but weaker — they summarise poorly and follow instructions loosely.",
-  "@modelChoiceHint": {
-    "description": "That a weak cloud model gives weak results"
-  },
+  "@modelChoiceHint": {"description": "That a weak cloud model gives weak results"},
   "testConnection": "Test connection",
   "@testConnection": {
     "description": "Button that verifies the configuration"
@@ -2097,23 +1652,23 @@
   },
   "checklist": "Checklist",
   "@checklist": {
-    "description": "Capture type: a list of tickable items"
+      "description": "Capture type: a list of tickable items"
   },
   "link": "Link",
   "@link": {
-    "description": "Capture type: a saved web address"
+      "description": "Capture type: a saved web address"
   },
   "checklistHint": "An item, one per line",
   "@checklistHint": {
-    "description": "Placeholder in the checklist capture field"
+      "description": "Placeholder in the checklist capture field"
   },
   "linkHint": "Paste a link — a line about it is welcome",
   "@linkHint": {
-    "description": "Placeholder in the link capture field"
+      "description": "Placeholder in the link capture field"
   },
   "linkNotValid": "That does not look like a link.",
   "@linkNotValid": {
-    "description": "Shown when pasted text cannot be read as a URL"
+      "description": "Shown when pasted text cannot be read as a URL"
   },
   "captureKindNote": "Note",
   "captureKinds": "What you are capturing",
@@ -2127,21 +1682,19 @@
   "openLink": "Open link",
   "copyLink": "Copy link",
   "@openLink": {
-    "description": "Action that opens a link note in the browser"
+      "description": "Action that opens a link note in the browser"
   },
   "checklistProgress": "{done} of {total}",
   "@checklistProgress": {
-    "description": "How many checklist items are ticked",
-    "placeholders": {
-      "done": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "total": {
-        "type": "int",
-        "format": "decimalPattern"
+      "description": "How many checklist items are ticked",
+      "placeholders": {
+          "done": {
+              "type": "int", "format": "decimalPattern"
+          },
+          "total": {
+              "type": "int", "format": "decimalPattern"
+          }
       }
-    }
   },
   "checklistAllDone": "All done",
   "@checklistAllDone": {
@@ -2149,263 +1702,135 @@
   },
   "chatGreeting": "Ask about your notes",
   "@chatGreeting": {
-    "description": "What the assistant sheet says before anything is typed — a description of the box, not a greeting"
+    "description": "What the assistant sheet says before anything is typed \u2014 a description of the box, not a greeting"
   },
   "chatHint": "Enter a prompt here",
   "@chatHint": {
     "description": "Placeholder in the assistant's input field"
   },
   "foreignImportTitle": "Import notes",
-  "@foreignImportTitle": {
-    "description": "Settings row that imports another app's export"
-  },
+  "@foreignImportTitle": {"description": "Settings row that imports another app's export"},
   "foreignImportSubtitle": "From Google Keep, or any folder of .md and .txt files",
-  "@foreignImportSubtitle": {
-    "description": "Explains what the import row accepts"
-  },
+  "@foreignImportSubtitle": {"description": "Explains what the import row accepts"},
   "foreignImportWorking": "Reading your export…",
-  "@foreignImportWorking": {
-    "description": "Shown while an import is running"
-  },
+  "@foreignImportWorking": {"description": "Shown while an import is running"},
   "foreignImportDone": "{count, plural, =0{No notes found in that file.} =1{1 note imported.} other{{count} notes imported.}}",
   "@foreignImportDone": {
     "description": "How many notes an import brought in",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}
   },
   "foreignImportUnreadable": "Nex could not read that file. Pick the .zip you downloaded, or a .json, .md or .txt file.",
-  "@foreignImportUnreadable": {
-    "description": "Shown when a picked file held nothing importable"
-  },
+  "@foreignImportUnreadable": {"description": "Shown when a picked file held nothing importable"},
   "localModelPause": "Pause",
-  "@localModelPause": {
-    "description": "Pauses the download, keeping what has arrived"
-  },
+  "@localModelPause": {"description": "Pauses the download, keeping what has arrived"},
   "localModelResume": "Resume",
-  "@localModelResume": {
-    "description": "Continues a paused download"
-  },
+  "@localModelResume": {"description": "Continues a paused download"},
   "localModelStop": "Stop",
-  "@localModelStop": {
-    "description": "Stops the download and discards what has arrived"
-  },
+  "@localModelStop": {"description": "Stops the download and discards what has arrived"},
   "localModelPaused": "Paused · {done} of {total}",
   "@localModelPaused": {
     "description": "Paused state with byte counts",
-    "placeholders": {
-      "done": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"done": {"type": "String"}, "total": {"type": "String"}}
   },
   "localModelBytes": "{done} of {total}",
   "@localModelBytes": {
     "description": "Downloaded so far against the whole model",
-    "placeholders": {
-      "done": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"done": {"type": "String"}, "total": {"type": "String"}}
   },
   "localModelLoading": "Starting the model up…",
-  "@localModelLoading": {
-    "description": "Shown while the runtime loads the weights"
-  },
+  "@localModelLoading": {"description": "Shown while the runtime loads the weights"},
   "localModelStopTitle": "Stop the download?",
-  "@localModelStopTitle": {
-    "description": "Confirm discarding a partial download"
-  },
+  "@localModelStopTitle": {"description": "Confirm discarding a partial download"},
   "localModelStopBody": "What has downloaded so far is thrown away, and starting again begins from the beginning. Pause keeps it instead.",
-  "@localModelStopBody": {
-    "description": "Explains the cost of stopping rather than pausing"
-  },
+  "@localModelStopBody": {"description": "Explains the cost of stopping rather than pausing"},
   "localModelManageInstalled": "Downloaded and ready on this phone",
-  "@localModelManageInstalled": {
-    "description": "Model row state when installed"
-  },
+  "@localModelManageInstalled": {"description": "Model row state when installed"},
   "localModelManageMissing": "Not downloaded yet — the assistant needs it to work offline",
-  "@localModelManageMissing": {
-    "description": "Model row state when not installed"
-  },
+  "@localModelManageMissing": {"description": "Model row state when not installed"},
   "localModelLoadFailed": "The model is downloaded but would not start on this phone.",
-  "@localModelLoadFailed": {
-    "description": "Shown when the runtime cannot load the weights"
-  },
+  "@localModelLoadFailed": {"description": "Shown when the runtime cannot load the weights"},
   "localModelLoadFailedDetail": "What the runtime reported:",
-  "@localModelLoadFailedDetail": {
-    "description": "Label above the verbatim runtime error"
-  },
+  "@localModelLoadFailedDetail": {"description": "Label above the verbatim runtime error"},
   "localModelTitle": "On-device model",
-  "@localModelTitle": {
-    "description": "Screen for downloading the local AI model"
-  },
+  "@localModelTitle": {"description": "Screen for downloading the local AI model"},
   "localModelExplained": "Nex can run a language model on this phone, so chat works with no internet and nothing you type leaves the device. It is a large download and it stays on your phone until you remove it.",
-  "@localModelExplained": {
-    "description": "What the on-device model is"
-  },
+  "@localModelExplained": {"description": "What the on-device model is"},
   "localModelQualityCaveat": "A model on the phone is small, and it never reaches the quality of a cloud model: it does well with simple requests, but with complex questions or many notes it can get things wrong or leave things out.",
-  "@localModelQualityCaveat": {
-    "description": "That the on-device chat model is weaker than a cloud model"
-  },
+  "@localModelQualityCaveat": {"description": "That the on-device chat model is weaker than a cloud model"},
   "localModelDeviceCaveat": "It runs on this phone's own processor, so how well it works depends on the phone. On an older or slower device the replies come slowly, and on one short of memory the model may not start at all.",
-  "@localModelDeviceCaveat": {
-    "description": "That the on-device model's speed depends on the phone"
-  },
+  "@localModelDeviceCaveat": {"description": "That the on-device model's speed depends on the phone"},
   "localModelDownload": "Download · {size} GB",
   "@localModelDownload": {
     "description": "Button that starts the model download",
-    "placeholders": {
-      "size": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"size": {"type": "String"}}
   },
   "localModelDownloading": "Downloading…",
-  "@localModelDownloading": {
-    "description": "Generic download progress label"
-  },
+  "@localModelDownloading": {"description": "Generic download progress label"},
   "localModelDownloadingPart": "Downloading part {index} of {count}",
   "@localModelDownloadingPart": {
     "description": "Which piece of the model is downloading",
-    "placeholders": {
-      "index": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": {"index": {"type": "int", "format": "decimalPattern"}, "count": {"type": "int", "format": "decimalPattern"}}
   },
   "localModelJoining": "Putting the pieces together and checking them…",
-  "@localModelJoining": {
-    "description": "Shown while parts are joined and verified"
-  },
+  "@localModelJoining": {"description": "Shown while parts are joined and verified"},
   "localModelKeepOpen": "You can leave this screen — the download keeps going. Closing the app stops it, and it picks up where it left off.",
-  "@localModelKeepOpen": {
-    "description": "What happens if the user navigates away"
-  },
+  "@localModelKeepOpen": {"description": "What happens if the user navigates away"},
   "localModelReady": "The model is ready. Chat works offline now.",
-  "@localModelReady": {
-    "description": "Install finished"
-  },
+  "@localModelReady": {"description": "Install finished"},
   "localModelFailed": "That download did not finish. Try again — it carries on from where it stopped.",
-  "@localModelFailed": {
-    "description": "Install failed and is resumable"
-  },
+  "@localModelFailed": {"description": "Install failed and is resumable"},
   "localModelInstalled": "Installed · {size} GB on this phone",
   "@localModelInstalled": {
     "description": "The model is present",
-    "placeholders": {
-      "size": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"size": {"type": "String"}}
   },
   "localModelDelete": "Remove the model",
-  "@localModelDelete": {
-    "description": "Button that deletes the model"
-  },
+  "@localModelDelete": {"description": "Button that deletes the model"},
   "localModelDeleteTitle": "Remove the model?",
-  "@localModelDeleteTitle": {
-    "description": "Delete confirmation title"
-  },
+  "@localModelDeleteTitle": {"description": "Delete confirmation title"},
   "localModelDeleteBody": "Offline chat stops working until you download it again. Your notes are not affected.",
-  "@localModelDeleteBody": {
-    "description": "Delete confirmation body"
-  },
+  "@localModelDeleteBody": {"description": "Delete confirmation body"},
   "localModelDeleted": "The model was removed.",
-  "@localModelDeleted": {
-    "description": "Delete finished"
-  },
+  "@localModelDeleted": {"description": "Delete finished"},
   "localModelLicenseTitle": "Before you download",
-  "@localModelLicenseTitle": {
-    "description": "Heading above the model licence"
-  },
+  "@localModelLicenseTitle": {"description": "Heading above the model licence"},
   "localModelLicenseRead": "Read the full terms",
-  "@localModelLicenseRead": {
-    "description": "Opens the model licence in a browser"
-  },
+  "@localModelLicenseRead": {"description": "Opens the model licence in a browser"},
   "localModelLicenseAccept": "I have read and accept these terms",
-  "@localModelLicenseAccept": {
-    "description": "Licence acceptance checkbox"
-  },
+  "@localModelLicenseAccept": {"description": "Licence acceptance checkbox"},
   "localModelBlockedPlatform": "On-device chat runs on Android and iPhone. This build cannot use it.",
-  "@localModelBlockedPlatform": {
-    "description": "Unsupported platform"
-  },
+  "@localModelBlockedPlatform": {"description": "Unsupported platform"},
   "localModelBlockedArchitecture": "This phone's processor is not one the model runs on. It needs a 64-bit ARM device.",
-  "@localModelBlockedArchitecture": {
-    "description": "Unsupported CPU architecture"
-  },
+  "@localModelBlockedArchitecture": {"description": "Unsupported CPU architecture"},
   "localModelBlockedStorage": "There is not enough free space. The download needs about {size} GB free while it installs.",
   "@localModelBlockedStorage": {
     "description": "Not enough storage",
-    "placeholders": {
-      "size": {
-        "type": "String"
-      }
-    }
+    "placeholders": {"size": {"type": "String"}}
   },
   "localModelBlockedUnpublished": "No model is available to download in this version yet.",
-  "@localModelBlockedUnpublished": {
-    "description": "Model not published yet"
-  },
+  "@localModelBlockedUnpublished": {"description": "Model not published yet"},
   "tourNext": "Next",
-  "@tourNext": {
-    "description": "Advances the first-run tour"
-  },
+  "@tourNext": {"description": "Advances the first-run tour"},
   "tourDone": "Got it",
-  "@tourDone": {
-    "description": "Finishes the first-run tour"
-  },
+  "@tourDone": {"description": "Finishes the first-run tour"},
   "tourSkip": "Skip",
-  "@tourSkip": {
-    "description": "Leaves the first-run tour early"
-  },
+  "@tourSkip": {"description": "Leaves the first-run tour early"},
   "tourCaptureTitle": "Everything starts here",
-  "@tourCaptureTitle": {
-    "description": "Tour step pointing at the capture button"
-  },
+  "@tourCaptureTitle": {"description": "Tour step pointing at the capture button"},
   "tourCaptureBody": "Tap to write a note, or record, photograph and attach one. Hold it to ask the assistant instead.",
-  "@tourCaptureBody": {
-    "description": "Tour step body for the capture button"
-  },
+  "@tourCaptureBody": {"description": "Tour step body for the capture button"},
   "tourSearchTitle": "Find anything",
-  "@tourSearchTitle": {
-    "description": "Tour step pointing at the search field"
-  },
+  "@tourSearchTitle": {"description": "Tour step pointing at the search field"},
   "tourSearchBody": "Search by word, or by what a note meant. Try tag:work or type:link to narrow it down.",
-  "@tourSearchBody": {
-    "description": "Tour step body for the search field"
-  },
+  "@tourSearchBody": {"description": "Tour step body for the search field"},
   "tourLibraryTitle": "Tags and deleted notes",
-  "@tourLibraryTitle": {
-    "description": "Tour step pointing at the library button"
-  },
+  "@tourLibraryTitle": {"description": "Tour step pointing at the library button"},
   "tourLibraryBody": "Your tags live here, and so does anything you deleted — for a while.",
-  "@tourLibraryBody": {
-    "description": "Tour step body for the library button"
-  },
+  "@tourLibraryBody": {"description": "Tour step body for the library button"},
   "tourSettingsTitle": "Make it yours",
-  "@tourSettingsTitle": {
-    "description": "Tour step pointing at the settings button"
-  },
+  "@tourSettingsTitle": {"description": "Tour step pointing at the settings button"},
   "tourSettingsBody": "Your name, theme, language, backups, and the AI provider that writes your summaries.",
-  "@tourSettingsBody": {
-    "description": "Tour step body for the settings button"
-  },
+  "@tourSettingsBody": {"description": "Tour step body for the settings button"},
   "translate": "Translate",
   "@translate": {
     "description": "Note action that translates the note's text"
@@ -2457,18 +1882,7 @@
     "description": "Shown after the assistant's confirmed action succeeds"
   },
   "assistantActionPartlyDone": "{done} of {total} changes were made before one failed. Check the notes before asking again.",
-  "@assistantActionPartlyDone": {
-    "placeholders": {
-      "done": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "total": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@assistantActionPartlyDone": {"placeholders": {"done": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
   "assistantActionFailed": "That didn't work.",
   "@assistantActionFailed": {
     "description": "Shown when the assistant's confirmed action fails"
@@ -2496,11 +1910,7 @@
   "chatAboutNote": "About: {note}",
   "@chatAboutNote": {
     "description": "Header line when the chat is scoped to one note",
-    "placeholders": {
-      "note": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "note": { "type": "String" } }
   },
   "chatHistory": "Conversations",
   "@chatHistory": {
@@ -2522,6 +1932,14 @@
   "assistant": "Assistant",
   "@assistant": {
     "description": "Settings row opening the assistant's own settings"
+  },
+  "assistantNeedsIntelligence": "The assistant needs intelligence turned on.",
+  "@assistantNeedsIntelligence": {
+    "description": "Shown when the assistant button is tapped while nothing is configured to answer."
+  },
+  "assistantTurnOnIntelligence": "Turn on",
+  "@assistantTurnOnIntelligence": {
+    "description": "Action on that notice: opens the intelligence settings."
   },
   "assistantNeedsIntelligence": "The assistant needs intelligence turned on.",
   "@assistantNeedsIntelligence": {
@@ -2596,9 +2014,7 @@
     "description": "How many recent notes are sent with each question"
   },
   "assistantContextSlow": "Sending 100 notes or more makes every question slower — the model reads all of them before it answers. On the on-device model it is very noticeable.",
-  "@assistantContextSlow": {
-    "description": "Warning under the assistant's context-size choice"
-  },
+  "@assistantContextSlow": {"description": "Warning under the assistant's context-size choice"},
   "assistantContextNone": "None",
   "@assistantContextNone": {
     "description": "Zero notes shared with the assistant"
@@ -2608,8 +2024,7 @@
     "description": "How many recent notes are shared",
     "placeholders": {
       "count": {
-        "type": "int",
-        "format": "decimalPattern"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -2706,200 +2121,67 @@
     "description": "Notification switch, off"
   },
   "commitmentsTitle": "Recurring",
-  "@commitmentsTitle": {
-    "description": "Title of the recurring-obligations screen"
-  },
+  "@commitmentsTitle": {"description": "Title of the recurring-obligations screen"},
   "commitmentsEmpty": "Nothing recurring yet.\nInsurance, rent, a tablet every eight hours.",
-  "@commitmentsEmpty": {
-    "description": "Empty state"
-  },
+  "@commitmentsEmpty": {"description": "Empty state"},
   "commitmentAdd": "Add a recurring item",
-  "@commitmentAdd": {
-    "description": "Add button"
-  },
+  "@commitmentAdd": {"description": "Add button"},
   "commitmentEdit": "Edit recurring item",
-  "@commitmentEdit": {
-    "description": "Editor title"
-  },
+  "@commitmentEdit": {"description": "Editor title"},
   "commitmentDeleteTitle": "Delete this recurring item?",
-  "@commitmentDeleteTitle": {
-    "description": "Delete confirmation"
-  },
+  "@commitmentDeleteTitle": {"description": "Delete confirmation"},
   "commitmentPaused": "paused",
-  "@commitmentPaused": {
-    "description": "Paused state"
-  },
+  "@commitmentPaused": {"description": "Paused state"},
   "commitmentTitleLabel": "What",
-  "@commitmentTitleLabel": {
-    "description": "Title field label"
-  },
+  "@commitmentTitleLabel": {"description": "Title field label"},
   "commitmentTitleHint": "Car insurance",
-  "@commitmentTitleHint": {
-    "description": "Title field hint"
-  },
+  "@commitmentTitleHint": {"description": "Title field hint"},
   "commitmentEvery": "How often",
-  "@commitmentEvery": {
-    "description": "Cadence field label"
-  },
+  "@commitmentEvery": {"description": "Cadence field label"},
   "commitmentCount": "Every",
-  "@commitmentCount": {
-    "description": "Cadence count label"
-  },
+  "@commitmentCount": {"description": "Cadence count label"},
   "commitmentNextDue": "Next time",
-  "@commitmentNextDue": {
-    "description": "Due date row"
-  },
+  "@commitmentNextDue": {"description": "Due date row"},
   "commitmentLead": "Tell me ahead of time",
-  "@commitmentLead": {
-    "description": "Lead time row"
-  },
+  "@commitmentLead": {"description": "Lead time row"},
   "commitmentAuto": "Automatic",
-  "@commitmentAuto": {
-    "description": "Lead time: follow the cadence"
-  },
+  "@commitmentAuto": {"description": "Lead time: follow the cadence"},
   "commitmentLeadNone": "When it is due",
-  "@commitmentLeadNone": {
-    "description": "Lead time: zero"
-  },
+  "@commitmentLeadNone": {"description": "Lead time: zero"},
   "commitmentWindow": "Only during these hours",
-  "@commitmentWindow": {
-    "description": "Waking window switch"
-  },
+  "@commitmentWindow": {"description": "Waking window switch"},
   "commitmentWindowOff": "Any hour, including while you sleep",
-  "@commitmentWindowOff": {
-    "description": "Waking window off"
-  },
+  "@commitmentWindowOff": {"description": "Waking window off"},
   "commitmentWindowFrom": "From",
-  "@commitmentWindowFrom": {
-    "description": "Window start"
-  },
+  "@commitmentWindowFrom": {"description": "Window start"},
   "commitmentWindowTo": "Until",
-  "@commitmentWindowTo": {
-    "description": "Window end"
-  },
+  "@commitmentWindowTo": {"description": "Window end"},
   "commitmentTally": "{done} of {total} today",
-  "@commitmentTally": {
-    "description": "How many times an hourly item has been done today",
-    "placeholders": {
-      "done": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "total": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@commitmentTally": {"description": "How many times an hourly item has been done today", "placeholders": {"done": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
   "commitmentDueIn": "due in {span}",
   "commitmentDueNow": "Due now",
   "commitmentSnoozed": "Snoozed",
-  "@commitmentDueIn": {
-    "description": "Time until due",
-    "placeholders": {
-      "span": {
-        "type": "String"
-      }
-    }
-  },
+  "@commitmentDueIn": {"description": "Time until due", "placeholders": {"span": {"type": "String"}}},
   "commitmentOverdue": "{span} overdue",
-  "@commitmentOverdue": {
-    "description": "Time past due",
-    "placeholders": {
-      "span": {
-        "type": "String"
-      }
-    }
-  },
+  "@commitmentOverdue": {"description": "Time past due", "placeholders": {"span": {"type": "String"}}},
   "commitmentLeadAuto": "Automatic ({span})",
-  "@commitmentLeadAuto": {
-    "description": "Lead time following the cadence",
-    "placeholders": {
-      "span": {
-        "type": "String"
-      }
-    }
-  },
+  "@commitmentLeadAuto": {"description": "Lead time following the cadence", "placeholders": {"span": {"type": "String"}}},
   "cadenceHours": "{count, plural, =1{every hour} other{every {count} hours}}",
-  "@cadenceHours": {
-    "description": "Hourly cadence",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@cadenceHours": {"description": "Hourly cadence", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "cadenceDays": "{count, plural, =1{every day} other{every {count} days}}",
-  "@cadenceDays": {
-    "description": "Daily cadence",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@cadenceDays": {"description": "Daily cadence", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "cadenceWeeks": "{count, plural, =1{every week} other{every {count} weeks}}",
-  "@cadenceWeeks": {
-    "description": "Weekly cadence",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@cadenceWeeks": {"description": "Weekly cadence", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "cadenceMonths": "{count, plural, =1{every month} other{every {count} months}}",
-  "@cadenceMonths": {
-    "description": "Monthly cadence",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@cadenceMonths": {"description": "Monthly cadence", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "cadenceYears": "{count, plural, =1{every year} other{every {count} years}}",
-  "@cadenceYears": {
-    "description": "Yearly cadence",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@cadenceYears": {"description": "Yearly cadence", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "spanMinutes": "{count, plural, =1{1 minute} other{{count} minutes}}",
-  "@spanMinutes": {
-    "description": "A span in minutes",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@spanMinutes": {"description": "A span in minutes", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "spanHours": "{count, plural, =1{1 hour} other{{count} hours}}",
-  "@spanHours": {
-    "description": "A span in hours",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@spanHours": {"description": "A span in hours", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "spanDays": "{count, plural, =1{1 day} other{{count} days}}",
-  "@spanDays": {
-    "description": "A span in days",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@spanDays": {"description": "A span in days", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "assistantConfirmSetting": "Change this setting?",
   "@assistantConfirmSetting": {
     "description": "Confirmation for an assistant-proposed settings change"
@@ -2908,168 +2190,59 @@
   "briefEnabledOn": "Written for you each day on the timeline.",
   "briefEnabledOff": "Off: no summary is written and nothing is sent to a provider for it.",
   "briefTitle": "Recap",
-  "@briefTitle": {
-    "description": "Title of the sheet that configures the card at the top of the timeline."
-  },
+  "@briefTitle": {"description": "Title of the sheet that configures the card at the top of the timeline."},
   "briefSubtitle": "The card above your notes. You choose what it is for.",
-  "@briefSubtitle": {
-    "description": "Subtitle under the daily-brief sheet's title."
-  },
+  "@briefSubtitle": {"description": "Subtitle under the daily-brief sheet's title."},
   "briefStyleLabel": "What it writes",
-  "@briefStyleLabel": {
-    "description": "Label above the five brief presets."
-  },
+  "@briefStyleLabel": {"description": "Label above the five brief presets."},
   "briefStyleAssistant": "Assistant",
-  "@briefStyleAssistant": {
-    "description": "Brief preset: the model writes the whole thing."
-  },
+  "@briefStyleAssistant": {"description": "Brief preset: the model writes the whole thing."},
   "briefStyleAssistantAbout": "The model reads your notes and writes the brief.",
-  "@briefStyleAssistantAbout": {
-    "description": "What the assistant brief preset does."
-  },
+  "@briefStyleAssistantAbout": {"description": "What the assistant brief preset does."},
   "briefStyleBlended": "Facts, plus one observation",
-  "@briefStyleBlended": {
-    "description": "Brief preset: app states facts, model adds one line."
-  },
+  "@briefStyleBlended": {"description": "Brief preset: app states facts, model adds one line."},
   "briefStyleBlendedAbout": "Nex states what is due, exactly. The model adds the one thing only the whole set shows.",
-  "@briefStyleBlendedAbout": {
-    "description": "What the blended brief preset does."
-  },
+  "@briefStyleBlendedAbout": {"description": "What the blended brief preset does."},
   "briefStyleReport": "Plain report",
-  "@briefStyleReport": {
-    "description": "Brief preset: no model at all."
-  },
+  "@briefStyleReport": {"description": "Brief preset: no model at all."},
   "briefStyleReportAbout": "What has slipped, what is due, what is half-done. Nothing is sent anywhere.",
-  "@briefStyleReportAbout": {
-    "description": "What the plain-report brief preset does."
-  },
+  "@briefStyleReportAbout": {"description": "What the plain-report brief preset does."},
   "briefStylePlanner": "Planner",
-  "@briefStylePlanner": {
-    "description": "Brief preset: app states facts, model suggests a next step."
-  },
+  "@briefStylePlanner": {"description": "Brief preset: app states facts, model suggests a next step."},
   "briefStylePlannerAbout": "The same facts, and one suggestion for what to do next — a suggestion only, nothing is changed.",
-  "@briefStylePlannerAbout": {
-    "description": "What the planner brief preset does."
-  },
+  "@briefStylePlannerAbout": {"description": "What the planner brief preset does."},
   "briefStyleCustom": "My own brief",
-  "@briefStyleCustom": {
-    "description": "Brief preset: the user writes the instruction."
-  },
+  "@briefStyleCustom": {"description": "Brief preset: the user writes the instruction."},
   "briefStyleCustomAbout": "You describe what you want it to tell you.",
-  "@briefStyleCustomAbout": {
-    "description": "What the custom brief preset does."
-  },
+  "@briefStyleCustomAbout": {"description": "What the custom brief preset does."},
   "briefOffline": "Works with no provider, no key and no signal.",
-  "@briefOffline": {
-    "description": "Note shown when the plain-report preset is selected."
-  },
+  "@briefOffline": {"description": "Note shown when the plain-report preset is selected."},
   "briefNeedsAi": "This one needs intelligence switched on. Plain report is the one that works without it.",
-  "@briefNeedsAi": {
-    "description": "Note shown when a preset that needs a model is selected while AI is off."
-  },
+  "@briefNeedsAi": {"description": "Note shown when a preset that needs a model is selected while AI is off."},
   "briefInstructionLabel": "What you want it to say",
-  "@briefInstructionLabel": {
-    "description": "Label for the custom brief instruction field."
-  },
+  "@briefInstructionLabel": {"description": "Label for the custom brief instruction field."},
   "briefInstructionHint": "Only what is overdue. No greeting.",
-  "@briefInstructionHint": {
-    "description": "Placeholder for the custom brief instruction field."
-  },
+  "@briefInstructionHint": {"description": "Placeholder for the custom brief instruction field."},
   "briefLanguageShared": "One setting, shared: it is also what the assistant answers in and what transcriptions and summaries come back in.",
-  "@briefLanguageShared": {
-    "description": "Note under the brief's language picker saying the setting is not the brief's alone."
-  },
+  "@briefLanguageShared": {"description": "Note under the brief's language picker saying the setting is not the brief's alone."},
   "briefToneLabel": "How it sounds",
-  "@briefToneLabel": {
-    "description": "Label above the brief's tone presets."
-  },
+  "@briefToneLabel": {"description": "Label above the brief's tone presets."},
   "briefLengthLabel": "How much of it",
-  "@briefLengthLabel": {
-    "description": "Label above the brief's length presets."
-  },
+  "@briefLengthLabel": {"description": "Label above the brief's length presets."},
   "briefLineOverdue": "{title} — {span} overdue",
-  "@briefLineOverdue": {
-    "description": "A brief line for something past its date.",
-    "placeholders": {
-      "title": {
-        "type": "String"
-      },
-      "span": {
-        "type": "String"
-      }
-    }
-  },
+  "@briefLineOverdue": {"description": "A brief line for something past its date.", "placeholders": {"title": {"type": "String"}, "span": {"type": "String"}}},
   "briefLineDue": "{title} — due in {span}",
-  "@briefLineDue": {
-    "description": "A brief line for something falling due.",
-    "placeholders": {
-      "title": {
-        "type": "String"
-      },
-      "span": {
-        "type": "String"
-      }
-    }
-  },
+  "@briefLineDue": {"description": "A brief line for something falling due.", "placeholders": {"title": {"type": "String"}, "span": {"type": "String"}}},
   "briefLineAt": "{title} — {when}",
-  "@briefLineAt": {
-    "description": "A brief line for a reminder coming up, said by its day and time.",
-    "placeholders": {
-      "title": {
-        "type": "String"
-      },
-      "when": {
-        "type": "String"
-      }
-    }
-  },
+  "@briefLineAt": {"description": "A brief line for a reminder coming up, said by its day and time.", "placeholders": {"title": {"type": "String"}, "when": {"type": "String"}}},
   "briefWhenToday": "today at {time}",
-  "@briefWhenToday": {
-    "description": "When a reminder in the brief is: later today.",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
+  "@briefWhenToday": {"description": "When a reminder in the brief is: later today.", "placeholders": {"time": {"type": "String"}}},
   "briefWhenTomorrow": "tomorrow at {time}",
-  "@briefWhenTomorrow": {
-    "description": "When a reminder in the brief is: tomorrow.",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
+  "@briefWhenTomorrow": {"description": "When a reminder in the brief is: tomorrow.", "placeholders": {"time": {"type": "String"}}},
   "briefWhenOn": "{day} at {time}",
-  "@briefWhenOn": {
-    "description": "When a reminder in the brief is: a weekday this week, e.g. Wednesday at 09:00.",
-    "placeholders": {
-      "day": {
-        "type": "String"
-      },
-      "time": {
-        "type": "String"
-      }
-    }
-  },
+  "@briefWhenOn": {"description": "When a reminder in the brief is: a weekday this week, e.g. Wednesday at 09:00.", "placeholders": {"day": {"type": "String"}, "time": {"type": "String"}}},
   "briefLineChecklist": "{title} — {remaining} of {total} left",
-  "@briefLineChecklist": {
-    "description": "A brief line for a checklist with items unticked.",
-    "placeholders": {
-      "title": {
-        "type": "String"
-      },
-      "remaining": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "total": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@briefLineChecklist": {"description": "A brief line for a checklist with items unticked.", "placeholders": {"title": {"type": "String"}, "remaining": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
   "commitmentsAbout": "Nex keeps the next date for each one, brings it up in the daily brief, and can send a notification before it falls due.",
   "@commitmentsAbout": {
     "description": "The paragraph under the title on the recurring sheet, explaining what a recurring item actually does."
@@ -3089,12 +2262,7 @@
   "commitmentsCount": "{count, plural, =1{1 recurring item} other{{count} recurring items}}",
   "@commitmentsCount": {
     "description": "How many recurring items there are, shown beside the title.",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "assistantConfirmRemind": "Set this reminder?",
   "@assistantConfirmRemind": {
@@ -3158,85 +2326,30 @@
   },
   "remindClear": "Remove reminder",
   "scheduleTitle": "Schedule note",
-  "@scheduleTitle": {
-    "description": "Title of the sheet that delivers the note being written at a later time"
-  },
+  "@scheduleTitle": {"description": "Title of the sheet that delivers the note being written at a later time"},
   "scheduleInMonth": "In a month",
   "scheduleInYear": "In a year",
   "scheduleActionToday": "Arrives today at {time}",
-  "@scheduleActionToday": {
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
+  "@scheduleActionToday": {"placeholders": {"time": {"type": "String"}}},
   "scheduleActionTomorrow": "Arrives tomorrow at {time}",
-  "@scheduleActionTomorrow": {
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
+  "@scheduleActionTomorrow": {"placeholders": {"time": {"type": "String"}}},
   "scheduleActionOn": "Arrives on {date} at {time}",
-  "@scheduleActionOn": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      },
-      "time": {
-        "type": "String"
-      }
-    }
-  },
+  "@scheduleActionOn": {"placeholders": {"date": {"type": "String"}, "time": {"type": "String"}}},
   "scheduleSet": "Scheduled — arrives {when}",
-  "@scheduleSet": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    }
-  },
+  "@scheduleSet": {"placeholders": {"when": {"type": "String"}}},
   "scheduleFailed": "This note could not be scheduled",
   "scheduleHint": "Hold ↑ to schedule it for later",
   "scheduledInDays": "{count, plural, =1{Tomorrow} other{In {count} days}}",
-  "@scheduledInDays": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@scheduledInDays": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "libraryScheduledCount": "{count, plural, =0{Notes on their way} =1{1 note on its way} other{{count} notes on their way}}",
-  "@libraryScheduledCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@libraryScheduledCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "scheduledTitle": "Scheduled",
   "scheduledSubtitle": "Notes on their way",
   "scheduledEmpty": "Nothing scheduled. While writing a note, hold the send button to have it arrive later.",
   "scheduledArrives": "Arrives {when}",
-  "@scheduledArrives": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    }
-  },
+  "@scheduledArrives": {"placeholders": {"when": {"type": "String"}}},
   "scheduledWritten": "Written {when}",
-  "@scheduledWritten": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    }
-  },
+  "@scheduledWritten": {"placeholders": {"when": {"type": "String"}}},
   "scheduledSendNow": "Deliver now",
   "scheduledChangeTime": "Change time",
   "scheduledDiscard": "Discard",
@@ -3246,16 +2359,7 @@
   "cycleStageFertile": "Fertile window",
   "cycleStageLuteal": "Luteal phase",
   "cycleStageAbout": "{stage} · day {day}",
-  "@cycleStageAbout": {
-    "placeholders": {
-      "stage": {
-        "type": "String"
-      },
-      "day": {
-        "type": "String"
-      }
-    }
-  },
+  "@cycleStageAbout": {"placeholders": {"stage": {"type": "String"}, "day": {"type": "String"}}},
   "cycleRingHint": "Touch the ring to look at any day; touch the middle to come back to today.",
   "cycleRingBack": "Back to today",
   "cycleTipTitle": "For today",
@@ -3276,13 +2380,7 @@
   "cycleTipLuteal3": "Magnesium-rich food — nuts, seeds, bananas — may ease tension before the period.",
   "cycleTipLuteal4": "Lighter exercise — a walk, stretching, yoga — often feels best now.",
   "cycleEndCheck": "Has your period ended? It started {days} days ago.",
-  "@cycleEndCheck": {
-    "placeholders": {
-      "days": {
-        "type": "String"
-      }
-    }
-  },
+  "@cycleEndCheck": {"placeholders": {"days": {"type": "String"}}},
   "cycleEndCheckYes": "Yes, it ended",
   "cycleEndCheckNo": "Still going",
   "cycleQuickMood": "How do you feel today?",
@@ -3296,69 +2394,21 @@
   "cycleDontKnow": "I don't know",
   "cyclePickDate": "Pick a date",
   "cycleDays": "{count, plural, =1{1 day} other{{count} days}}",
-  "@cycleDays": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@cycleDays": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "cycleBegin": "Begin",
   "cycleDayOfPeriod": "Period, day {day}",
-  "@cycleDayOfPeriod": {
-    "placeholders": {
-      "day": {
-        "type": "String"
-      }
-    }
-  },
+  "@cycleDayOfPeriod": {"placeholders": {"day": {"type": "String"}}},
   "cyclePeriodDay": "Day {day} of this period",
-  "@cyclePeriodDay": {
-    "placeholders": {
-      "day": {
-        "type": "String"
-      }
-    }
-  },
+  "@cyclePeriodDay": {"placeholders": {"day": {"type": "String"}}},
   "cycleDaysUntil": "{count, plural, =1{1 day until your period} other{{count} days until your period}}",
-  "@cycleDaysUntil": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@cycleDaysUntil": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "cycleDueToday": "Your period may start today",
   "cycleLate": "{count, plural, =1{1 day late} other{{count} days late}}",
-  "@cycleLate": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@cycleLate": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "cycleDayOfCycle": "Day {day} of your cycle",
-  "@cycleDayOfCycle": {
-    "placeholders": {
-      "day": {
-        "type": "String"
-      }
-    }
-  },
+  "@cycleDayOfCycle": {"placeholders": {"day": {"type": "String"}}},
   "cycleLikelyBetween": "Likely between {from} and {to}",
-  "@cycleLikelyBetween": {
-    "placeholders": {
-      "from": {
-        "type": "String"
-      },
-      "to": {
-        "type": "String"
-      }
-    }
-  },
+  "@cycleLikelyBetween": {"placeholders": {"from": {"type": "String"}, "to": {"type": "String"}}},
   "cycleForecastPaused": "The expected range has passed. Calendar estimates will resume after you log the next start.",
   "cycleStageUnknown": "Timing uncertain",
   "cycleConfidenceLow": "Still learning your cycle",
@@ -3461,102 +2511,34 @@
   "cyclePredictionsOff": "Predictions are off in this mode. Logging works as always.",
   "cycleFertileToday": "A likely fertile day",
   "cycleUntilFertile": "{count, plural, =1{1 day to your fertile window} other{{count} days to your fertile window}}",
-  "@cycleUntilFertile": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@cycleUntilFertile": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "cycleOvulationOn": "Likely ovulation: {date}",
-  "@cycleOvulationOn": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      }
-    }
-  },
+  "@cycleOvulationOn": {"placeholders": {"date": {"type": "String"}}},
   "cyclePregnancyWeek": "Week {weeks}, day {days}",
-  "@cyclePregnancyWeek": {
-    "placeholders": {
-      "weeks": {
-        "type": "String"
-      },
-      "days": {
-        "type": "String"
-      }
-    }
-  },
+  "@cyclePregnancyWeek": {"placeholders": {"weeks": {"type": "String"}, "days": {"type": "String"}}},
   "cycleDueDate": "Due date: {date}",
-  "@cycleDueDate": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      }
-    }
-  },
+  "@cycleDueDate": {"placeholders": {"date": {"type": "String"}}},
   "cycleTrimester": "Trimester {n}",
-  "@cycleTrimester": {
-    "placeholders": {
-      "n": {
-        "type": "String"
-      }
-    }
-  },
+  "@cycleTrimester": {"placeholders": {"n": {"type": "String"}}},
   "cycleDaysToGo": "{count, plural, =1{1 day to go} other{{count} days to go}}",
-  "@cycleDaysToGo": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@cycleDaysToGo": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "cyclePregnancyStart": "First day of the last period",
   "cycleKnowDueDate": "I know my due date",
   "cyclePregnancyNote": "Weeks are counted from the first day of your last period, the way doctors count them.",
   "cyclePatterns": "Patterns",
   "cyclePatternsEmpty": "Patterns appear here after a couple of cycles with symptoms logged.",
   "cyclePatternBefore": "{symptom}: usually about {days} before your period",
-  "@cyclePatternBefore": {
-    "placeholders": {
-      "symptom": {
-        "type": "String"
-      },
-      "days": {
-        "type": "String"
-      }
-    }
-  },
+  "@cyclePatternBefore": {"placeholders": {"symptom": {"type": "String"}, "days": {"type": "String"}}},
   "cyclePatternDuring": "{symptom}: usually during your period",
-  "@cyclePatternDuring": {
-    "placeholders": {
-      "symptom": {
-        "type": "String"
-      }
-    }
-  },
+  "@cyclePatternDuring": {"placeholders": {"symptom": {"type": "String"}}},
   "cyclePatternOvulation": "{symptom}: usually around ovulation",
-  "@cyclePatternOvulation": {
-    "placeholders": {
-      "symptom": {
-        "type": "String"
-      }
-    }
-  },
+  "@cyclePatternOvulation": {"placeholders": {"symptom": {"type": "String"}}},
   "cycleReport": "Report for a doctor",
   "cycleReportTitle": "Cycle report",
   "cycleReportMade": "Made with Nex on {date}",
   "cycleReportLmp": "Last period started",
   "cycleReportNext": "Next period, likely",
-  "@cycleReportMade": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      }
-    }
-  },
+  "@cycleReportMade": {"placeholders": {"date": {"type": "String"}}},
   "cycleReportPeriods": "Recent periods",
   "cycleReportCycleLength": "Cycle length",
   "cycleReportVariation": "Variation",
@@ -3579,13 +2561,7 @@
   "cycleMucusWatery": "Watery",
   "cycleMucusEggWhite": "Egg white",
   "cyclePositiveTest": "Positive ovulation test on {date}: ovulation is likely within a day or two.",
-  "@cyclePositiveTest": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      }
-    }
-  },
+  "@cyclePositiveTest": {"placeholders": {"date": {"type": "String"}}},
   "cycleBabyArrived": "Has your baby arrived?",
   "cycleBabyArrivedBody": "Congratulations. Breastfeeding keeps logging without predictions; or go back to tracking your cycle.",
   "cycleGreetingMorning": "Good morning",
@@ -3603,21 +2579,9 @@
   "localModelChoose": "Model",
   "localModelOnPhone": "On this phone",
   "localModelPartial": "{size} downloaded so far",
-  "@localModelPartial": {
-    "placeholders": {
-      "size": {
-        "type": "String"
-      }
-    }
-  },
+  "@localModelPartial": {"placeholders": {"size": {"type": "String"}}},
   "localModelNoticeTitle": "Downloading {model}",
-  "@localModelNoticeTitle": {
-    "placeholders": {
-      "model": {
-        "type": "String"
-      }
-    }
-  },
+  "@localModelNoticeTitle": {"placeholders": {"model": {"type": "String"}}},
   "chatLookedSearch": "Searched your notes",
   "chatLookedCycle": "Read your Cycle summary",
   "chatLookedThreads": "Looked at your threads",
@@ -3626,719 +2590,376 @@
   "chatLookedCommitments": "Looked at your recurring items",
   "chatLookedDeleted": "Looked in Recently Deleted",
   "searchModelTitle": "On-device search",
-  "@searchModelTitle": {
-    "description": "Title of the on-device search model screen and its row in the intelligence settings."
-  },
+  "@searchModelTitle": {"description": "Title of the on-device search model screen and its row in the intelligence settings."},
   "searchModelExplained": "EmbeddingGemma 2 lets Nex find notes by what they mean, right on this phone — in search, in related notes, and when the assistant looks something up. It does not chat or write anything; it only finds. Nothing you write is sent anywhere for it, and it works with no internet.",
-  "@searchModelExplained": {
-    "description": "What the on-device search model is and is not, at the top of its screen."
-  },
+  "@searchModelExplained": {"description": "What the on-device search model is and is not, at the top of its screen."},
   "searchModelReady": "On-device search is ready. Your notes are being prepared for it in the background.",
-  "@searchModelReady": {
-    "description": "Banner after the search model installed and ran."
-  },
+  "@searchModelReady": {"description": "Banner after the search model installed and ran."},
   "searchModelDeleteBody": "Search by meaning goes back to your AI provider, if it offers it. Your notes are not affected.",
-  "@searchModelDeleteBody": {
-    "description": "Body of the dialog confirming removal of the search model."
-  },
+  "@searchModelDeleteBody": {"description": "Body of the dialog confirming removal of the search model."},
   "searchModelRowOn": "On — finds notes by meaning on this phone",
-  "@searchModelRowOn": {
-    "description": "Subtitle of the on-device search row when the model is in use."
-  },
+  "@searchModelRowOn": {"description": "Subtitle of the on-device search row when the model is in use."},
   "searchModelRowOff": "Find notes by meaning with no internet",
-  "@searchModelRowOff": {
-    "description": "Subtitle of the on-device search row when the model is not installed."
-  },
+  "@searchModelRowOff": {"description": "Subtitle of the on-device search row when the model is not installed."},
   "localModelRetry": "Try loading it again",
-  "@localModelRetry": {
-    "description": "Button on the on-device model screen: load the installed model again, retrying every backend."
-  },
+  "@localModelRetry": {"description": "Button on the on-device model screen: load the installed model again, retrying every backend."},
   "remindTitle": "Set a reminder",
   "@remindTitle": {
-    "description": "Heading of the reminder sheet"
+      "description": "Heading of the reminder sheet"
   },
   "remindDayToday": "Today",
   "@remindDayToday": {
-    "description": "First row of the reminder sheet's day wheel"
+      "description": "First row of the reminder sheet's day wheel"
   },
   "remindDayTomorrow": "Tomorrow",
   "@remindDayTomorrow": {
-    "description": "Second row of the reminder sheet's day wheel"
+      "description": "Second row of the reminder sheet's day wheel"
   },
   "remindActionToday": "Remind today at {time}",
   "@remindActionToday": {
-    "description": "Primary button of the reminder sheet when the chosen day is today",
-    "placeholders": {
-      "time": {
-        "type": "String"
+      "description": "Primary button of the reminder sheet when the chosen day is today",
+      "placeholders": {
+          "time": {
+              "type": "String"
+          }
       }
-    }
   },
   "remindActionTomorrow": "Remind tomorrow at {time}",
   "@remindActionTomorrow": {
-    "description": "Primary button of the reminder sheet when the chosen day is tomorrow",
-    "placeholders": {
-      "time": {
-        "type": "String"
+      "description": "Primary button of the reminder sheet when the chosen day is tomorrow",
+      "placeholders": {
+          "time": {
+              "type": "String"
+          }
       }
-    }
   },
   "remindActionOn": "Remind on {date} at {time}",
   "@remindActionOn": {
-    "description": "Primary button of the reminder sheet for any other day",
-    "placeholders": {
-      "date": {
-        "type": "String"
-      },
-      "time": {
-        "type": "String"
+      "description": "Primary button of the reminder sheet for any other day",
+      "placeholders": {
+          "date": {
+              "type": "String"
+          },
+          "time": {
+              "type": "String"
+          }
       }
-    }
   },
   "remindPast": "That moment has already gone by",
   "@remindPast": {
-    "description": "Shown in place of the reminder sheet's button when the chosen time is in the past"
+      "description": "Shown in place of the reminder sheet's button when the chosen time is in the past"
   },
   "@remindClear": {
     "description": "Clears the note's reminder"
   },
   "nudgeTitle": "Daily nudge",
-  "@nudgeTitle": {
-    "description": "Settings row for the once-a-day notification"
-  },
+  "@nudgeTitle": {"description": "Settings row for the once-a-day notification"},
   "nudgeSubtitle": "One notification a day, at a time you choose",
-  "@nudgeSubtitle": {
-    "description": "Explains the daily nudge"
-  },
+  "@nudgeSubtitle": {"description": "Explains the daily nudge"},
   "nudgeMemoriesTitle": "On this day",
-  "@nudgeMemoriesTitle": {
-    "description": "Settings switch under the daily nudge: allow it to quote a note written on the same date in an earlier year"
-  },
+  "@nudgeMemoriesTitle": {"description": "Settings switch under the daily nudge: allow it to quote a note written on the same date in an earlier year"},
   "nudgeMemoriesSubtitle": "On a day with nothing due, bring back a note you wrote on this date in an earlier year",
-  "@nudgeMemoriesSubtitle": {
-    "description": "Explains the On this day switch of the daily nudge"
-  },
+  "@nudgeMemoriesSubtitle": {"description": "Explains the On this day switch of the daily nudge"},
   "nudgeTime": "Time",
-  "@nudgeTime": {
-    "description": "The row that opens the daily nudge's time picker"
-  },
+  "@nudgeTime": {"description": "The row that opens the daily nudge's time picker"},
   "nudgeGreetingMorning": "Good morning, {name}",
   "@nudgeGreetingMorning": {
     "description": "Notification title before noon",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "nudgeGreetingDay": "Hello, {name}",
   "@nudgeGreetingDay": {
     "description": "Notification title the rest of the day",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "name": { "type": "String" } }
   },
   "nudgeGreetingPlain": "Nex",
-  "@nudgeGreetingPlain": {
-    "description": "Notification title when there is no name"
-  },
+  "@nudgeGreetingPlain": {"description": "Notification title when there is no name"},
   "localModelLicenseGloss": "In short: the model belongs to its maker, it comes with its own terms, and downloading it means accepting them.",
-  "@localModelLicenseGloss": {
-    "description": "Plain-language gloss under the model's verbatim licence notice"
-  },
+  "@localModelLicenseGloss": {"description": "Plain-language gloss under the model's verbatim licence notice"},
   "timeMinutesShort": "{count}m",
   "@timeMinutesShort": {
     "description": "Reminder countdown on a card, minutes",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeHoursShort": "{count}h",
   "@timeHoursShort": {
     "description": "Reminder countdown on a card, hours",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeDaysShort": "{count}d",
   "@timeDaysShort": {
     "description": "Reminder countdown on a card, days",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "remindOverdue": "Overdue",
-  "@remindOverdue": {
-    "description": "A reminder whose time has passed"
-  },
+  "@remindOverdue": {"description": "A reminder whose time has passed"},
   "remindWhenToday": "Today at {time}",
   "@remindWhenToday": {
     "description": "A reminder due later today",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "time": { "type": "String" } }
   },
   "remindWhenTomorrow": "Tomorrow at {time}",
   "@remindWhenTomorrow": {
     "description": "A reminder due tomorrow",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "time": { "type": "String" } }
   },
   "remindWhenOn": "{date} at {time}",
   "@remindWhenOn": {
     "description": "A reminder due on a named date",
-    "placeholders": {
-      "date": {
-        "type": "String"
-      },
-      "time": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "date": { "type": "String" }, "time": { "type": "String" } }
   },
   "remindCurrent": "Set for {when}",
   "@remindCurrent": {
     "description": "Header of the reminder picker when one is already set",
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "when": { "type": "String" } }
   },
   "swipeNoneHint": "This edge does nothing",
-  "@swipeNoneHint": {
-    "description": "Hint under the no-op swipe action"
-  },
+  "@swipeNoneHint": {"description": "Hint under the no-op swipe action"},
   "swipeDeleteHint": "Move the note to Recently Deleted",
-  "@swipeDeleteHint": {
-    "description": "Hint under the delete swipe action"
-  },
+  "@swipeDeleteHint": {"description": "Hint under the delete swipe action"},
   "swipeAddTagHint": "Pick a tag for the note",
-  "@swipeAddTagHint": {
-    "description": "Hint under the add-tag swipe action"
-  },
+  "@swipeAddTagHint": {"description": "Hint under the add-tag swipe action"},
   "swipePinHint": "Keep the note at the top of the timeline",
-  "@swipePinHint": {
-    "description": "Hint under the pin swipe action"
-  },
+  "@swipePinHint": {"description": "Hint under the pin swipe action"},
   "swipeRemindHint": "Choose when it should come back",
-  "@swipeRemindHint": {
-    "description": "Hint under the reminder swipe action"
-  },
+  "@swipeRemindHint": {"description": "Hint under the reminder swipe action"},
   "swipeShareHint": "Send the note to another app",
-  "@swipeShareHint": {
-    "description": "Hint under the share swipe action"
-  },
+  "@swipeShareHint": {"description": "Hint under the share swipe action"},
   "swipeAskHint": "Open the assistant on this note",
-  "@swipeAskHint": {
-    "description": "Hint under the ask-the-assistant swipe action"
-  },
+  "@swipeAskHint": {"description": "Hint under the ask-the-assistant swipe action"},
   "filePreviewTooLarge": "Too large to show here — open it in another app.",
-  "@filePreviewTooLarge": {
-    "description": "A file past the in-app preview size limit"
-  },
+  "@filePreviewTooLarge": {"description": "A file past the in-app preview size limit"},
   "filePreviewUnreadable": "This file could not be read — {error}",
   "@filePreviewUnreadable": {
     "description": "A file that failed to open, with the runtime's own message",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "error": { "type": "String" } }
   },
   "tableTruncated": "Showing the first {count} rows.",
   "@tableTruncated": {
     "description": "A CSV or TSV file with more rows than the preview draws",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "formatBold": "Bold",
-  "@formatBold": {
-    "description": "Selection menu: make the selected text bold"
-  },
+  "@formatBold": {"description": "Selection menu: make the selected text bold"},
   "formatItalic": "Italic",
-  "@formatItalic": {
-    "description": "Selection menu: make the selected text italic"
-  },
+  "@formatItalic": {"description": "Selection menu: make the selected text italic"},
   "formatMono": "Mono",
-  "@formatMono": {
-    "description": "Selection menu: set the selected text in a monospace face"
-  },
+  "@formatMono": {"description": "Selection menu: set the selected text in a monospace face"},
   "formatStrikethrough": "Strikethrough",
-  "@formatStrikethrough": {
-    "description": "Selection menu: strike the selected text through"
-  },
+  "@formatStrikethrough": {"description": "Selection menu: strike the selected text through"},
   "formatQuote": "Quote",
-  "@formatQuote": {
-    "description": "Selection menu: mark the selected lines as a quotation"
-  },
+  "@formatQuote": {"description": "Selection menu: mark the selected lines as a quotation"},
   "formatLink": "Link",
-  "@formatLink": {
-    "description": "Selection menu: turn the selected text into a link"
-  },
+  "@formatLink": {"description": "Selection menu: turn the selected text into a link"},
   "formatClear": "Regular",
-  "@formatClear": {
-    "description": "Selection menu: remove formatting from the selection"
-  },
+  "@formatClear": {"description": "Selection menu: remove formatting from the selection"},
   "documentTruncated": "Only the start of this document is shown — open it in another app for the rest.",
-  "@documentTruncated": {
-    "description": "A .docx longer than the in-app preview reads"
-  },
+  "@documentTruncated": {"description": "A .docx longer than the in-app preview reads"},
   "documentUnreadable": "This document could not be shown here.",
-  "@documentUnreadable": {
-    "description": "A .docx the in-app reader could not open at all"
-  },
+  "@documentUnreadable": {"description": "A .docx the in-app reader could not open at all"},
   "downloadStopped": "Download stopped",
-  "@downloadStopped": {
-    "description": "Shown under the progress bar when a download is interrupted"
-  },
+  "@downloadStopped": {"description": "Shown under the progress bar when a download is interrupted"},
   "resumeDownload": "Resume",
-  "@resumeDownload": {
-    "description": "Button that picks a stopped download up where it left off"
-  },
+  "@resumeDownload": {"description": "Button that picks a stopped download up where it left off"},
   "updateDownloadingTitle": "Downloading update",
-  "@updateDownloadingTitle": {
-    "description": "Notification title while the update downloads"
-  },
+  "@updateDownloadingTitle": {"description": "Notification title while the update downloads"},
   "updateReadyTitle": "Update ready",
-  "@updateReadyTitle": {
-    "description": "Notification title once the installer has landed"
-  },
+  "@updateReadyTitle": {"description": "Notification title once the installer has landed"},
   "updateReadyBody": "Tap to install",
-  "@updateReadyBody": {
-    "description": "Notification body once the installer has landed"
-  },
+  "@updateReadyBody": {"description": "Notification body once the installer has landed"},
   "expandCard": "Show in full",
-  "@expandCard": {
-    "description": "Action that makes a note’s timeline card show all of it"
-  },
+  "@expandCard": {"description": "Action that makes a note’s timeline card show all of it"},
   "collapseCard": "Show two lines",
-  "@collapseCard": {
-    "description": "Action that puts an expanded timeline card back to its normal height"
-  },
+  "@collapseCard": {"description": "Action that puts an expanded timeline card back to its normal height"},
   "guideTitle": "How Nex works",
-  "@guideTitle": {
-    "description": "Title of the user guide screen"
-  },
+  "@guideTitle": {"description": "Title of the user guide screen"},
   "guideSubtitle": "Everything the app does, in one place",
-  "@guideSubtitle": {
-    "description": "Settings row subtitle for the user guide"
-  },
+  "@guideSubtitle": {"description": "Settings row subtitle for the user guide"},
   "guideUnavailable": "The guide could not be opened.",
-  "@guideUnavailable": {
-    "description": "Shown if the bundled guide file is missing"
-  },
+  "@guideUnavailable": {"description": "Shown if the bundled guide file is missing"},
   "onboardingYoursTitle": "It stays yours",
-  "@onboardingYoursTitle": {
-    "description": "Onboarding page title about privacy"
-  },
+  "@onboardingYoursTitle": {"description": "Onboarding page title about privacy"},
   "onboardingYoursBody": "No account and no server: your notes live on this phone and work offline. Lock the app with your fingerprint, keep passwords and cards in a private vault, and back up to a folder you choose — your keys and settings encrypted, your notes in files you can always open. No streaks, no nagging.",
-  "@onboardingYoursBody": {
-    "description": "Onboarding page body about privacy"
-  },
+  "@onboardingYoursBody": {"description": "Onboarding page body about privacy"},
   "onboardingGuideTitle": "Not sure where something is?",
-  "@onboardingGuideTitle": {
-    "description": "Heading above the guide link on the last onboarding step"
-  },
+  "@onboardingGuideTitle": {"description": "Heading above the guide link on the last onboarding step"},
   "onboardingGuideBody": "The guide walks through everything, and it is always in Settings.",
-  "@onboardingGuideBody": {
-    "description": "Text above the guide link on the last onboarding step"
-  },
+  "@onboardingGuideBody": {"description": "Text above the guide link on the last onboarding step"},
   "onboardingGuideOpen": "Read the guide",
-  "@onboardingGuideOpen": {
-    "description": "Button that opens the user guide from onboarding"
-  },
+  "@onboardingGuideOpen": {"description": "Button that opens the user guide from onboarding"},
   "onboardingFindTitle": "Find it again",
-  "@onboardingFindTitle": {
-    "description": "Onboarding page heading about search"
-  },
+  "@onboardingFindTitle": {"description": "Onboarding page heading about search"},
   "onboardingFindBody": "Search reads Persian the way it is typed — either form of a letter, the half-space, Persian or Latin digits — and offers the closest note when nothing matches. Tags, threads and pins are there for later, if you want them.",
-  "@onboardingFindBody": {
-    "description": "Onboarding page body about search"
-  },
+  "@onboardingFindBody": {"description": "Onboarding page body about search"},
   "onboardingFindQuery": "book",
-  "@onboardingFindQuery": {
-    "description": "What the search field types in the onboarding illustration. Persian uses the Arabic spelling on purpose, to show it still matches."
-  },
+  "@onboardingFindQuery": {"description": "What the search field types in the onboarding illustration. Persian uses the Arabic spelling on purpose, to show it still matches."},
   "onboardingFindMatch": "book",
-  "@onboardingFindMatch": {
-    "description": "The word highlighted in the onboarding illustration results; must appear in both results."
-  },
+  "@onboardingFindMatch": {"description": "The word highlighted in the onboarding illustration results; must appear in both results."},
   "onboardingFindResultA": "Borrow a book from the library on Saturday",
-  "@onboardingFindResultA": {
-    "description": "First search result in the onboarding illustration"
-  },
+  "@onboardingFindResultA": {"description": "First search result in the onboarding illustration"},
   "onboardingFindResultB": "Books to read this year",
-  "@onboardingFindResultB": {
-    "description": "Second search result in the onboarding illustration"
-  },
+  "@onboardingFindResultB": {"description": "Second search result in the onboarding illustration"},
   "onboardingFindAi": "AI is optional, and off by default",
-  "@onboardingFindAi": {
-    "description": "Chip under the search illustration in onboarding"
-  },
+  "@onboardingFindAi": {"description": "Chip under the search illustration in onboarding"},
   "onboardingYoursOffline": "Works offline",
-  "@onboardingYoursOffline": {
-    "description": "Point on the onboarding privacy page"
-  },
+  "@onboardingYoursOffline": {"description": "Point on the onboarding privacy page"},
   "onboardingYoursLock": "Fingerprint lock",
-  "@onboardingYoursLock": {
-    "description": "Point on the onboarding privacy page"
-  },
+  "@onboardingYoursLock": {"description": "Point on the onboarding privacy page"},
   "onboardingYoursVault": "Private vault",
-  "@onboardingYoursVault": {
-    "description": "Point on the onboarding privacy page"
-  },
+  "@onboardingYoursVault": {"description": "Point on the onboarding privacy page"},
   "onboardingYoursBackup": "Your own backups",
-  "@onboardingYoursBackup": {
-    "description": "Point on the onboarding privacy page"
-  },
+  "@onboardingYoursBackup": {"description": "Point on the onboarding privacy page"},
   "onboardingSetupPreview": "How Nex will greet you",
-  "@onboardingSetupPreview": {
-    "description": "Caption over the live greeting preview on the last onboarding step"
-  },
+  "@onboardingSetupPreview": {"description": "Caption over the live greeting preview on the last onboarding step"},
   "onboardingStep": "Step {step} of {total}",
   "modulesSearchHint": "Search modules…",
   "modulesSearchEmpty": "No matching modules. Try another name or keyword.",
   "modulesTitle": "Modules",
-  "@modulesTitle": {
-    "description": "Tools → Modules page title, and the Modules shelf heading in Tools"
-  },
+  "@modulesTitle": {"description": "Tools → Modules page title, and the Modules shelf heading in Tools"},
   "modulesIntro": "Tap a module for details. Add only what you need.",
-  "@modulesIntro": {
-    "description": "Intro on the Modules page"
-  },
+  "@modulesIntro": {"description": "Intro on the Modules page"},
   "modulesAdded": "Added",
-  "@modulesAdded": {
-    "description": "Section of modules that are on"
-  },
+  "@modulesAdded": {"description": "Section of modules that are on"},
   "modulesAvailable": "Available",
-  "@modulesAvailable": {
-    "description": "Section of modules that can be added"
-  },
+  "@modulesAvailable": {"description": "Section of modules that can be added"},
   "moduleAdd": "Add",
-  "@moduleAdd": {
-    "description": "Button that adds a module"
-  },
+  "@moduleAdd": {"description": "Button that adds a module"},
   "moduleOpen": "Open",
-  "@moduleOpen": {
-    "description": "Button that opens a module"
-  },
+  "@moduleOpen": {"description": "Button that opens a module"},
   "moduleRemove": "Remove",
-  "@moduleRemove": {
-    "description": "Button that removes a module"
-  },
+  "@moduleRemove": {"description": "Button that removes a module"},
   "modulesManage": "Add modules",
-  "@modulesManage": {
-    "description": "Tools tile that opens the Modules page"
-  },
+  "@modulesManage": {"description": "Tools tile that opens the Modules page"},
   "modulesManageHint": "Extra features, only if you want them",
-  "@modulesManageHint": {
-    "description": "Subtitle of the Tools tile that opens the Modules page"
-  },
+  "@modulesManageHint": {"description": "Subtitle of the Tools tile that opens the Modules page"},
   "modulesMore": "Each one stays out of the app until you add it, and leaves when you remove it.",
-  "@modulesMore": {
-    "description": "Footnote on the Modules page"
-  },
+  "@modulesMore": {"description": "Footnote on the Modules page"},
   "modulesEmpty": "Nothing added yet",
-  "@modulesEmpty": {
-    "description": "Shown under Added when no module is on"
-  },
+  "@modulesEmpty": {"description": "Shown under Added when no module is on"},
   "moduleCyclePointPredict": "Predicts your next period",
-  "@moduleCyclePointPredict": {
-    "description": "Chip on the Cycle module card"
-  },
+  "@moduleCyclePointPredict": {"description": "Chip on the Cycle module card"},
   "moduleCyclePointLog": "Daily log and patterns",
-  "@moduleCyclePointLog": {
-    "description": "Chip on the Cycle module card"
-  },
+  "@moduleCyclePointLog": {"description": "Chip on the Cycle module card"},
   "moduleCyclePointModes": "Pregnancy and more",
-  "@moduleCyclePointModes": {
-    "description": "Chip on the Cycle module card"
-  },
+  "@moduleCyclePointModes": {"description": "Chip on the Cycle module card"},
   "moduleCyclePointPrivate": "Only on this phone",
-  "@moduleCyclePointPrivate": {
-    "description": "Chip on the Cycle module card"
-  },
+  "@moduleCyclePointPrivate": {"description": "Chip on the Cycle module card"},
   "cycleInModules": "In Tools → Modules",
-  "@cycleInModules": {
-    "description": "Settings search result for Cycle, saying where it lives"
-  },
+  "@cycleInModules": {"description": "Settings search result for Cycle, saying where it lives"},
   "moduleRemoveTitle": "Remove {name}?",
-  "@moduleRemoveTitle": {
-    "description": "Title of the remove-module question",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@moduleRemoveTitle": {"description": "Title of the remove-module question", "placeholders": {"name": {"type": "String"}}},
   "moduleRemoveBody": "Its records can stay on this phone, ready if you add it again, or be deleted now.",
-  "@moduleRemoveBody": {
-    "description": "Body of the remove-module question"
-  },
+  "@moduleRemoveBody": {"description": "Body of the remove-module question"},
   "moduleRemoveKeep": "Remove, keep data",
-  "@moduleRemoveKeep": {
-    "description": "Remove a module but keep its data"
-  },
+  "@moduleRemoveKeep": {"description": "Remove a module but keep its data"},
   "moduleRemoveDelete": "Remove and delete",
-  "@moduleRemoveDelete": {
-    "description": "Remove a module and delete its data"
-  },
+  "@moduleRemoveDelete": {"description": "Remove a module and delete its data"},
   "moduleStepPrepare": "Preparing",
-  "@moduleStepPrepare": {
-    "description": "Install step"
-  },
+  "@moduleStepPrepare": {"description": "Install step"},
   "moduleStepSetUp": "Setting up",
-  "@moduleStepSetUp": {
-    "description": "Install step"
-  },
+  "@moduleStepSetUp": {"description": "Install step"},
   "moduleStepAddToTools": "Adding to Tools",
-  "@moduleStepAddToTools": {
-    "description": "Install step"
-  },
+  "@moduleStepAddToTools": {"description": "Install step"},
   "moduleStepRemoveFromTools": "Removing from Tools",
-  "@moduleStepRemoveFromTools": {
-    "description": "Remove step"
-  },
+  "@moduleStepRemoveFromTools": {"description": "Remove step"},
   "moduleStepTidy": "Tidying up",
-  "@moduleStepTidy": {
-    "description": "Remove step"
-  },
+  "@moduleStepTidy": {"description": "Remove step"},
   "moduleAddedBanner": "{name} is in Tools now",
-  "@moduleAddedBanner": {
-    "description": "Banner after a module is added",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@moduleAddedBanner": {"description": "Banner after a module is added", "placeholders": {"name": {"type": "String"}}},
   "moduleNotificationUnavailable": "This module is currently unavailable or switched off.",
-  "@moduleNotificationUnavailable": {
-    "description": "Notification destination fallback message"
-  },
+  "@moduleNotificationUnavailable": {"description": "Notification destination fallback message"},
   "moduleNotificationItemMissing": "This item was removed or archived. Opening its module.",
-  "@moduleNotificationItemMissing": {
-    "description": "Notification destination fallback message"
-  },
+  "@moduleNotificationItemMissing": {"description": "Notification destination fallback message"},
   "moduleRemovedBanner": "{name} removed",
-  "@moduleRemovedBanner": {
-    "description": "Banner after a module is removed",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@moduleRemovedBanner": {"description": "Banner after a module is removed", "placeholders": {"name": {"type": "String"}}},
   "modulesComing": "On the way",
-  "@modulesComing": {
-    "description": "Heading of the coming-soon modules on the Modules page"
-  },
+  "@modulesComing": {"description": "Heading of the coming-soon modules on the Modules page"},
   "moduleStageSoon": "Soon",
-  "@moduleStageSoon": {
-    "description": "Badge: a module coming soon"
-  },
+  "@moduleStageSoon": {"description": "Badge: a module coming soon"},
   "moduleStagePlanned": "Planned",
-  "@moduleStagePlanned": {
-    "description": "Badge: a module that is planned"
-  },
+  "@moduleStagePlanned": {"description": "Badge: a module that is planned"},
   "modulesSuggest": "Have an idea for a module? Tell us",
-  "@modulesSuggest": {
-    "description": "Row at the foot of the Modules page that opens feedback"
-  },
+  "@modulesSuggest": {"description": "Row at the foot of the Modules page that opens feedback"},
   "moduleIdeaTitle": "An idea for a module",
-  "@moduleIdeaTitle": {
-    "description": "Title of the module-idea sheet opened from the Modules page"
-  },
+  "@moduleIdeaTitle": {"description": "Title of the module-idea sheet opened from the Modules page"},
   "moduleIdeaLead": "What would you add to Nex? A sentence or two is enough: what it is for, and who it would help.",
-  "@moduleIdeaLead": {
-    "description": "Lead under the module-idea title"
-  },
+  "@moduleIdeaLead": {"description": "Lead under the module-idea title"},
   "moduleIdeaHint": "For example: a shelf for warranty cards, with a reminder a month before each one runs out",
-  "@moduleIdeaHint": {
-    "description": "Hint in the module-idea text box"
-  },
+  "@moduleIdeaHint": {"description": "Hint in the module-idea text box"},
   "moduleIdeaSend": "Send the idea",
-  "@moduleIdeaSend": {
-    "description": "Send button of the module-idea sheet"
-  },
+  "@moduleIdeaSend": {"description": "Send button of the module-idea sheet"},
   "planSmokeFreeTitle": "Smoke-free",
-  "@planSmokeFreeTitle": {
-    "description": "Planned module title: quitting smoking"
-  },
+  "@planSmokeFreeTitle": {"description": "Planned module title: quitting smoking"},
   "planSmokeFreeAbout": "Counts the days, the cigarettes not smoked and the money kept. A craving logged in one tap, what sets them off, and what your body gets back along the way.",
-  "@planSmokeFreeAbout": {
-    "description": "Planned module: quitting smoking"
-  },
+  "@planSmokeFreeAbout": {"description": "Planned module: quitting smoking"},
   "planGoldTitle": "Gold check",
-  "@planGoldTitle": {
-    "description": "Planned module title: gold buying helper"
-  },
+  "@planGoldTitle": {"description": "Planned module title: gold buying helper"},
   "planGoldAbout": "Before you pay, what the piece should cost: weight, karat and the day's price, with the making charge, the seller's profit and the tax worked out the way the invoice should show them. Each piece's receipt kept for the day you sell.",
-  "@planGoldAbout": {
-    "description": "Planned module: gold buying helper"
-  },
+  "@planGoldAbout": {"description": "Planned module: gold buying helper"},
   "planParkingTitle": "Where I parked",
-  "@planParkingTitle": {
-    "description": "Planned module title: parking spot"
-  },
+  "@planParkingTitle": {"description": "Planned module title: parking spot"},
   "planParkingAbout": "One tap saves where the car is: the spot on a map, the floor and pillar, a photo and a note. A reminder before the parking time runs out.",
-  "@planParkingAbout": {
-    "description": "Planned module: parking spot"
-  },
+  "@planParkingAbout": {"description": "Planned module: parking spot"},
   "planTelegramTitle": "Telegram bridge",
-  "@planTelegramTitle": {
-    "description": "Planned module title: Telegram connection"
-  },
+  "@planTelegramTitle": {"description": "Planned module title: Telegram connection"},
   "planTelegramAbout": "Forward a message to your own Telegram bot and it lands in Nex as a note. Your bot and your token, read straight from this phone, with no server of ours in between.",
-  "@planTelegramAbout": {
-    "description": "Planned module: Telegram connection"
-  },
+  "@planTelegramAbout": {"description": "Planned module: Telegram connection"},
   "planChequeManagerTitle": "Cheque manager",
-  "@planChequeManagerTitle": {
-    "description": "Coming-soon module: Iranian cheque management"
-  },
+  "@planChequeManagerTitle": {"description": "Coming-soon module: Iranian cheque management"},
   "planChequeManagerAbout": "Track incoming and outgoing cheques, due dates and collection status, with Persian-calendar dates and reminders tailored to the Iranian market.",
-  "@planChequeManagerAbout": {
-    "description": "Coming-soon module: Iranian cheque management"
-  },
+  "@planChequeManagerAbout": {"description": "Coming-soon module: Iranian cheque management"},
   "planLanguageLearningTitle": "Language learning",
-  "@planLanguageLearningTitle": {
-    "description": "Coming-soon module: advanced language learning"
-  },
+  "@planLanguageLearningTitle": {"description": "Coming-soon module: advanced language learning"},
   "planLanguageLearningAbout": "Learn and review a language through short lessons and exercises, learning cards on the home screen and interactive notification reminders.",
-  "@planLanguageLearningAbout": {
-    "description": "Coming-soon module: advanced language learning"
-  },
+  "@planLanguageLearningAbout": {"description": "Coming-soon module: advanced language learning"},
   "planPromptStudioTitle": "Prompt Studio",
-  "@planPromptStudioTitle": {
-    "description": "Planned module title: turns a plain request into a well-made AI prompt"
-  },
+  "@planPromptStudioTitle": {"description": "Planned module title: turns a plain request into a well-made AI prompt"},
   "planPromptStudioAbout": "Write what you want in plain words, and Nex turns it into a clear, complete prompt for any AI: the role, the context, the steps and the shape of the answer. Keep the ones that work as notes. It uses your own AI provider.",
-  "@planPromptStudioAbout": {
-    "description": "Planned module: turns a plain request into a well-made AI prompt"
-  },
+  "@planPromptStudioAbout": {"description": "Planned module: turns a plain request into a well-made AI prompt"},
   "planWordsTitle": "Word by word",
-  "@planWordsTitle": {
-    "description": "Planned module title: language learning"
-  },
+  "@planWordsTitle": {"description": "Planned module title: language learning"},
   "planWordsAbout": "Save words and phrases from whatever you read, then review a few at a time, spaced so they stay. Your own notes become the lesson.",
-  "@planWordsAbout": {
-    "description": "Planned module: language learning"
-  },
+  "@planWordsAbout": {"description": "Planned module: language learning"},
   "planMedicineTitle": "Medicine cabinet",
-  "@planMedicineTitle": {
-    "description": "Planned module title: medicines"
-  },
+  "@planMedicineTitle": {"description": "Planned module title: medicines"},
   "planMedicineAbout": "What you take and when, a gentle reminder for each dose, and the boxes in the cupboard with their expiry dates.",
-  "@planMedicineAbout": {
-    "description": "Planned module: medicines"
-  },
+  "@planMedicineAbout": {"description": "Planned module: medicines"},
   "planWarrantyTitle": "Warranties",
-  "@planWarrantyTitle": {
-    "description": "Planned module title: warranties and receipts"
-  },
+  "@planWarrantyTitle": {"description": "Planned module title: warranties and receipts"},
   "planWarrantyAbout": "The receipt and the warranty card of everything you buy, in a photo, and a reminder before the warranty ends, while a call still costs nothing.",
-  "@planWarrantyAbout": {
-    "description": "Planned module: warranties"
-  },
+  "@planWarrantyAbout": {"description": "Planned module: warranties"},
   "planLentTitle": "Lent & borrowed",
-  "@planLentTitle": {
-    "description": "Planned module title: lending"
-  },
+  "@planLentTitle": {"description": "Planned module title: lending"},
   "planLentAbout": "Who owes you and whom you owe, money or things, with a quiet reminder on the day it was due back.",
-  "@planLentAbout": {
-    "description": "Planned module: lending"
-  },
+  "@planLentAbout": {"description": "Planned module: lending"},
   "planHabitsTitle": "Habits",
-  "@planHabitsTitle": {
-    "description": "Planned module title: habits"
-  },
+  "@planHabitsTitle": {"description": "Planned module title: habits"},
   "planHabitsAbout": "The small things you want to keep doing, ticked off in a tap, with streaks that forgive a missed day.",
-  "@planHabitsAbout": {
-    "description": "Planned module: habits"
-  },
-  "@onboardingStep": {
-    "description": "Screen-reader label for the onboarding progress bar",
-    "placeholders": {
-      "step": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "total": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@planHabitsAbout": {"description": "Planned module: habits"},
+  "@onboardingStep": {"description": "Screen-reader label for the onboarding progress bar", "placeholders": {"step": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
   "addLink": "Add link",
-  "@addLink": {
-    "description": "Title of the dialog asking where a link should point"
-  },
+  "@addLink": {"description": "Title of the dialog asking where a link should point"},
   "linkAddress": "Address",
-  "@linkAddress": {
-    "description": "Label of the field holding a link’s URL"
-  },
+  "@linkAddress": {"description": "Label of the field holding a link’s URL"},
   "remindSetIn": "Reminder set — {when} from now",
   "@remindSetIn": {
     "description": "Confirms a reminder and says how far off it is",
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    }
+    "placeholders": { "when": { "type": "String" } }
   },
   "remindInDays": "{count, plural, =1{1 day} other{{count} days}}",
   "@remindInDays": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "remindInHours": "{count, plural, =1{1 hour} other{{count} hours}}",
   "@remindInHours": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "remindInMinutes": "{count, plural, =1{1 minute} other{{count} minutes}}",
   "@remindInMinutes": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "remindNotScheduled": "That time was saved on the note, but this phone would not take the alarm.",
-  "@remindNotScheduled": {
-    "description": "Scheduling failed even though the due date was stored"
-  },
+  "@remindNotScheduled": {"description": "Scheduling failed even though the due date was stored"},
   "remindDenied": "Nex needs permission to send notifications.",
   "@remindDenied": {
     "description": "Shown when notification permission is refused"
@@ -4352,26 +2973,16 @@
     "description": "Shown in the results area when a search throws"
   },
   "cycleStepFewer": "One day fewer",
-  "@cycleStepFewer": {
-    "description": "Tooltip on the minus button of a Cycle length stepper."
-  },
+  "@cycleStepFewer": {"description": "Tooltip on the minus button of a Cycle length stepper."},
   "cycleStepMore": "One day more",
-  "@cycleStepMore": {
-    "description": "Tooltip on the plus button of a Cycle length stepper."
-  },
+  "@cycleStepMore": {"description": "Tooltip on the plus button of a Cycle length stepper."},
   "assistantHoldHint": "Hold + for the assistant",
   "gotIt": "Got it",
-  "@assistantHoldHint": {
-    "description": "One-time capsule over the + button; tapping it dismisses it."
-  },
+  "@assistantHoldHint": {"description": "One-time capsule over the + button; tapping it dismisses it."},
   "aiAnalyzeVideo": "Analyze video",
-  "@aiAnalyzeVideo": {
-    "description": "AI tool on a YouTube link: watch the video and summarise what is in it."
-  },
+  "@aiAnalyzeVideo": {"description": "AI tool on a YouTube link: watch the video and summarise what is in it."},
   "aiVideoFailed": "Couldn't reach Gemini to analyze this video. Check the connection and try again.",
-  "@aiVideoFailed": {
-    "description": "Shown when a YouTube video analysis returns nothing."
-  },
+  "@aiVideoFailed": {"description": "Shown when a YouTube video analysis returns nothing."},
   "summarizeFailed": "No summary came back for this note.",
   "@summarizeFailed": {
     "description": "Shown when an on-demand summary produces nothing"
@@ -4379,25 +2990,12 @@
   "unsavedChanges": "Discard unsaved changes?",
   "keepEditing": "Keep editing",
   "checklistItemCount": "{count, plural, one{1 item} other{{count} items}}",
-  "@checklistItemCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@checklistItemCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "annotateColor": "{color, select, white{White} black{Black} red{Red} yellow{Yellow} green{Green} blue{Blue} other{Color}}",
   "annotateStrokeWidth": "Stroke width",
   "playAudio": "Play audio",
   "pauseAudio": "Pause audio",
-  "@annotateColor": {
-    "placeholders": {
-      "color": {
-        "type": "String"
-      }
-    }
-  },
+  "@annotateColor": {"placeholders": {"color": {"type": "String"}}},
   "convertToMarkdown": "Convert to MD",
   "convertToNote": "Convert to note",
   "markdownConvertFailed": "Could not convert this file. The original is still safe. Markdown files must be UTF-8 and at most 16 MB.",
@@ -4475,48 +3073,21 @@
   "threadDeleteBody": "The thread goes; its notes stay exactly where they are.",
   "threadRemoveNote": "Remove from thread",
   "threadNoteCount": "{count, plural, =1{1 note} other{{count} notes}}",
-  "@threadNoteCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@threadNoteCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "threadEmpty": "No notes in this thread any more.",
   "threadSuggestJoin": "Continues “{name}”?",
-  "@threadSuggestJoin": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@threadSuggestJoin": {"placeholders": {"name": {"type": "String"}}},
   "threadSuggestStart": "Start a thread “{name}”?",
-  "@threadSuggestStart": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@threadSuggestStart": {"placeholders": {"name": {"type": "String"}}},
   "threadSuggestAdd": "Add",
   "threadSuggestStartAction": "Start",
   "threadAdded": "Added to “{name}”",
-  "@threadAdded": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@threadAdded": {"placeholders": {"name": {"type": "String"}}},
   "threadSuggestions": "Suggest threads after a capture",
   "threadSuggestionsSubtitle": "Only when a new note clearly continues an earlier one. Nothing is added without a tap.",
   "searchByMeaning": "Found by meaning",
   "splashTagline": "One mind. A thousand connections.",
-  "@splashTagline": {
-    "description": "The line under the Nex wordmark on the opening screen: the octopus mark, one mind with many arms, joining the pieces of a life."
-  },
+  "@splashTagline": {"description": "The line under the Nex wordmark on the opening screen: the octopus mark, one mind with many arms, joining the pieces of a life."},
   "cameraClose": "Close camera",
   "cameraShutter": "Take photo",
   "cameraOptions": "Camera options",
@@ -4528,37 +3099,21 @@
   "cameraUseSystem": "Use the camera app",
   "cameraStarting": "Turning the camera on…",
   "cameraHoldForVideo": "Hold the shutter to record a video",
-  "@cameraHoldForVideo": {
-    "description": "Below the shutter in the camera panel; describes the press-and-hold gesture."
-  },
+  "@cameraHoldForVideo": {"description": "Below the shutter in the camera panel; describes the press-and-hold gesture."},
   "cameraRecordVideo": "Record a video",
-  "@cameraRecordVideo": {
-    "description": "Camera options menu: starts recording without the hold gesture, for switch access."
-  },
+  "@cameraRecordVideo": {"description": "Camera options menu: starts recording without the hold gesture, for switch access."},
   "cameraGallery": "Photos and videos",
-  "@cameraGallery": {
-    "description": "Camera options menu: picks an existing photo or video from the phone instead of taking a new one."
-  },
+  "@cameraGallery": {"description": "Camera options menu: picks an existing photo or video from the phone instead of taking a new one."},
   "cameraStopRecording": "Stop recording",
-  "@cameraStopRecording": {
-    "description": "Tooltip on the shutter and the stop button while a video is being recorded."
-  },
+  "@cameraStopRecording": {"description": "Tooltip on the shutter and the stop button while a video is being recorded."},
   "cameraRecordingElapsed": "Recording, {elapsed}",
-  "@cameraRecordingElapsed": {
-    "description": "Screen reader announcement while a video records; elapsed is mm:ss."
-  },
+  "@cameraRecordingElapsed": {"description": "Screen reader announcement while a video records; elapsed is mm:ss."},
   "cameraSilentVideo": "Recording without sound — the microphone is off",
-  "@cameraSilentVideo": {
-    "description": "Shown in the camera panel when the microphone was refused but video still records."
-  },
+  "@cameraSilentVideo": {"description": "Shown in the camera panel when the microphone was refused but video still records."},
   "cameraVideoTooShort": "Hold a little longer to record",
-  "@cameraVideoTooShort": {
-    "description": "Shown when the shutter was held too briefly for a video; the clip was discarded."
-  },
+  "@cameraVideoTooShort": {"description": "Shown when the shutter was held too briefly for a video; the clip was discarded."},
   "cameraVideoTooLarge": "That clip is too large to keep",
-  "@cameraVideoTooLarge": {
-    "description": "Shown when a recording came out larger than the attachment limit; the clip was discarded."
-  },
+  "@cameraVideoTooLarge": {"description": "Shown when a recording came out larger than the attachment limit; the clip was discarded."},
   "disclosuresTitle": "What left this device",
   "disclosuresRow": "Every request Nex made to an AI provider",
   "disclosuresIntro": "Each time Nex sent something to an AI provider: which one, what for, what kind of content and from which notes. This record stays on this phone, is never uploaded and is not part of any backup. An offline model sends nothing and never appears here.",
@@ -4566,23 +3121,9 @@
   "disclosuresClear": "Clear record",
   "disclosuresClearBody": "Delete this record of what was sent? What was already sent is not affected.",
   "disclosuresFromNotes": "{count, plural, =1{From 1 note} other{From {count} notes}}",
-  "@disclosuresFromNotes": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@disclosuresFromNotes": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "disclosuresNotesGone": "{count, plural, =1{1 note has since been deleted.} other{{count} notes have since been deleted.}}",
-  "@disclosuresNotesGone": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@disclosuresNotesGone": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "disclosureChat": "Assistant question",
   "disclosureTags": "Tag suggestions",
   "disclosureSummary": "Note summary",
@@ -4604,24 +3145,9 @@
   "backupFolderChoose": "Choose folder",
   "backupFolderKeyHint": "Every automatic copy is locked with this recovery code. Keep it somewhere other than this phone: without it the settings and keys in a copy cannot be restored.",
   "backupFolderStatus": "{folder} · last copy {when}",
-  "@backupFolderStatus": {
-    "placeholders": {
-      "folder": {
-        "type": "String"
-      },
-      "when": {
-        "type": "String"
-      }
-    }
-  },
+  "@backupFolderStatus": {"placeholders": {"folder": {"type": "String"}, "when": {"type": "String"}}},
   "backupFolderNever": "{folder} · no copy yet",
-  "@backupFolderNever": {
-    "placeholders": {
-      "folder": {
-        "type": "String"
-      }
-    }
-  },
+  "@backupFolderNever": {"placeholders": {"folder": {"type": "String"}}},
   "backupFolderFailed": "The last copy did not reach the folder. Check that it is still available, or choose it again.",
   "backupFolderCopyNow": "Copy now",
   "backupFolderShowKey": "Recovery code",
@@ -4641,75 +3167,26 @@
   "metricsCapture": "Capture, from opening to saved",
   "metricsSearch": "Search, to opening a note",
   "metricsValue": "Usually {median} · slowest {slow}",
-  "@metricsValue": {
-    "placeholders": {
-      "median": {
-        "type": "String"
-      },
-      "slow": {
-        "type": "String"
-      }
-    }
-  },
+  "@metricsValue": {"placeholders": {"median": {"type": "String"}, "slow": {"type": "String"}}},
   "metricsCount": "{count, plural, =1{1 time} other{{count} times}}",
-  "@metricsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@metricsCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "metricsNoData": "Not measured yet",
   "metricsSessions": "Captures without an error",
   "metricsSessionsValue": "{clean} of {total} sessions with a capture",
-  "@metricsSessionsValue": {
-    "placeholders": {
-      "clean": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
-  },
+  "@metricsSessionsValue": {"placeholders": {"clean": {"type": "String"}, "total": {"type": "String"}}},
   "metricsMs": "{value} ms",
-  "@metricsMs": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
+  "@metricsMs": {"placeholders": {"value": {"type": "String"}}},
   "metricsSeconds": "{value} s",
-  "@metricsSeconds": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
+  "@metricsSeconds": {"placeholders": {"value": {"type": "String"}}},
   "metricsFootnote": "Timed from Nex's own code starting, on cold starts only. \"Slowest\" is the slowest one in ten.",
   "feedbackAttachMetrics": "Attach my speed measurements",
   "feedbackAttachMetricsHint": "Timings and counts only — nothing from your notes. Shown below before sending.",
   "backupFolderFailedCode": "The recovery code for this folder is missing. Choose the folder again to make a new one.",
   "backupFolderFailedAccess": "Nex no longer has access to this folder. Choose it again.",
   "backupFolderFailedBackup": "The backup could not be made ({detail}).",
-  "@backupFolderFailedBackup": {
-    "placeholders": {
-      "detail": {
-        "type": "String"
-      }
-    }
-  },
+  "@backupFolderFailedBackup": {"placeholders": {"detail": {"type": "String"}}},
   "backupFolderFailedWrite": "The folder's app did not accept the file ({detail}). Try again, or choose a folder on this phone.",
-  "@backupFolderFailedWrite": {
-    "placeholders": {
-      "detail": {
-        "type": "String"
-      }
-    }
-  },
+  "@backupFolderFailedWrite": {"placeholders": {"detail": {"type": "String"}}},
   "cardDensity": "Card size",
   "timelineView": "View",
   "timelineViewList": "List",
@@ -4719,51 +3196,16 @@
   "cardDensityReadable": "Easier to read",
   "selectNotes": "Select",
   "selectionCount": "{count, plural, =1{1 selected} other{{count} selected}}",
-  "@selectionCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@selectionCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "selectionClose": "Stop selecting",
   "selectionCopied": "{count, plural, =1{Copied 1 note} other{Copied {count} notes}}",
-  "@selectionCopied": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@selectionCopied": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "selectionTagged": "{count, plural, =1{Tagged 1 note} other{Tagged {count} notes}}",
-  "@selectionTagged": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@selectionTagged": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "selectionPinned": "{count, plural, =1{Pinned 1 note} other{Pinned {count} notes}}",
-  "@selectionPinned": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@selectionPinned": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "selectionUnpinned": "{count, plural, =1{Unpinned 1 note} other{Unpinned {count} notes}}",
-  "@selectionUnpinned": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@selectionUnpinned": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "recoveryCodeCopy": "Copy the recovery code",
   "assistantSettingPalette": "Colour palette",
   "@assistantSettingPalette": {
@@ -4823,185 +3265,83 @@
   "editPhotoBeforeCapture": "Edit photos before capture",
   "editPhotoBeforeCaptureSubtitle": "Open the preview and editing tools after taking or choosing a photo. Off saves it straight away.",
   "pauseTitle": "Breathing break",
-  "@pauseTitle": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseTitle": {"description": "Pause (breathing break) module"},
   "pauseTagline": "A minute or two of guided breathing",
-  "@pauseTagline": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseTagline": {"description": "Pause (breathing break) module"},
   "pausePointModes": "Calm, Focus and Relax",
-  "@pausePointModes": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pausePointModes": {"description": "Pause (breathing break) module"},
   "pausePointMotion": "Motion that follows each breath",
-  "@pausePointMotion": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pausePointMotion": {"description": "Pause (breathing break) module"},
   "pausePointSound": "Sound made on the phone, nothing downloaded",
-  "@pausePointSound": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pausePointSound": {"description": "Pause (breathing break) module"},
   "pausePointHaptics": "Taps you can follow with your eyes closed",
-  "@pausePointHaptics": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pausePointHaptics": {"description": "Pause (breathing break) module"},
   "pauseModeCalm": "Calm",
-  "@pauseModeCalm": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseModeCalm": {"description": "Pause (breathing break) module"},
   "pauseModeFocus": "Focus",
-  "@pauseModeFocus": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseModeFocus": {"description": "Pause (breathing break) module"},
   "pauseModeRelax": "Relax",
-  "@pauseModeRelax": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseModeRelax": {"description": "Pause (breathing break) module"},
   "pauseForCalm": "For calm",
-  "@pauseForCalm": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseForCalm": {"description": "Pause (breathing break) module"},
   "pauseForFocus": "For focus",
-  "@pauseForFocus": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseForFocus": {"description": "Pause (breathing break) module"},
   "pauseForRelax": "For relax",
-  "@pauseForRelax": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseForRelax": {"description": "Pause (breathing break) module"},
   "pauseAboutCalm": "Calm your mind. Find balance.",
-  "@pauseAboutCalm": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseAboutCalm": {"description": "Pause (breathing break) module"},
   "pauseAboutFocus": "Ease stress. Sharpen focus.",
-  "@pauseAboutFocus": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseAboutFocus": {"description": "Pause (breathing break) module"},
   "pauseAboutRelax": "Wind down. Sleep better.",
-  "@pauseAboutRelax": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseAboutRelax": {"description": "Pause (breathing break) module"},
   "pauseRhythm": "{rhythm} s · {breaths} breaths · {length}",
-  "@pauseRhythm": {
-    "description": "Pause (breathing break) module",
-    "placeholders": {
-      "rhythm": {
-        "type": "String"
-      },
-      "breaths": {
-        "type": "String"
-      },
-      "length": {
-        "type": "String"
-      }
-    }
-  },
+  "@pauseRhythm": {"description": "Pause (breathing break) module", "placeholders": {"rhythm": {"type": "String"}, "breaths": {"type": "String"}, "length": {"type": "String"}}},
   "pauseStart": "Start",
-  "@pauseStart": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseStart": {"description": "Pause (breathing break) module"},
   "pauseLengthShort": "Short",
-  "@pauseLengthShort": {
-    "description": "Pause (breathing break) module: the short session length"
-  },
+  "@pauseLengthShort": {"description": "Pause (breathing break) module: the short session length"},
   "pauseLengthStandard": "Standard",
-  "@pauseLengthStandard": {
-    "description": "Pause (breathing break) module: the standard session length"
-  },
+  "@pauseLengthStandard": {"description": "Pause (breathing break) module: the standard session length"},
   "pauseLengthLong": "Long",
-  "@pauseLengthLong": {
-    "description": "Pause (breathing break) module: the long session length"
-  },
+  "@pauseLengthLong": {"description": "Pause (breathing break) module: the long session length"},
   "pauseCardAction": "Double-tap to pause or carry on",
-  "@pauseCardAction": {
-    "description": "Pause (breathing break) module: what tapping the session card does"
-  },
+  "@pauseCardAction": {"description": "Pause (breathing break) module: what tapping the session card does"},
   "pauseSound": "Sound",
-  "@pauseSound": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseSound": {"description": "Pause (breathing break) module"},
   "pauseSoundAbout": "A soft chord and chimes that follow the breath",
-  "@pauseSoundAbout": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseSoundAbout": {"description": "Pause (breathing break) module"},
   "pauseHaptics": "Vibration",
-  "@pauseHaptics": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseHaptics": {"description": "Pause (breathing break) module"},
   "pauseHapticsAbout": "Taps that quicken as you breathe in and slow as you breathe out",
-  "@pauseHapticsAbout": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseHapticsAbout": {"description": "Pause (breathing break) module"},
   "pauseInhale": "Inhale",
-  "@pauseInhale": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseInhale": {"description": "Pause (breathing break) module"},
   "pauseExhale": "Exhale",
-  "@pauseExhale": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseExhale": {"description": "Pause (breathing break) module"},
   "pauseHold": "Hold",
-  "@pauseHold": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseHold": {"description": "Pause (breathing break) module"},
   "pausePaused": "Paused",
-  "@pausePaused": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pausePaused": {"description": "Pause (breathing break) module"},
   "pauseTapToResume": "Tap to carry on",
-  "@pauseTapToResume": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseTapToResume": {"description": "Pause (breathing break) module"},
   "pauseDoneTitle": "Well done",
-  "@pauseDoneTitle": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseDoneTitle": {"description": "Pause (breathing break) module"},
   "pauseDoneBody": "{breaths} breaths · {length}",
-  "@pauseDoneBody": {
-    "description": "Pause (breathing break) module",
-    "placeholders": {
-      "breaths": {
-        "type": "String"
-      },
-      "length": {
-        "type": "String"
-      }
-    }
-  },
+  "@pauseDoneBody": {"description": "Pause (breathing break) module", "placeholders": {"breaths": {"type": "String"}, "length": {"type": "String"}}},
   "pauseAgain": "Again",
-  "@pauseAgain": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseAgain": {"description": "Pause (breathing break) module"},
   "pauseBreathsLeft": "{count} breaths left",
-  "@pauseBreathsLeft": {
-    "description": "Pause (breathing break) module",
-    "placeholders": {
-      "count": {
-        "type": "String"
-      }
-    }
-  },
+  "@pauseBreathsLeft": {"description": "Pause (breathing break) module", "placeholders": {"count": {"type": "String"}}},
   "pauseSoundOn": "Sound on",
-  "@pauseSoundOn": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseSoundOn": {"description": "Pause (breathing break) module"},
   "pauseSoundOff": "Sound off",
-  "@pauseSoundOff": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseSoundOff": {"description": "Pause (breathing break) module"},
   "pauseHapticsOn": "Vibration on",
-  "@pauseHapticsOn": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseHapticsOn": {"description": "Pause (breathing break) module"},
   "pauseHapticsOff": "Vibration off",
-  "@pauseHapticsOff": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseHapticsOff": {"description": "Pause (breathing break) module"},
   "pauseEnd": "End the session",
-  "@pauseEnd": {
-    "description": "Pause (breathing break) module"
-  },
+  "@pauseEnd": {"description": "Pause (breathing break) module"},
   "planPauseAbout": "A brief breathing break with calm, focus and relax modes. Gentle motion follows each breath, with optional vibration and offline use.",
   "aiDescribeImage": "Describe & read image",
   "aiTranscribeAudio": "Transcribe audio",
@@ -5054,21 +3394,9 @@
   "zoomIn": "Zoom in",
   "resetZoom": "Reset zoom",
   "pdfPageShort": "{page} / {total}",
-  "@pdfPageShort": {
-    "description": "The page counter over a PDF page, e.g. 3 / 12.",
-    "placeholders": {
-      "page": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
-  },
+  "@pdfPageShort": {"description": "The page counter over a PDF page, e.g. 3 / 12.", "placeholders": {"page": {"type": "String"}, "total": {"type": "String"}}},
   "pdfGoToPage": "Go to page",
-  "@pdfGoToPage": {
-    "description": "Title of the sheet that jumps to a PDF page, and the hint on the page counter."
-  },
+  "@pdfGoToPage": {"description": "Title of the sheet that jumps to a PDF page, and the hint on the page counter."},
   "pdfPageCount": "Page {page} of {total}",
   "@pdfPageCount": {
     "placeholders": {
@@ -5083,22 +3411,10 @@
   "aiProviderNoneLabel": "On-device only",
   "aiProviderCustomLabel": "Custom (OpenAI-compatible)",
   "aiModelDefault": "Left empty, {model} is used.",
-  "@aiModelDefault": {
-    "placeholders": {
-      "model": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiModelDefault": {"placeholders": {"model": {"type": "String"}}},
   "aiModelBrowse": "Choose from the provider's list",
   "aiModelBrowseTitle": "Models at {provider}",
-  "@aiModelBrowseTitle": {
-    "placeholders": {
-      "provider": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiModelBrowseTitle": {"placeholders": {"provider": {"type": "String"}}},
   "aiModelBrowseSearch": "Search models",
   "aiModelBrowseEmpty": "No model matches.",
   "aiModelBrowseNeedsKey": "Enter the API key first.",
@@ -5107,13 +3423,7 @@
   "aiCanDoTitle": "What this model can do",
   "aiCanDoChecking": "Checking with a few small test requests…",
   "aiCanDoCheckedAt": "Checked {date}",
-  "@aiCanDoCheckedAt": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiCanDoCheckedAt": {"placeholders": {"date": {"type": "String"}}},
   "aiCanDoUnchecked": "Not checked yet. Test connection also finds out what the model can do.",
   "aiCanDoStale": "The fields changed since the last check. Test again to check this model.",
   "aiCanDoPrivacy": "The check sends only test material Nex makes itself — a picture of a number, a second of tone, one sentence and a public YouTube video — never your notes.",
@@ -5129,51 +3439,21 @@
   "aiCanVideoUse": "What a saved video says, in a few lines",
   "aiCanWorks": "Works",
   "aiCanWorksWith": "Works · {model}",
-  "@aiCanWorksWith": {
-    "placeholders": {
-      "model": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiCanWorksWith": {"placeholders": {"model": {"type": "String"}}},
   "aiCanChecking": "Checking…",
   "aiCanExpected": "Should work · not checked yet",
   "aiCanUncheckedOff": "Off until a check finds it",
   "aiCanRefusedImages": "This model did not read the test picture",
   "aiCanRefusedAudio": "The speech model {model} was refused",
-  "@aiCanRefusedAudio": {
-    "placeholders": {
-      "model": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiCanRefusedAudio": {"placeholders": {"model": {"type": "String"}}},
   "aiCanRefusedSearch": "The embedding model {model} was refused",
-  "@aiCanRefusedSearch": {
-    "placeholders": {
-      "model": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiCanRefusedSearch": {"placeholders": {"model": {"type": "String"}}},
   "aiCanRefusedVideo": "This model cannot watch videos",
   "aiCanFailedBefore": "Did not pass the last check",
   "aiCanAbsentAudio": "{provider} has no speech-to-text service",
-  "@aiCanAbsentAudio": {
-    "placeholders": {
-      "provider": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiCanAbsentAudio": {"placeholders": {"provider": {"type": "String"}}},
   "aiCanAbsentSearch": "{provider} has no embedding service for search",
-  "@aiCanAbsentSearch": {
-    "placeholders": {
-      "provider": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiCanAbsentSearch": {"placeholders": {"provider": {"type": "String"}}},
   "aiCanAbsentAddress": "Needs its address under Speech and search models",
   "aiCanAbsentVideo": "Only Google Gemini can watch YouTube videos",
   "aiCanUnknown": "Could not be checked just now — try again later",
@@ -5186,16 +3466,7 @@
   "aiVideoFailedLimit": "Gemini's usage limit was reached. On a free plan this usually means the video is long — wait a minute and try again, or try a shorter video.",
   "aiVideoFailedSlow": "Watching this video took too long. Try again, or try a shorter video.",
   "aiVideoFailedRefused": "Gemini didn't watch this video ({code}): {reason}",
-  "@aiVideoFailedRefused": {
-    "placeholders": {
-      "code": {
-        "type": "String"
-      },
-      "reason": {
-        "type": "String"
-      }
-    }
-  },
+  "@aiVideoFailedRefused": {"placeholders": {"code": {"type": "String"}, "reason": {"type": "String"}}},
   "aiVideoRefusedReason": "it may be private, age-restricted or too long for this model",
   "aiVideoFailedSilent": "Gemini answered without saying anything about the video. Try again.",
   "aiVideoFailedChanged": "The note was deleted or its link changed while the video was being watched, so nothing was kept.",
@@ -5209,31 +3480,11 @@
   "setAsidePickDate": "Pick a date…",
   "setAsideDone": "Archived",
   "setAsideDoneUntil": "Archived until {when}",
-  "@setAsideDoneUntil": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    }
-  },
+  "@setAsideDoneUntil": {"placeholders": {"when": {"type": "String"}}},
   "setAsideGroupDone": "{count} notes archived",
-  "@setAsideGroupDone": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@setAsideGroupDone": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "setAsideBackBanner": "{count} notes are back from the archive",
-  "@setAsideBackBanner": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@setAsideBackBanner": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "setAsideBringBack": "Unarchive",
   "setAsideSection": "Archive",
   "setAsideSectionHint": "Off the home screen, not gone",
@@ -5241,96 +3492,37 @@
   "setAsideEmptyTitle": "The archive is empty",
   "setAsideEmptyBody": "Hold a note and choose Archive to keep it out of the way for now. It stays searchable and can come back on its own.",
   "setAsideBackOn": "Back {when}",
-  "@setAsideBackOn": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    }
-  },
+  "@setAsideBackOn": {"placeholders": {"when": {"type": "String"}}},
   "setAsideMark": "Archived",
   "setAsideCountLabel": "{count, plural, =1{1 archived note} other{{count} archived notes}}",
-  "@setAsideCountLabel": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@setAsideCountLabel": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "setAsideAllClear": "All clear",
   "setAsideView": "Open the archive",
   "archiveReadOnly": "Archived — read only until you unarchive it.",
   "archiveComingBack": "Coming back on their own",
   "archiveWaiting": "Waiting for you",
   "archiveBackIn": "{count, plural, =0{Back today} =1{Back tomorrow} other{Back in {count} days}}",
-  "@archiveBackIn": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@archiveBackIn": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "trashRestored": "Note restored",
   "trashDeletedForever": "Deleted permanently",
   "archiveUnarchived": "Back on the home screen",
   "archiveDeleteAll": "Delete all",
   "archiveDeleteAllBody": "{count, plural, =1{1 archived note will move to the trash, where it stays for 30 days.} other{{count} archived notes will move to the trash, where they stay for 30 days.}}",
-  "@archiveDeleteAllBody": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@archiveDeleteAllBody": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "archiveBringBackAllBody": "{count, plural, =1{1 note will return to the home screen.} other{{count} notes will return to the home screen.}}",
-  "@archiveBringBackAllBody": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@archiveBringBackAllBody": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "archiveBringBackAll": "Unarchive all",
   "archivedAgo": "Archived {when}",
-  "@archivedAgo": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    }
-  },
+  "@archivedAgo": {"placeholders": {"when": {"type": "String"}}},
   "trashGoneIn": "{count, plural, =0{Gone for good today} =1{Gone for good tomorrow} other{Gone for good in {count} days}}",
-  "@trashGoneIn": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@trashGoneIn": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "tagsHint": "Each tag in its own colour, with how much of your library carries it. Use a tag's menu to colour, rename, merge or delete it.",
   "threadsHint": "Notes strung together into one story, read oldest first. Open a thread to follow it.",
   "threadLastActive": "Last added {when}",
-  "@threadLastActive": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    }
-  },
+  "@threadLastActive": {"placeholders": {"when": {"type": "String"}}},
   "vaultCardChecksum": "The last digit doesn’t match the rest of the number. It may still be right — check it against the card.",
   "vaultBankGuess": "Looks like {bank}",
-  "@vaultBankGuess": {
-    "placeholders": {
-      "bank": {
-        "type": "String"
-      }
-    }
-  },
+  "@vaultBankGuess": {"placeholders": {"bank": {"type": "String"}}},
   "desktopNotes": "Notes",
   "translationAutoDetect": "Auto-detect",
   "translationDetecting": "Detecting source languages…",
@@ -5340,16 +3532,7 @@
   "translationLongWarning": "This is a very long text! Translating all of it may take a while, and Nex may not be the best place for this much text. We can still continue if you like.",
   "translationTooLarge": "This text exceeds Nex’s current limit of 100,000 characters. Split it into smaller notes to translate it completely.",
   "translationProgress": "Translated {done} of {total} parts. Completed parts stay available in this session.",
-  "@translationProgress": {
-    "placeholders": {
-      "done": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
-  },
+  "@translationProgress": {"placeholders": {"done": {"type": "String"}, "total": {"type": "String"}}},
   "aiFailureNetwork": "The connection to the AI service failed. Check the connection and try again.",
   "aiFailureTimeout": "The AI service did not finish in time. Please try again; completed translation parts are kept.",
   "aiFailureRateLimit": "The AI service’s usage limit was reached. Please try later or check your provider quota.",
@@ -5363,120 +3546,33 @@
   "translationSuggestedLanguage": "A different target language was suggested because the source already uses your default language.",
   "aiEditTooLong": "This note is too long to edit in one AI request. Try a shorter text. Your original text is unchanged.",
   "briefUpdatedMinutes": "{count} min ago",
-  "@briefUpdatedMinutes": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@briefUpdatedMinutes": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "briefUpdatedHours": "{count}h ago",
-  "@briefUpdatedHours": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@briefUpdatedHours": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "briefUpdatedHoursMinutes": "{hours}h {minutes}m ago",
-  "@briefUpdatedHoursMinutes": {
-    "placeholders": {
-      "hours": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "minutes": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@briefUpdatedHoursMinutes": {"placeholders": {"hours": {"type": "int", "format": "decimalPattern"}, "minutes": {"type": "int", "format": "decimalPattern"}}},
   "briefUpdatedDaysHours": "{days}d {hours}h ago",
-  "@briefUpdatedDaysHours": {
-    "placeholders": {
-      "days": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "hours": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@briefUpdatedDaysHours": {"placeholders": {"days": {"type": "int", "format": "decimalPattern"}, "hours": {"type": "int", "format": "decimalPattern"}}},
   "briefLastUpdated": "Last updated: {when}",
-  "@briefLastUpdated": {
-    "placeholders": {
-      "when": {
-        "type": "String"
-      }
-    }
-  },
+  "@briefLastUpdated": {"placeholders": {"when": {"type": "String"}}},
   "pinModuleLoading": "Loading…",
   "pinModuleUnavailable": "Open to view",
   "pinHabitsProgress": "{done}/{total} done",
-  "@pinHabitsProgress": {
-    "placeholders": {
-      "done": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "total": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@pinHabitsProgress": {"placeholders": {"done": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
   "pinHabitsLeft": "{count} left today",
-  "@pinHabitsLeft": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@pinHabitsLeft": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "pinHabitsRest": "No habits due today",
   "pinHabitsEmpty": "Add your first habit",
   "pinWordsDue": "{count} to review",
-  "@pinWordsDue": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@pinWordsDue": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "pinWordsNew": "{count} new today",
-  "@pinWordsNew": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@pinWordsNew": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "pinWordsEmpty": "Add your first word",
   "pinOccasionsEmpty": "Add a date to remember",
   "pinOccasionInDays": "In {count} days",
-  "@pinOccasionInDays": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@pinOccasionInDays": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "pinPauseDuration": "{time} session",
-  "@pinPauseDuration": {
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
+  "@pinPauseDuration": {"placeholders": {"time": {"type": "String"}}},
   "pinCycleSetup": "Set up your cycle",
   "pinCycleLog": "Log how you feel",
   "filterUntagged": "Untagged",
@@ -5501,134 +3597,46 @@
     }
   },
   "spanMonths": "{count, plural, =1{1 month} other{{count} months}}",
-  "@spanMonths": {
-    "description": "A span in months",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@spanMonths": {"description": "A span in months", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "timelineArrange": "Group by",
-  "@timelineArrange": {
-    "description": "Home layout: what the headings over the notes are (2.7.0)"
-  },
+  "@timelineArrange": {"description": "Home layout: what the headings over the notes are (2.7.0)"},
   "timelineArrangeTime": "Time",
   "timelineArrangeType": "Kind",
   "timelineArrangeTag": "Tag",
   "timelineArrangeHint": "{by, select, type{Notes on shelves by kind, the newest few of each. Pins stay on top.} tag{Notes on shelves by tag; a note with two tags is on both. Pins stay on top.} other{Notes under days, newest first.}}",
-  "@timelineArrangeHint": {
-    "description": "One line under the Group by choice, saying what the chosen arrangement does",
-    "placeholders": {
-      "by": {
-        "type": "String"
-      }
-    }
-  },
+  "@timelineArrangeHint": {"description": "One line under the Group by choice, saying what the chosen arrangement does", "placeholders": {"by": {"type": "String"}}},
   "timelineShelfType": "{type, select, text{Writing} voice{Voice notes} photo{Media} file{Files} checklist{Checklists} link{Links} other{Notes}}",
-  "@timelineShelfType": {
-    "description": "Home heading over a shelf of one kind of note",
-    "placeholders": {
-      "type": {
-        "type": "String"
-      }
-    }
-  },
+  "@timelineShelfType": {"description": "Home heading over a shelf of one kind of note", "placeholders": {"type": {"type": "String"}}},
   "shelfSeeAll": "{count, plural, other{See all {count}}}",
-  "@shelfSeeAll": {
-    "description": "End of a home shelf that shows only its newest notes",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@shelfSeeAll": {"description": "End of a home shelf that shows only its newest notes", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "shelfSeeAllUncounted": "See all",
-  "@shelfSeeAllUncounted": {
-    "description": "End of a home shelf while a filter makes the exact count unknown"
-  },
+  "@shelfSeeAllUncounted": {"description": "End of a home shelf while a filter makes the exact count unknown"},
   "groupMoveUp": "Move up",
-  "@groupMoveUp": {
-    "description": "Move a home shelf one place up"
-  },
+  "@groupMoveUp": {"description": "Move a home shelf one place up"},
   "groupMoveDown": "Move down",
-  "@groupMoveDown": {
-    "description": "Move a home shelf one place down"
-  },
+  "@groupMoveDown": {"description": "Move a home shelf one place down"},
   "moduleRemoveFailed": "{name}'s records could not be deleted, so nothing was removed. Try again.",
-  "@moduleRemoveFailed": {
-    "description": "Banner when removing a module and deleting its data failed; the module stays",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@moduleRemoveFailed": {"description": "Banner when removing a module and deleting its data failed; the module stays", "placeholders": {"name": {"type": "String"}}},
   "aiDaySummaryMore": "{count} more",
-  "@aiDaySummaryMore": {
-    "description": "Beside the folded smart summary's arrow on the home screen: how many of its lines are folded away",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@aiDaySummaryMore": {"description": "Beside the folded smart summary's arrow on the home screen: how many of its lines are folded away", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "homeViewAsGrid": "Show as a grid",
-  "@homeViewAsGrid": {
-    "description": "Tooltip of the home screen's view switch while the notes are a list"
-  },
+  "@homeViewAsGrid": {"description": "Tooltip of the home screen's view switch while the notes are a list"},
   "homeViewAsList": "Show as a list",
-  "@homeViewAsList": {
-    "description": "Tooltip of the home screen's view switch while the notes are a grid"
-  },
+  "@homeViewAsList": {"description": "Tooltip of the home screen's view switch while the notes are a grid"},
   "cardPlay": "Play",
-  "@cardPlay": {
-    "description": "Play button on a voice note's card in the timeline (2.8.2)"
-  },
+  "@cardPlay": {"description": "Play button on a voice note's card in the timeline (2.8.2)"},
   "cardPause": "Pause",
-  "@cardPause": {
-    "description": "Pause button on a voice note's card in the timeline (2.8.2)"
-  },
+  "@cardPause": {"description": "Pause button on a voice note's card in the timeline (2.8.2)"},
   "tilePdfPages": "{count, plural, =1{1 page} other{{count} pages}}",
-  "@tilePdfPages": {
-    "description": "How many pages a PDF has, on its grid tile (2.8.2)",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@tilePdfPages": {"description": "How many pages a PDF has, on its grid tile (2.8.2)", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "tileMorePhotos": "+{count}",
-  "@tileMorePhotos": {
-    "description": "On a photo collage tile: how many more photos the note has than it shows (2.8.2)",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@tileMorePhotos": {"description": "On a photo collage tile: how many more photos the note has than it shows (2.8.2)", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "tileLinkKind": "{kind, select, video{Video} post{Post} profile{Profile} repo{Code repository} article{Article} place{Place} file{File} other{Page}}",
-  "@tileLinkKind": {
-    "description": "Under a link's site name on its grid tile: what the address points at, worked out from the address itself (2.8.3)",
-    "placeholders": {
-      "kind": {
-        "type": "String"
-      }
-    }
-  },
+  "@tileLinkKind": {"description": "Under a link's site name on its grid tile: what the address points at, worked out from the address itself (2.8.3)", "placeholders": {"kind": {"type": "String"}}},
   "moduleSettingsTitle": "Arrange tools and modules",
-  "@moduleSettingsTitle": {
-    "description": "Page where pinned tools and module order are arranged (2.8.3)"
-  },
+  "@moduleSettingsTitle": {"description": "Page where pinned tools and module order are arranged (2.8.3)"},
   "moduleSettingsTip": "Arrange",
-  "@moduleSettingsTip": {
-    "description": "Tooltip of the button that opens the arrange page (2.8.3)"
-  },
+  "@moduleSettingsTip": {"description": "Tooltip of the button that opens the arrange page (2.8.3)"},
   "moduleSettingsHome": "On your home screen",
   "moduleSettingsHomeHint": "They sit at the top of your notes. Drag to change their order.",
   "moduleSettingsHomeEmpty": "Nothing is pinned yet. Tap the pin beside a tool below and it appears at the top of your notes.",
@@ -5637,56 +3645,20 @@
   "moduleSettingsNoModules": "No modules added yet.",
   "moduleDragTip": "Drag to move",
   "modulesSummary": "{added, plural, =0{None added} other{{added} added}} · {available, plural, =0{nothing left to add} other{{available} to add}}",
-  "@modulesSummary": {
-    "description": "Under the Modules search: how many modules are added and how many can be (2.8.3)",
-    "placeholders": {
-      "added": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "available": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@modulesSummary": {"description": "Under the Modules search: how many modules are added and how many can be (2.8.3)", "placeholders": {"added": {"type": "int", "format": "decimalPattern"}, "available": {"type": "int", "format": "decimalPattern"}}},
   "moduleCategory": "{kind, select, money{Money} health{Health and habits} everyday{Everyday} work{Security and work} other{All}}",
-  "@moduleCategory": {
-    "description": "Filter chips on the Modules page (2.8.3)",
-    "placeholders": {
-      "kind": {
-        "type": "String"
-      }
-    }
-  },
+  "@moduleCategory": {"description": "Filter chips on the Modules page (2.8.3)", "placeholders": {"kind": {"type": "String"}}},
   "moduleWant": "I want this",
-  "@moduleWant": {
-    "description": "On a module that is still to come: marks it as wanted (2.8.3)"
-  },
+  "@moduleWant": {"description": "On a module that is still to come: marks it as wanted (2.8.3)"},
   "moduleWanted": "You want this",
   "moduleWantBanner": "Marked. Tell the developer too, so it comes sooner?",
   "moduleWantTell": "Tell them",
   "moduleWantIdea": "I'd like {name} in Nex.",
-  "@moduleWantIdea": {
-    "description": "Pre-filled idea sent from a wanted module (2.8.3)",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "@moduleWantIdea": {"description": "Pre-filled idea sent from a wanted module (2.8.3)", "placeholders": {"name": {"type": "String"}}},
   "remindClears": "Remove the note when done",
   "remindClearsHint": "When it is done, the note goes to Recently deleted",
   "remindClearedNotes": "{count, plural, =1{Done — the note moved to Recently deleted} other{Done — {count} notes moved to Recently deleted}}",
-  "@remindClearedNotes": {
-    "description": "After a remove-when-done reminder is answered (2.8.4)",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@remindClearedNotes": {"description": "After a remove-when-done reminder is answered (2.8.4)", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "remindClearsOnCard": "Removed when done",
   "onboardingModulesTitle": "Small tools, when you want them",
   "onboardingModulesBody": "Nex is notes first. Beside them you can add small tools — habits, birthdays, medicines, cheques and instalments, parking, gold and more. Each stays off until you add it and keeps its own data. Tap any to add it now, or later from Tools.",
@@ -5733,78 +3705,26 @@
   "toolDatesToday": "today",
   "toolDatesTomorrow": "tomorrow",
   "toolDatesIn": "{count, plural, =1{in 1 day} other{in {count} days}}",
-  "@toolDatesIn": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@toolDatesIn": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "toolDatesLate": "{count, plural, =1{1 day late} other{{count} days late}}",
-  "@toolDatesLate": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@toolDatesLate": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "toolDatesMore": "{count, plural, =1{+1 more} other{+{count} more}}",
-  "@toolDatesMore": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@toolDatesMore": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "toolDatesCount": "{title} · {count}",
-  "@toolDatesCount": {
-    "placeholders": {
-      "title": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@toolDatesCount": {"placeholders": {"title": {"type": "String"}, "count": {"type": "int", "format": "decimalPattern"}}},
   "layoutToolDates": "Tool dates",
   "tipToolDatesTitle": "Your tools' dates, on the home screen",
   "tipToolPeekTitle": "A quick look at a tool",
   "tipToolPeekBody": "Tap a pinned module for its quick view: what it holds and what is coming up, right here. Open it only when you want to change something.",
   "tipToolDatesBody": "A cheque, an instalment, a car's insurance or a fund's payment day: what is late or falls due this week appears above your notes. Money and health show only the tool's name. Turn it off in Home layout.",
   "toolDatesWhat": "{title} · {what}",
-  "@toolDatesWhat": {
-    "placeholders": {
-      "title": {
-        "type": "String"
-      },
-      "what": {
-        "type": "String"
-      }
-    }
-  },
+  "@toolDatesWhat": {"placeholders": {"title": {"type": "String"}, "what": {"type": "String"}}},
   "peekNothing": "Nothing here yet. Open it to begin.",
   "peekComing": "Coming up",
   "peekOpen": "Open {module}",
-  "@peekOpen": {
-    "placeholders": {
-      "module": {
-        "type": "String"
-      }
-    }
-  },
+  "@peekOpen": {"placeholders": {"module": {"type": "String"}}},
   "moneyToman": "{amount} toman",
-  "@moneyToman": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
+  "@moneyToman": {"placeholders": {"amount": {"type": "String"}}},
   "code": "Code",
   "codeIndent": "Indent lines",
   "codeOutdent": "Outdent lines",
@@ -5814,14 +3734,7 @@
   "chatCodeTests": "Suggest test cases for this code",
   "codeSuggestedLanguage": "Use suggested language",
   "bannerPending": "{count} in the queue",
-  "@bannerPending": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@bannerPending": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "codeShowMore": "Show more code",
   "codeShowLess": "Show less code",
   "codeLineNumbers": "Line numbers",
@@ -5830,14 +3743,7 @@
   "codeFind": "Find in code",
   "codeNoMatches": "No matches in this code",
   "codeFirstMatches": "Showing the first {count} matches",
-  "@codeFirstMatches": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
+  "@codeFirstMatches": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "codeWrap": "Wrap long lines",
   "codeHint": "Paste or type code",
   "codeLanguage": "Language",

@@ -6,6 +6,7 @@ import 'package:nex_client/widgets/checklist_capture_sheet.dart';
 import 'package:nex_core/nex_core.dart';
 
 import 'support/nex_harness.dart';
+import 'support/text_input.dart';
 
 /// The sheet's own buttons, and the drafts it comes back with: the Save
 /// double-tap race and the restored caret.
@@ -76,11 +77,11 @@ void main() {
       ),
     );
     await tester.pump();
-    final field = tester.widget<TextField>(find.byType(TextField));
-    expect(field.controller!.text, words);
+    final controller = nexInputController(tester, nexInputs());
+    expect(controller.text, words);
     // Assigning `.text` resets the selection, which the editor reads as the
     // start of the text; the sheet now carries the caret across explicitly.
-    expect(field.controller!.selection.isCollapsed, isTrue);
-    expect(field.controller!.selection.baseOffset, words.length);
+    expect(controller.selection.isCollapsed, isTrue);
+    expect(controller.selection.baseOffset, words.length);
   });
 }
