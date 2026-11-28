@@ -29,7 +29,7 @@ about the car's own dates; the grouping of assets without them is unchanged.
 
 ## Audit (upgrade pass)
 
-Maintenance is a **Soon** module; people do not have it yet, so fields may be
+Maintenance was a **Soon** module at the time of the original upgrade; fields could be
 added but nothing written may change meaning. The brief's second half — the
 car as a first-class case — was missing entirely.
 
@@ -364,8 +364,8 @@ pass — the duplicate-name refusal, the example marker, the discard guard,
 the future-day fill-up, the per-litre line, the no-quota line, the home
 group and card line, the archived note and the one-tap renewal); no file
 over 400 lines. Edits confined to `lib/modules/maintenance` and
-`test/modules/maintenance`; `module_rollout.dart` untouched, so the module
-stays **Soon**.
+`test/modules/maintenance` for the module polish. The rollout configuration
+already lists Maintenance as available; this audit does not change rollout.
 
 Earlier passes' checks are superseded: upgraded against `main` at
 `e3edff3f` (216 passed then), and the maintainer review of 2.8.4.
