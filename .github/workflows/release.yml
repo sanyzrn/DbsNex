@@ -178,6 +178,7 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
 
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
 
@@ -186,8 +187,8 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock', '.fvmrc') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-${{ runner.os }}-client-${{ hashFiles('apps/client/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-client-
 
       # Before Gradle needs it, with retries: see the same step in ci.yml.
       - name: Install the pinned Android NDK and SDK platform

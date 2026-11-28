@@ -89,6 +89,11 @@ class CiResultsTest(unittest.TestCase):
             needs["client-windows"]["result"] = result
             self.assertTrue(failures(needs))
 
+    def test_a_paused_job_cannot_be_reenabled_without_updating_the_gate(self):
+        needs = self.summary()
+        needs['client-windows']['result'] = 'success'
+        self.assertTrue(failures(needs))
+
     def test_missing_jobs_and_unknown_flags_fail(self):
         needs = self.summary()
         del needs["client-android-build"]
@@ -179,9 +184,25 @@ class WorkflowDriftTest(unittest.TestCase):
                                 f'{name} is listed as paused but its `if:` is not false')
 
     def test_every_selection_flag_is_emitted_by_the_changes_job(self):
-        block = '\n'.join(self.jobs['changes'])
         for flag in SELECTION:
-            self.assertIn(f'outputs.{flag}', block, flag)
+            self.assertIn(
+                f'      {flag}: ${{{{ steps.filter.outputs.{flag} }}}}',
+                self.jobs['changes'],
+            )
+
+    def test_job_run_conditions_agree_with_the_gate(self):
+        unselected = dict.fromkeys(SELECTION, False)
+        for name in required_jobs(unselected).keys() - set(PAUSED) - {'changes'}:
+            with self.subTest(job=name):
+                conditions = [line.strip().removeprefix('if: ') for line in self.jobs[name]
+                              if line.startswith('    if: ')]
+                self.assertEqual(len(conditions), 1)
+                actual = set(conditions[0].split(' || '))
+                expected = {
+                    f"needs.changes.outputs.{flag} == 'true'"
+                    for flag in SELECTION if required_jobs(unselected | {flag: True})[name]
+                }
+                self.assertEqual(actual, expected)
 
     def test_the_gate_still_runs_on_every_event(self):
         # `if: always()` is what makes a skipped dependency fail rather than

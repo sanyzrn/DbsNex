@@ -13,87 +13,64 @@ FLAGS = (
     'retrieval', 'sync', 'ai_delete', 'content', 'guards', 'format',
 )
 
-# Files the client suite reads as content instead of compiling: the root and
-# bundled changelogs, the archived history `whats_new_test` compares against,
-# and the guide pages `app_guide_test` parses. They are deliberately not
-# "documentation" — those tests exist because the copy can be wrong — and they
-# are deliberately not "client": a changelog line must not cost a Flutter
-# suite, an analyze pass and two Android builds.
+# These are the files read by the three content tests. Other bundled files,
+# including guide images and privacy text, are Android build inputs.
 CONTENT = (
-    r'^CHANGELOG(\.fa)?\.md$',
-    r'^docs/development/CHANGELOG[^/]*\.md$',
-    r'^apps/client/assets/CHANGELOG(\.fa)?\.md$',
-    r'^apps/client/assets/guide/',
+    r'^(?:apps/client/assets/|docs/development/)?CHANGELOG(?:\.fa)?\.md\Z',
+    r'^apps/client/assets/guide/(?:en|fa)\.md\Z',
 )
 
-# Prose and repository metadata: no product code can depend on them. Matched
-# after CONTENT, so a changelog is a content change rather than a doc one.
 DOCUMENTATION = (
-    r'^docs/',
-    r'\.md$',
-    r'^LICENSE$',
-    r'^\.gitattributes$',
-    r'^\.gitignore$',
-    # CODEOWNERS, SECURITY.md, the issue and PR templates, dependabot.yml: a
-    # workflow that reads them is not a workflow whose result changes. A
-    # custom action under .github/actions/ *is* code a workflow runs, so it is
-    # excluded here and handled with the workflows themselves.
-    r'^\.github/(?!workflows/|actions/)',
+    r'^docs/.+\.md\Z',
+    r'^docs/(?:brand|images)/.+\.(?:png|svg|webp|jpe?g)\Z',
+    r'^docs/banner\.example\.json\Z',
+    r'^(?:README\.md|CLAUDE\.md|LICENSE|\.gitignore|addons/README\.md)\Z',
+    r'^(?:apps/(?:client|backend|feedback-worker)|packages/(?:ai|core|data|ui))/README\.md\Z',
+    r'^\.github/(?:CODEOWNERS|SECURITY\.md|dependabot\.yml|pull_request_template\.md)\Z',
+    r'^\.github/(?:ISSUE_TEMPLATE|PULL_REQUEST_TEMPLATE)/[^/]+\.(?:md|ya?ml)\Z',
 )
 
-# The version, stated twice on purpose — `version_test.dart` holds the two
-# together. A bump of only these lines is a release-prep edit, not a code
-# change, and pays for the three content tests rather than the whole matrix.
-VERSION_FILES = (
-    r'^apps/client/pubspec\.yaml$',
-    r'^apps/client/lib/app_version\.dart$',
-)
-VERSION_LINE = re.compile(r'^[+-](version:|const nexAppVersion = )')
+VERSION = rb'(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)'
+VERSION_FILES = {
+    'apps/client/pubspec.yaml': re.compile(rb'^version: (' + VERSION + rb')(?=\r?$)', re.M),
+    'apps/client/lib/app_version.dart': re.compile(
+        rb"^const nexAppVersion = '(" + VERSION + rb")';(?=\r?$)", re.M,
+    ),
+}
 
-# Changes that can move an Android artifact: the build config, every pubspec
-# (plugins are resolved through them), the pinned SDK, the assets and entry
-# points that are packaged, any plugin's own platform folder, and every tool
-# the Android job runs — a script that only runs there must be able to fail
-# there. A change to, say, tools/generate_brand_assets.py is not one of them.
-ANDROID = (
-    r'^apps/client/android/',
-    # Packaged into the APK: icons, fonts, splash assets, shaders. The
-    # changelog and guide under the same tree are content and are removed
-    # before this list is consulted.
-    r'^apps/client/assets/',
-    # The ai flavor's entry point: the shipping App Bundle is built from it.
-    r'^apps/client/lib/main_ai\.dart$',
-    # A plugin's native half ships inside the app; its Dart half does not.
-    r'^packages/[^/]+/(android|ios|linux|macos|windows)/',
-    r'(^|/)pubspec\.(yaml|lock)$',
-    r'^\.fvmrc$',
-    r'^tools/(install_android_ndk|check_sqlite_assets|check_store_permissions|check_16kb_alignment|daily_nudge_native_test)',
+ANDROID_TOOLS = (
+    r'^tools/(?:install_android_ndk\.sh|check_sqlite_assets\.py|check_store_permissions\.sh'
+    r'|check_16kb_alignment\.sh|daily_nudge_native_test\.py)\Z',
+)
+ANDROID = ANDROID_TOOLS + (
+    r'^apps/client/(?:android|app_icons|assets|lib|third_party|hook)/',
+    r'^apps/client/l10n\.yaml\Z',
+    r'^packages/(?:ai|core|data|ui)/(?:lib|hook|android|ios|linux|macos|windows)/',
+    r'(^|/)pubspec\.(yaml|lock)\Z',
+    r'^\.fvmrc\Z',
 )
 
-# Every path this repository can contain. Anything else — a second app, a new
-# top-level directory, a script outside tools/ — is unknown, and an unknown
-# path runs everything: the one answer that cannot skip a check it needed.
-# `apps/` is deliberately not a prefix here, so a new app is unknown rather
-# than silently selecting nothing.
-KNOWN = (
-    r'^apps/(client|backend|feedback-worker)/',
-    r'^packages/',
-    r'^spec/',
-    r'^contracts/',
-    r'^tools/',
-    r'^docs/',
-    # Scope notes for the add-on programme; tracked prose, never code.
-    r'^addons/',
-    r'^\.github/',
-    r'^CHANGELOG(\.fa)?\.md$',
-    r'^README\.md$',
-    r'^LICENSE$',
-    r'^CLAUDE\.md$',
-    r'^Makefile$',
-    r'^\.fvmrc$',
-    r'^\.gitattributes$',
-    r'^\.gitignore$',
+# Match build and test inputs by their role. A new sibling directory or
+# configuration file has no established scope, so it takes the full path.
+# The pipeline itself includes the scripts which decide which jobs can skip.
+KNOWN_CODE = ANDROID_TOOLS + (
+    r'^apps/client/(?:android|app_icons|assets|lib|third_party|hook|ios|windows|macos|linux|test)/',
+    r'^apps/client/(?:\.gitignore|\.metadata|analysis_options\.yaml|dart_test\.yaml|l10n\.yaml|pubspec\.(?:yaml|lock))\Z',
+    r'^apps/backend/(?:src/|\.(?:dockerignore|env\.example)\Z|Dockerfile\Z|eslint\.config\.js\Z'
+    r'|package(?:-lock)?\.json\Z|tsconfig(?:\.build)?\.json\Z)',
+    r'^apps/feedback-worker/(?:src/|\.dev\.vars\.example\Z|eslint\.config\.js\Z'
+    r'|package(?:-lock)?\.json\Z|tsconfig\.json\Z|wrangler\.toml\Z)',
+    r'^packages/(?:ai|core|data|ui)/(?:lib|test|benchmark|tool|hook|android|ios|linux|macos|windows)/',
+    r'^packages/(?:ai|core|data|ui)/(?:analysis_options\.yaml|dart_test\.yaml|pubspec\.(?:yaml|lock))\Z',
+    r'^(?:spec|contracts)/[^/]+\.json\Z',
+    r'^tools/(?:check_changed_format\.py|check_sqlite_assets_test\.py|check_widget_layouts(?:_test)?\.py'
+    r'|generate_(?:app_icons|brand_assets)\.py|release_notes(?:_test)?\.py|release_pipeline_test\.py'
+    r'|require_tests(?:_test)?\.py|stress_repeat\.sh|verify_apk_updates(?:_test)?\.py)\Z',
+    r'^tools/theme_atelier/(?:emit_dart|palette_checker|palettes)\.py\Z',
+    r'^\.fvmrc\Z',
 )
+
+MODULE_ID = re.compile(r'[a-z][a-z0-9_]*')
 
 
 def _matches(patterns, path):
@@ -108,35 +85,21 @@ def select(files, event='pull_request', active=(), version_only=False):
         return dict.fromkeys(FLAGS, True) | {'module_dirs': 'all', 'format': False}
     if not files:
         return dict.fromkeys(FLAGS, True) | {'module_dirs': 'all'}
-    # A workflow edit — or a custom action one of them calls — changes what
-    # every job does, so it pays for everything.
-    if any(path.startswith(('.github/workflows/', '.github/actions/')) for path in files):
-        return dict.fromkeys(FLAGS, True) | {'module_dirs': 'all'}
-    # A path this file has never seen cannot be proved harmless: a new app, a
-    # script some job runs outside tools/, a root config the build reads.
-    # Unknown runs everything, which is what this module promises and what the
-    # empty and non-pull-request cases already do.
-    if any(not _matches(KNOWN, path) for path in files):
-        return dict.fromkeys(FLAGS, True) | {'module_dirs': 'all'}
+    content = False
+    code = []
+    for path in files:
+        if _matches(CONTENT, path):
+            content = True
+        elif _matches(KNOWN_CODE, path):
+            code.append(path)
+        elif not _matches(DOCUMENTATION, path):
+            return dict.fromkeys(FLAGS, True) | {'module_dirs': 'all'}
 
-    content = any(_matches(CONTENT, path) for path in files)
-    code = [
-        path for path in files
-        if not _matches(DOCUMENTATION, path) and not _matches(CONTENT, path)
-    ]
-    if code and version_only and all(_matches(VERSION_FILES, path) for path in code):
-        # A release-prep commit: the version and its changelog, nothing else.
+    if code and version_only and set(code) == VERSION_FILES.keys():
         code = []
+        content = True
     if not code:
-        flags = dict.fromkeys(FLAGS, False)
-        # A release-prep commit still pays for the three content tests. The
-        # version is stated twice on purpose and `version_test` is the only
-        # thing that holds the two together — a bump with no changelog edit
-        # used to select nothing at all, which is exactly the change most
-        # likely to leave them disagreeing.
-        flags['content'] = content or version_only
-        flags['module_dirs'] = ''
-        return flags
+        return dict.fromkeys(FLAGS, False) | {'content': content, 'module_dirs': ''}
 
     dart = any(_matches((r'^(apps/client|packages|spec|contracts|tools)/', r'^\.fvmrc$'), path) for path in code)
     # Specs and contracts are consumed by the client too: a changed corpus can
@@ -147,25 +110,24 @@ def select(files, event='pull_request', active=(), version_only=False):
     retrieval = any(_matches((r'^packages/(core|data)/', r'(^|/)pubspec\.(yaml|lock)$', r'^\.fvmrc$'), path) for path in code)
     sync = any(_matches((r'^packages/(core|data)/', r'^apps/backend/', r'^(spec|contracts|tools)/',
                          r'(^|/)pubspec\.(yaml|lock)$', r'^\.fvmrc$'), path) for path in code)
-    # The deletion proof only proves that `packages/ai` still analyzes without
-    # its on-device half. Every other consumer of that package is covered by
-    # flutter-ai-package, so a core or client edit no longer buys a full
-    # re-analysis of the graph.
+    # Guards check for direct runtime imports on ordinary client changes.
+    # The removal and re-analysis are needed for changes to the AI package,
+    # its entry point or the dependency resolution.
     ai_delete = any(_matches((r'^packages/ai/', r'^apps/client/lib/main_ai\.dart$',
-                              r'^packages/ai/pubspec\.(yaml|lock)$', r'^apps/client/pubspec\.(yaml|lock)$',
+                              r'^apps/client/pubspec\.(yaml|lock)$',
                               r'^\.fvmrc$', r'^tools/'), path) for path in code)
-    # Shared module helpers/platform/UI/data can reach Soon modules too. Unknown
-    # files directly under modules/ are shared, never guessed to be isolated.
-    shared = any(_matches((r'^packages/',
-                           r'^apps/client/(lib/(widgets|platform|l10n)/|test/(support|helpers)/|pubspec\.|dart_test\.yaml)',
-                           r'^\.fvmrc$'), path) for path in code)
-    shared |= any(re.search(r'^apps/client/(lib|test)/modules/[^/]+\.dart$', path) for path in code)
+    # Shared code, assets and test configuration can affect Soon modules.
+    # Only a known module directory can narrow that part of the suite.
+    shared = active is None or any(_matches((
+        r'^(packages|spec|contracts)/', r'^\.fvmrc$',
+        r'^apps/client/(?:assets/|lib/(?:widgets|platform|l10n)/|pubspec\.|dart_test\.yaml$)',
+        r'^apps/client/test/(?!modules/)(?:[^/]+/|flutter_test_config\.dart$)',
+        r'^apps/client/(?:lib|test)/modules/[^/]+$',
+    ), path) for path in code)
     changed = {m[1] for p in code if (m := re.match(r'^apps/client/(?:lib|test)/modules/([^/]+)/', p))}
-    # A common directory or a newly introduced helper must not be classified as
-    # an isolated module by its name. Only known module test folders qualify.
-    known = {p.name for p in (ROOT / 'apps/client/test/modules').glob('*') if p.is_dir()}
-    shared |= bool(changed - known)
-    dirs = 'all' if shared else ' '.join(sorted(set(active) | changed))
+    known = {p.name for p in (ROOT / 'apps/client/test/modules').glob('*')
+             if MODULE_ID.fullmatch(p.name) and p.is_dir()}
+    dirs = 'all' if shared or changed - known else ' '.join(sorted(set(active) | changed))
     return {
         'dart': dart,
         'client': client,
@@ -188,7 +150,7 @@ def _diff_names(*args):
         ['git', 'diff', '--name-only', '--no-renames', '-z', *args],
         stderr=subprocess.DEVNULL,
     )
-    return [path for path in output.decode().split('\0') if path]
+    return [path for path in os.fsdecode(output).split('\0') if path]
 
 
 def changed_files(base):
@@ -221,28 +183,41 @@ def changed_files(base):
 
 
 def version_only_change(base, files):
-    """True when the only code touched is the version, stated twice."""
-    if not base or not files:
+    """Recognize a paired version bump from regular Git blobs."""
+    if not base or not VERSION_FILES.keys() <= set(files):
         return False
-    if not all(_matches(DOCUMENTATION + CONTENT + VERSION_FILES, path) for path in files):
-        return False
-    touched = [path for path in files if _matches(VERSION_FILES, path)]
-    if not touched:
+    if not all(path in VERSION_FILES or _matches(DOCUMENTATION + CONTENT, path) for path in files):
         return False
     try:
-        # Three dots: the branch's own lines, not main's since the branch
-        # point. A branch behind main would otherwise show main's dependency
-        # line as a removal of this branch's and run the whole matrix for a
-        # version bump.
-        diff = subprocess.check_output(
-            ['git', 'diff', '-U0', f'{base}...HEAD', '--', *touched],
-            text=True, stderr=subprocess.DEVNULL,
-        )
-    except subprocess.CalledProcessError:
+        # Diff the branch's own changes. A main-only dependency edit should
+        # not obscure a version bump when inspecting an unmerged branch.
+        entries = subprocess.check_output(
+            ['git', 'diff', '--raw', '--no-abbrev', '--no-renames', '-z',
+             f'{base}...HEAD', '--', *VERSION_FILES],
+            stderr=subprocess.DEVNULL,
+        ).split(b'\0')[:-1]
+        versions = {}
+        for metadata, filename in zip(entries[::2], entries[1::2], strict=True):
+            before_mode, after_mode, before_sha, after_sha, status = metadata.split()
+            if (before_mode, after_mode, status) != (b':100644', b'100644', b'M'):
+                return False
+            path = filename.decode()
+            pattern = VERSION_FILES[path]
+            before = subprocess.check_output(['git', 'cat-file', 'blob', before_sha])
+            after = subprocess.check_output(['git', 'cat-file', 'blob', after_sha])
+            old = list(pattern.finditer(before))
+            new = list(pattern.finditer(after))
+            if len(old) != 1 or len(new) != 1:
+                return False
+            old, new = old[0], new[0]
+            if old[1] == new[1] or (
+                before[:old.start(1)], before[old.end(1):]
+            ) != (after[:new.start(1)], after[new.end(1):]):
+                return False
+            versions[path] = old[1], new[1]
+    except (subprocess.CalledProcessError, ValueError):
         return False
-    lines = [line for line in diff.splitlines()
-             if line[:1] in '+-' and not line.startswith(('+++', '---'))]
-    return bool(lines) and all(VERSION_LINE.match(line) for line in lines)
+    return versions.keys() == VERSION_FILES.keys() and len(set(versions.values())) == 1
 
 
 def summary(selected):
@@ -257,8 +232,12 @@ def main():
     parser.add_argument('--event', default=os.environ.get('CI_EVENT', 'workflow_call'))
     parser.add_argument('--base', default=os.environ.get('BASE_SHA', ''))
     args = parser.parse_args()
-    rollout = (ROOT / 'apps/client/lib/modules/module_rollout.dart').read_text()
-    active = re.findall(r"'([^']+)'", re.search(r'nexAvailableModuleIds\s*=\s*\{([^}]+)\}', rollout)[1])
+    rollout = ROOT / 'apps/client/lib/modules/module_rollout.dart'
+    active = None
+    if rollout.is_file():
+        match = re.search(r'nexAvailableModuleIds\s*=\s*\{([^}]+)\}', rollout.read_text())
+        if match and re.fullmatch(r"\s*(?:'[a-z][a-z0-9_]*'\s*,\s*)+", match[1]):
+            active = re.findall(r"'([^']+)'", match[1])
     files = changed_files(args.base)
     selected = select(files, args.event, active, version_only_change(args.base, files))
     output = '\n'.join(f'{key}={str(value).lower() if isinstance(value, bool) else value}' for key, value in selected.items()) + '\n'

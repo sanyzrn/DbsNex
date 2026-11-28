@@ -32,9 +32,7 @@ def required_jobs(selected: dict) -> dict:
         "feedback-worker": selected["backend"],
         "sync-integration": selected["sync"],
         "ai-deletion-proof": selected["ai_delete"],
-        # Paused in ci.yml: only a skip can be reported, but a failure or a
-        # cancellation still fails. `WorkflowDriftTest` holds this list to the
-        # workflow, so unpausing a job cannot leave it quietly optional.
+        # The workflow drift tests keep these jobs explicitly paused.
         **dict.fromkeys(PAUSED, False),
     }
 
@@ -48,7 +46,11 @@ def failures(needs: dict) -> list[str]:
     errors += [f"missing required dependency: {name}" for name in required if name not in needs]
     for name, job in needs.items():
         result = job.get("result")
-        allowed = ("success",) if required.get(name, True) else ("success", "skipped")
+        allowed = ("success",)
+        if name in PAUSED:
+            allowed = ("skipped",)
+        elif not required.get(name, True):
+            allowed = ("success", "skipped")
         if result not in allowed:
             errors.append(f"{name}: {result!r}; expected {' or '.join(allowed)}")
     return errors

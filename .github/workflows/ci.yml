@@ -56,21 +56,10 @@ jobs:
   # that differ from the base tip, which is what keeps a squashed-in `main` or
   # a branch that is behind it from looking like this pull request's work.
   #
-  # The classification lives in tools/ci_paths.py, where it is unit-tested
-  # against real git repositories. Two rules matter most here:
-  #
-  #   * Prose and repository metadata (docs/, *.md, LICENSE, CODEOWNERS, the
-  #     templates, dependabot.yml) select nothing. They cannot break a build.
-  #   * The changelogs, the guide and the version numbers select `content`
-  #     only: the three test files that read them, not the Flutter suite and
-  #     not an Android build. `version` is a release-preparation edit and is
-  #     detected by reading the diff of the two files that state it — and it
-  #     selects those three tests even when no changelog moved, because
-  #     `version_test` is the only thing keeping the two statements equal.
-  #
-  #   * A path the classifier has never seen selects everything. A second app,
-  #     a script outside tools/, a root configuration file: an unknown file is
-  #     not evidence that nothing important changed.
+  # tools/ci_paths.py selects focused checks for established inputs. Prose
+  # and repository metadata need only the gate, while changelogs, guide pages
+  # and a verified version bump run three content tests. Unrecognized paths
+  # and pipeline changes select the full suite.
   changes:
     name: Which areas changed
     runs-on: ubuntu-latest
@@ -88,11 +77,8 @@ jobs:
       format: ${{ steps.filter.outputs.format }}
       backend: ${{ steps.filter.outputs.backend }}
       desktop: ${{ steps.filter.outputs.desktop }}
-      # Narrower than `dart`: whether anything the APK packages, or a tool
-      # this job runs, could have changed — android/, a pubspec or the pinned
-      # SDK, a packaged asset, a plugin's native folder, the ai flavor's entry
-      # point, the APK-reading scripts. A pure Dart edit cannot break the
-      # build in a way analyze and the tests do not already catch.
+      # Production Dart, bundled assets, dependency manifests and native
+      # inputs can all affect the standard APK or the AI release bundle.
       android: ${{ steps.filter.outputs.android }}
       retrieval: ${{ steps.filter.outputs.retrieval }}
       sync: ${{ steps.filter.outputs.sync }}
@@ -153,15 +139,17 @@ jobs:
           fi
       - name: Assert core, data and ui never import nex_ai
         run: |
-          if grep -Rn --include='*.dart' "package:nex_ai/" packages/core packages/data packages/ui | grep -q .; then
+          if git grep -n 'package:nex_ai/' -- ':(glob)packages/core/**/*.dart' \
+               ':(glob)packages/data/**/*.dart' ':(glob)packages/ui/**/*.dart'; then
             echo "::error::packages/core, packages/data and packages/ui must not import package:nex_ai (09-ai.md, ADR-035)"
             exit 1
           fi
       - name: Assert the on-device runtime is only imported by the ai-flavor entry point
         run: |
-          if grep -Rn --include='*.dart' -e "package:nex_ai/nex_ai.dart" -e "package:nex_ai/src/" apps/client \
-              | grep -v '^apps/client/lib/main_ai\.dart:' | grep -q .; then
-            echo "::error::only apps/client/lib/main_ai.dart may import package:nex_ai/nex_ai.dart; the client uses package:nex_ai/cloud.dart (ADR-031, ADR-035)"
+          if git grep -n -e 'package:nex_ai/nex_ai.dart' -e 'package:nex_ai/src/' \
+               -e 'package:flutter_litert_lm/' -- ':(glob)apps/client/**/*.dart' \
+               ':(exclude)apps/client/lib/main_ai.dart'; then
+            echo "::error::only apps/client/lib/main_ai.dart may import the on-device AI runtime (ADR-031, ADR-035)"
             exit 1
           fi
       # The removal step in ai-deletion-proof strips the plugin with sed —
@@ -213,15 +201,13 @@ jobs:
       # leg skips the install.
       - if: matrix.package == 'data'
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
-      # Keyed by the lockfiles, not only by the manifests: a resolved version
-      # is what `dart pub get` actually restores, and a key that ignored it
-      # missed on every lockfile-only update while the restore prefix handed
-      # back a cache without the package that had just moved.
+      # Give each dependency graph its own key so a smaller job cannot save
+      # an incomplete cache under the key used by a different graph.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock', '.fvmrc') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-${{ runner.os }}-${{ matrix.package }}-${{ hashFiles(format('packages/{0}/pubspec.lock', matrix.package), '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-${{ matrix.package }}-
       # Proves packages/core and packages/data carry zero Flutter dependency:
       # this job never installs Flutter.
       #
@@ -256,8 +242,8 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock', '.fvmrc') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-${{ runner.os }}-data-${{ hashFiles('packages/data/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-data-
       - run: dart pub get
       - run: dart test --tags budget --run-skipped test/retrieval_budget_test.dart
 
@@ -287,11 +273,12 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock', '.fvmrc') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-${{ runner.os }}-client-${{ hashFiles('apps/client/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-client-
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
       - run: flutter pub get
       - run: flutter test --tags budget --run-skipped test/performance/timeline_budget_test.dart
@@ -313,11 +300,12 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock', '.fvmrc') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-${{ runner.os }}-ai-${{ hashFiles('packages/ai/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-ai-
       # nex_data is a dev dependency here (enrichment_test drives a real
       # repository), and it reaches package:sqlite3 through FFI.
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
@@ -341,11 +329,12 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock', '.fvmrc') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-${{ runner.os }}-ui-${{ hashFiles('packages/ui/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-ui-
       - run: flutter pub get
       # A design system must not carry native FFI, archive or HTTP transitively.
       - name: Assert the design system has no storage dependency
@@ -386,11 +375,12 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock', '.fvmrc') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-${{ runner.os }}-client-${{ hashFiles('apps/client/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-client-
       - run: flutter pub get
       - name: Generated localizations match the pinned SDK
         if: needs.changes.outputs.client == 'true'
@@ -473,12 +463,13 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock', '.fvmrc') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-${{ runner.os }}-client-${{ hashFiles('apps/client/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-client-
       - run: flutter pub get
       # The JVM policy for Daily Nudge. It compiles two Java files with javac,
       # so it needs a JDK and nothing from Gradle — it lives here because it
@@ -547,8 +538,7 @@ jobs:
     #
     # What this costs while paused: nothing verifies the Windows build or the
     # Windows-only platform tests, so desktop regressions land unnoticed.
-    # To re-enable, restore the previous condition in place of `false` on the
-    # `if:` below — "CI green" already accepts a skipped job:
+    # To re-enable, restore the previous condition and update the CI gate:
     #   if: needs.changes.outputs.desktop == 'true'
     #
     # Keep the reviewed Windows image pinned while desktop remains paused.
@@ -597,7 +587,7 @@ jobs:
     # are exactly what this job existed to keep honest. Expect to fix some
     # accumulated drift whenever iOS comes back.
     #
-    # To re-enable, restore the previous condition in place of `false`:
+    # To re-enable, set the new condition and update the CI gate:
     #   if: github.event_name == 'push' || github.event_name == 'workflow_call'
     if: false
     defaults:
@@ -761,8 +751,8 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock', '.fvmrc') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-${{ runner.os }}-data-${{ hashFiles('packages/data/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-data-
 
       - name: Install backend deps
         working-directory: apps/backend
@@ -879,9 +869,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: changes
-    # Only packages/ai and the two files that bind it can change the answer;
-    # every other consumer is already analyzed by flutter-ai-package, and this
-    # job re-analyzing the whole graph for a core edit was pure duplication.
+    # Rerun removal and analysis when the AI package, its binding or its
+    # dependency resolution changes. The cheap guards check other imports.
     if: needs.changes.outputs.ai_delete == 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -890,11 +879,12 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+          pub-cache: false
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock', '.fvmrc') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-${{ runner.os }}-ai-deletion-${{ hashFiles('**/pubspec.lock', '.fvmrc') }}
+          restore-keys: pub-${{ runner.os }}-ai-deletion-
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
 
       - name: Remove the on-device runtime and the ai-flavor entry point
@@ -905,7 +895,7 @@ jobs:
                 apps/client/lib/main_ai.dart
           grep -Rl "package:nex_ai/nex_ai.dart" packages/ai/test | xargs -r rm
           sed -i '/^  flutter_litert_lm: /d' packages/ai/pubspec.yaml
-          if grep -Rn "package:flutter_litert_lm/" packages/ai/lib apps/client/lib | grep -q .; then
+          if git grep -n 'package:flutter_litert_lm/' -- packages/ai/lib apps/client/lib; then
             echo "::error::something outside the removed files still reaches flutter_litert_lm"
             exit 1
           fi

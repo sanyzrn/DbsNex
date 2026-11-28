@@ -89,7 +89,13 @@ class PathsTest(unittest.TestCase):
         # A second app, a script outside tools/, a root config: nothing here can
         # be proved harmless, so nothing may be skipped for it.
         for path in ('apps/desktop/linux/main.cc', 'scripts/deploy.sh',
-                     'analysis_options.yaml', 'melos.yaml', 'apps/store/README.md'):
+                     'analysis_options.yaml', 'melos.yaml', 'apps/store/README.md',
+                     'apps/client/build_tools/compile.dart', 'apps/client/config.yaml',
+                     'apps/backend/.npmrc', 'apps/feedback-worker/new-runtime/config.toml',
+                     'packages/new_package/README.md', 'packages/data/build.yaml',
+                     'tools/check_store_permissions_extra.sh', 'tools/theme_atelier/new_tool.py',
+                     'docs/scripts/generate.py', 'addons/new_tool.dart', 'spec/new/tool.py',
+                     '.github/scripts/prepare.sh', '.gitattributes', 'Makefile', 'README.md\n'):
             value = select([path], active=ACTIVE)
             self.assertTrue(all(value[k] for k in FLAGS), path)
             self.assertEqual(value['module_dirs'], 'all', path)
@@ -115,22 +121,56 @@ class PathsTest(unittest.TestCase):
         self.assertFalse(select(['packages/core/lib/sync/a.dart'])['ai_delete'])
         self.assertFalse(select(['packages/ui/lib/a.dart'])['ai_delete'])
 
-    def test_android_build_follows_android_inputs_only(self):
-        for path in ('apps/client/android/app/build.gradle.kts', 'apps/client/pubspec.lock',
-                     'packages/ui/pubspec.yaml', 'tools/install_android_ndk.sh',
-                     # Packaged into the APK.
-                     'apps/client/assets/fonts/Vazirmatn.ttf',
-                     # A plugin's native half ships inside the app.
-                     'packages/ui/android/src/main/kotlin/Plugin.kt',
-                     # The JVM policy runs inside the Android job.
-                     'tools/daily_nudge_native_test.py',
-                     # The ai flavor's entry point builds the shipping bundle.
-                     'apps/client/lib/main_ai.dart'):
-            self.assertTrue(select([path])['android'], path)
-        for path in ('apps/client/lib/main.dart', 'tools/generate_app_icons.py',
-                     # Content, not an APK input.
-                     'apps/client/assets/CHANGELOG.md'):
-            self.assertFalse(select([path])['android'], path)
+    def test_android_build_follows_production_inputs(self):
+        for path in (
+            'apps/client/android/app/build.gradle.kts',
+            'apps/client/pubspec.lock',
+            'apps/client/lib/main.dart',
+            'apps/client/lib/main_ai.dart',
+            'apps/client/lib/screens/home.dart',
+            'apps/client/lib/l10n/app_fa.arb',
+            'apps/client/l10n.yaml',
+            'apps/client/assets/fonts/Vazirmatn.ttf',
+            'apps/client/assets/guide/images/home.webp',
+            'apps/client/assets/privacy/fa.md',
+            'apps/client/assets/new-guide.md',
+            'apps/client/third_party/sqlite/sqlite3.c',
+            'packages/core/lib/note.dart',
+            'packages/data/lib/data.dart',
+            'packages/ui/lib/widget.dart',
+            'packages/ai/lib/adapter.dart',
+            'packages/data/hook/build.dart',
+            'packages/ui/android/src/main/kotlin/Plugin.kt',
+            'packages/ui/pubspec.yaml',
+            'tools/install_android_ndk.sh',
+            'tools/daily_nudge_native_test.py',
+        ):
+            with self.subTest(path=path):
+                value = select([path], active=ACTIVE)
+                self.assertTrue(value['android'], path)
+                self.assertTrue(value['client'] or path.startswith('tools/'), path)
+
+    def test_test_only_and_content_changes_skip_android(self):
+        for path in (
+            'apps/client/test/widget_test.dart',
+            'apps/client/test/fixtures/fixture.md',
+            'apps/client/dart_test.yaml',
+            'packages/core/test/note_test.dart',
+            'packages/data/tool/database_probe.dart',
+            'tools/generate_app_icons.py',
+            'apps/client/assets/CHANGELOG.md',
+            'apps/client/assets/guide/en.md',
+        ):
+            with self.subTest(path=path):
+                self.assertFalse(select([path], active=ACTIVE)['android'])
+        self.assertTrue(select(['apps/client/test/fixtures/fixture.md'], active=ACTIVE)['client'])
+
+    def test_uncertain_module_selection_runs_all_module_tests(self):
+        for path in ('apps/client/test/flutter_test_config.dart', 'apps/client/test/fixtures/sample.md',
+                     'apps/client/assets/privacy/fa.md', 'contracts/nex-portable-v1.json'):
+            with self.subTest(path=path):
+                self.assertEqual(select([path], active=ACTIVE)['module_dirs'], 'all')
+        self.assertEqual(select(['apps/client/lib/screens/home.dart'], active=None)['module_dirs'], 'all')
 
 
 class ChangedFilesTest(unittest.TestCase):
@@ -260,6 +300,80 @@ class ChangedFilesTest(unittest.TestCase):
                 (client / 'pubspec.yaml').write_text('name: nex\nversion: 2.9.6\ndeps: 1\n')
                 self.git('commit', '-qam', 'dep', cwd=root)
                 self.assertFalse(version_only_change(base, changed_files(base)))
+            finally:
+                os.chdir(old)
+
+
+    def test_version_shortcut_rejects_any_other_change_in_the_version_files(self):
+        cases = (
+            ('one file only', 'name: nex\nversion: 2.9.6\n', None),
+            ('mismatched versions', 'name: nex\nversion: 2.9.6\n', "const nexAppVersion = '2.9.7';\n"),
+            ('code after declaration', 'name: nex\nversion: 2.9.6\n',
+             "const nexAppVersion = '2.9.6'; const added = 1;\n"),
+            ('duplicate YAML key', 'name: nex\nversion: 2.9.6\nversion: 2.9.7\n', "const nexAppVersion = '2.9.6';\n"),
+            ('invalid YAML version', 'name: nex\nversion: 2.9.6: invalid\n', "const nexAppVersion = '2.9.6';\n"),
+            ('build suffix', 'name: nex\nversion: 2.9.6+1\n', "const nexAppVersion = '2.9.6';\n"),
+            ('file deletion', '', "const nexAppVersion = '2.9.6';\n"),
+            ('mode change', 'name: nex\nversion: 2.9.6\n', "const nexAppVersion = '2.9.6';\n"),
+            ('type change', 'name: nex\nversion: 2.9.6\n', "const nexAppVersion = '2.9.6';\n"),
+        )
+        old = os.getcwd()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            os.chdir(root)
+            try:
+                self.git('init', '-q', cwd=root)
+                client = root / 'apps/client'
+                pubspec = client / 'pubspec.yaml'
+                dart = client / 'lib/app_version.dart'
+                dart.parent.mkdir(parents=True)
+                pubspec.write_text('name: nex\nversion: 2.9.5\n')
+                dart.write_text("const nexAppVersion = '2.9.5';\n")
+                self.git('add', '.', cwd=root)
+                self.git('commit', '-qm', 'base', cwd=root)
+                base = self.git('rev-parse', 'HEAD', cwd=root)
+
+                for case, manifest, constant in cases:
+                    with self.subTest(case=case):
+                        self.git('reset', '--hard', base, cwd=root)
+                        if manifest:
+                            pubspec.write_text(manifest)
+                        else:
+                            pubspec.unlink()
+                        if constant is not None:
+                            dart.write_text(constant)
+                        if case == 'type change':
+                            dart.unlink()
+                            dart.symlink_to(pubspec)
+                        self.git('add', '-A', cwd=root)
+                        if case == 'mode change':
+                            self.git('update-index', '--chmod=+x', str(dart), cwd=root)
+                        self.git('commit', '-qm', case, cwd=root)
+                        files = changed_files(base)
+                        shortcut = version_only_change(base, files)
+                        self.assertFalse(shortcut)
+                        self.assertTrue(select(files, version_only=shortcut)['android'])
+            finally:
+                os.chdir(old)
+
+    def test_renaming_scopes_reports_both_paths(self):
+        old = os.getcwd()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            os.chdir(root)
+            try:
+                self.git('init', '-q', cwd=root)
+                source = root / 'apps/client/lib/old.dart'
+                source.parent.mkdir(parents=True)
+                source.write_text('const before = 1;\n')
+                self.git('add', '.', cwd=root)
+                self.git('commit', '-qm', 'base', cwd=root)
+                source.rename(root / 'README.md')
+                self.git('add', '-A', cwd=root)
+                self.git('commit', '-qm', 'rename', cwd=root)
+                files = changed_files('HEAD^')
+                self.assertCountEqual(files, ['apps/client/lib/old.dart', 'README.md'])
+                self.assertTrue(select(files)['android'])
             finally:
                 os.chdir(old)
 
